@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/constrct.h,v 1.3 2001/08/11 21:04:27 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                  CONSTRUCT MODULE                   */
    /*******************************************************/
@@ -18,25 +16,9 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
 /*************************************************************/
-
-#ifndef _H_setup
-#include "setup.h"
-#endif
-
-#if FUZZY_DEFTEMPLATES
-/* Due to a circular set of definitions we need to do this
-   symbol.h includes fuzzyval.h which includes tmpltdef.h
-   which includes constrct.h => problem!!
-   This effectively makes the include of construct.h an
-   include of symbol.h to make sure tmpltdef is included
-   before construct!
-*/
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#endif
-
 
 #ifndef _H_constrct
 
@@ -70,16 +52,16 @@ struct construct
   {
    char *constructName;
    char *pluralName;
-   int (*parseFunction)(char *);
-   void *(*findFunction)(char *);
+   int (*parseFunction)(void *,char *);
+   void *(*findFunction)(void *,char *);
    struct symbolHashNode *(*getConstructNameFunction)(struct constructHeader *);
-   char *(*getPPFormFunction)(struct constructHeader *);
+   char *(*getPPFormFunction)(void *,struct constructHeader *);
    struct defmoduleItemHeader *(*getModuleItemFunction)(struct constructHeader *);
-   void *(*getNextItemFunction)(void *);
+   void *(*getNextItemFunction)(void *,void *);
    void (*setNextItemFunction)(struct constructHeader *,struct constructHeader *);
-   BOOLEAN (*isConstructDeletableFunction)(void *);
-   int (*deleteFunction)(void *);
-   void (*freeFunction)(void *);
+   intBool (*isConstructDeletableFunction)(void *,void *);
+   int (*deleteFunction)(void *,void *);
+   void (*freeFunction)(void *,void *);
    struct construct *next;
   };
 
@@ -89,6 +71,30 @@ struct construct
 #ifndef _H_scanner
 #include "scanner.h"
 #endif
+
+#define CONSTRUCT_DATA 42
+
+struct constructData
+  { 
+   int ClearReadyInProgress;
+   int ClearInProgress;
+   int ResetReadyInProgress;
+   int ResetInProgress;
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+   struct callFunctionItem   *ListOfSaveFunctions;
+   intBool PrintWhileLoading;
+   unsigned WatchCompilations;
+#endif
+   struct construct *ListOfConstructs;
+   struct callFunctionItem *ListOfResetFunctions;
+   struct callFunctionItem *ListOfClearFunctions;
+   struct callFunctionItem *ListOfClearReadyFunctions;
+   int Executing;
+   int (*BeforeResetFunction)(void *);
+   int CheckSyntaxMode;
+  };
+
+#define ConstructData(theEnv) ((struct constructData *) GetEnvironmentData(theEnv,CONSTRUCT_DATA))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -100,51 +106,63 @@ struct construct
 #define LOCALE extern
 #endif
 
-   LOCALE int                            Save(char *);
-   LOCALE BOOLEAN                        AddSaveFunction(char *,void (*)(char *),int);
-   LOCALE BOOLEAN                        RemoveSaveFunction(char *);
-   LOCALE void                           Reset(void);
-   LOCALE BOOLEAN                        AddResetFunction(char *,void (*)(void),int);
-   LOCALE BOOLEAN                        RemoveResetFunction(char *);
-   LOCALE void                           Clear(void);
-   LOCALE BOOLEAN                        AddClearReadyFunction(char *,int (*)(void),int);
-   LOCALE BOOLEAN                        RemoveClearReadyFunction(char *);
-   LOCALE BOOLEAN                        AddClearFunction(char *,void (*)(void),int);
-   LOCALE BOOLEAN                        RemoveClearFunction(char *);
-   LOCALE struct construct              *AddConstruct(char *,char *,int (*)(char *),
-                                                      void *(*)(char *),
-                                                      SYMBOL_HN *(*)(struct constructHeader *),
-                                                      char *(*)(struct constructHeader *),
-                                                      struct defmoduleItemHeader *(*)(struct constructHeader *),
-                                                      void *(*)(void *),
-                                                      void (*)(struct constructHeader *,struct constructHeader *),
-                                                      BOOLEAN (*)(void *),
-                                                      int (*)(void *),
-                                                      void (*)(void *));
-   LOCALE int                            RemoveConstruct(char *);
-   LOCALE void                           SetCompilationsWatch(int);
-   LOCALE BOOLEAN                        GetCompilationsWatch(void);
-   LOCALE void                           SetPrintWhileLoading(BOOLEAN);
-   LOCALE BOOLEAN                        GetPrintWhileLoading(void);
-   LOCALE int                            ExecutingConstruct(void);
-   LOCALE void                           SetExecutingConstruct(int);
-   LOCALE void                           InitializeConstructs(void);
-   LOCALE int                          (*SetBeforeResetFunction(int (*)(void)))(void);
-   LOCALE void                           OldGetConstructList(DATA_OBJECT *,
-                                                          void *(*)(void *),
-                                                          char *(*)(void *));
-   LOCALE void                           ResetCommand(void);
-   LOCALE void                           ClearCommand(void);
-   LOCALE BOOLEAN                        ClearReady(void);
-   LOCALE struct construct              *FindConstruct(char *);
-   LOCALE void                           DeinstallConstructHeader(struct constructHeader *);
-
-#ifndef _CONSTRCT_SOURCE_
-   extern int                            ClearInProgress;
-   extern int                            ClearReadyInProgress;
-   extern int                            ResetInProgress;
-   extern int                            ResetReadyInProgress;
+#if ENVIRONMENT_API_ONLY
+#define Clear(theEnv) EnvClear(theEnv)
+#define Reset(theEnv) EnvReset(theEnv)
+#define Save(theEnv,a) EnvSave(theEnv,a)
+#define RemoveClearFunction(theEnv,a) EnvRemoveClearFunction(theEnv,a)
+#define RemoveResetFunction(theEnv,a) EnvRemoveResetFunction(theEnv,a)
+#else
+#define Clear() EnvClear(GetCurrentEnvironment())
+#define Reset() EnvReset(GetCurrentEnvironment())
+#define Save(a) EnvSave(GetCurrentEnvironment(),a)
+#define RemoveClearFunction(a) EnvRemoveClearFunction(GetCurrentEnvironment(),a)
+#define RemoveResetFunction(a) EnvRemoveResetFunction(GetCurrentEnvironment(),a)
 #endif
+
+   LOCALE void                           InitializeConstructData(void *);
+   LOCALE int                            EnvSave(void *,char *);
+   LOCALE intBool                        AddSaveFunction(void *,char *,void (*)(void *,void *,char *),int);
+   LOCALE intBool                        RemoveSaveFunction(void *,char *);
+   LOCALE void                           EnvReset(void *);
+   LOCALE intBool                        EnvAddResetFunction(void *,char *,void (*)(void *),int);
+   LOCALE intBool                        AddResetFunction(char *,void (*)(void),int);
+   LOCALE intBool                        EnvRemoveResetFunction(void *,char *);
+   LOCALE void                           EnvClear(void *);
+   LOCALE intBool                        AddClearReadyFunction(void *,char *,int (*)(void *),int);
+   LOCALE intBool                        RemoveClearReadyFunction(void *,char *);
+   LOCALE intBool                        EnvAddClearFunction(void *,char *,void (*)(void *),int);
+   LOCALE intBool                        AddClearFunction(char *,void (*)(void),int);
+   LOCALE intBool                        EnvRemoveClearFunction(void *,char *);
+   LOCALE struct construct              *AddConstruct(void *,char *,char *,
+                                                      int (*)(void *,char *),
+                                                      void *(*)(void *,char *),
+                                                      SYMBOL_HN *(*)(struct constructHeader *),
+                                                      char *(*)(void *,struct constructHeader *),
+                                                      struct defmoduleItemHeader *(*)(struct constructHeader *),
+                                                      void *(*)(void *,void *),
+                                                      void (*)(struct constructHeader *,struct constructHeader *),
+                                                      intBool (*)(void *,void *),
+                                                      int (*)(void *,void *),
+                                                      void (*)(void *,void *));
+   LOCALE int                            RemoveConstruct(void *,char *);
+   LOCALE void                           SetCompilationsWatch(void *,unsigned);
+   LOCALE unsigned                       GetCompilationsWatch(void *);
+   LOCALE void                           SetPrintWhileLoading(void *,intBool);
+   LOCALE intBool                        GetPrintWhileLoading(void *);
+   LOCALE int                            ExecutingConstruct(void *);
+   LOCALE void                           SetExecutingConstruct(void *,int);
+   LOCALE void                           InitializeConstructs(void *);
+   LOCALE int                          (*SetBeforeResetFunction(void *,int (*)(void *)))(void *);
+   LOCALE void                           OldGetConstructList(void *,DATA_OBJECT *,
+                                                          void *(*)(void *,void *),
+                                                          char *(*)(void *,void *));
+   LOCALE void                           ResetCommand(void *);
+   LOCALE void                           ClearCommand(void *);
+   LOCALE intBool                        ClearReady(void *);
+   LOCALE struct construct              *FindConstruct(void *,char *);
+   LOCALE void                           DeinstallConstructHeader(void *,struct constructHeader *);
+   LOCALE void                           DestroyConstructHeader(void *,struct constructHeader *);
 
 #endif
 

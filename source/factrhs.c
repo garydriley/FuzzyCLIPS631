@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factrhs.c,v 1.3 2001/08/11 21:05:46 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.21  06/15/03            */
    /*                                                     */
    /*            FACT RHS PATTERN PARSER MODULE           */
    /*******************************************************/
@@ -41,11 +39,12 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factrhs.c,v 1.3 2001/08/11
 #if DEFTEMPLATE_CONSTRUCT
 
 #include "constant.h"
-#include "prntutil.h"
+#include "envrnmnt.h"
 #include "extnfunc.h"
-#include "pattern.h"
 #include "modulutl.h"
 #include "modulpsr.h"
+#include "pattern.h"
+#include "prntutil.h"
 #include "cstrcpsr.h"
 
 #if BLOAD_AND_BSAVE || BLOAD || BLOAD_ONLY
@@ -59,10 +58,8 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factrhs.c,v 1.3 2001/08/11
 #include "strngrtr.h"
 #include "router.h"
 
-#include "factrhs.h"
-
 #if FUZZY_DEFTEMPLATES 
-#include "rulepsr.h"
+//#include "rulepsr.h"
 #endif
 
 #if CERTAINTY_FACTORS || FUZZY_DEFTEMPLATES 
@@ -73,13 +70,14 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factrhs.c,v 1.3 2001/08/11
 #include "cfdef.h"
 #endif
 
+#include "factrhs.h"
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
 #if RUN_TIME || BLOAD_ONLY || BLOAD || BLOAD_AND_BSAVE
-   static void                       NoSuchTemplateError(char *);
+   static void                       NoSuchTemplateError(void *,char *);
 #endif
 
 #if (! RUN_TIME)
@@ -92,6 +90,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factrhs.c,v 1.3 2001/08/11
 /*   wrapped around all of the assert commands.                       */
 /**********************************************************************/
 globle struct expr *BuildRHSAssert(
+  void *theEnv,
   char *logicalName,
   struct token *theToken,
   int *error,
@@ -100,6 +99,7 @@ globle struct expr *BuildRHSAssert(
   char *whereParsed)
   {
    struct expr *lastOne, *nextOne, *assertList, *stub;
+
    *error = FALSE;
 
    /*===============================================================*/
@@ -116,7 +116,7 @@ globle struct expr *BuildRHSAssert(
          if (atLeastOne)
            {
             *error = TRUE;
-            SyntaxErrorMessage(whereParsed);
+            SyntaxErrorMessage(theEnv,whereParsed);
            }
          return(NULL);
         }
@@ -127,13 +127,13 @@ globle struct expr *BuildRHSAssert(
    /*================================================*/
 
    lastOne = assertList = NULL;
-   while ((nextOne = GetRHSPattern(logicalName,theToken,
+   while ((nextOne = GetRHSPattern(theEnv,logicalName,theToken,
                                    error,FALSE,readFirstParen,
                                    TRUE,RPAREN)) != NULL)
      {
-      PPCRAndIndent();
+      PPCRAndIndent(theEnv);
 
-      stub = GenConstant(FCALL,(void *) FindFunction("assert"));
+      stub = GenConstant(theEnv,FCALL,(void *) FindFunction(theEnv,"assert"));
       stub->argList = nextOne;
       nextOne = stub;
 
@@ -152,7 +152,7 @@ globle struct expr *BuildRHSAssert(
 
    if (*error)
      {
-      ReturnExpression(assertList);
+      ReturnExpression(theEnv,assertList);
       return(NULL);
      }
 
@@ -162,9 +162,9 @@ globle struct expr *BuildRHSAssert(
 
    if (theToken->type == RPAREN)
      {
-      PPBackup();
-      PPBackup();
-      SavePPBuffer(")");
+      PPBackup(theEnv);
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv,")");
      }
 
    /*==============================================================*/
@@ -177,7 +177,7 @@ globle struct expr *BuildRHSAssert(
       if (atLeastOne)
         {
          *error = TRUE;
-         SyntaxErrorMessage(whereParsed);
+         SyntaxErrorMessage(theEnv,whereParsed);
         }
 
       return(NULL);
@@ -190,7 +190,7 @@ globle struct expr *BuildRHSAssert(
 
    if (assertList->nextArg != NULL)
      {
-      stub = GenConstant(FCALL,(void *) FindFunction("progn"));
+      stub = GenConstant(theEnv,FCALL,(void *) FindFunction(theEnv,"progn"));
       stub->argList = assertList;
       assertList = stub;
      }
@@ -211,6 +211,7 @@ globle struct expr *BuildRHSAssert(
 /*   occurs, then the error flag passed as an argument is set. */
 /***************************************************************/
 globle struct expr *GetRHSPattern(
+  void *theEnv,
   char *readSource,
   struct token *tempToken,
   int *error,
@@ -232,7 +233,7 @@ globle struct expr *GetRHSPattern(
 
    *error = FALSE;
 
-   if (readFirstParen) GetToken(readSource,tempToken);
+   if (readFirstParen) GetToken(theEnv,readSource,tempToken);
 
    if (checkFirstParen)
      {
@@ -240,7 +241,7 @@ globle struct expr *GetRHSPattern(
 
       if (tempToken->type != LPAREN)
         {
-         SyntaxErrorMessage("RHS patterns");
+         SyntaxErrorMessage(theEnv,"RHS patterns");
          *error = TRUE;
          return(NULL);
         }
@@ -251,17 +252,17 @@ globle struct expr *GetRHSPattern(
    /* (but not = or : which have special significance).    */
    /*======================================================*/
 
-   GetToken(readSource,tempToken);
+   GetToken(theEnv,readSource,tempToken);
    if (tempToken->type != SYMBOL)
      {
-      SyntaxErrorMessage("first field of a RHS pattern");
+      SyntaxErrorMessage(theEnv,"first field of a RHS pattern");
       *error = TRUE;
       return(NULL);
      }
    else if ((strcmp(ValueToString(tempToken->value),"=") == 0) ||
             (strcmp(ValueToString(tempToken->value),":") == 0))
      {
-      SyntaxErrorMessage("first field of a RHS pattern");
+      SyntaxErrorMessage(theEnv,"first field of a RHS pattern");
       *error = TRUE;
       return(NULL);
      }
@@ -272,9 +273,9 @@ globle struct expr *GetRHSPattern(
 
    templateName = (struct symbolHashNode *) tempToken->value;
 
-   if (ReservedPatternSymbol(ValueToString(templateName),NULL))
+   if (ReservedPatternSymbol(theEnv,ValueToString(templateName),NULL))
      {
-      ReservedPatternSymbolErrorMsg(ValueToString(templateName),"a relation name");
+      ReservedPatternSymbolErrorMsg(theEnv,ValueToString(templateName),"a relation name");
       *error = TRUE;
       return(NULL);
      }
@@ -285,7 +286,7 @@ globle struct expr *GetRHSPattern(
 
    if (FindModuleSeparator(ValueToString(templateName)))
      {
-      IllegalModuleSpecifierMessage();
+      IllegalModuleSpecifierMessage(theEnv);
 
       *error = TRUE;
       return(NULL);
@@ -298,12 +299,12 @@ globle struct expr *GetRHSPattern(
    /*=============================================================*/
 
    theDeftemplate = (struct deftemplate *)
-                    FindImportedConstruct("deftemplate",NULL,ValueToString(templateName),
+                    FindImportedConstruct(theEnv,"deftemplate",NULL,ValueToString(templateName),
                                           &count,TRUE,NULL);
 
    if (count > 1)
      {
-      AmbiguousReferenceErrorMessage("deftemplate",ValueToString(templateName));
+      AmbiguousReferenceErrorMessage(theEnv,"deftemplate",ValueToString(templateName));
       *error = TRUE;
       return(NULL);
      }
@@ -317,27 +318,27 @@ globle struct expr *GetRHSPattern(
 #if (! BLOAD_ONLY) && (! RUN_TIME)
      {
 #if BLOAD || BLOAD_AND_BSAVE
-      if ((Bloaded()) && (! CheckSyntaxMode))
+      if ((Bloaded(theEnv)) && (! ConstructData(theEnv)->CheckSyntaxMode))
         {
-         NoSuchTemplateError(ValueToString(templateName));
+         NoSuchTemplateError(theEnv,ValueToString(templateName));
          *error = TRUE;
          return(NULL);
         }
 #endif
 #if DEFMODULE_CONSTRUCT
-      if (FindImportExportConflict("deftemplate",((struct defmodule *) GetCurrentModule()),ValueToString(templateName)))
+      if (FindImportExportConflict(theEnv,"deftemplate",((struct defmodule *) EnvGetCurrentModule(theEnv)),ValueToString(templateName)))
         {
-         ImportExportConflictMessage("implied deftemplate",ValueToString(templateName),NULL,NULL);
+         ImportExportConflictMessage(theEnv,"implied deftemplate",ValueToString(templateName),NULL,NULL);
          *error = TRUE;
          return(NULL);
         }
 #endif
-      if (! CheckSyntaxMode)
-        { theDeftemplate = CreateImpliedDeftemplate((SYMBOL_HN *) templateName,TRUE); }
+      if (! ConstructData(theEnv)->CheckSyntaxMode)
+        { theDeftemplate = CreateImpliedDeftemplate(theEnv,(SYMBOL_HN *) templateName,TRUE); }
      }
 #else
     {
-     NoSuchTemplateError(ValueToString(templateName));
+     NoSuchTemplateError(theEnv,ValueToString(templateName));
      *error = TRUE;
      return(NULL);
     }
@@ -350,33 +351,34 @@ globle struct expr *GetRHSPattern(
 
    if ((theDeftemplate != NULL) && (theDeftemplate->implied == FALSE))
      {
-      firstOne = GenConstant(DEFTEMPLATE_PTR,theDeftemplate);
+      firstOne = GenConstant(theEnv,DEFTEMPLATE_PTR,theDeftemplate);
 #if FUZZY_DEFTEMPLATES 
       if (theDeftemplate->fuzzyTemplate != NULL)
-         firstOne->nextArg = ParseAssertFuzzyFact(readSource,tempToken,
+        {
+         firstOne->nextArg = ParseAssertFuzzyFact(theEnv,readSource,tempToken,
                                               error,endType,
                                               constantsOnly,theDeftemplate,
                                               TRUE);
+        }
       else
 #endif
-
-      firstOne->nextArg = ParseAssertTemplate(readSource,tempToken,
+      firstOne->nextArg = ParseAssertTemplate(theEnv,readSource,tempToken,
                                               error,endType,
                                               constantsOnly,theDeftemplate);
       if (*error)
         {
-         ReturnExpression(firstOne);
+         ReturnExpression(theEnv,firstOne);
          firstOne = NULL;
         }
-
+        
 #if CERTAINTY_FACTORS 
       else
         {
           /* if certaintly factors allowed then the next item after a fact
              specifier COULD be a certainty factor spec --- CF x.xxx
           */
-          SavePPBuffer(" ");
-          GetToken(readSource,tempToken);
+          SavePPBuffer(theEnv," ");
+          GetToken(theEnv,readSource,tempToken);
           if ((tempToken->type == SYMBOL) &&
               ((strcmp(ValueToString(tempToken->value),"CF") == 0) ||
                (strcmp(ValueToString(tempToken->value),"cf") == 0))
@@ -385,13 +387,13 @@ globle struct expr *GetRHSPattern(
               struct expr *CFexpr;
               /* expecting a certainty factor (float) expression */
               /* tokenToFloatExpression expect 1st token already read */
-              SavePPBuffer(" ");
-              GetToken(readSource,tempToken);
-              CFexpr = tokenToFloatExpression(readSource,tempToken,error,constantsOnly);
+              SavePPBuffer(theEnv," ");
+              GetToken(theEnv,readSource,tempToken);
+              CFexpr = tokenToFloatExpression(theEnv,readSource,tempToken,error,constantsOnly);
 
               if (*error)
                 {
-                  ReturnExpression(firstOne);
+                  ReturnExpression(theEnv,firstOne);
                   return( NULL );
                 }
 
@@ -401,9 +403,9 @@ globle struct expr *GetRHSPattern(
                   if (cfval > 1.0 || cfval < 0.0)
                     {
                       *error = TRUE;
-                      ReturnExpression(CFexpr);
-                      cfRangeError();
-                      ReturnExpression(firstOne);
+                      ReturnExpression(theEnv,CFexpr);
+                      cfRangeError(theEnv);
+                      ReturnExpression(theEnv,firstOne);
                       return( NULL );
                     }
                 }
@@ -418,8 +420,8 @@ globle struct expr *GetRHSPattern(
                  potential CF expression -- UnGetToken does one PPBackup over the
                  token which was added to the PP Buffer
               */
-              UnGetToken(tempToken);
-              PPBackup();
+              UnGetToken(theEnv,tempToken);
+              PPBackup(theEnv);
             }
         }
 #endif
@@ -427,26 +429,25 @@ globle struct expr *GetRHSPattern(
       return(firstOne);
      }
 
-
    /*========================================*/
    /* Parse the fact as an ordered RHS fact. */
    /*========================================*/
 
-   firstOne = GenConstant(DEFTEMPLATE_PTR,theDeftemplate);
+   firstOne = GenConstant(theEnv,DEFTEMPLATE_PTR,theDeftemplate);
 
 #if FUZZY_DEFTEMPLATES
    /*=============================================*/
    /* Fuzzy facts parsed differently              */
    /*=============================================*/
-   if (theDeftemplate->fuzzyTemplate != NULL)
+   if ((theDeftemplate != NULL) && (theDeftemplate->fuzzyTemplate != NULL))
      {
-       firstOne->nextArg = ParseAssertFuzzyFact(readSource,tempToken,
+       firstOne->nextArg = ParseAssertFuzzyFact(theEnv,readSource,tempToken,
                                                 error,endType,
                                                 constantsOnly,theDeftemplate,
                                                 TRUE);
        if (*error)
          {
-          ReturnExpression(firstOne);
+          ReturnExpression(theEnv,firstOne);
           return(NULL);
          }
      }
@@ -455,19 +456,18 @@ globle struct expr *GetRHSPattern(
 
 #endif   /* FUZZY_DEFTEMPLATES */
 
-
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 #endif
 
-   while ((nextOne = GetAssertArgument(readSource,tempToken,
+   while ((nextOne = GetAssertArgument(theEnv,readSource,tempToken,
                                         error,endType,constantsOnly,&printError)) != NULL)
      {
       if (argHead == NULL) argHead = nextOne;
       else lastOne->nextArg = nextOne;
       lastOne = nextOne;
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-      SavePPBuffer(" ");
+      SavePPBuffer(theEnv," ");
 #endif
      }
 
@@ -477,9 +477,9 @@ globle struct expr *GetRHSPattern(
 
    if (*error)
      {
-      if (printError) SyntaxErrorMessage("RHS patterns");
-      ReturnExpression(firstOne);
-      ReturnExpression(argHead);
+      if (printError) SyntaxErrorMessage(theEnv,"RHS patterns");
+      ReturnExpression(theEnv,firstOne);
+      ReturnExpression(theEnv,argHead);
       return(NULL);
      }
 
@@ -489,9 +489,9 @@ globle struct expr *GetRHSPattern(
    /*=====================================*/
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   PPBackup();
-   PPBackup();
-   SavePPBuffer(tempToken->printForm);
+   PPBackup(theEnv);
+   PPBackup(theEnv);
+   SavePPBuffer(theEnv,tempToken->printForm);
 #endif
 
    /*==========================================================*/
@@ -500,9 +500,9 @@ globle struct expr *GetRHSPattern(
    /* single multifield slot.                                  */
    /*==========================================================*/
 
-   firstOne->nextArg = GenConstant(FACT_STORE_MULTIFIELD,AddBitMap((void *) nullBitMap,1));
+   firstOne->nextArg = GenConstant(theEnv,FACT_STORE_MULTIFIELD,AddBitMap(theEnv,(void *) nullBitMap,1));
    firstOne->nextArg->argList = argHead;
-
+   
 #if FUZZY_DEFTEMPLATES 
      }  /*    --- matches else { above with FUZZY_DEFTEMPLATES */
 #endif
@@ -512,9 +512,9 @@ globle struct expr *GetRHSPattern(
           specifier could be a certainty factor spec --- CF x.xxx
    */
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 #endif
-   GetToken(readSource,tempToken);
+   GetToken(theEnv,readSource,tempToken);
    if ((tempToken->type == SYMBOL) &&
            ((strcmp(ValueToString(tempToken->value),"CF") == 0) ||
                 (strcmp(ValueToString(tempToken->value),"cf") == 0))
@@ -525,14 +525,14 @@ globle struct expr *GetRHSPattern(
                 /* expecting a certainty factor (float) expression */
         /* tokenToFloatExpression expect 1st token already read */
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-        SavePPBuffer(" ");
+        SavePPBuffer(theEnv," ");
 #endif
-        GetToken(readSource,tempToken);
-                CFexpr = tokenToFloatExpression(readSource,tempToken,error,constantsOnly);
+        GetToken(theEnv,readSource,tempToken);
+                CFexpr = tokenToFloatExpression(theEnv,readSource,tempToken,error,constantsOnly);
 
             if (*error)
           {
-            ReturnExpression(firstOne);
+            ReturnExpression(theEnv,firstOne);
             return( NULL );
           }
 
@@ -542,9 +542,9 @@ globle struct expr *GetRHSPattern(
                         if (cfval > 1.0 || cfval < 0.0)
                           {
                             *error = TRUE;
-                ReturnExpression(CFexpr);
-                            cfRangeError();
-                ReturnExpression(firstOne);
+                ReturnExpression(theEnv,CFexpr);
+                            cfRangeError(theEnv);
+                ReturnExpression(theEnv,firstOne);
                 return( NULL );
                           }
                   }
@@ -559,14 +559,13 @@ globle struct expr *GetRHSPattern(
                    potential CF expression -- UnGetToken does one PPBackup over the
                    token which was added to the PP Buffer
                 */
-                UnGetToken(tempToken);
+                UnGetToken(theEnv,tempToken);
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-        PPBackup();
+        PPBackup(theEnv);
 #endif
       }
 
 #endif   /* CERTAINTY_FACTORS */
-
 
    /*==============================*/
    /* Return the RHS ordered fact. */
@@ -584,6 +583,7 @@ globle struct expr *GetRHSPattern(
 /*   passed as an argument is set.                                  */
 /********************************************************************/
 globle struct expr *GetAssertArgument(
+  void *theEnv,
   char *logicalName,
   struct token *theToken,
   int *error,
@@ -591,7 +591,11 @@ globle struct expr *GetAssertArgument(
   int constantsOnly,
   int *printError)
   {
+#if ! RUN_TIME
    struct expr *nextField;
+#else
+   struct expr *nextField = NULL;
+#endif
 
    /*=================================================*/
    /* Read in the first token of the slot's value. If */
@@ -599,7 +603,7 @@ globle struct expr *GetAssertArgument(
    /*=================================================*/
 
    *printError = TRUE;
-   GetToken(logicalName,theToken);
+   GetToken(theEnv,logicalName,theToken);
    if (theToken->type == endType) return(NULL);
 
    /*=============================================================*/
@@ -624,8 +628,8 @@ globle struct expr *GetAssertArgument(
         }
 
 #if ! RUN_TIME
-      if (theToken->type == LPAREN) nextField = Function1Parse(logicalName);
-      else nextField = Function0Parse(logicalName);
+      if (theToken->type == LPAREN) nextField = Function1Parse(theEnv,logicalName);
+      else nextField = Function0Parse(theEnv,logicalName);
       if (nextField == NULL)
 #endif
         {
@@ -636,7 +640,7 @@ globle struct expr *GetAssertArgument(
       else
         {
          theToken->type= RPAREN;
-         theToken->value = (void *) AddSymbol(")");
+         theToken->value = (void *) EnvAddSymbol(theEnv,")");
          theToken->printForm = ")";
         }
 #endif
@@ -653,7 +657,7 @@ globle struct expr *GetAssertArgument(
            (theToken->type == INSTANCE_NAME) ||
 #endif
            (theToken->type == FLOAT) || (theToken->type == INTEGER))
-     { return(GenConstant(theToken->type,theToken->value)); }
+     { return(GenConstant(theEnv,theToken->type,theToken->value)); }
 
    /*========================================*/
    /* Variables are also allowed as RHS slot */
@@ -673,7 +677,7 @@ globle struct expr *GetAssertArgument(
          return(NULL);
         }
 
-      return(GenConstant(theToken->type,theToken->value));
+      return(GenConstant(theEnv,theToken->type,theToken->value));
      }
 
    /*==========================================================*/
@@ -690,11 +694,12 @@ globle struct expr *GetAssertArgument(
 /*   of a fact to a fact data structure.            */
 /****************************************************/
 globle struct fact *StringToFact(
+  void *theEnv,
   char *str)
   {
    struct token theToken;
    struct fact *factPtr;
-   int numberOfFields = 0, whichField;
+   unsigned numberOfFields = 0, whichField;
    struct expr *assertArgs, *tempPtr;
    int error = FALSE;
    DATA_OBJECT theResult;
@@ -703,15 +708,17 @@ globle struct fact *StringToFact(
    /* Open a string router and parse the fact */
    /* using the router as an input source.    */
    /*=========================================*/
+   
+   SetEvaluationError(theEnv,FALSE);
 
-   OpenStringSource("assert_str",str,0);
+   OpenStringSource(theEnv,"assert_str",str,0);
 
-   assertArgs = GetRHSPattern("assert_str",&theToken,
+   assertArgs = GetRHSPattern(theEnv,"assert_str",&theToken,
                               &error,FALSE,TRUE,
                               TRUE,RPAREN);
 
-   CloseStringSource("assert_str");
-
+   CloseStringSource(theEnv,"assert_str");
+   
 #if CERTAINTY_FACTORS 
    /* GetRHSPattern called above may have left a token
       in the lookahead Token (theUnToken)  -- see GetRHSPattern and
@@ -719,25 +726,31 @@ globle struct fact *StringToFact(
           and it should not be read when next token requested
           NOTE: this may not be needed now that am not unGetting STOP tokens?
    */
-   ClearTheUnToken();
+   ClearTheUnToken(theEnv);
 #endif
-
 
    /*===========================================*/
    /* Check for errors or the use of variables. */
    /*===========================================*/
+   
+   if ((assertArgs == NULL) && (! error))
+     {
+      SyntaxErrorMessage(theEnv,"RHS patterns");
+      ReturnExpression(theEnv,assertArgs);
+      return(NULL);
+     }
 
    if (error)
      {
-      ReturnExpression(assertArgs);
+      ReturnExpression(theEnv,assertArgs);
       return(NULL);
      }
 
    if (ExpressionContainsVariables(assertArgs,FALSE))
      {
-      LocalVariableErrorMessage("the assert-string function");
-      SetEvaluationError(TRUE);
-      ReturnExpression(assertArgs);
+      LocalVariableErrorMessage(theEnv,"the assert-string function");
+      SetEvaluationError(theEnv,TRUE);
+      ReturnExpression(theEnv,assertArgs);
       return(NULL);
      }
 
@@ -749,7 +762,7 @@ globle struct fact *StringToFact(
    for (tempPtr = assertArgs->nextArg; tempPtr != NULL; tempPtr = tempPtr->nextArg)
      { numberOfFields++; }
 
-   factPtr = (struct fact *) CreateFactBySize(numberOfFields);
+   factPtr = (struct fact *) CreateFactBySize(theEnv,numberOfFields);
    factPtr->whichDeftemplate = (struct deftemplate *) assertArgs->value;
 
 #if CERTAINTY_FACTORS 
@@ -760,10 +773,10 @@ globle struct fact *StringToFact(
       factPtr->factCF = 1.0;
    else
       {
-        EvaluateExpression(assertArgs->argList,&theResult);
+        EvaluateExpression(theEnv,assertArgs->argList,&theResult);
                 if (theResult.type != FLOAT && theResult.type != INTEGER)
                   {
-            cfNonNumberError();
+            cfNonNumberError(theEnv);
             factPtr->factCF = 1.0;
                   }
                 else
@@ -777,7 +790,7 @@ globle struct fact *StringToFact(
    /* Copy the fields to the fact data structure. */
    /*=============================================*/
 
-   ExpressionInstall(assertArgs); /* DR0836 */
+   ExpressionInstall(theEnv,assertArgs); /* DR0836 */
    whichField = 0;
    for (tempPtr = assertArgs->nextArg; tempPtr != NULL; tempPtr = tempPtr->nextArg)
      {
@@ -786,13 +799,13 @@ globle struct fact *StringToFact(
                  of type FUZZY_VALUE
         */
 #endif
-      EvaluateExpression(tempPtr,&theResult);
-      factPtr->theProposition.theFields[whichField].type = (short) theResult.type;
+      EvaluateExpression(theEnv,tempPtr,&theResult);
+      factPtr->theProposition.theFields[whichField].type = theResult.type;
       factPtr->theProposition.theFields[whichField].value = theResult.value;
       whichField++;
      }
-   ExpressionDeinstall(assertArgs); /* DR0836 */
-   ReturnExpression(assertArgs);
+   ExpressionDeinstall(theEnv,assertArgs); /* DR0836 */
+   ReturnExpression(theEnv,assertArgs);
 
    /*==================*/
    /* Return the fact. */
@@ -810,12 +823,13 @@ globle struct fact *StringToFact(
 /* an assert                                             */
 /*********************************************************/
 static void NoSuchTemplateError(
+  void *theEnv,
   char *templateName)
   {
-   PrintErrorID("FACTRHS",1,FALSE);
-   PrintRouter(WERROR,"Template ");
-   PrintRouter(WERROR,templateName);
-   PrintRouter(WERROR," does not exist for assert.\n");
+   PrintErrorID(theEnv,"FACTRHS",1,FALSE);
+   EnvPrintRouter(theEnv,WERROR,"Template ");
+   EnvPrintRouter(theEnv,WERROR,templateName);
+   EnvPrintRouter(theEnv,WERROR," does not exist for assert.\n");
   }
 
 #endif /* RUN_TIME || BLOAD_ONLY || BLOAD || BLOAD_AND_BSAVE */

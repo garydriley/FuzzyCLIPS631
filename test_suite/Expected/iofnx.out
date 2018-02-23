@@ -1,0 +1,153 @@
+TRUE
+FuzzyCLIPS> (batch "iofnx.bat")
+TRUE
+FuzzyCLIPS> (clear)                            
+FuzzyCLIPS> (open)                             ; 10.5.2.1
+[ARGACCES4] Function open expected at least 2 argument(s)
+FuzzyCLIPS> (open "blah1.dat")                 ; 10.5.2.1
+[ARGACCES4] Function open expected at least 2 argument(s)
+FuzzyCLIPS> (open "blah2.dat" blah2 "r" 10)    ; 10.5.2.1
+[ARGACCES4] Function open expected no more than 3 argument(s)
+FuzzyCLIPS> (open 10 blah3 "r")                ; 10.5.2.1
+[ARGACCES5] Function open expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (open [blah2.dat] blah4 "r")       ; 10.5.2.1
+[ARGACCES5] Function open expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (open "blah4.dat" (create$) "r")   ; 10.5.2.1
+[IOFUN1] Illegal logical name used for open function.
+FALSE
+FuzzyCLIPS> (open blah5.dat blah5 r)           ; 10.5.2.1
+[ARGACCES5] Function open expected argument #3 to be of type string
+FALSE
+FuzzyCLIPS> (open blah6.dat blah6 "x")         ; 10.5.2.1
+[ARGACCES5] Function open expected argument #3 to be of type string with value "r", "r+", "w", "wb", or "a"
+FALSE
+FuzzyCLIPS> (open blah7.dat blah7 8)           ; 10.5.2.1
+[ARGACCES5] Function open expected argument #3 to be of type string
+FALSE
+FuzzyCLIPS> (open blah8.dat blah8 "r")         ; 10.5.2.1
+FALSE
+FuzzyCLIPS> (close blah6 89)                   ; 10.5.2.2
+[ARGACCES4] Function close expected no more than 1 argument(s)
+FuzzyCLIPS> (close (create$))                  ; 10.5.2.2
+[IOFUN1] Illegal logical name used for close function.
+FALSE
+FuzzyCLIPS> (close [blah8])                    ; 10.5.2.2
+FALSE
+FuzzyCLIPS> (printout)                         ; 10.5.2.3
+[ARGACCES4] Function printout expected at least 1 argument(s)
+FuzzyCLIPS> (printout (create$))               ; 10.5.2.3
+[IOFUN1] Illegal logical name used for printout function.
+FuzzyCLIPS> (read (create$))                   ; 10.5.2.4
+[IOFUN1] Illegal logical name used for read function.
+"*** READ ERROR ***"
+FuzzyCLIPS> (read bogus)                       ; 10.5.2.4
+[ROUTER1] Logical name bogus was not recognized by any routers
+"*** READ ERROR ***"
+FuzzyCLIPS> (read stdin stdout)                ; 10.5.2.4
+[ARGACCES4] Function read expected no more than 1 argument(s)
+FuzzyCLIPS> (read)                             ; 10.5.2.4 - 7
+7
+7
+FuzzyCLIPS> (read t)                           ; 10.5.2.4 - abc
+abc
+abc
+FuzzyCLIPS> (read stdin)                       ; 10.5.2.4 - xyz
+xyz abc
+xyz
+FuzzyCLIPS> (read)                             ; 10.5.2.4 - a
+
+
+    a    
+a
+FuzzyCLIPS> (open "Temp/iofnx1.tmp" mydata "w")     ; 10.5.2.4
+TRUE
+FuzzyCLIPS> (printout mydata "red green")      ; 10.5.2.4
+FuzzyCLIPS> (close mydata)                     ; 10.5.2.4
+TRUE
+FuzzyCLIPS> (open "Temp/iofnx1.tmp" mydata)    ; 10.5.2.4
+TRUE
+FuzzyCLIPS> (read mydata)                      ; 10.5.2.4
+red
+FuzzyCLIPS> (read mydata)                      ; 10.5.2.4
+green
+FuzzyCLIPS> (read mydata)                      ; 10.5.2.4
+EOF
+FuzzyCLIPS> (close mydata)                     ; 10.5.2.4
+TRUE
+FuzzyCLIPS> (readline (create$))               ; 10.5.2.5
+[IOFUN1] Illegal logical name used for readline function.
+"*** READ ERROR ***"
+FuzzyCLIPS> (readline bogus)                   ; 10.5.2.5
+[ROUTER1] Logical name bogus was not recognized by any routers
+"*** READ ERROR ***"
+FuzzyCLIPS> (readline stdin stdout)            ; 10.5.2.5
+[ARGACCES4] Function readline expected no more than 1 argument(s)
+FuzzyCLIPS> (readline)                         ; 10.5.2.5 - "7"
+7
+"7"
+FuzzyCLIPS> (readline t)                       ; 10.5.2.5 - "abc"
+abc
+"abc"
+FuzzyCLIPS> (readline stdin)                   ; 10.5.2.5 - "xyz abc"
+xyz abc
+"xyz abc"
+FuzzyCLIPS> (readline)                         ; 10.5.2.5 - ""
+
+""
+FuzzyCLIPS> (open "Temp/iofnx1.tmp" 7.8923)    ; 10.5.2.5
+TRUE
+FuzzyCLIPS> (readline 7.8923)                  ; 10.5.2.5
+"red green"
+FuzzyCLIPS> (readline 7.8923)                  ; 10.5.2.5
+EOF
+FuzzyCLIPS> (close 7.8923)                     ; 10.5.2.5
+TRUE
+FuzzyCLIPS> (format)                           ; 10.5.2.6
+[ARGACCES4] Function format expected at least 2 argument(s)
+FuzzyCLIPS> (format t)                         ; 10.5.2.6
+[ARGACCES4] Function format expected at least 2 argument(s)
+FuzzyCLIPS> (format (create$))                 ; 10.5.2.6
+[ARGACCES4] Function format expected at least 2 argument(s)
+FuzzyCLIPS> (format t "%f%%%n")                ; 10.5.2.6
+[ARGACCES4] Function format expected exactly 3 argument(s)
+""
+FuzzyCLIPS> (format nil "Integer: |%ld|" 12)   ; 10.5.2.6
+"Integer: |12|"
+FuzzyCLIPS> (format t "Integer: |%4ld|" 12)    ; 10.5.2.6
+Integer: |  12|"Integer: |  12|"
+FuzzyCLIPS> (format nil "Integer: |%-04ld|" 12)
+"Integer: |12  |"
+FuzzyCLIPS> (format t "Float:   |%f|" 12.01)   ; 10.5.2.6
+Float:   |12.010000|"Float:   |12.010000|"
+FuzzyCLIPS> (format nil "Float:   |%7.2f| "12.01)
+"Float:   |  12.01| "
+FuzzyCLIPS> (format t "Test:    |%e|" 12.01)   ; 10.5.2.6
+Test:    |1.201000e+01|"Test:    |1.201000e+01|"
+FuzzyCLIPS> (format nil "Test:    |%7.2e|" 12.01)
+"Test:    |1.20e+01|"
+FuzzyCLIPS> (format t "General: |%g|" 1234567890)
+General: |1.23457e+09|"General: |1.23457e+09|"
+FuzzyCLIPS> (format t "Hexadecimal: |%x|" 12)  ; 10.5.2.6
+Hexadecimal: |c|"Hexadecimal: |c|"
+FuzzyCLIPS> (format t "Octal:   |%o|" 12)      ; 10.5.2.6
+Octal:   |14|"Octal:   |14|"
+FuzzyCLIPS> (format nil "Symbols: |%s| |%s|" value-a1 capacity)
+"Symbols: |value-a1| |capacity|"
+FuzzyCLIPS> (format nil "the %% x %d x %s x %f y %%" 4 ab 3.5)
+"the % x 4 x ab x 3.500000 y %"
+FuzzyCLIPS> (format nil "%d" abc)              ; 10.5.2.6
+[ARGACCES5] Function format expected argument #3 to be of type integer or float
+""
+FuzzyCLIPS> (format nil "%d" 9.8)              ; 10.5.2.6
+"9"
+FuzzyCLIPS> (format t "%f" 40)                 ; 10.5.2.6
+40.000000"40.000000"
+FuzzyCLIPS> (format nil "%f" abc)              ; 10.5.2.6
+[ARGACCES5] Function format expected argument #3 to be of type integer or float
+""
+FuzzyCLIPS> (format nil "%g" (create$))        ; 10.5.2.6
+[ARGACCES5] Function format expected argument #3 to be of type integer or float
+""
+FuzzyCLIPS> (format t "%o" 9.8)                ; 10.5.2.6
+11"11"
+FuzzyCLIPS> (dribble-off)

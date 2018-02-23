@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/exprnbin.c,v 1.3 2001/08/11 21:05:21 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.23  01/31/05            */
    /*                                                     */
    /*             EXPRESSION BSAVE/BLOAD MODULE           */
    /*******************************************************/
@@ -42,6 +40,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/exprnbin.c,v 1.3 2001/08/1
 #include "extnfunc.h"
 #include "bload.h"
 #include "bsave.h"
+#include "envrnmnt.h"
 
 #if DEFRULE_CONSTRUCT
 #include "network.h"
@@ -69,48 +68,35 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/exprnbin.c,v 1.3 2001/08/1
 #include "inscom.h"
 #endif
 
-#include "exprnbin.h"
-
 #if FUZZY_DEFTEMPLATES 
 #include "fuzzyval.h"
 #endif
 
-
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-
-   static  long                                  NumberOfExpressions;
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle struct expr                           *ExpressionArray;
-   globle long int                               ExpressionCount;
+#include "exprnbin.h"
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static void                        UpdateExpression(void *,long);
+   static void                        UpdateExpression(void *,void *,long);
 
 /***********************************************************/
 /* AllocateExpressions: Determines the amount of space     */
 /*   required for loading the binary image of expressions  */
 /*   and allocates that amount of space.                   */
 /***********************************************************/
-globle void AllocateExpressions()
+globle void AllocateExpressions(
+  void *theEnv)
   {
    unsigned long space;
 
-   GenRead((void *) &NumberOfExpressions,(unsigned long) sizeof(long));
-   if (NumberOfExpressions == 0L)
-     ExpressionArray = NULL;
+   GenReadBinary(theEnv,(void *) &ExpressionData(theEnv)->NumberOfExpressions,(unsigned long) sizeof(long));
+   if (ExpressionData(theEnv)->NumberOfExpressions == 0L)
+     ExpressionData(theEnv)->ExpressionArray = NULL;
    else
      {
-      space = NumberOfExpressions * sizeof(struct expr);
-      ExpressionArray = (struct expr *) genlongalloc(space);
+      space = ExpressionData(theEnv)->NumberOfExpressions * sizeof(struct expr);
+      ExpressionData(theEnv)->ExpressionArray = (struct expr *) genlongalloc(theEnv,space);
      }
   }
 
@@ -118,11 +104,12 @@ globle void AllocateExpressions()
 /* RefreshExpressions: Refreshes the pointers */
 /*   used by the expression binary image.     */
 /**********************************************/
-globle void RefreshExpressions()
+globle void RefreshExpressions(
+  void *theEnv)
   {
-   if (ExpressionArray == NULL) return;
+   if (ExpressionData(theEnv)->ExpressionArray == NULL) return;
 
-   BloadandRefresh(NumberOfExpressions,
+   BloadandRefresh(theEnv,ExpressionData(theEnv)->NumberOfExpressions,
                    (unsigned) sizeof(BSAVE_EXPRESSION),UpdateExpression);
   }
 
@@ -138,141 +125,141 @@ globle void RefreshExpressions()
   NOTES        : None
  *********************************************************/
 static void UpdateExpression(
+  void *theEnv,
   void *buf,
   long obji)
   {
    BSAVE_EXPRESSION *bexp;
-   long index;
+   long theIndex;
 
    bexp = (BSAVE_EXPRESSION *) buf;
-   ExpressionArray[obji].type = bexp->type;
+   ExpressionData(theEnv)->ExpressionArray[obji].type = bexp->type;
    switch(bexp->type)
      {
       case FCALL:
-        ExpressionArray[obji].value = (void *) FunctionArray[bexp->value];
+        ExpressionData(theEnv)->ExpressionArray[obji].value = (void *) BloadData(theEnv)->FunctionArray[bexp->value];
         break;
 
       case GCALL:
 #if DEFGENERIC_CONSTRUCT
-        ExpressionArray[obji].value = (void *) GenericPointer(bexp->value);
+        ExpressionData(theEnv)->ExpressionArray[obji].value = (void *) GenericPointer(bexp->value);
 #else
-        ExpressionArray[obji].value = NULL;
+        ExpressionData(theEnv)->ExpressionArray[obji].value = NULL;
 #endif
         break;
 
       case PCALL:
 #if DEFFUNCTION_CONSTRUCT
-        ExpressionArray[obji].value = (void *) DeffunctionPointer(bexp->value);
+        ExpressionData(theEnv)->ExpressionArray[obji].value = (void *) DeffunctionPointer(bexp->value);
 #else
-        ExpressionArray[obji].value = NULL;
+        ExpressionData(theEnv)->ExpressionArray[obji].value = NULL;
 #endif
         break;
+        
+#if FUZZY_DEFTEMPLATES
+      case FUZZY_VALUE:
+        ExpressionData(theEnv)->ExpressionArray[obji].value = (void *) SymbolData(theEnv)->FuzzyValueArray[bexp->value];
+        IncrementFuzzyValueCount((FUZZY_VALUE_HN *) ExpressionData(theEnv)->ExpressionArray[obji].value);
+        break;
+#endif
 
       case DEFTEMPLATE_PTR:
 #if DEFTEMPLATE_CONSTRUCT
-        ExpressionArray[obji].value = (void *) DeftemplatePointer(bexp->value);
+        ExpressionData(theEnv)->ExpressionArray[obji].value = (void *) DeftemplatePointer(bexp->value);
 #else
-        ExpressionArray[obji].value = NULL;
+        ExpressionData(theEnv)->ExpressionArray[obji].value = NULL;
 #endif
         break;
 
      case DEFCLASS_PTR:
 #if OBJECT_SYSTEM
-        ExpressionArray[obji].value = (void *) DefclassPointer(bexp->value);
+        ExpressionData(theEnv)->ExpressionArray[obji].value = (void *) DefclassPointer(bexp->value);
 #else
-        ExpressionArray[obji].value = NULL;
+        ExpressionData(theEnv)->ExpressionArray[obji].value = NULL;
 #endif
         break;
 
       case DEFGLOBAL_PTR:
 
 #if DEFGLOBAL_CONSTRUCT
-        ExpressionArray[obji].value = (void *) DefglobalPointer(bexp->value);
+        ExpressionData(theEnv)->ExpressionArray[obji].value = (void *) DefglobalPointer(bexp->value);
 #else
-        ExpressionArray[obji].value = NULL;
+        ExpressionData(theEnv)->ExpressionArray[obji].value = NULL;
 #endif
         break;
 
 
       case INTEGER:
-        ExpressionArray[obji].value = (void *) IntegerArray[bexp->value];
-        IncrementIntegerCount((INTEGER_HN *) ExpressionArray[obji].value);
+        ExpressionData(theEnv)->ExpressionArray[obji].value = (void *) SymbolData(theEnv)->IntegerArray[bexp->value];
+        IncrementIntegerCount((INTEGER_HN *) ExpressionData(theEnv)->ExpressionArray[obji].value);
         break;
 
       case FLOAT:
-        ExpressionArray[obji].value = (void *) FloatArray[bexp->value];
-        IncrementFloatCount((FLOAT_HN *) ExpressionArray[obji].value);
+        ExpressionData(theEnv)->ExpressionArray[obji].value = (void *) SymbolData(theEnv)->FloatArray[bexp->value];
+        IncrementFloatCount((FLOAT_HN *) ExpressionData(theEnv)->ExpressionArray[obji].value);
         break;
 
       case INSTANCE_NAME:
 #if ! OBJECT_SYSTEM
-        ExpressionArray[obji].type = SYMBOL;
+        ExpressionData(theEnv)->ExpressionArray[obji].type = SYMBOL;
 #endif
       case GBL_VARIABLE:
       case SYMBOL:
       case STRING:
-        ExpressionArray[obji].value = (void *) SymbolArray[bexp->value];
-        IncrementSymbolCount((SYMBOL_HN *) ExpressionArray[obji].value);
+        ExpressionData(theEnv)->ExpressionArray[obji].value = (void *) SymbolData(theEnv)->SymbolArray[bexp->value];
+        IncrementSymbolCount((SYMBOL_HN *) ExpressionData(theEnv)->ExpressionArray[obji].value);
         break;
-
-#if FUZZY_DEFTEMPLATES
-      case FUZZY_VALUE:
-
-        ExpressionArray[obji].value = (void *) FuzzyValueArray[bexp->value];
-        IncrementFuzzyValueCount((FUZZY_VALUE_HN *) ExpressionArray[obji].value);
-
-        break;
-#endif
 
 #if DEFTEMPLATE_CONSTRUCT
       case FACT_ADDRESS:
-        ExpressionArray[obji].value = (void *) &DummyFact;
-        IncrementFactCount(ExpressionArray[obji].value);
+        ExpressionData(theEnv)->ExpressionArray[obji].value = (void *) &FactData(theEnv)->DummyFact;
+        EnvIncrementFactCount(theEnv,ExpressionData(theEnv)->ExpressionArray[obji].value);
         break;
 #endif
 
 #if OBJECT_SYSTEM
       case INSTANCE_ADDRESS:
-        ExpressionArray[obji].value = (void *) &DummyInstance;
-        IncrementInstanceCount(ExpressionArray[obji].value);
+        ExpressionData(theEnv)->ExpressionArray[obji].value = (void *) &InstanceData(theEnv)->DummyInstance;
+        EnvIncrementInstanceCount(theEnv,ExpressionData(theEnv)->ExpressionArray[obji].value);
         break;
 #endif
 
       case EXTERNAL_ADDRESS:
-        ExpressionArray[obji].value = NULL;
+        ExpressionData(theEnv)->ExpressionArray[obji].value = NULL;
         break;
 
       case RVOID:
         break;
 
       default:
-        if (PrimitivesArray[bexp->type] == NULL) break;
-        if (PrimitivesArray[bexp->type]->bitMap)
+        if (EvaluationData(theEnv)->PrimitivesArray[bexp->type] == NULL) break;
+        if (EvaluationData(theEnv)->PrimitivesArray[bexp->type]->bitMap)
           {
-           ExpressionArray[obji].value = (void *) BitMapArray[bexp->value];
-           IncrementBitMapCount((BITMAP_HN *) ExpressionArray[obji].value);
+           ExpressionData(theEnv)->ExpressionArray[obji].value = (void *) SymbolData(theEnv)->BitMapArray[bexp->value];
+           IncrementBitMapCount((BITMAP_HN *) ExpressionData(theEnv)->ExpressionArray[obji].value);
           }
         break;
      }
 
-   index = (long int) bexp->nextArg;
-   if (index == -1L)
-     { ExpressionArray[obji].nextArg = NULL; }
+   theIndex = (long int) bexp->nextArg;
+   if (theIndex == -1L)
+     { ExpressionData(theEnv)->ExpressionArray[obji].nextArg = NULL; }
    else
-     { ExpressionArray[obji].nextArg = (struct expr *) &ExpressionArray[index]; }
+     { ExpressionData(theEnv)->ExpressionArray[obji].nextArg = (struct expr *) &ExpressionData(theEnv)->ExpressionArray[theIndex]; }
 
-   index = (long int) bexp->argList;
-   if (index == -1L)
-     { ExpressionArray[obji].argList = NULL; }
+   theIndex = (long int) bexp->argList;
+   if (theIndex == -1L)
+     { ExpressionData(theEnv)->ExpressionArray[obji].argList = NULL; }
    else
-     { ExpressionArray[obji].argList = (struct expr *) &ExpressionArray[index]; }
+     { ExpressionData(theEnv)->ExpressionArray[obji].argList = (struct expr *) &ExpressionData(theEnv)->ExpressionArray[theIndex]; }
   }
 
 /*********************************************/
 /* ClearBloadedExpressions: Clears the space */
 /*   utilized by an expression binary image. */
 /*********************************************/
-globle void ClearBloadedExpressions()
+globle void ClearBloadedExpressions(
+  void *theEnv)
   {
    unsigned long int i, space;
 
@@ -280,23 +267,23 @@ globle void ClearBloadedExpressions()
    /* Update the busy counts of atomic data values. */
    /*===============================================*/
 
-   for (i = 0; i < NumberOfExpressions; i++)
+   for (i = 0; i < (unsigned long) ExpressionData(theEnv)->NumberOfExpressions; i++)
      {
-      switch (ExpressionArray[i].type)
+      switch (ExpressionData(theEnv)->ExpressionArray[i].type)
         {
          case SYMBOL          :
          case STRING          :
          case INSTANCE_NAME   :
          case GBL_VARIABLE    :
-           DecrementSymbolCount((SYMBOL_HN *) ExpressionArray[i].value);
+           DecrementSymbolCount(theEnv,(SYMBOL_HN *) ExpressionData(theEnv)->ExpressionArray[i].value);
            break;
          case FLOAT           :
-           DecrementFloatCount((FLOAT_HN *) ExpressionArray[i].value);
+           DecrementFloatCount(theEnv,(FLOAT_HN *) ExpressionData(theEnv)->ExpressionArray[i].value);
            break;
          case INTEGER         :
-           DecrementIntegerCount((INTEGER_HN *) ExpressionArray[i].value);
+           DecrementIntegerCount(theEnv,(INTEGER_HN *) ExpressionData(theEnv)->ExpressionArray[i].value);
            break;
-
+           
 #if FUZZY_DEFTEMPLATES 
       case FUZZY_VALUE:
 
@@ -305,20 +292,20 @@ globle void ClearBloadedExpressions()
                                    be loaded
                */
 
-          DecrementFuzzyValueCount((FUZZY_VALUE_HN *) ExpressionArray[i].value);
+          DecrementFuzzyValueCount(theEnv,(FUZZY_VALUE_HN *) ExpressionData(theEnv)->ExpressionArray[i].value);
 
         break;
 #endif
 
 #if DEFTEMPLATE_CONSTRUCT
          case FACT_ADDRESS    :
-           DecrementFactCount(ExpressionArray[i].value);
+           EnvDecrementFactCount(theEnv,ExpressionData(theEnv)->ExpressionArray[i].value);
            break;
 #endif
 
 #if OBJECT_SYSTEM
          case INSTANCE_ADDRESS :
-           DecrementInstanceCount(ExpressionArray[i].value);
+           EnvDecrementInstanceCount(theEnv,ExpressionData(theEnv)->ExpressionArray[i].value);
            break;
 #endif
 
@@ -326,9 +313,9 @@ globle void ClearBloadedExpressions()
            break;
 
          default:
-           if (PrimitivesArray[ExpressionArray[i].type] == NULL) break;
-           if (PrimitivesArray[ExpressionArray[i].type]->bitMap)
-             { DecrementBitMapCount((BITMAP_HN *) ExpressionArray[i].value); }
+           if (EvaluationData(theEnv)->PrimitivesArray[ExpressionData(theEnv)->ExpressionArray[i].type] == NULL) break;
+           if (EvaluationData(theEnv)->PrimitivesArray[ExpressionData(theEnv)->ExpressionArray[i].type]->bitMap)
+             { DecrementBitMapCount(theEnv,(BITMAP_HN *) ExpressionData(theEnv)->ExpressionArray[i].value); }
            break;
         }
      }
@@ -337,8 +324,9 @@ globle void ClearBloadedExpressions()
    /* Free the binary expression array. */
    /*===================================*/
 
-   space = NumberOfExpressions * sizeof(struct expr);
-   if (space != 0) genlongfree((void *) ExpressionArray,space);
+   space = ExpressionData(theEnv)->NumberOfExpressions * sizeof(struct expr);
+   if (space != 0) genlongfree(theEnv,(void *) ExpressionData(theEnv)->ExpressionArray,space);
+   ExpressionData(theEnv)->ExpressionArray = 0;
   }
 
 
@@ -355,17 +343,18 @@ globle void ClearBloadedExpressions()
   SIDE EFFECTS : Atoms marked and ids set
   NOTES        : None
  ***************************************************/
-globle void FindHashedExpressions()
+globle void FindHashedExpressions(
+  void *theEnv)
   {
    register unsigned i;
    EXPRESSION_HN *exphash;
 
    for (i = 0 ; i < EXPRESSION_HASH_SIZE ; i++)
-     for (exphash = ExpressionHashTable[i] ; exphash != NULL ; exphash = exphash->nxt)
+     for (exphash = ExpressionData(theEnv)->ExpressionHashTable[i] ; exphash != NULL ; exphash = exphash->next)
        {
-        MarkNeededItems(exphash->exp);
-        exphash->bsaveID = ExpressionCount;
-        ExpressionCount += ExpressionSize(exphash->exp);
+        MarkNeededItems(theEnv,exphash->exp);
+        exphash->bsaveID = ExpressionData(theEnv)->ExpressionCount;
+        ExpressionData(theEnv)->ExpressionCount += ExpressionSize(exphash->exp);
        }
   }
 
@@ -378,14 +367,15 @@ globle void FindHashedExpressions()
   NOTES        : None
  ***************************************************/
 globle void BsaveHashedExpressions(
+  void *theEnv,
   FILE *fp)
   {
    register unsigned i;
    EXPRESSION_HN *exphash;
 
    for (i = 0 ; i < EXPRESSION_HASH_SIZE ; i++)
-     for (exphash = ExpressionHashTable[i] ; exphash != NULL ; exphash = exphash->nxt)
-       BsaveExpression(exphash->exp,fp);
+     for (exphash = ExpressionData(theEnv)->ExpressionHashTable[i] ; exphash != NULL ; exphash = exphash->next)
+       BsaveExpression(theEnv,exphash->exp,fp);
   }
 
 /***************************************************************/
@@ -393,16 +383,17 @@ globle void BsaveHashedExpressions(
 /*   constructs for this binary image to the binary save file. */
 /***************************************************************/
 globle void BsaveConstructExpressions(
+  void *theEnv,
   FILE *fp)
   {
    struct BinaryItem *biPtr;
 
-   for (biPtr = ListOfBinaryItems;
+   for (biPtr = BsaveData(theEnv)->ListOfBinaryItems;
         biPtr != NULL;
         biPtr = biPtr->next)
      {
       if (biPtr->expressionFunction != NULL)
-        { (*biPtr->expressionFunction)(fp); }
+        { (*biPtr->expressionFunction)(theEnv,fp); }
      }
   }
 
@@ -411,6 +402,7 @@ globle void BsaveConstructExpressions(
 /*   an expression to the binary file. */
 /***************************************/
 globle void BsaveExpression(
+  void *theEnv,
   struct expr *testPtr,
   FILE *fp)
   {
@@ -419,7 +411,7 @@ globle void BsaveExpression(
 
    while (testPtr != NULL)
      {
-      ExpressionCount++;
+      ExpressionData(theEnv)->ExpressionCount++;
 
       /*================*/
       /* Copy the type. */
@@ -434,7 +426,7 @@ globle void BsaveExpression(
       if (testPtr->argList == NULL)
         { newTest.argList = -1L; }
       else
-        { newTest.argList = ExpressionCount; }
+        { newTest.argList = ExpressionData(theEnv)->ExpressionCount; }
 
       /*========================================*/
       /* Convert the nextArg slot to an index. */
@@ -444,7 +436,7 @@ globle void BsaveExpression(
         { newTest.nextArg = -1L; }
       else
         {
-         newIndex = ExpressionCount + ExpressionSize(testPtr->argList);
+         newIndex = ExpressionData(theEnv)->ExpressionCount + ExpressionSize(testPtr->argList);
          newTest.nextArg = newIndex;
         }
 
@@ -455,13 +447,13 @@ globle void BsaveExpression(
       switch(testPtr->type)
         {
          case FLOAT:
-           newTest.value = (unsigned long) ((FLOAT_HN *) testPtr->value)->bucket;
+           newTest.value = (long) ((FLOAT_HN *) testPtr->value)->bucket;
            break;
 
          case INTEGER:
-           newTest.value = (unsigned long) ((INTEGER_HN *) testPtr->value)->bucket;
+           newTest.value = (long) ((INTEGER_HN *) testPtr->value)->bucket;
            break;
-
+           
 #if FUZZY_DEFTEMPLATES
       case FUZZY_VALUE:
            newTest.value = (unsigned long) ((FUZZY_VALUE_HN *) testPtr->value)->bucket;
@@ -469,8 +461,8 @@ globle void BsaveExpression(
 #endif
 
          case FCALL:
-           newTest.value = (unsigned long) ((struct FunctionDefinition *)
-                                  testPtr->value)->bsaveIndex;
+           newTest.value = (long) ((struct FunctionDefinition *)
+                                   testPtr->value)->bsaveIndex;
            break;
 
          case GCALL:
@@ -524,7 +516,7 @@ globle void BsaveExpression(
          case SYMBOL:
          case GBL_VARIABLE:
          case STRING:
-           newTest.value = (unsigned long) ((SYMBOL_HN *) testPtr->value)->bucket;
+           newTest.value = (long) ((SYMBOL_HN *) testPtr->value)->bucket;
            break;
 
          case FACT_ADDRESS:
@@ -537,9 +529,9 @@ globle void BsaveExpression(
            break;
 
          default:
-           if (PrimitivesArray[testPtr->type] == NULL) break;
-           if (PrimitivesArray[testPtr->type]->bitMap)
-             { newTest.value = (unsigned long) ((BITMAP_HN *) testPtr->value)->bucket; }
+           if (EvaluationData(theEnv)->PrimitivesArray[testPtr->type] == NULL) break;
+           if (EvaluationData(theEnv)->PrimitivesArray[testPtr->type]->bitMap)
+             { newTest.value = (long) ((BITMAP_HN *) testPtr->value)->bucket; }
            break;
         }
 
@@ -555,7 +547,7 @@ globle void BsaveExpression(
 
      if (testPtr->argList != NULL)
        {
-        BsaveExpression(testPtr->argList,fp);
+        BsaveExpression(theEnv,testPtr->argList,fp);
        }
 
      testPtr = testPtr->nextArg;
@@ -565,3 +557,4 @@ globle void BsaveExpression(
 #endif /* BLOAD_AND_BSAVE */
 
 #endif /* (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) */
+

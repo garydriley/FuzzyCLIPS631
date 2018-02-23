@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/tmpltrhs.h,v 1.3 2001/08/11 21:08:18 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*          DEFTEMPLATE RHS PARSING HEADER FILE        */
    /*******************************************************/
@@ -44,16 +42,10 @@
 #define LOCALE extern
 #endif
 
-   LOCALE struct expr                   *ParseAssertTemplate(char *,struct token *,int *,
+   LOCALE struct expr                   *ParseAssertTemplate(void *,char *,struct token *,int *,
                                                              int,int,struct deftemplate *);
 
 #endif
-
-
-
-
-
-
 
 
 

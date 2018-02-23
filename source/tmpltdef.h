@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/tmpltdef.h,v 1.3 2001/08/11 21:08:13 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.26  06/05/06            */
    /*                                                     */
    /*               DEFTEMPLATE HEADER FILE               */
    /*******************************************************/
@@ -16,12 +14,12 @@
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*      Brian L. Donnell                                     */
-/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
-/*                  (Fuzzy reasoning extensions)             */
-/*                  (certainty factors for facts and rules)  */
-/*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
+/*      6.23: Added support for templates maintaining their  */
+/*            own list of facts.                             */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -32,6 +30,9 @@ struct deftemplate;
 struct templateSlot;
 struct deftemplateModule;
 
+#ifndef _H_conscomp
+#include "conscomp.h"
+#endif
 #ifndef _H_symbol
 #include "symbol.h"
 #endif
@@ -71,7 +72,7 @@ struct deftemplate
    unsigned int implied       : 1;
    unsigned int watch         : 1;
    unsigned int inScope       : 1;
-   unsigned int numberOfSlots : 13;
+   unsigned short numberOfSlots;
    long busyCount;
    struct factPatternNode *patternNetwork;
 #if FUZZY_DEFTEMPLATES   
@@ -80,8 +81,9 @@ struct deftemplate
    /* will be a NULL ptr if not a fuzzy template */
    struct fuzzyLv *fuzzyTemplate;
 #endif
+   struct fact *factList;
+   struct fact *lastFact;
   };
-
 
 struct templateSlot
   {
@@ -93,16 +95,41 @@ struct templateSlot
    CONSTRAINT_RECORD *constraints;
    struct expr *defaultList;
    struct templateSlot *next;
-  }; 
+  };
 
 struct deftemplateModule
   {
    struct defmoduleItemHeader header;
   };
 
-#define GetDeftemplateName(x) GetConstructNameString((struct constructHeader *) x)
-#define GetDeftemplatePPForm(x) GetConstructPPForm((struct constructHeader *) x)
-#define DeftemplateModule(x) GetConstructModuleName((struct constructHeader *) x)
+#define DEFTEMPLATE_DATA 5
+
+struct deftemplateData
+  { 
+   struct construct *DeftemplateConstruct;
+   int DeftemplateModuleIndex;
+   struct entityRecord DeftemplatePtrRecord;
+#if DEBUGGING_FUNCTIONS
+   int DeletedTemplateDebugFlags;
+#endif
+#if CONSTRUCT_COMPILER && (! RUN_TIME)
+   struct CodeGeneratorItem *DeftemplateCodeItem;
+#endif
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+   int DeftemplateError;
+#endif
+#if FUZZY_DEFTEMPLATES       /* added 03-11-96 */
+/* this is only used in this file and pattern.c (routine
+   LiteralRestrictionParse)
+*/
+   struct deftemplate *FuzzyDeftemplate;
+#endif
+  };
+
+#define EnvGetDeftemplateName(theEnv,x) GetConstructNameString((struct constructHeader *) x)
+#define EnvGetDeftemplatePPForm(theEnv,x) GetConstructPPForm(theEnv,(struct constructHeader *) x)
+#define EnvDeftemplateModule(theEnv,x) GetConstructModuleName((struct constructHeader *) x)
+#define DeftemplateData(theEnv) ((struct deftemplateData *) GetEnvironmentData(theEnv,DEFTEMPLATE_DATA))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -114,18 +141,33 @@ struct deftemplateModule
 #define LOCALE extern
 #endif
 
-   LOCALE void                           InitializeDeftemplates(void);
-   LOCALE void                          *FindDeftemplate(char *);
-   LOCALE void                          *GetNextDeftemplate(void *);
-   LOCALE BOOLEAN                        IsDeftemplateDeletable(void *);
-   LOCALE struct deftemplateModule      *GetDeftemplateModuleItem(struct defmodule *);
-   LOCALE void                           ReturnSlots(struct templateSlot *);
-
-#ifndef _TMPLTDEF_SOURCE_
-   extern struct construct              *DeftemplateConstruct;
-   extern int                            DeftemplateModuleIndex;
+#if ENVIRONMENT_API_ONLY
+#define FindDeftemplate(theEnv,a) EnvFindDeftemplate(theEnv,a)
+#define GetNextDeftemplate(theEnv,a) EnvGetNextDeftemplate(theEnv,a)
+#define IsDeftemplateDeletable(theEnv,a) EnvIsDeftemplateDeletable(theEnv,a)
+#define GetDeftemplateName(theEnv,x) GetConstructNameString((struct constructHeader *) x)
+#define GetDeftemplatePPForm(theEnv,x) GetConstructPPForm(theEnv,(struct constructHeader *) x)
+#define GetNextFactInTemplate(theEnv,a,b) EnvGetNextFactInTemplate(theEnv,a,b)
+#define DeftemplateModule(theEnv,x) GetConstructModuleName((struct constructHeader *) x)
+#else
+#define FindDeftemplate(a) EnvFindDeftemplate(GetCurrentEnvironment(),a)
+#define GetNextDeftemplate(a) EnvGetNextDeftemplate(GetCurrentEnvironment(),a)
+#define IsDeftemplateDeletable(a) EnvIsDeftemplateDeletable(GetCurrentEnvironment(),a)
+#define GetDeftemplateName(x) GetConstructNameString((struct constructHeader *) x)
+#define GetDeftemplatePPForm(x) GetConstructPPForm(GetCurrentEnvironment(),(struct constructHeader *) x)
+#define GetNextFactInTemplate(a,b) EnvGetNextFactInTemplate(GetCurrentEnvironment(),a,b)
+#define DeftemplateModule(x) GetConstructModuleName((struct constructHeader *) x)
 #endif
 
+   LOCALE void                           InitializeDeftemplates(void *);
+   LOCALE void                          *EnvFindDeftemplate(void *,char *);
+   LOCALE void                          *EnvGetNextDeftemplate(void *,void *);
+   LOCALE intBool                        EnvIsDeftemplateDeletable(void *,void *);
+   LOCALE void                          *EnvGetNextFactInTemplate(void *,void *,void *);
+   LOCALE struct deftemplateModule      *GetDeftemplateModuleItem(void *,struct defmodule *);
+   LOCALE void                           ReturnSlots(void *,struct templateSlot *);
+   LOCALE void                           IncrementDeftemplateBusyCount(void *,void *);
+   LOCALE void                           DecrementDeftemplateBusyCount(void *,void *);
 
 #endif
 

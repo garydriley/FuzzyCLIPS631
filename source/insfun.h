@@ -1,11 +1,9 @@
-/*  $Header: /dist/CVS/fzclips/src/insfun.h,v 1.3 2001/08/11 21:06:30 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.24  05/17/06          */
    /*                                                     */
-   /*                                                     */
+   /*                INSTANCE FUNCTIONS MODULE            */
    /*******************************************************/
 
 /*************************************************************/
@@ -17,6 +15,18 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Link error occurs for the SlotExistError       */
+/*            function when OBJECT_SYSTEM is set to 0 in     */
+/*            setup.h. DR0865                                */
+/*                                                           */
+/*            Converted INSTANCE_PATTERN_MATCHING to         */
+/*            DEFRULE_CONSTRUCT.                             */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Moved EvaluateAndStoreInDataObject to          */
+/*            evaluatn.c                                     */
 /*                                                           */
 /*************************************************************/
 
@@ -43,7 +53,7 @@ typedef struct igarbage
    struct igarbage *nxt;
   } IGARBAGE;
 
-#define INSTANCE_TABLE_HASH_SIZE 683
+#define INSTANCE_TABLE_HASH_SIZE 8191
 #define InstanceSizeHeuristic(ins)      sizeof(INSTANCE_TYPE)
 
 #ifdef LOCALE
@@ -56,38 +66,48 @@ typedef struct igarbage
 #define LOCALE extern
 #endif
 
-LOCALE void IncrementInstanceCount(void *);
-LOCALE void DecrementInstanceCount(void *);
-LOCALE void InitializeInstanceTable(void);
-LOCALE void CleanupInstances(void);
-LOCALE unsigned HashInstance(SYMBOL_HN *);
-LOCALE void DestroyAllInstances(void);
-LOCALE void RemoveInstanceData(INSTANCE_TYPE *);
-LOCALE INSTANCE_TYPE *FindInstanceBySymbol(SYMBOL_HN *);
-globle INSTANCE_TYPE *FindInstanceInModule(SYMBOL_HN *,struct defmodule *,
-                                           struct defmodule *,BOOLEAN);
-LOCALE INSTANCE_SLOT *FindInstanceSlot(INSTANCE_TYPE *,SYMBOL_HN *);
-LOCALE int FindInstanceTemplateSlot(DEFCLASS *,SYMBOL_HN *);
-LOCALE int EvaluateAndStoreInDataObject(int,EXPRESSION *,DATA_OBJECT *);
-LOCALE int PutSlotValue(INSTANCE_TYPE *,INSTANCE_SLOT *,DATA_OBJECT *,DATA_OBJECT *,char *);
-LOCALE int DirectPutSlotValue(INSTANCE_TYPE *,INSTANCE_SLOT *,DATA_OBJECT *,DATA_OBJECT *);
-LOCALE BOOLEAN ValidSlotValue(DATA_OBJECT *,SLOT_DESC *,INSTANCE_TYPE *,char *);
-LOCALE INSTANCE_TYPE *CheckInstance(char *);
-LOCALE void NoInstanceError(char *,char *);
-LOCALE void SlotExistError(char *,char *);
-LOCALE void StaleInstanceAddress(char *,int);
-LOCALE int GetInstancesChanged(void);
-LOCALE void SetInstancesChanged(int);
-LOCALE void PrintSlot(char *,SLOT_DESC *,INSTANCE_TYPE *,char *);
-LOCALE void PrintInstanceNameAndClass(char *,INSTANCE_TYPE *,BOOLEAN);
+#if ENVIRONMENT_API_ONLY
+#define DecrementInstanceCount(theEnv,a) EnvDecrementInstanceCount(theEnv,a)
+#define GetInstancesChanged(theEnv) EnvGetInstancesChanged(theEnv)
+#define IncrementInstanceCount(theEnv,a) EnvIncrementInstanceCount(theEnv,a)
+#define SetInstancesChanged(theEnv,a) EnvSetInstancesChanged(theEnv,a)
+#else
+#define DecrementInstanceCount(a) EnvDecrementInstanceCount(GetCurrentEnvironment(),a)
+#define GetInstancesChanged() EnvGetInstancesChanged(GetCurrentEnvironment())
+#define IncrementInstanceCount(a) EnvIncrementInstanceCount(GetCurrentEnvironment(),a)
+#define SetInstancesChanged(a) EnvSetInstancesChanged(GetCurrentEnvironment(),a)
+#endif
 
-#ifndef _INSFUN_SOURCE_
-extern INSTANCE_TYPE **InstanceTable;
-extern int MaintainGarbageInstances;
-extern int MkInsMsgPass;
-extern int ChangesToInstances;
-extern IGARBAGE *InstanceGarbageList;
-extern struct patternEntityRecord InstanceInfo;
+LOCALE void EnvIncrementInstanceCount(void *,void *);
+LOCALE void EnvDecrementInstanceCount(void *,void *);
+LOCALE void InitializeInstanceTable(void *);
+LOCALE void CleanupInstances(void *);
+LOCALE unsigned HashInstance(SYMBOL_HN *);
+LOCALE void DestroyAllInstances(void *);
+LOCALE void RemoveInstanceData(void *,INSTANCE_TYPE *);
+LOCALE INSTANCE_TYPE *FindInstanceBySymbol(void *,SYMBOL_HN *);
+LOCALE INSTANCE_TYPE *FindInstanceInModule(void *,SYMBOL_HN *,struct defmodule *,
+                                           struct defmodule *,unsigned);
+LOCALE INSTANCE_SLOT *FindInstanceSlot(void *,INSTANCE_TYPE *,SYMBOL_HN *);
+LOCALE int FindInstanceTemplateSlot(void *,DEFCLASS *,SYMBOL_HN *);
+LOCALE int PutSlotValue(void *,INSTANCE_TYPE *,INSTANCE_SLOT *,DATA_OBJECT *,DATA_OBJECT *,char *);
+LOCALE int DirectPutSlotValue(void *,INSTANCE_TYPE *,INSTANCE_SLOT *,DATA_OBJECT *,DATA_OBJECT *);
+LOCALE intBool ValidSlotValue(void *,DATA_OBJECT *,SLOT_DESC *,INSTANCE_TYPE *,char *);
+LOCALE INSTANCE_TYPE *CheckInstance(void *,char *);
+LOCALE void NoInstanceError(void *,char *,char *);
+LOCALE void StaleInstanceAddress(void *,char *,int);
+LOCALE int EnvGetInstancesChanged(void *);
+LOCALE void EnvSetInstancesChanged(void *,int);
+LOCALE void PrintSlot(void *,char *,SLOT_DESC *,INSTANCE_TYPE *,char *);
+LOCALE void PrintInstanceNameAndClass(void *,char *,INSTANCE_TYPE *,intBool);
+LOCALE void PrintInstanceName(void *,char *,void *);
+LOCALE void PrintInstanceLongForm(void *,char *,void *);
+
+#if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
+LOCALE void DecrementObjectBasisCount(void *,void *);
+LOCALE void IncrementObjectBasisCount(void *,void *);
+LOCALE void MatchObjectFunction(void *,void *);
+LOCALE intBool NetworkSynchronized(void *,void *);
 #endif
 
 #endif

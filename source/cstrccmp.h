@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/cstrccmp.h,v 1.3 2001/08/11 21:04:31 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*           CONSTRUCT CONSTRUCTS-TO-C HEADER          */
    /*******************************************************/
@@ -41,9 +39,9 @@
 #endif
 
 #if ANSI_COMPILER  
-   LOCALE VOID                           MarkConstructHeaders(int);
+   LOCALE void                           MarkConstructHeaders(int);
 #else
-   LOCALE VOID                           MarkConstructHeaders();
+   LOCALE void                           MarkConstructHeaders();
 #endif 
 
 #endif

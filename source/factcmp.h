@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/factcmp.h,v 1.3 2001/08/11 21:05:31 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*          FACT CONSTRUCT COMPILER HEADER FILE        */
    /*******************************************************/
@@ -41,7 +39,7 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           FactPatternsCompilerSetup(void);
-   LOCALE void                           FactPatternNodeReference(void *,FILE *,int,int);
+   LOCALE void                           FactPatternsCompilerSetup(void *);
+   LOCALE void                           FactPatternNodeReference(void *,void *,FILE *,int,int);
 
 #endif

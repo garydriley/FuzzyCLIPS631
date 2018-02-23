@@ -1,0 +1,12 @@
+(unwatch all)
+(clear)
+(set-strategy depth)
+(open "Results//fuzzy.rsl" fuzzy "w")
+(dribble-on "Actual//fuzzy.out")
+(batch "fuzzy.bat")
+(dribble-off)
+(load "compline.clp")
+(printout fuzzy "fuzzy.bat differences are as follows:" crlf)
+(compare-files "Expected//fuzzy.out" "Actual//fuzzy.out" fuzzy)
+; close result file
+(close fuzzy)

@@ -1,0 +1,31 @@
+TRUE
+FuzzyCLIPS> (load "pataddtn.clp")
+******************************************
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+23     should-fire-6g: f-0
+22     should-fire-6f: f-0
+21     should-fire-6e: f-0,
+20     should-fire-6d: f-0
+19     should-fire-6c: f-0,
+18     should-fire-6b: f-0,
+17     should-fire-6a: f-0,
+16     should-fire-5f: f-0,
+15     should-fire-5e: f-0,
+14     should-fire-5d: f-0
+13     should-fire-5c: f-0
+12     should-fire-5b: f-0
+11     should-fire-5a: f-0
+10     should-fire-4e: f-0,
+9      should-fire-4d: f-0,
+8      should-fire-4c: f-0,
+7      should-fire-4b: f-0
+6      should-fire-4a: f-0
+5      should-fire-3b: f-0
+4      should-fire-3a: f-0
+3      should-fire-2b: f-0
+2      should-fire-2a: f-0
+1      should-fire-1: f-0
+For a total of 23 activations.
+FuzzyCLIPS> (dribble-off)

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/network.h,v 1.3 2001/08/11 21:07:05 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                 NETWORK HEADER FILE                 */
    /*******************************************************/
@@ -19,25 +17,6 @@
 /* Revision History:                                         */
 /*                                                           */
 /*************************************************************/
-
-#ifndef _H_setup
-#include "setup.h"
-#endif
-
-#if FUZZY_DEFTEMPLATES
-/* Due to a circular set of definitions we need to do this
-   match.h includes evaluatn.h which includes symbol.h
-   which includes fuzzyval.h
-   which includes tmpltdef.h which includes ... .h
-   which includes network.h => problem!!
-   This effectively makes the include of evaluatn.h an
-   include of symbol.h to make sure tmpltdef is included
-   before evaluatn!
-*/
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#endif
 
 #ifndef _H_network
 

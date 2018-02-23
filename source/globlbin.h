@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/globlbin.h,v 1.3 2001/08/11 21:06:13 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*             DEFGLOBAL BINARY HEADER FILE            */
    /*******************************************************/
@@ -40,7 +38,19 @@ struct bsaveDefglobalModule
    struct bsaveDefmoduleItemHeader header;
   };
 
-#define DefglobalPointer(i) ((struct defglobal *) (&DefglobalArray[i]))
+#define GLOBLBIN_DATA 60
+
+struct defglobalBinaryData
+  { 
+   struct defglobal *DefglobalArray;
+   long NumberOfDefglobals;
+   struct defglobalModule *ModuleArray;
+   long NumberOfDefglobalModules;
+  };
+  
+#define DefglobalBinaryData(theEnv) ((struct defglobalBinaryData *) GetEnvironmentData(theEnv,GLOBLBIN_DATA))
+
+#define DefglobalPointer(i) ((struct defglobal *) (&DefglobalBinaryData(theEnv)->DefglobalArray[i]))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -52,16 +62,13 @@ struct bsaveDefglobalModule
 #define LOCALE extern
 #endif
 
-   LOCALE void                           DefglobalBinarySetup(void);
-   LOCALE void                          *BloadDefglobalModuleReference(int);
+   LOCALE void                           DefglobalBinarySetup(void *);
+   LOCALE void                          *BloadDefglobalModuleReference(void *,int);
 
 #ifndef _GLOBLBIN_SOURCE_
    extern struct defglobal *DefglobalArray;
 #endif
 #endif
-
-
-
 
 
 

@@ -1,5 +1,3 @@
-/*  $Header: /dist/CVS/fzclips/src/fuzzylhs.h,v 1.3 2001/08/11 21:05:54 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
@@ -47,7 +45,7 @@
 #define LOCALE extern
 #endif
 
-    LOCALE struct fuzzy_value *GetFuzzyLHSPattern(char *readSource,struct token *theToken,
+    LOCALE struct fuzzy_value *GetFuzzyLHSPattern(void *theEnv,char *readSource,struct token *theToken,
                                     struct fuzzyLv *fzTemplate,int *error);
 
 

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/symbol.h,v 1.3 2001/08/11 21:08:05 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                 SYMBOL HEADER FILE                  */
    /*******************************************************/
@@ -25,36 +23,18 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
+/*      6.24: Support for run-time programs directly passing */
+/*            the hash tables for initialization.            */
 /*                                                           */
 /*************************************************************/
 
 #ifndef _H_symbol
 #define _H_symbol
 
-struct symbolHashNode;
-struct floatHashNode;
-struct integerHashNode;
-struct bitMapHashNode;
-#if FUZZY_DEFTEMPLATES  
 struct fuzzyValueHashNode;
-#endif
-struct genericHashNode;
-struct symbolMatch;
-
-#if FUZZY_DEFTEMPLATES
-typedef struct symbolHashNode SYMBOL_HN;
-typedef struct floatHashNode FLOAT_HN;
-typedef struct integerHashNode INTEGER_HN;
-typedef struct bitMapHashNode BITMAP_HN;
 typedef struct fuzzyValueHashNode FUZZY_VALUE_HN;
-typedef struct genericHashNode GENERIC_HN;
-
-#ifndef _H_fuzzyval
-#include "fuzzyval.h"
-#endif
-
-#endif /* FUZZY_DEFTEMPLATES */
-
 
 #ifdef LOCALE
 #undef LOCALE
@@ -67,27 +47,24 @@ typedef struct genericHashNode GENERIC_HN;
 #endif
 
 #ifndef SYMBOL_HASH_SIZE
-#define SYMBOL_HASH_SIZE        1013
+#define SYMBOL_HASH_SIZE       63559L
 #endif
 
 #ifndef FLOAT_HASH_SIZE
-#define FLOAT_HASH_SIZE          503
+#define FLOAT_HASH_SIZE         8191
 #endif
 
 #ifndef INTEGER_HASH_SIZE
-#define INTEGER_HASH_SIZE        167
+#define INTEGER_HASH_SIZE       8191
 #endif
 
 #ifndef BITMAP_HASH_SIZE
-#define BITMAP_HASH_SIZE         167
+#define BITMAP_HASH_SIZE        8191
 #endif
 
 #if FUZZY_DEFTEMPLATES
-#define FUZZY_VALUE_HASH_SIZE	 167
+#define FUZZY_VALUE_HASH_SIZE	8191
 #endif
-
-#define CLIPSTrueSymbol TrueSymbol
-#define CLIPSFalseSymbol FalseSymbol
 
 /************************************************************/
 /* symbolHashNode STRUCTURE:                                */
@@ -97,9 +74,10 @@ struct symbolHashNode
    struct symbolHashNode *next;
    long count;
    int depth;
+   unsigned int permanent : 1;
    unsigned int markedEphemeral : 1;
    unsigned int neededSymbol : 1;
-   unsigned int bucket : 30;
+   unsigned int bucket : 29;
    char *contents;
   };
 
@@ -111,9 +89,10 @@ struct floatHashNode
    struct floatHashNode *next;
    long count;
    int depth;
+   unsigned int permanent : 1;
    unsigned int markedEphemeral : 1;
    unsigned int neededFloat : 1;
-   unsigned int bucket : 30;
+   unsigned int bucket : 29;
    double contents;
   };
 
@@ -125,9 +104,10 @@ struct integerHashNode
    struct integerHashNode *next;
    long count;
    int depth;
+   unsigned int permanent : 1;
    unsigned int markedEphemeral : 1;
    unsigned int neededInteger : 1;
-   unsigned int bucket : 30;
+   unsigned int bucket : 29;
    long int contents;
   };
 
@@ -139,14 +119,37 @@ struct bitMapHashNode
    struct bitMapHashNode *next;
    long count;
    int depth;
+   unsigned int permanent : 1;
    unsigned int markedEphemeral : 1;
    unsigned int neededBitMap : 1;
-   unsigned int bucket : 30;
+   unsigned int bucket : 29;
    char *contents;
    unsigned short size;
   };
+  
+/************************************************************/
+/* genericHashNode STRUCTURE:                               */
+/************************************************************/
+struct genericHashNode
+  {
+   struct genericHashNode *next;
+   long count;
+   int depth;
+   unsigned int permanent : 1;
+   unsigned int markedEphemeral : 1;
+   unsigned int needed : 1;
+   unsigned int bucket : 29;
+  };
 
-#if FUZZY_DEFTEMPLATES    
+typedef struct symbolHashNode SYMBOL_HN;
+typedef struct floatHashNode FLOAT_HN;
+typedef struct integerHashNode INTEGER_HN;
+typedef struct bitMapHashNode BITMAP_HN;
+typedef struct genericHashNode GENERIC_HN;
+
+#ifndef _H_fuzzyval
+#include "fuzzyval.h"
+#endif
 
 /************************************************************/
 /* fuzzyValueHashNode STRUCTURE:                            */
@@ -156,25 +159,28 @@ struct fuzzyValueHashNode
    struct fuzzyValueHashNode *next;
    long count;
    int depth;
+   unsigned int permanent : 1;
    unsigned int markedEphemeral : 1;
    unsigned int neededFuzzyValue : 1;
-   unsigned int bucket : 30;
+   unsigned int bucket : 29;
    struct fuzzy_value *contents;
   };
 
-#endif
-
-/************************************************************/
-/* genericHashNode STRUCTURE:                               */
-/************************************************************/
-struct genericHashNode
+/**********************************************************/
+/* EPHEMERON STRUCTURE: Data structure used to keep track */
+/*   of ephemeral symbols, floats, and integers.          */
+/*                                                        */
+/*   associatedValue: Contains a pointer to the storage   */
+/*   structure for the symbol, float, or integer which is */
+/*   ephemeral.                                           */
+/*                                                        */
+/*   next: Contains a pointer to the next ephemeral item  */
+/*   in a list of ephemeral items.                        */
+/**********************************************************/
+struct ephemeron
   {
-   struct genericHashNode *next;
-   long count;
-   int depth;
-   unsigned int markedEphemeral : 1;
-   unsigned int needed : 1;
-   unsigned int bucket : 30;
+   GENERIC_HN *associatedValue;
+   struct ephemeron *next;
   };
 
 /************************************************************/
@@ -186,14 +192,6 @@ struct symbolMatch
    struct symbolMatch *next;
   };
 
-#if ! FUZZY_DEFTEMPLATES
-typedef struct symbolHashNode SYMBOL_HN;
-typedef struct floatHashNode FLOAT_HN;
-typedef struct integerHashNode INTEGER_HN;
-typedef struct bitMapHashNode BITMAP_HN;
-typedef struct genericHashNode GENERIC_HN;
-#endif
-
 #define ValueToString(target) (((struct symbolHashNode *) (target))->contents)
 #define ValueToDouble(target) (((struct floatHashNode *) (target))->contents)
 #define ValueToLong(target) (((struct integerHashNode *) (target))->contents)
@@ -203,6 +201,12 @@ typedef struct genericHashNode GENERIC_HN;
 #define ValueToFuzzyValue(target) (((struct fuzzyValueHashNode *) (target))->contents)
 #endif
 
+#define EnvValueToString(theEnv,target) (((struct symbolHashNode *) (target))->contents)
+#define EnvValueToDouble(theEnv,target) (((struct floatHashNode *) (target))->contents)
+#define EnvValueToLong(theEnv,target) (((struct integerHashNode *) (target))->contents)
+#define EnvValueToInteger(theEnv,target) ((int) (((struct integerHashNode *) (target))->contents))
+#define EnvValueToBitMap(theEnv,target) ((void *) ((struct bitMapHashNode *) (target))->contents)
+
 #define IncrementSymbolCount(theValue) (((SYMBOL_HN *) theValue)->count++)
 #define IncrementFloatCount(theValue) (((FLOAT_HN *) theValue)->count++)
 #define IncrementIntegerCount(theValue) (((INTEGER_HN *) theValue)->count++)
@@ -211,61 +215,105 @@ typedef struct genericHashNode GENERIC_HN;
 #define IncrementFuzzyValueCount(theValue) (((FUZZY_VALUE_HN *) theValue)->count++)
 #endif
 
-/*****************************************************/
-/* The FindSymbol function is remapped under certain */
-/* conditions because it conflicts with a Metroworks */
-/* Code Warrior library function.                    */
-/*****************************************************/
-#if MAC_MCW
-#define FindSymbol MCWFindSymbol
+/*==================*/
+/* ENVIRONMENT DATA */
+/*==================*/
+
+#define SYMBOL_DATA 49
+
+struct symbolData
+  { 
+   void *TrueSymbolHN;
+   void *FalseSymbolHN;
+   void *PositiveInfinity;
+   void *NegativeInfinity;
+   void *Zero;
+   SYMBOL_HN **SymbolTable;
+   FLOAT_HN **FloatTable;
+   INTEGER_HN **IntegerTable;
+   BITMAP_HN **BitMapTable;
+   struct ephemeron *EphemeralSymbolList;
+   struct ephemeron *EphemeralFloatList;
+   struct ephemeron *EphemeralIntegerList;
+   struct ephemeron *EphemeralBitMapList;
+#if FUZZY_DEFTEMPLATES   
+   FUZZY_VALUE_HN **FuzzyValueTable;
+   struct ephemeron *EphemeralFuzzyValueList;
 #endif
 
-   LOCALE void                          *AddSymbol(char *);
-   LOCALE SYMBOL_HN                     *FindSymbol(char *);
-   LOCALE void                          *AddDouble(double);
-   LOCALE void                          *AddLong(long int);
-   LOCALE void                          *AddBitMap(void *,int);
-   LOCALE INTEGER_HN                    *FindLong(long int);
-   LOCALE void                           InitializeAtomTables(void);
-   LOCALE int                            HashSymbol(char *,int);
-   LOCALE int                            HashFloat(double,int);
-   LOCALE int                            HashInteger(long int,int);
-   LOCALE int                            HashBitMap(char *,int,int);
-   LOCALE void                           DecrementSymbolCount(struct symbolHashNode *);
-   LOCALE void                           DecrementFloatCount(struct floatHashNode *);
-   LOCALE void                           DecrementIntegerCount(struct integerHashNode *);
-   LOCALE void                           DecrementBitMapCount(struct bitMapHashNode *);
-   LOCALE void                           RemoveEphemeralAtoms(void);
-   LOCALE struct symbolHashNode        **GetSymbolTable(void);
-   LOCALE void                           SetSymbolTable(struct symbolHashNode **);
-   LOCALE struct floatHashNode          **GetFloatTable(void);
-   LOCALE void                           SetFloatTable(struct floatHashNode **);
-   LOCALE struct integerHashNode       **GetIntegerTable(void);
-   LOCALE void                           SetIntegerTable(struct integerHashNode **);
-   LOCALE struct bitMapHashNode        **GetBitMapTable(void);
-   LOCALE void                           SetBitMapTable(struct bitMapHashNode **);
-   LOCALE void                           RefreshSpecialSymbols(void);
-   LOCALE struct symbolMatch            *FindSymbolMatches(char *,int *,int *);
-   LOCALE void                           ReturnSymbolMatches(struct symbolMatch *);
-   LOCALE SYMBOL_HN                     *GetNextSymbolMatch(char *,int,SYMBOL_HN *,int,int *);
-   LOCALE void                           ClearBitString(void *,int);
-   LOCALE void                           SetAtomicValueIndices(int);
-   LOCALE void                           RestoreAtomicValueBuckets(void);
+#if BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE || BLOAD_INSTANCES || BSAVE_INSTANCES
+   long NumberOfSymbols;
+   long NumberOfFloats;
+   long NumberOfIntegers;
+   long NumberOfBitMaps;
+   SYMBOL_HN **SymbolArray;
+   struct floatHashNode **FloatArray;
+   INTEGER_HN **IntegerArray;
+   BITMAP_HN **BitMapArray;
+#if FUZZY_DEFTEMPLATES   
+   long NumberOfFuzzyValues;
+   struct fuzzyValueHashNode **FuzzyValueArray;
+#endif
+   
+#endif
+  };
+
+#define SymbolData(theEnv) ((struct symbolData *) GetEnvironmentData(theEnv,SYMBOL_DATA))
+#define EnvFalseSymbol(theEnv) SymbolData(theEnv)->FalseSymbolHN
+#define EnvTrueSymbol(theEnv) SymbolData(theEnv)->TrueSymbolHN
+
+#if ENVIRONMENT_API_ONLY
+#define FalseSymbol(theEnv) SymbolData(theEnv)->FalseSymbolHN
+#define TrueSymbol(theEnv) SymbolData(theEnv)->TrueSymbolHN
+#define AddSymbol(theEnv,a) EnvAddSymbol(theEnv,a)
+#define AddLong(theEnv,a) EnvAddLong(theEnv,a)
+#define AddDouble(theEnv,a) EnvAddDouble(theEnv,a)
+#else
+#define FalseSymbol() SymbolData(GetCurrentEnvironment())->FalseSymbolHN
+#define TrueSymbol() SymbolData(GetCurrentEnvironment())->TrueSymbolHN
+#define AddSymbol(a) EnvAddSymbol(GetCurrentEnvironment(),a)
+#define AddLong(a) EnvAddLong(GetCurrentEnvironment(),a)
+#define AddDouble(a) EnvAddDouble(GetCurrentEnvironment(),a)
+#endif
+
+   LOCALE void                           InitializeAtomTables(void *,struct symbolHashNode **,struct floatHashNode **,
+                                                              struct integerHashNode **,struct bitMapHashNode **);
+   LOCALE void                          *EnvAddSymbol(void *,char *);
+   LOCALE SYMBOL_HN                     *FindSymbolHN(void *,char *);
+   LOCALE void                          *EnvAddDouble(void *,double);
+   LOCALE void                          *EnvAddLong(void *,long int);
+   LOCALE void                          *AddBitMap(void *,void *,unsigned);
+   LOCALE INTEGER_HN                    *FindLongHN(void *,long int);
+   LOCALE unsigned long                  HashSymbol(char *,unsigned long);
+   LOCALE unsigned                       HashFloat(double,unsigned);
+   LOCALE unsigned                       HashInteger(long int,unsigned);
+   LOCALE unsigned                       HashBitMap(char *,unsigned,unsigned);
+   LOCALE void                           DecrementSymbolCount(void *,struct symbolHashNode *);
+   LOCALE void                           DecrementFloatCount(void *,struct floatHashNode *);
+   LOCALE void                           DecrementIntegerCount(void *,struct integerHashNode *);
+   LOCALE void                           DecrementBitMapCount(void *,struct bitMapHashNode *);
+   LOCALE void                           RemoveEphemeralAtoms(void *);
+   LOCALE struct symbolHashNode        **GetSymbolTable(void *);
+   LOCALE void                           SetSymbolTable(void *,struct symbolHashNode **);
+   LOCALE struct floatHashNode          **GetFloatTable(void *);
+   LOCALE void                           SetFloatTable(void *,struct floatHashNode **);
+   LOCALE struct integerHashNode       **GetIntegerTable(void *);
+   LOCALE void                           SetIntegerTable(void *,struct integerHashNode **);
+   LOCALE struct bitMapHashNode        **GetBitMapTable(void *);
+   LOCALE void                           SetBitMapTable(void *,struct bitMapHashNode **);
+   LOCALE void                           RefreshSpecialSymbols(void *);
+   LOCALE struct symbolMatch            *FindSymbolMatches(void *,char *,unsigned *,unsigned *);
+   LOCALE void                           ReturnSymbolMatches(void *,struct symbolMatch *);
+   LOCALE SYMBOL_HN                     *GetNextSymbolMatch(void *,char *,unsigned,SYMBOL_HN *,int,unsigned *);
+   LOCALE void                           ClearBitString(void *,unsigned);
+   LOCALE void                           SetAtomicValueIndices(void *,int);
+   LOCALE void                           RestoreAtomicValueBuckets(void *);
 #if FUZZY_DEFTEMPLATES     
-   LOCALE void                          *AddFuzzyValue(struct fuzzy_value *);
-   LOCALE int                            HashFuzzyValue(struct fuzzy_value *,int);
-   LOCALE void                           DecrementFuzzyValueCount(struct fuzzyValueHashNode *);
-   LOCALE struct fuzzyValueHashNode     **GetFuzzyValueTable(void);
-   LOCALE void                           SetFuzzyValueTable(struct fuzzyValueHashNode **);
-#endif
-
-
-#ifndef _SYMBOL_SOURCE
-   extern void                   *TrueSymbol;
-   extern void                   *FalseSymbol;
-   extern void                   *NegativeInfinity;
-   extern void                   *PositiveInfinity;
-   extern void                   *Zero;
+   LOCALE void                          *AddFuzzyValue(void *,struct fuzzy_value *);
+   LOCALE int                            HashFuzzyValue(void *,struct fuzzy_value *,int);
+   LOCALE void                           DecrementFuzzyValueCount(void *,struct fuzzyValueHashNode *);
+   LOCALE struct fuzzyValueHashNode     **GetFuzzyValueTable(void *);
+   LOCALE void                           SetFuzzyValueTable(void *,struct fuzzyValueHashNode **);
 #endif
 
 #endif

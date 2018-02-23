@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/scanner.h,v 1.3 2001/08/11 21:07:52 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                 SCANNER HEADER FILE                 */
    /*******************************************************/
@@ -42,27 +40,40 @@ struct token;
 
 struct token
   {
-   int type;
+   unsigned short type;
    void *value;
    char *printForm;
   };
 
-#define print_rep printForm
+#define SCANNER_DATA 57
 
-   LOCALE void                           GetToken(char *,struct token *);
+struct scannerData
+  { 
+   char *GlobalString;
+   unsigned GlobalMax;
+   int GlobalPos;
+   long LineCount;
+   int IgnoreCompletionErrors;
+#if CERTAINTY_FACTORS    /* added 03-12-96 */
+   struct token TheUnToken;
+   intBool UnTokenIsAvailable;
+#endif
+  };
+
+#define ScannerData(theEnv) ((struct scannerData *) GetEnvironmentData(theEnv,SCANNER_DATA))
+
+   LOCALE void                           InitializeScannerData(void *);
+   LOCALE void                           GetToken(void *,char *,struct token *);
    LOCALE void                           CopyToken(struct token *,struct token *);
-   LOCALE void                           ResetLineCount(void);
-   LOCALE long                           GetLineCount(void);
-   LOCALE void                           IncrementLineCount(void);
-   LOCALE void                           DecrementLineCount(void);
+   LOCALE void                           ResetLineCount(void *);
+   LOCALE long                           GetLineCount(void *);
+   LOCALE void                           IncrementLineCount(void *);
+   LOCALE void                           DecrementLineCount(void *);
 #if CERTAINTY_FACTORS
-   LOCALE VOID                           UnGetToken(struct token *);
-   LOCALE VOID                           ClearTheUnToken();
+   LOCALE VOID                           UnGetToken(void *,struct token *);
+   LOCALE VOID                           ClearTheUnToken(void *);
 #endif
 
-#ifndef _SCANNER_SOURCE_
-   extern int                            IgnoreCompletionErrors;
-#endif
 #endif
 
 

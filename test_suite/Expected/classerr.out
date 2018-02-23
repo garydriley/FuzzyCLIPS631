@@ -1,0 +1,513 @@
+TRUE
+FuzzyCLIPS> (batch "classerr.bat")
+TRUE
+FuzzyCLIPS> (make-instance bad of OBJECT)
+[INSMNGR3] Cannot create instances of abstract class OBJECT.
+FuzzyCLIPS> (make-instance bad of USER)
+[INSMNGR3] Cannot create instances of abstract class USER.
+FuzzyCLIPS> (make-instance bad of PRIMITIVE)
+[INSMNGR3] Cannot create instances of abstract class PRIMITIVE.
+FuzzyCLIPS> (make-instance bad of MULTIFIELD)
+[INSMNGR3] Cannot create instances of abstract class MULTIFIELD.
+FuzzyCLIPS> (make-instance bad of NUMBER)
+[INSMNGR3] Cannot create instances of abstract class NUMBER.
+FuzzyCLIPS> (make-instance bad of EXTERNAL-ADDRESS)
+[INSMNGR3] Cannot create instances of abstract class EXTERNAL-ADDRESS.
+FuzzyCLIPS> (make-instance bad of INTEGER)
+[INSMNGR3] Cannot create instances of abstract class INTEGER.
+FuzzyCLIPS> (make-instance bad of FLOAT)
+[INSMNGR3] Cannot create instances of abstract class FLOAT.
+FuzzyCLIPS> (make-instance bad of LEXEME)
+[INSMNGR3] Cannot create instances of abstract class LEXEME.
+FuzzyCLIPS> (make-instance bad of SYMBOL)
+[INSMNGR3] Cannot create instances of abstract class SYMBOL.
+FuzzyCLIPS> (make-instance bad of STRING)
+[INSMNGR3] Cannot create instances of abstract class STRING.
+FuzzyCLIPS> (make-instance bad of ADDRESS)
+[INSMNGR3] Cannot create instances of abstract class ADDRESS.
+FuzzyCLIPS> (make-instance bad of INSTANCE)
+[INSMNGR3] Cannot create instances of abstract class INSTANCE.
+FuzzyCLIPS> (make-instance bad of INSTANCE-NAME)
+[INSMNGR3] Cannot create instances of abstract class INSTANCE-NAME.
+FuzzyCLIPS> (make-instance bad of INSTANCE-ADDRESS)
+[INSMNGR3] Cannot create instances of abstract class INSTANCE-ADDRESS.
+FuzzyCLIPS> (make-instance bad of FACT-ADDRESS)
+[INSMNGR3] Cannot create instances of abstract class FACT-ADDRESS.
+FuzzyCLIPS> (defclass OBJECT (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::OBJECT
+   (
+FuzzyCLIPS> (defclass USER (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::USER
+   (
+FuzzyCLIPS> (defclass PRIMITIVE (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::PRIMITIVE
+   (
+FuzzyCLIPS> (defclass MULTIFIELD (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::MULTIFIELD
+   (
+FuzzyCLIPS> (defclass NUMBER (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::NUMBER
+   (
+FuzzyCLIPS> (defclass EXTERNAL-ADDRESS (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::EXTERNAL-ADDRESS
+   (
+FuzzyCLIPS> (defclass INTEGER (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::INTEGER
+   (
+FuzzyCLIPS> (defclass FLOAT (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::FLOAT
+   (
+FuzzyCLIPS> (defclass LEXEME (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::LEXEME
+   (
+FuzzyCLIPS> (defclass SYMBOL (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::SYMBOL
+   (
+FuzzyCLIPS> (defclass STRING (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::STRING
+   (
+FuzzyCLIPS> (defclass ADDRESS (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::ADDRESS
+   (
+FuzzyCLIPS> (defclass INSTANCE (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::INSTANCE
+   (
+FuzzyCLIPS> (defclass INSTANCE-NAME (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::INSTANCE-NAME
+   (
+FuzzyCLIPS> (defclass INSTANCE-ADDRESS (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::INSTANCE-ADDRESS
+   (
+FuzzyCLIPS> (defclass FACT-ADDRESS (is-a USER))
+[CLASSPSR2] Cannot redefine a predefined system class.
+
+ERROR:
+(defclass MAIN::FACT-ADDRESS
+   (
+FuzzyCLIPS> (defclass BAD (is-a INSTANCE))
+[INHERPSR6] A user-defined class cannot be a subclass of INSTANCE.
+
+ERROR:
+(defclass MAIN::BAD
+   (is-a INSTANCE
+FuzzyCLIPS> (defclass BAD (is-a INSTANCE-NAME))
+[INHERPSR6] A user-defined class cannot be a subclass of INSTANCE-NAME.
+
+ERROR:
+(defclass MAIN::BAD
+   (is-a INSTANCE-NAME
+FuzzyCLIPS> (defclass BAD (is-a INSTANCE-ADDRESS))
+[INHERPSR6] A user-defined class cannot be a subclass of INSTANCE-ADDRESS.
+
+ERROR:
+(defclass MAIN::BAD
+   (is-a INSTANCE-ADDRESS
+FuzzyCLIPS> (defmessage-handler INSTANCE bad ())
+[MSGPSR8] Message-handlers cannot be attached to the class INSTANCE.
+
+ERROR:
+(defmessage-handler MAIN::INSTANCE
+   bad
+FuzzyCLIPS> (defmessage-handler INSTANCE-NAME bad ())
+[MSGPSR8] Message-handlers cannot be attached to the class INSTANCE-NAME.
+
+ERROR:
+(defmessage-handler MAIN::INSTANCE-NAME
+   bad
+FuzzyCLIPS> (defmessage-handler INSTANCE-ADDRESS bad ())
+[MSGPSR8] Message-handlers cannot be attached to the class INSTANCE-ADDRESS.
+
+ERROR:
+(defmessage-handler MAIN::INSTANCE-ADDRESS
+   bad
+FuzzyCLIPS> (defclass)
+
+[CSTRCPSR2] Missing name for defclass construct
+
+ERROR:
+(defclass )
+FuzzyCLIPS> (defclass JUNK)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defclass inheritance.
+
+ERROR:
+(defclass MAIN::JUNK)
+FuzzyCLIPS> (defclass JUNK bad-comment)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defclass inheritance.
+
+ERROR:
+(defclass MAIN::JUNK
+   bad-comment
+FuzzyCLIPS> (defclass JUNK "comment")
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defclass inheritance.
+
+ERROR:
+(defclass MAIN::JUNK "comment")
+FuzzyCLIPS> (defclass JUNK "comment" ())
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defclass inheritance.
+
+ERROR:
+(defclass MAIN::JUNK "comment"
+   ()
+FuzzyCLIPS> (defclass JUNK ())
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defclass inheritance.
+
+ERROR:
+(defclass MAIN::JUNK
+   ()
+FuzzyCLIPS> (defclass JUNK "comment" (is-a))
+[INHERPSR4] Must have at least one superclass.
+
+ERROR:
+(defclass MAIN::JUNK "comment"
+   (is-a )
+FuzzyCLIPS> (defclass JUNK (is-a))
+[INHERPSR4] Must have at least one superclass.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a )
+FuzzyCLIPS> (defclass JUNK (is-a BOGUS))
+[INHERPSR3] A class must be defined after all its superclasses.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a BOGUS
+FuzzyCLIPS> (defclass JUNK (is-a USER) (role abstract) (role concrete))
+[CLASSPSR4] Class role already declared.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (role abstract)
+   (role
+FuzzyCLIPS> (defclass JUNK (is-a USER) (role concrete) (role abstract))
+[CLASSPSR4] Class role already declared.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (role concrete)
+   (role
+FuzzyCLIPS> (defclass GOOD (is-a USER) (role abstract))
+FuzzyCLIPS> (make-instance bad of GOOD)
+[INSMNGR3] Cannot create instances of abstract class GOOD.
+FuzzyCLIPS> (defclass blah (is-a USER) (is-a USER))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defclass.
+
+ERROR:
+(defclass MAIN::blah
+   (is-a USER)
+   (is-a
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+   (role concrete)
+   (slot))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defclass slot.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (role concrete)
+   (slot )
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+   (slot 5))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defclass slot.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot 5
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+  (slot bad)
+  (slot bad))
+[CLSLTPSR1] Duplicate slots not allowed.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot bad)
+   (slot bad
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+  (slot bad (default) (default-dynamic (time))))
+[CLSLTPSR2] default facet already specified.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot bad
+      (default)
+      (default-dynamic
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+  (multislot bad)
+  (single-slot bad))
+[CLSLTPSR1] Duplicate slots not allowed.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (multislot bad)
+   (single-slot bad
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+  (slot bad (storage shared) (storage local)))
+[CLSLTPSR2] storage facet already specified.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot bad
+      (storage shared)
+      (storage
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+  (slot bad (access read-write) (access read-only)))
+[CLSLTPSR2] access facet already specified.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot bad
+      (access read-write)
+      (access
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+  (slot bad (access read-write) (access initialize-only)))
+[CLSLTPSR2] access facet already specified.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot bad
+      (access read-write)
+      (access
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+  (slot bad (access read-write) (access initialize-only)))
+[CLSLTPSR2] access facet already specified.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot bad
+      (access read-write)
+      (access
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+  (slot bad (propagation no-inherit) (propagation inherit)))
+[CLSLTPSR2] propagation facet already specified.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot bad
+      (propagation no-inherit)
+      (propagation
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+  (slot bad (source composite) (source exclusive)))
+[CLSLTPSR2] source facet already specified.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot bad
+      (source composite)
+      (source
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+  (multislot bad)
+  (slot bad))
+[CLSLTPSR1] Duplicate slots not allowed.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (multislot bad)
+   (slot bad
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+  (slot bad (bogus)))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defclass slot.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot bad
+      (bogus
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+   (bogus))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defclass.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (bogus
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+   (slot bad (default (+ (eval "(gensym)") 2))))
+[ARGACCES5] Function + expected argument #1 to be of type integer or float
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot bad
+      (default (+ (eval "(gensym)") 2)))
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+   (slot bad (default-dynamic abc ())))
+
+[EXPRNPSR1] A function name must be a symbol
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot bad
+      (default-dynamic abc ()
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+   (slot bad (default abc def)))
+[INSFUN7] (abc def) illegal for single-field slot bad found in slot default value.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot bad
+      (default abc def))
+FuzzyCLIPS> (defclass JUNK (is-a USER)
+   (slot bad (default (mv-append))))
+[INSFUN7] () illegal for single-field slot bad found in slot default value.
+
+ERROR:
+(defclass MAIN::JUNK
+   (is-a USER)
+   (slot bad
+      (default (mv-append)))
+FuzzyCLIPS> (defclass GOOD2 (is-a USER) (role concrete)
+   (slot bad (default-dynamic abc def)))
+[CSTRNCHK1] Expression for slot bad found in dynamic default value
+does not satisfy the cardinality restrictions.
+
+ERROR:
+(defclass MAIN::GOOD2
+   (is-a USER)
+   (role concrete)
+   (slot bad
+      (default-dynamic abc def))
+FuzzyCLIPS> (make-instance gd2 of GOOD2)
+[PRNTUTIL1] Unable to find class GOOD2.
+FuzzyCLIPS> (defclass SUBGOOD (is-a GOOD) (role concrete))
+FuzzyCLIPS> (make-instance sg of SUBGOOD)
+[sg]
+FuzzyCLIPS> (defclass GOOD (is-a USER))
+[CLASSPSR3] GOOD class cannot be redefined while
+    outstanding references to it still exist.
+
+ERROR:
+(defclass MAIN::GOOD
+   (
+FuzzyCLIPS> (list-defclasses)
+FLOAT
+INTEGER
+SYMBOL
+STRING
+MULTIFIELD
+EXTERNAL-ADDRESS
+FACT-ADDRESS
+INSTANCE-ADDRESS
+INSTANCE-NAME
+FUZZY-VALUE
+OBJECT
+PRIMITIVE
+NUMBER
+LEXEME
+ADDRESS
+INSTANCE
+USER
+INITIAL-OBJECT
+GOOD
+SUBGOOD
+For a total of 20 defclasses.
+FuzzyCLIPS> (instances)
+[sg] of SUBGOOD
+For a total of 1 instance.
+FuzzyCLIPS> (defclass BOGUS (is-a USER)
+  (slot x (default ?y)))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for default attribute.
+
+ERROR:
+(defclass MAIN::BOGUS
+   (is-a USER)
+   (slot x
+      (default ?y
+FuzzyCLIPS> (defclass BOGUS (is-a USER)
+  (slot x (default-dynamic ?y)))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for default-dynamic attribute.
+
+ERROR:
+(defclass MAIN::BOGUS
+   (is-a USER)
+   (slot x
+      (default-dynamic ?y
+FuzzyCLIPS> (defclass BAD-GLOBAL (is-a USER) (role concrete)
+   (slot x (default ?*bogus*)))
+[GLOBLDEF1] Global variable ?*bogus* is unbound.
+
+ERROR:
+(defclass MAIN::BAD-GLOBAL
+   (is-a USER)
+   (role concrete)
+   (slot x
+      (default ?*bogus*))
+FuzzyCLIPS> (defclass BAD-GLOBAL (is-a USER) (role concrete)
+   (slot x (default-dynamic ?*bogus*)))
+FuzzyCLIPS> (make-instance bad-global of BAD-GLOBAL)
+[GLOBLDEF1] Global variable ?*bogus* is unbound.
+[PRCCODE4] Execution halted during the actions of message-handler init primary in class USER
+[INSMNGR8] An error occurred during the initialization of instance bad-global.
+FALSE
+FuzzyCLIPS> (dribble-off)

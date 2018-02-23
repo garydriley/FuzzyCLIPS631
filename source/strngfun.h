@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/strngfun.h,v 1.3 2001/08/11 21:07:57 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.21  06/15/03            */
    /*                                                     */
    /*             STRING FUNCTIONS HEADER FILE            */
    /*******************************************************/
@@ -38,19 +36,29 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           StringFunctionDefinitions(void);
-   LOCALE void                           StrCatFunction(DATA_OBJECT_PTR);
-   LOCALE void                           SymCatFunction(DATA_OBJECT_PTR);
-   LOCALE long int                       StrLengthFunction(void);
-   LOCALE void                           UpcaseFunction(DATA_OBJECT_PTR);
-   LOCALE void                           LowcaseFunction(DATA_OBJECT_PTR);
-   LOCALE long int                       StrCompareFunction(void);
-   LOCALE void                          *SubStringFunction(void);
-   LOCALE void                           StrIndexFunction(DATA_OBJECT_PTR);
-   LOCALE void                           EvalFunction(DATA_OBJECT_PTR);
-   LOCALE int                            Eval(char *,DATA_OBJECT_PTR);
-   LOCALE int                            BuildFunction(void);
-   LOCALE int                            Build(char *);
+#if ENVIRONMENT_API_ONLY
+#define Eval(theEnv,a,b) EnvEval(theEnv,a,b)
+#define Build(theEnv,a) EnvBuild(theEnv,a)
+#else
+#define Eval(a,b) EnvEval(GetCurrentEnvironment(),a,b)
+#define Build(a) EnvBuild(GetCurrentEnvironment(),a)
+#endif
+
+   LOCALE void                           StringFunctionDefinitions(void *);
+   LOCALE void                           StrCatFunction(void *,DATA_OBJECT_PTR);
+   LOCALE void                           SymCatFunction(void *,DATA_OBJECT_PTR);
+   LOCALE long int                       StrLengthFunction(void *);
+   LOCALE void                           UpcaseFunction(void *,DATA_OBJECT_PTR);
+   LOCALE void                           LowcaseFunction(void *,DATA_OBJECT_PTR);
+   LOCALE long int                       StrCompareFunction(void *);
+   LOCALE void                          *SubStringFunction(void *);
+   LOCALE void                           StrIndexFunction(void *,DATA_OBJECT_PTR);
+   LOCALE void                           EvalFunction(void *,DATA_OBJECT_PTR);
+   LOCALE int                            EnvEval(void *,char *,DATA_OBJECT_PTR);
+   LOCALE int                            BuildFunction(void *);
+   LOCALE int                            EnvBuild(void *,char *);
+   LOCALE void                           StringToFieldFunction(void *,DATA_OBJECT *);
+   LOCALE void                           StringToField(void *,char *,DATA_OBJECT *);
 
 #endif
 

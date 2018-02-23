@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/dffctcmp.h,v 1.3 2001/08/11 21:04:54 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*        DEFFACTS CONSTRUCT COMPILER HEADER FILE      */
    /*******************************************************/
@@ -34,7 +32,7 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           DeffactsCompilerSetup(void);
-   LOCALE void                           DeffactsCModuleReference(FILE *,int,int,int);
+   LOCALE void                           DeffactsCompilerSetup(void *);
+   LOCALE void                           DeffactsCModuleReference(void *,FILE *,int,int,int);
 
 #endif

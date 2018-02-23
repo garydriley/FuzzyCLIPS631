@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/rulelhs.h,v 1.3 2001/08/11 21:07:50 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*           DEFRULE LHS PARSING HEADER FILE           */
    /*******************************************************/
@@ -47,18 +45,8 @@
 #define LOCALE extern
 #endif
 
-LOCALE struct lhsParseNode           *ParseRuleLHS(char *,struct token *,char *);
+LOCALE struct lhsParseNode           *ParseRuleLHS(void *,char *,struct token *,char *);
 LOCALE void                           PropagatePatternType(struct lhsParseNode *,struct patternParser *);
-
-#ifndef _RULELHS_SOURCE_
-   extern int                     GlobalSalience;
-   extern int                     GlobalAutoFocus;
-   extern struct expr            *SalienceExpression;
-#if CERTAINTY_FACTORS   /* added 03-12-96 */
-   extern double                  GlobalCF;
-   extern struct expr            *CFExpression;
-#endif
-#endif
 
 #endif
 

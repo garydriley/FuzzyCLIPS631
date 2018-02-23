@@ -1,0 +1,252 @@
+TRUE
+FuzzyCLIPS> (batch "factscmd.bat")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (facts)                            ; facts
+FuzzyCLIPS> (assert (a) (b) (c) (d) (e) (f))
+<Fact-5>
+FuzzyCLIPS> (facts)
+f-0     (a) CF 1.00 
+f-1     (b) CF 1.00 
+f-2     (c) CF 1.00 
+f-3     (d) CF 1.00 
+f-4     (e) CF 1.00 
+f-5     (f) CF 1.00 
+For a total of 6 facts.
+FuzzyCLIPS> (facts 1 2 3 4 5)
+[ARGACCES4] Function facts expected no more than 4 argument(s)
+FuzzyCLIPS> (facts "a")
+[ARGACCES5] Function facts expected argument #1 to be of type symbol or positive number
+FuzzyCLIPS> (facts 1 a)
+[ARGACCES5] Function facts expected argument #2 to be of type integer
+FuzzyCLIPS> (facts 1 2 a)
+[ARGACCES5] Function facts expected argument #3 to be of type integer
+FuzzyCLIPS> (facts -1 5 2)
+[ARGACCES5] Function facts expected argument #1 to be of type symbol or positive number
+FuzzyCLIPS> (facts 4 -1 2)
+[ARGACCES5] Function facts expected argument #2 to be of type positive number
+FuzzyCLIPS> (facts 3 4 -2)
+[ARGACCES5] Function facts expected argument #3 to be of type positive number
+FuzzyCLIPS> (facts 4 2)
+FuzzyCLIPS> (facts 4)
+f-4     (e) CF 1.00 
+f-5     (f) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (facts 2 4)
+f-2     (c) CF 1.00 
+f-3     (d) CF 1.00 
+f-4     (e) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (facts 1 5 2)
+f-1     (b) CF 1.00 
+f-2     (c) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (save-facts)                       ; save-facts and load-facts
+[ARGACCES4] Function save-facts expected at least 1 argument(s)
+FuzzyCLIPS> (save-facts 10)
+[ARGACCES5] Function save-facts expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (save-facts "Temp//factscmd.tmp" 10)
+[ARGACCES5] Function save-facts expected argument #2 to be of type symbol
+FuzzyCLIPS> (save-facts "Temp//factscmd.tmp")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (facts)
+FuzzyCLIPS> (load-facts)
+[ARGACCES4] Function load-facts expected exactly 1 argument(s)
+FuzzyCLIPS> (load-facts 10)
+[ARGACCES5] Function load-facts expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (load-facts "Temp//factscmd.tmp" 10)
+[ARGACCES4] Function load-facts expected exactly 1 argument(s)
+FuzzyCLIPS> (load-facts "Temp//factscmd.tmp")
+TRUE
+FuzzyCLIPS> (facts)
+f-0     (a) CF 1.00 
+f-1     (b) CF 1.00 
+f-2     (c) CF 1.00 
+f-3     (d) CF 1.00 
+f-4     (e) CF 1.00 
+f-5     (f) CF 1.00 
+For a total of 6 facts.
+FuzzyCLIPS> (clear)                            ; dependencies and dependents
+FuzzyCLIPS> (defrule foo1 (logical (a) (b)) => (assert (e)))
+FuzzyCLIPS> (defrule foo2 (logical (b)) (c) => (assert (e)))
+FuzzyCLIPS> (defrule foo3 (logical (d) (b) (a)) (c) => (assert (e)))
+FuzzyCLIPS> (defrule foo4 (logical (d) (b) (a) (c)) => (assert (e)))
+FuzzyCLIPS> (defrule foo5 (logical (a) (c) (d)) => (assert (e)))
+FuzzyCLIPS> (defrule foo6 (declare (salience -1)) (logical (c) (d)) => (assert (f)))
+FuzzyCLIPS> (defrule foo7 (declare (salience -1)) (logical (a)) (c) => (assert (f)))
+FuzzyCLIPS> (defrule foo8 (declare (salience -1)) (logical (c) (a)) (d) => (assert (f)))
+FuzzyCLIPS> (defrule foo9 (declare (salience -2)) (logical (d) (c) (b)) => (assert (g)))
+FuzzyCLIPS> (assert (a) (b) (c) (d))
+<Fact-3>
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (facts)
+f-0     (a) CF 1.00 
+f-1     (b) CF 1.00 
+f-2     (c) CF 1.00 
+f-3     (d) CF 1.00 
+f-4     (e) CF 1.00 
+f-5     (f) CF 1.00 
+f-6     (g) CF 1.00 
+For a total of 7 facts.
+FuzzyCLIPS> (dependencies)
+[ARGACCES4] Function dependencies expected exactly 1 argument(s)
+FuzzyCLIPS> (dependencies a)
+[PRNTUTIL1] Unable to find instance a.
+FuzzyCLIPS> (dependencies 9)
+[PRNTUTIL1] Unable to find fact f-9.
+FuzzyCLIPS> (dependencies 4 5)
+[ARGACCES4] Function dependencies expected exactly 1 argument(s)
+FuzzyCLIPS> (dependencies 4)
+f-0,f-1
+f-1
+f-0,f-2,f-3
+f-3,f-1,f-0,f-2
+f-3,f-1,f-0
+FuzzyCLIPS> (dependencies 2)
+None
+FuzzyCLIPS> (dependents)
+[ARGACCES4] Function dependents expected exactly 1 argument(s)
+FuzzyCLIPS> (dependents a)
+[PRNTUTIL1] Unable to find instance a.
+FuzzyCLIPS> (dependents 9)
+[PRNTUTIL1] Unable to find fact f-9.
+FuzzyCLIPS> (dependents 4 5)
+[ARGACCES4] Function dependents expected exactly 1 argument(s)
+FuzzyCLIPS> (dependents 0)
+f-4,f-5
+FuzzyCLIPS> (dependents 1)
+f-4,f-6
+FuzzyCLIPS> (dependents 2)
+f-4,f-5,f-6
+FuzzyCLIPS> (dependents 3)
+f-4,f-5,f-6
+FuzzyCLIPS> (dependents 4)
+None
+FuzzyCLIPS> (dependents 5)
+None
+FuzzyCLIPS> (clear)                            ; get-fact-duplication and set-fact-duplication
+FuzzyCLIPS> (assert (a))
+<Fact-0>
+FuzzyCLIPS> (assert (a))
+FALSE
+FuzzyCLIPS> (facts)
+f-0     (a) CF 1.00 
+For a total of 1 fact.
+FuzzyCLIPS> (get-fact-duplication)  
+FALSE
+FuzzyCLIPS> (get-fact-duplication TRUE)
+[ARGACCES4] Function get-fact-duplication expected exactly 0 argument(s)
+FuzzyCLIPS> (set-fact-duplication)
+[ARGACCES4] Function set-fact-duplication expected exactly 1 argument(s)
+FuzzyCLIPS> (set-fact-duplication TRUE FALSE)
+[ARGACCES4] Function set-fact-duplication expected exactly 1 argument(s)
+FuzzyCLIPS> (set-fact-duplication 10)
+FALSE
+FuzzyCLIPS> (get-fact-duplication)
+TRUE
+FuzzyCLIPS> (set-fact-duplication TRUE)
+TRUE
+FuzzyCLIPS> (get-fact-duplication)
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (assert (a))
+<Fact-0>
+FuzzyCLIPS> (assert (a))
+<Fact-1>
+FuzzyCLIPS> (facts)
+f-0     (a) CF 1.00 
+f-1     (a) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (set-fact-duplication FALSE)
+TRUE
+FuzzyCLIPS> (get-fact-duplication)
+FALSE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (assert (a))
+<Fact-0>
+FuzzyCLIPS> (assert (a))
+FALSE
+FuzzyCLIPS> (facts)
+f-0     (a) CF 1.00 
+For a total of 1 fact.
+FuzzyCLIPS> (clear) ;; New 6.0 Stuff
+FuzzyCLIPS> (defmodule A)
+FuzzyCLIPS> (assert (x) (y) (z))
+<Fact-2>
+FuzzyCLIPS> (defmodule B)
+FuzzyCLIPS> (assert (a) (b) (c))
+<Fact-5>
+FuzzyCLIPS> (facts)
+f-3     (a) CF 1.00 
+f-4     (b) CF 1.00 
+f-5     (c) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (facts A)
+f-0     (x) CF 1.00 
+f-1     (y) CF 1.00 
+f-2     (z) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (facts B)
+f-3     (a) CF 1.00 
+f-4     (b) CF 1.00 
+f-5     (c) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (facts *)
+f-0     (x) CF 1.00 
+f-1     (y) CF 1.00 
+f-2     (z) CF 1.00 
+f-3     (a) CF 1.00 
+f-4     (b) CF 1.00 
+f-5     (c) CF 1.00 
+For a total of 6 facts.
+FuzzyCLIPS> (clear) ;; New 6.24 stuff
+FuzzyCLIPS> (ppfact)
+[ARGACCES4] Function ppfact expected at least 1 argument(s)
+FuzzyCLIPS> (ppfact a)
+[ARGACCES5] Function ppfact expected argument #1 to be of type fact-address or fact-index
+FuzzyCLIPS> (ppfact 1)
+[PRNTUTIL1] Unable to find fact f-1.
+FuzzyCLIPS> (assert (foo a b c d))
+<Fact-0>
+FuzzyCLIPS> (ppfact 0)
+(foo a b c d) CF 1.00 
+FuzzyCLIPS> (ppfact 0 nil)
+FuzzyCLIPS> (ppfact 0 t)
+(foo a b c d) CF 1.00 
+FuzzyCLIPS> (ppfact 0 t FALSE)
+(foo a b c d) CF 1.00 
+FuzzyCLIPS> (ppfact 0 t TRUE)
+(foo a b c d) CF 1.00 
+FuzzyCLIPS> 
+(deftemplate bar
+   (slot w)
+   (slot x (default 3))
+   (multislot y)
+   (multislot z (default a b)))
+FuzzyCLIPS> (assert (bar))
+<Fact-1>
+FuzzyCLIPS> (ppfact 1 t FALSE)
+(bar 
+   (w nil) 
+   (x 3) 
+   (y) 
+   (z a b)) CF 1.00 
+FuzzyCLIPS> (ppfact 1 t TRUE)
+(bar) CF 1.00 
+FuzzyCLIPS> (assert (bar (w 1) (x 2) (y 3) (z 4)))
+<Fact-2>
+FuzzyCLIPS> (ppfact 2 t FALSE)
+(bar 
+   (w 1) 
+   (x 2) 
+   (y 3) 
+   (z 4)) CF 1.00 
+FuzzyCLIPS> (ppfact 2 t TRUE)
+(bar 
+   (w 1) 
+   (x 2) 
+   (y 3) 
+   (z 4)) CF 1.00 
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (dribble-off)

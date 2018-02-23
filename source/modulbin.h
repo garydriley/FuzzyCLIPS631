@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/modulbin.h,v 1.3 2001/08/11 21:06:47 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*           DEFMODULE BSAVE/BLOAD HEADER FILE         */
    /*******************************************************/
@@ -31,7 +29,7 @@
 
 struct bsaveDefmodule
   {
-   long name;
+   unsigned long name;
    long importList;
    long exportList;
    long next;
@@ -53,7 +51,7 @@ struct bsavePortItem
    long next;
   };
 
-#define ModulePointer(i) ((struct defmodule *) (&DefmoduleArray[i]))
+#define ModulePointer(i) ((struct defmodule *) (&DefmoduleData(theEnv)->DefmoduleArray[i]))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -65,9 +63,9 @@ struct bsavePortItem
 #define LOCALE extern
 #endif
 
-   LOCALE void                           DefmoduleBinarySetup(void);
+   LOCALE void                           DefmoduleBinarySetup(void *);
    LOCALE void                           UpdateDefmoduleItemHeader
-                                                 (struct bsaveDefmoduleItemHeader *,
+                                                 (void *,struct bsaveDefmoduleItemHeader *,
                                                   struct defmoduleItemHeader *,int,void *);
 
 #if BLOAD_AND_BSAVE
@@ -76,15 +74,7 @@ struct bsavePortItem
                                                   struct defmoduleItemHeader *);
 #endif
 
-#ifndef _MODULBIN_SOURCE_
-   extern struct defmodule            *DefmoduleArray;
 #endif
-
-#endif
-
-
-
-
 
 
 

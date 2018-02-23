@@ -1,0 +1,33 @@
+TRUE
+FuzzyCLIPS> (batch "dfnxcmd.bat")
+TRUE
+FuzzyCLIPS> (deffunction bogus (?a ?b $?c)
+   (printout t "Random action" crlf))
+FuzzyCLIPS> (deffunction bogus2 ())
+FuzzyCLIPS> (ppdeffunction bogus)
+(deffunction MAIN::bogus
+   (?a ?b $?c)
+   (printout t "Random action" crlf))
+FuzzyCLIPS> (ppdeffunction bad)
+[PRNTUTIL1] Unable to find deffunction bad.
+FuzzyCLIPS> (ppdeffunction 1)
+[ARGACCES5] Function ppdeffunction expected argument #1 to be of type symbol
+FuzzyCLIPS> (ppdeffunction)
+[ARGACCES4] Function ppdeffunction expected exactly 1 argument(s)
+FuzzyCLIPS> (list-deffunctions)
+bogus
+bogus2
+For a total of 2 deffunctions.
+FuzzyCLIPS> (undeffunction bogus)
+FuzzyCLIPS> (list-deffunctions)
+bogus2
+For a total of 1 deffunction.
+FuzzyCLIPS> (undeffunction bad)
+[PRNTUTIL1] Unable to find deffunction bad.
+FuzzyCLIPS> (undeffunction 1)
+[ARGACCES5] Function undeffunction expected argument #1 to be of type symbol
+FuzzyCLIPS> (undeffunction)
+[ARGACCES4] Function undeffunction expected exactly 1 argument(s)
+FuzzyCLIPS> (undeffunction *)
+FuzzyCLIPS> (list-deffunctions)
+FuzzyCLIPS> (dribble-off)

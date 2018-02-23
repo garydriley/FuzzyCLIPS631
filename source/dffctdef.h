@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/dffctdef.h,v 1.3 2001/08/11 21:04:55 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                DEFFACTS HEADER FILE                 */
    /*******************************************************/
@@ -19,11 +17,16 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_dffctdef
 #define _H_dffctdef
 
+#ifndef _H_conscomp
+#include "conscomp.h"
+#endif
 #ifndef _H_symbol
 #include "symbol.h"
 #endif
@@ -43,6 +46,17 @@
 #include "cstrccom.h"
 #endif
 
+#define DEFFACTS_DATA 0
+
+struct deffactsData
+  { 
+   struct construct *DeffactsConstruct;
+   int DeffactsModuleIndex;  
+#if CONSTRUCT_COMPILER && (! RUN_TIME)
+   struct CodeGeneratorItem *DeffactsCodeItem;
+#endif
+  };
+  
 struct deffacts
   {
    struct constructHeader header;
@@ -54,9 +68,10 @@ struct deffactsModule
    struct defmoduleItemHeader header;
   };
 
-#define GetDeffactsName(x) GetConstructNameString((struct constructHeader *) x)
-#define GetDeffactsPPForm(x) GetConstructPPForm((struct constructHeader *) x)
-#define DeffactsModule(x) GetConstructModuleName((struct constructHeader *) x)
+#define EnvGetDeffactsName(theEnv,x) GetConstructNameString((struct constructHeader *) x)
+#define EnvGetDeffactsPPForm(theEnv,x) GetConstructPPForm(theEnv,(struct constructHeader *) x)
+#define EnvDeffactsModule(theEnv,x) GetConstructModuleName((struct constructHeader *) x)
+#define DeffactsData(theEnv) ((struct deffactsData *) GetEnvironmentData(theEnv,DEFFACTS_DATA))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -68,18 +83,28 @@ struct deffactsModule
 #define LOCALE extern
 #endif
 
-   LOCALE void                           InitializeDeffacts(void);
-   LOCALE void                          *FindDeffacts(char *);
-   LOCALE void                          *GetNextDeffacts(void *);
-   LOCALE void                           CreateInitialFactDeffacts(void);
-   LOCALE BOOLEAN                        IsDeffactsDeletable(void *);
-   LOCALE struct deffactsModule         *GetDeffactsModuleItem(struct defmodule *);
-
-#ifndef _DFFCTDEF_SOURCE_
-   extern struct construct              *DeffactsConstruct;
-   extern int                            DeffactsModuleIndex;
+#if ENVIRONMENT_API_ONLY
+#define DeffactsModule(theEnv,x) GetConstructModuleName((struct constructHeader *) x)
+#define FindDeffacts(theEnv,a) EnvFindDeffacts(theEnv,a)
+#define GetDeffactsName(theEnv,x) GetConstructNameString((struct constructHeader *) x)
+#define GetDeffactsPPForm(theEnv,x) GetConstructPPForm(theEnv,(struct constructHeader *) x)
+#define GetNextDeffacts(theEnv,a) EnvGetNextDeffacts(theEnv,a)
+#define IsDeffactsDeletable(theEnv,a) EnvIsDeffactsDeletable(theEnv,a)
+#else
+#define DeffactsModule(x) GetConstructModuleName((struct constructHeader *) x)
+#define FindDeffacts(a) EnvFindDeffacts(GetCurrentEnvironment(),a)
+#define GetDeffactsName(x) GetConstructNameString((struct constructHeader *) x)
+#define GetDeffactsPPForm(x) GetConstructPPForm(GetCurrentEnvironment(),(struct constructHeader *) x)
+#define GetNextDeffacts(a) EnvGetNextDeffacts(GetCurrentEnvironment(),a)
+#define IsDeffactsDeletable(a) EnvIsDeffactsDeletable(GetCurrentEnvironment(),a)
 #endif
 
+   LOCALE void                           InitializeDeffacts(void *);
+   LOCALE void                          *EnvFindDeffacts(void *,char *);
+   LOCALE void                          *EnvGetNextDeffacts(void *,void *);
+   LOCALE void                           CreateInitialFactDeffacts(void);
+   LOCALE intBool                        EnvIsDeffactsDeletable(void *,void *);
+   LOCALE struct deffactsModule         *GetDeffactsModuleItem(void *,struct defmodule *);
 
 #endif
 

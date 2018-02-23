@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/symbol.c,v 1.3 2001/08/11 21:08:04 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                    SYMBOL MODULE                    */
    /*******************************************************/
@@ -26,11 +24,22 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/symbol.c,v 1.3 2001/08/11 
 /*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
+/*      6.24: CLIPS crashing on AMD64 processor in the       */
+/*            function used to generate a hash value for     */
+/*            integers. DR0871                               */
+/*                                                           */
+/*            Support for run-time programs directly passing */
+/*            the hash tables for initialization.            */
+/*                                                           */
+/*            Corrected code generating compilation          */
+/*            warnings.                                      */
 /*                                                           */
 /*************************************************************/
 
 #define _SYMBOL_SOURCE_
-
+                                                                                
 #include <stdio.h>
 #define _STDIO_INCLUDED_
 #include <stdlib.h>
@@ -38,36 +47,18 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/symbol.c,v 1.3 2001/08/11 
 
 #include "setup.h"
 
-#if FUZZY_DEFTEMPLATES  
-#include "symbol.h"
-#include "fuzzyval.h"
-#include "fuzzypsr.h"
-#include "fuzzyrhs.h"
-#endif
-
 #include "constant.h"
+#include "envrnmnt.h"
 #include "memalloc.h"
 #include "router.h"
 #include "utility.h"
 #include "argacces.h"
 #include "symbol.h"
 
-/**********************************************************/
-/* EPHEMERON STRUCTURE: Data structure used to keep track */
-/*   of ephemeral symbols, floats, and integers.          */
-/*                                                        */
-/*   associatedValue: Contains a pointer to the storage   */
-/*   structure for the symbol, float, or integer which is */
-/*   ephemeral.                                           */
-/*                                                        */
-/*   next: Contains a pointer to the next ephemeral item  */
-/*   in a list of ephemeral items.                        */
-/**********************************************************/
-struct ephemeron
-  {
-   GENERIC_HN *associatedValue;
-   struct ephemeron *next;
-  };
+#if FUZZY_DEFTEMPLATES  
+#include "fuzzypsr.h"
+#include "fuzzyrhs.h"
+#endif
 
 /***************/
 /* DEFINITIONS */
@@ -90,56 +81,303 @@ struct ephemeron
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static void                    RemoveHashNode(GENERIC_HN *,GENERIC_HN **,int,int);
-   static void                    AddEphemeralHashNode(GENERIC_HN *,struct ephemeron **,
+   static void                    RemoveHashNode(void *,GENERIC_HN *,GENERIC_HN **,int,int);
+   static void                    AddEphemeralHashNode(void *,GENERIC_HN *,struct ephemeron **,
                                                        int,int);
-   static void                    RemoveEphemeralHashNodes(struct ephemeron **,
+   static void                    RemoveEphemeralHashNodes(void *,struct ephemeron **,
                                                            GENERIC_HN **,
                                                            int,int,int);
    static char                   *StringWithinString(char *,char *);
-   static int                     CommonPrefixLength(char *,char *);
+   static unsigned                CommonPrefixLength(char *,char *);
+   static void                    DeallocateSymbolData(void *);
 
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle void               *TrueSymbol;
-   globle void               *FalseSymbol;
-   globle void               *PositiveInfinity;
-   globle void               *NegativeInfinity;
-   globle void               *Zero;
-
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-
-   static SYMBOL_HN         **SymbolTable;
-   static FLOAT_HN          **FloatTable;
-   static INTEGER_HN        **IntegerTable;
-   static BITMAP_HN         **BitMapTable;
-#if FUZZY_DEFTEMPLATES   
-   static FUZZY_VALUE_HN    **FuzzyValueTable;
+/*******************************************************/
+/* InitializeAtomTables: Initializes the SymbolTable,  */
+/*   IntegerTable, and FloatTable. It also initializes */
+/*   the TrueSymbol and FalseSymbol.                   */
+/*******************************************************/
+#if IBM_TBC && (! RUN_TIME)
+#pragma argsused
 #endif
-   static struct ephemeron   *EphemeralSymbolList = NULL;
-   static struct ephemeron   *EphemeralFloatList = NULL;
-   static struct ephemeron   *EphemeralIntegerList = NULL;
-   static struct ephemeron   *EphemeralBitMapList = NULL;
-#if FUZZY_DEFTEMPLATES   
-   static struct ephemeron   *EphemeralFuzzyValueList = NULL;
+globle void InitializeAtomTables(
+  void *theEnv,
+  struct symbolHashNode **symbolTable,
+  struct floatHashNode **floatTable,
+  struct integerHashNode **integerTable,
+  struct bitMapHashNode **bitmapTable)
+  {
+#if ! RUN_TIME
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(symbolTable)
+#pragma unused(floatTable)
+#pragma unused(integerTable)
+#pragma unused(bitmapTable)
+#endif
+   unsigned long i;
+#endif
+   
+   AllocateEnvironmentData(theEnv,SYMBOL_DATA,sizeof(struct symbolData),DeallocateSymbolData);
+
+#if ! RUN_TIME
+   /*=========================*/
+   /* Create the hash tables. */
+   /*=========================*/
+
+   SymbolData(theEnv)->SymbolTable = (SYMBOL_HN **)
+                  gm3(theEnv,sizeof (SYMBOL_HN *) * SYMBOL_HASH_SIZE);
+
+   SymbolData(theEnv)->FloatTable = (FLOAT_HN **)
+                  gm2(theEnv,(int) sizeof (FLOAT_HN *) * FLOAT_HASH_SIZE);
+
+   SymbolData(theEnv)->IntegerTable = (INTEGER_HN **)
+                   gm2(theEnv,(int) sizeof (INTEGER_HN *) * INTEGER_HASH_SIZE);
+
+   SymbolData(theEnv)->BitMapTable = (BITMAP_HN **)
+                   gm2(theEnv,(int) sizeof (BITMAP_HN *) * BITMAP_HASH_SIZE);
+                   
+#if FUZZY_DEFTEMPLATES  
+    SymbolData(theEnv)->FuzzyValueTable = (FUZZY_VALUE_HN **)
+                    gm2(theEnv,(int) sizeof (FUZZY_VALUE_HN *) * FUZZY_VALUE_HASH_SIZE);
 #endif
 
-/********************************************************************/
-/* AddSymbol: Searches for the string in the symbol table. If the   */
-/*   string is already in the symbol table, then the address of the */
-/*   string's location in the symbol table is returned. Otherwise,  */
-/*   the string is added to the symbol table and then the address   */
-/*   of the string's location in the symbol table is returned.      */
-/********************************************************************/
-globle void *AddSymbol(
-   char *str)
-   {
-    int tally, length;
-    SYMBOL_HN *past = NULL, *peek;
+   /*===================================================*/
+   /* Initialize all of the hash table entries to NULL. */
+   /*===================================================*/
+
+   for (i = 0; i < SYMBOL_HASH_SIZE; i++) SymbolData(theEnv)->SymbolTable[i] = NULL;
+   for (i = 0; i < FLOAT_HASH_SIZE; i++) SymbolData(theEnv)->FloatTable[i] = NULL;
+   for (i = 0; i < INTEGER_HASH_SIZE; i++) SymbolData(theEnv)->IntegerTable[i] = NULL;
+   for (i = 0; i < BITMAP_HASH_SIZE; i++) SymbolData(theEnv)->BitMapTable[i] = NULL;
+#if FUZZY_DEFTEMPLATES  
+   for (i = 0; i < FUZZY_VALUE_HASH_SIZE; i++) SymbolData(theEnv)->FuzzyValueTable[i] = NULL;
+#endif
+
+   /*========================*/
+   /* Predefine some values. */
+   /*========================*/
+
+   SymbolData(theEnv)->TrueSymbolHN = EnvAddSymbol(theEnv,TRUE_STRING);
+   IncrementSymbolCount(SymbolData(theEnv)->TrueSymbolHN);
+   SymbolData(theEnv)->FalseSymbolHN = EnvAddSymbol(theEnv,FALSE_STRING);
+   IncrementSymbolCount(SymbolData(theEnv)->FalseSymbolHN);
+   SymbolData(theEnv)->PositiveInfinity = EnvAddSymbol(theEnv,POSITIVE_INFINITY_STRING);
+   IncrementSymbolCount(SymbolData(theEnv)->PositiveInfinity);
+   SymbolData(theEnv)->NegativeInfinity = EnvAddSymbol(theEnv,NEGATIVE_INFINITY_STRING);
+   IncrementSymbolCount(SymbolData(theEnv)->NegativeInfinity);
+   SymbolData(theEnv)->Zero = EnvAddLong(theEnv,0L);
+   IncrementIntegerCount(SymbolData(theEnv)->Zero);
+#else
+   SetSymbolTable(theEnv,symbolTable);
+   SetFloatTable(theEnv,floatTable);
+   SetIntegerTable(theEnv,integerTable);
+   SetBitMapTable(theEnv,bitmapTable);
+   // TBD
+#endif
+  }
+
+/*************************************************/
+/* DeallocateSymbolData: Deallocates environment */
+/*    data for symbols.                          */
+/*************************************************/
+static void DeallocateSymbolData(
+  void *theEnv)
+  {
+   int i;
+   SYMBOL_HN *shPtr, *nextSHPtr;
+   INTEGER_HN *ihPtr, *nextIHPtr;
+   FLOAT_HN *fhPtr, *nextFHPtr;
+   BITMAP_HN *bmhPtr, *nextBMHPtr;
+#if FUZZY_DEFTEMPLATES  
+   FUZZY_VALUE_HN *fvhPtr, *nextFVHPtr;
+#endif
+   struct ephemeron *edPtr, *nextEDPtr;
+
+   if ((SymbolData(theEnv)->SymbolTable == NULL) ||
+       (SymbolData(theEnv)->FloatTable == NULL) ||
+       (SymbolData(theEnv)->IntegerTable == NULL) ||
+       (SymbolData(theEnv)->BitMapTable == NULL))
+     { return; }
+     
+   for (i = 0; i < SYMBOL_HASH_SIZE; i++) 
+     {
+      shPtr = SymbolData(theEnv)->SymbolTable[i];
+      
+      while (shPtr != NULL)
+        {
+         nextSHPtr = shPtr->next;
+         if (! shPtr->permanent)
+           {
+            rm(theEnv,shPtr->contents,strlen(shPtr->contents)+1);
+            rtn_struct(theEnv,symbolHashNode,shPtr);
+           }  
+         shPtr = nextSHPtr;
+        } 
+     }
+      
+   for (i = 0; i < FLOAT_HASH_SIZE; i++) 
+     {
+      fhPtr = SymbolData(theEnv)->FloatTable[i];
+
+      while (fhPtr != NULL)
+        {
+         nextFHPtr = fhPtr->next;
+         if (! fhPtr->permanent)
+           { rtn_struct(theEnv,floatHashNode,fhPtr); }
+         fhPtr = nextFHPtr;
+        }
+     }
+     
+   for (i = 0; i < INTEGER_HASH_SIZE; i++) 
+     {
+      ihPtr = SymbolData(theEnv)->IntegerTable[i];
+
+      while (ihPtr != NULL)
+        {
+         nextIHPtr = ihPtr->next;
+         if (! ihPtr->permanent)
+           { rtn_struct(theEnv,integerHashNode,ihPtr); }
+         ihPtr = nextIHPtr;
+        }
+     }
+     
+   for (i = 0; i < BITMAP_HASH_SIZE; i++) 
+     {
+      bmhPtr = SymbolData(theEnv)->BitMapTable[i];
+
+      while (bmhPtr != NULL)
+        {
+         nextBMHPtr = bmhPtr->next;
+         if (! bmhPtr->permanent)
+           {
+            rm(theEnv,bmhPtr->contents,bmhPtr->size);
+            rtn_struct(theEnv,bitMapHashNode,bmhPtr); 
+           } 
+         bmhPtr = nextBMHPtr;
+        }
+     }
+     
+#if FUZZY_DEFTEMPLATES  
+   for (i = 0; i < FUZZY_VALUE_HASH_SIZE; i++) 
+     {
+      fvhPtr = SymbolData(theEnv)->FuzzyValueTable[i];
+
+      while (fvhPtr != NULL)
+        {
+         nextFVHPtr = fvhPtr->next;
+         if (! fvhPtr->permanent)
+           {
+            rtnFuzzyValue(theEnv,fvhPtr->contents); 
+            rtn_struct(theEnv,fuzzyValueHashNode,fvhPtr); 
+           } 
+         fvhPtr = nextFVHPtr;
+        }
+     }
+#endif
+
+   /*=========================================*/
+   /* Remove the ephemeral symbol structures. */
+   /*=========================================*/
+   
+   edPtr = SymbolData(theEnv)->EphemeralSymbolList;
+
+   while (edPtr != NULL)
+     {
+      nextEDPtr = edPtr->next;
+      rtn_struct(theEnv,ephemeron,edPtr);
+      edPtr = nextEDPtr;
+     }
+
+   edPtr = SymbolData(theEnv)->EphemeralFloatList;
+
+   while (edPtr != NULL)
+     {
+      nextEDPtr = edPtr->next;
+      rtn_struct(theEnv,ephemeron,edPtr);
+      edPtr = nextEDPtr;
+     }
+
+   edPtr = SymbolData(theEnv)->EphemeralIntegerList;
+
+   while (edPtr != NULL)
+     {
+      nextEDPtr = edPtr->next;
+      rtn_struct(theEnv,ephemeron,edPtr);
+      edPtr = nextEDPtr;
+     }
+
+   edPtr = SymbolData(theEnv)->EphemeralBitMapList;
+
+   while (edPtr != NULL)
+     {
+      nextEDPtr = edPtr->next;
+      rtn_struct(theEnv,ephemeron,edPtr);
+      edPtr = nextEDPtr;
+     }
+     
+#if FUZZY_DEFTEMPLATES  
+   edPtr = SymbolData(theEnv)->EphemeralFuzzyValueList;
+
+   while (edPtr != NULL)
+     {
+      nextEDPtr = edPtr->next;
+      rtn_struct(theEnv,ephemeron,edPtr);
+      edPtr = nextEDPtr;
+     }
+#endif
+
+   /*================================*/
+   /* Remove the symbol hash tables. */
+   /*================================*/
+   
+ #if ! RUN_TIME  
+   rm3(theEnv,SymbolData(theEnv)->SymbolTable,sizeof (SYMBOL_HN *) * SYMBOL_HASH_SIZE);
+
+   genfree(theEnv,SymbolData(theEnv)->FloatTable,(int) sizeof (FLOAT_HN *) * FLOAT_HASH_SIZE);
+
+   genfree(theEnv,SymbolData(theEnv)->IntegerTable,(int) sizeof (INTEGER_HN *) * INTEGER_HASH_SIZE);
+
+   genfree(theEnv,SymbolData(theEnv)->BitMapTable,(int) sizeof (BITMAP_HN *) * BITMAP_HASH_SIZE);
+   
+#if FUZZY_DEFTEMPLATES  
+   genfree(theEnv,SymbolData(theEnv)->FuzzyValueTable,(int) sizeof (FUZZY_VALUE_HN *) * FUZZY_VALUE_HASH_SIZE);
+#endif
+
+#endif
+   
+   /*==============================*/
+   /* Remove binary symbol tables. */
+   /*==============================*/
+   
+#if BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE || BLOAD_INSTANCES || BSAVE_INSTANCES
+   if (SymbolData(theEnv)->SymbolArray != NULL)
+     rm3(theEnv,(void *) SymbolData(theEnv)->SymbolArray,(long) sizeof(SYMBOL_HN *) * SymbolData(theEnv)->NumberOfSymbols);
+   if (SymbolData(theEnv)->FloatArray != NULL)
+     rm3(theEnv,(void *) SymbolData(theEnv)->FloatArray,(long) sizeof(FLOAT_HN *) * SymbolData(theEnv)->NumberOfFloats);
+   if (SymbolData(theEnv)->IntegerArray != NULL)
+     rm3(theEnv,(void *) SymbolData(theEnv)->IntegerArray,(long) sizeof(INTEGER_HN *) * SymbolData(theEnv)->NumberOfIntegers);
+   if (SymbolData(theEnv)->BitMapArray != NULL)
+     rm3(theEnv,(void *) SymbolData(theEnv)->BitMapArray,(long) sizeof(BITMAP_HN *) * SymbolData(theEnv)->NumberOfBitMaps);
+#if FUZZY_DEFTEMPLATES  
+   if (SymbolData(theEnv)->FuzzyValueArray != NULL)
+     rm3(theEnv,(void *) SymbolData(theEnv)->FuzzyValueArray,(long) sizeof(FUZZY_VALUE_HN *) * SymbolData(theEnv)->NumberOfFuzzyValues);
+#endif
+#endif
+  }
+
+/*********************************************************************/
+/* EnvAddSymbol: Searches for the string in the symbol table. If the */
+/*   string is already in the symbol table, then the address of the  */
+/*   string's location in the symbol table is returned. Otherwise,   */
+/*   the string is added to the symbol table and then the address    */
+/*   of the string's location in the symbol table is returned.       */
+/*********************************************************************/
+globle void *EnvAddSymbol(
+  void *theEnv,
+  char *str)
+  {
+   unsigned long tally;
+   size_t length;
+   SYMBOL_HN *past = NULL, *peek;
 
     /*====================================*/
     /* Get the hash value for the string. */
@@ -147,12 +385,12 @@ globle void *AddSymbol(
 
     if (str == NULL)
       {
-       SystemError("SYMBOL",1);
-       ExitRouter(EXIT_FAILURE);
+       SystemError(theEnv,"SYMBOL",1);
+       EnvExitRouter(theEnv,EXIT_FAILURE);
       }
 
     tally = HashSymbol(str,SYMBOL_HASH_SIZE);
-    peek = SymbolTable[tally];
+    peek = SymbolData(theEnv)->SymbolTable[tally];
 
     /*==================================================*/
     /* Search for the string in the list of entries for */
@@ -173,25 +411,26 @@ globle void *AddSymbol(
     /* for this symbol table location.                  */
     /*==================================================*/
 
-    peek = get_struct(symbolHashNode);
+    peek = get_struct(theEnv,symbolHashNode);
 
-    if (past == NULL) SymbolTable[tally] = peek;
+    if (past == NULL) SymbolData(theEnv)->SymbolTable[tally] = peek;
     else past->next = peek;
 
     length = strlen(str) + 1;
-    peek->contents = (char *) gm2(length);
+    peek->contents = (char *) gm2(theEnv,length);
     peek->next = NULL;
     peek->bucket = tally;
     peek->count = 0;
+    peek->permanent = FALSE;
     strcpy(peek->contents,str);
-
+      
     /*================================================*/
     /* Add the string to the list of ephemeral items. */
     /*================================================*/
 
-    AddEphemeralHashNode((GENERIC_HN *) peek,&EphemeralSymbolList,
+    AddEphemeralHashNode(theEnv,(GENERIC_HN *) peek,&SymbolData(theEnv)->EphemeralSymbolList,
                          sizeof(SYMBOL_HN),AVERAGE_STRING_SIZE);
-    peek->depth = CurrentEvaluationDepth;
+    peek->depth = EvaluationData(theEnv)->CurrentEvaluationDepth;
 
     /*===================================*/
     /* Return the address of the symbol. */
@@ -200,44 +439,49 @@ globle void *AddSymbol(
     return((void *) peek);
    }
 
-/***************************************************************/
-/* FindSymbol: Searches for the string in the symbol table and */
-/*   returns a pointer to it if found, otherwise returns NULL. */
-/***************************************************************/
-globle SYMBOL_HN *FindSymbol(
-   char *str)
-   {
-    int tally;
-    SYMBOL_HN *peek;
+/*****************************************************************/
+/* FindSymbolHN: Searches for the string in the symbol table and */
+/*   returns a pointer to it if found, otherwise returns NULL.   */
+/*****************************************************************/
+globle SYMBOL_HN *FindSymbolHN(
+  void *theEnv,
+  char *str)
+  {
+   unsigned long tally;
+   SYMBOL_HN *peek;
 
     tally = HashSymbol(str,SYMBOL_HASH_SIZE);
 
-    for (peek = SymbolTable[tally];
+    for (peek = SymbolData(theEnv)->SymbolTable[tally];
          peek != NULL;
          peek = peek->next)
-      { if (strcmp(str,peek->contents) == 0) return(peek); }
+      { 
+       if (strcmp(str,peek->contents) == 0) 
+         { return(peek); }
+      }
 
     return(NULL);
    }
 
-/******************************************************************/
-/* AddDouble: Searches for the double in the hash table. If the   */
-/*   double is already in the hash table, then the address of the */
-/*   double is returned. Otherwise, the double is hashed into the */
-/*   table and the address of the double is also returned.        */
-/******************************************************************/
-globle void *AddDouble(
-   double number)
-   {
-    int tally;
-    FLOAT_HN *past = NULL, *peek;
+/*******************************************************************/
+/* EnvAddDouble: Searches for the double in the hash table. If the */
+/*   double is already in the hash table, then the address of the  */
+/*   double is returned. Otherwise, the double is hashed into the  */
+/*   table and the address of the double is also returned.         */
+/*******************************************************************/
+globle void *EnvAddDouble(
+  void *theEnv,
+  double number)
+  {
+   unsigned tally;
+   FLOAT_HN *past = NULL, *peek;
 
     /*====================================*/
     /* Get the hash value for the double. */
     /*====================================*/
 
     tally = HashFloat(number,FLOAT_HASH_SIZE);
-    peek = FloatTable[tally];
+    peek = SymbolData(theEnv)->FloatTable[tally];
 
     /*==================================================*/
     /* Search for the double in the list of entries for */
@@ -258,23 +502,24 @@ globle void *AddDouble(
     /* for this hash location.                         */
     /*=================================================*/
 
-    peek = get_struct(floatHashNode);
+    peek = get_struct(theEnv,floatHashNode);
 
-    if (past == NULL) FloatTable[tally] = peek;
+    if (past == NULL) SymbolData(theEnv)->FloatTable[tally] = peek;
     else past->next = peek;
 
     peek->contents = number;
     peek->next = NULL;
     peek->bucket = tally;
     peek->count = 0;
+    peek->permanent = FALSE;
 
     /*===============================================*/
     /* Add the float to the list of ephemeral items. */
     /*===============================================*/
 
-    AddEphemeralHashNode((GENERIC_HN *) peek,&EphemeralFloatList,
+    AddEphemeralHashNode(theEnv,(GENERIC_HN *) peek,&SymbolData(theEnv)->EphemeralFloatList,
                          sizeof(FLOAT_HN),0);
-    peek->depth = CurrentEvaluationDepth;
+    peek->depth = EvaluationData(theEnv)->CurrentEvaluationDepth;
 
     /*==================================*/
     /* Return the address of the float. */
@@ -284,23 +529,24 @@ globle void *AddDouble(
    }
 
 /****************************************************************/
-/* AddLong: Searches for the long in the hash table. If the     */
+/* EnvAddLong: Searches for the long in the hash table. If the  */
 /*   long is already in the hash table, then the address of the */
 /*   long is returned. Otherwise, the long is hashed into the   */
 /*   table and the address of the long is also returned.        */
 /****************************************************************/
-globle void *AddLong(
-   long int number)
-   {
-    int tally;
-    INTEGER_HN *past = NULL, *peek;
+globle void *EnvAddLong(
+  void *theEnv,
+  long int number)
+  {
+   unsigned tally;
+   INTEGER_HN *past = NULL, *peek;
 
     /*==================================*/
     /* Get the hash value for the long. */
     /*==================================*/
 
     tally = HashInteger(number,INTEGER_HASH_SIZE);
-    peek = IntegerTable[tally];
+    peek = SymbolData(theEnv)->IntegerTable[tally];
 
     /*================================================*/
     /* Search for the long in the list of entries for */
@@ -321,22 +567,23 @@ globle void *AddLong(
     /* for this hash location.                        */
     /*================================================*/
 
-    peek = get_struct(integerHashNode);
-    if (past == NULL) IntegerTable[tally] = peek;
+    peek = get_struct(theEnv,integerHashNode);
+    if (past == NULL) SymbolData(theEnv)->IntegerTable[tally] = peek;
     else past->next = peek;
 
     peek->contents = number;
     peek->next = NULL;
     peek->bucket = tally;
     peek->count = 0;
+    peek->permanent = FALSE;
 
     /*=================================================*/
     /* Add the integer to the list of ephemeral items. */
     /*=================================================*/
 
-    AddEphemeralHashNode((GENERIC_HN *) peek,&EphemeralIntegerList,
+    AddEphemeralHashNode(theEnv,(GENERIC_HN *) peek,&SymbolData(theEnv)->EphemeralIntegerList,
                          sizeof(INTEGER_HN),0);
-    peek->depth = CurrentEvaluationDepth;
+    peek->depth = EvaluationData(theEnv)->CurrentEvaluationDepth;
 
     /*====================================*/
     /* Return the address of the integer. */
@@ -345,19 +592,20 @@ globle void *AddLong(
     return((void *) peek);
    }
 
-/***************************************************************/
-/* FindLong: Searches for the integer in the integer table and */
-/*   returns a pointer to it if found, otherwise returns NULL. */
-/***************************************************************/
-globle INTEGER_HN *FindLong(
-   long int theLong)
-   {
-    int tally;
-    INTEGER_HN *peek;
+/*****************************************************************/
+/* FindLongHN: Searches for the integer in the integer table and */
+/*   returns a pointer to it if found, otherwise returns NULL.   */
+/*****************************************************************/
+globle INTEGER_HN *FindLongHN(
+  void *theEnv,
+  long int theLong)
+  {
+   unsigned tally;
+   INTEGER_HN *peek;
 
     tally = HashInteger(theLong,INTEGER_HASH_SIZE);
 
-    for (peek = IntegerTable[tally];
+    for (peek = SymbolData(theEnv)->IntegerTable[tally];
          peek != NULL;
          peek = peek->next)
       { if (peek->contents == theLong) return(peek); }
@@ -372,12 +620,14 @@ globle INTEGER_HN *FindLong(
 /*   table and the address of the bitmap is also returned.        */
 /******************************************************************/
 globle void *AddBitMap(
-   void *vTheBitMap,
-   int size)
-   {
-    char *theBitMap = (char *) vTheBitMap;
-    int tally, i;
-    BITMAP_HN *past = NULL, *peek;
+  void *theEnv,
+  void *vTheBitMap,
+  unsigned size)
+  {
+   char *theBitMap = (char *) vTheBitMap;
+   unsigned tally;
+   unsigned i;
+   BITMAP_HN *past = NULL, *peek;
 
     /*====================================*/
     /* Get the hash value for the bitmap. */
@@ -385,12 +635,12 @@ globle void *AddBitMap(
 
     if (theBitMap == NULL)
       {
-       SystemError("SYMBOL",2);
-       ExitRouter(EXIT_FAILURE);
+       SystemError(theEnv,"SYMBOL",2);
+       EnvExitRouter(theEnv,EXIT_FAILURE);
       }
 
     tally = HashBitMap(theBitMap,BITMAP_HASH_SIZE,size);
-    peek = BitMapTable[tally];
+    peek = SymbolData(theEnv)->BitMapTable[tally];
 
     /*==================================================*/
     /* Search for the bitmap in the list of entries for */
@@ -417,14 +667,15 @@ globle void *AddBitMap(
     /* for this hash table location.  Return the        */
     /*==================================================*/
 
-    peek = get_struct(bitMapHashNode);
-    if (past == NULL) BitMapTable[tally] = peek;
+    peek = get_struct(theEnv,bitMapHashNode);
+    if (past == NULL) SymbolData(theEnv)->BitMapTable[tally] = peek;
     else past->next = peek;
 
-    peek->contents = (char *) gm2(size);
+    peek->contents = (char *) gm2(theEnv,size);
     peek->next = NULL;
     peek->bucket = tally;
     peek->count = 0;
+    peek->permanent = FALSE;
     peek->size = (unsigned short) size;
 
     for (i = 0; i < size ; i++) peek->contents[i] = theBitMap[i];
@@ -433,9 +684,9 @@ globle void *AddBitMap(
     /* Add the bitmap to the list of ephemeral items. */
     /*================================================*/
 
-    AddEphemeralHashNode((GENERIC_HN *) peek,&EphemeralBitMapList,
+    AddEphemeralHashNode(theEnv,(GENERIC_HN *) peek,&SymbolData(theEnv)->EphemeralBitMapList,
                          sizeof(BITMAP_HN),sizeof(long));
-    peek->depth = CurrentEvaluationDepth;
+    peek->depth = EvaluationData(theEnv)->CurrentEvaluationDepth;
 
     /*===================================*/
     /* Return the address of the bitmap. */
@@ -443,7 +694,7 @@ globle void *AddBitMap(
 
     return((void *) peek);
    }
-
+   
 #if FUZZY_DEFTEMPLATES    
 /*******************************************************************/
 /* AddFuzzyValue:  Searches for the fuzzy value in the hash table  */
@@ -451,7 +702,8 @@ globle void *AddBitMap(
 /*   fuzzy value is returned.  Otherwise, the it's hashed into the */
 /*   table and the address of the fuzzy value is returned.         */
 /*******************************************************************/
-globle VOID *AddFuzzyValue(
+globle void *AddFuzzyValue(
+   void *theEnv,
    struct fuzzy_value *fv)
    {
     int tally, i;
@@ -463,12 +715,12 @@ globle VOID *AddFuzzyValue(
 
     if (fv == NULL)
       {
-       SystemError("FUZZY VALUE",901);  /* what number is correct? 901 arbitrary */
-       ExitCLIPS(5);
+       SystemError(theEnv,"FUZZY VALUE",901);  /* what number is correct? 901 arbitrary */
+       EnvExitRouter(theEnv,EXIT_FAILURE);
       }
 
-    tally = HashFuzzyValue(fv,FUZZY_VALUE_HASH_SIZE);
-    peek = FuzzyValueTable[tally];
+    tally = HashFuzzyValue(theEnv,fv,FUZZY_VALUE_HASH_SIZE);
+    peek = SymbolData(theEnv)->FuzzyValueTable[tally];
 
     /*==================================================*/
     /* Search for the fuzzy value in the list of entries*/
@@ -490,7 +742,7 @@ globle VOID *AddFuzzyValue(
            installed so they will have NULL in the slot at this point --
            therfore always add them as new fuzzy values
         */
-                  if ((fv->whichDeftemplate != NULL) &&
+        if ((fv->whichDeftemplate != NULL) &&
             (peekfv->whichDeftemplate == fv->whichDeftemplate) &&
             (peekfv->n == fv->n) &&
             (strcmp(peekfv->name, fv->name) == 0))
@@ -514,179 +766,69 @@ globle VOID *AddFuzzyValue(
     /* the fuzzy value.                                  */
     /*===================================================*/
 
-    peek = get_struct(fuzzyValueHashNode);
-    if (past == NULL) FuzzyValueTable[tally] = peek;
+    peek = get_struct(theEnv,fuzzyValueHashNode);
+    if (past == NULL) SymbolData(theEnv)->FuzzyValueTable[tally] = peek;
     else past->next = peek;
 
-    peek->contents = CopyFuzzyValue(fv);
+    peek->contents = CopyFuzzyValue(theEnv,fv);
     peek->next = NULL;
     peek->bucket = tally;
     peek->count = 0;
+    peek->permanent = FALSE;
 
-    AddEphemeralHashNode((GENERIC_HN *) peek,&EphemeralFuzzyValueList,
+    AddEphemeralHashNode(theEnv,(GENERIC_HN *) peek,&SymbolData(theEnv)->EphemeralFuzzyValueList,
                          sizeof(FUZZY_VALUE_HN),AVERAGE_FUZZY_VALUE_SIZE);
-         peek->depth = CurrentEvaluationDepth;
-         return((VOID *) peek);
+    peek->depth = EvaluationData(theEnv)->CurrentEvaluationDepth;
+    
+    return((void *) peek);
    }
 #endif   /* end of FUZZY_DEFTEMPLATES */
-
-
-/*******************************************************/
-/* InitializeAtomTables: Initializes the SymbolTable,  */
-/*   IntegerTable, and FloatTable. It also initializes */
-/*   the TrueSymbol and FalseSymbol.                   */
-/* #if FUZZY_DEFTEMPLATES                              */ 
-/*  Also inits the Fuzzy Value Hash Table              */
-/* #endif                                              */
-/*******************************************************/
-globle void InitializeAtomTables()
-   {
-    int i;
-
-    /*=========================*/
-    /* Create the hash tables. */
-    /*=========================*/
-
-    SymbolTable = (SYMBOL_HN **)
-                   gm2((int) sizeof (SYMBOL_HN *) * SYMBOL_HASH_SIZE);
-
-    FloatTable = (FLOAT_HN **)
-                   gm2((int) sizeof (FLOAT_HN *) * FLOAT_HASH_SIZE);
-
-    IntegerTable = (INTEGER_HN **)
-                    gm2((int) sizeof (INTEGER_HN *) * INTEGER_HASH_SIZE);
-
-    BitMapTable = (BITMAP_HN **)
-                    gm2((int) sizeof (BITMAP_HN *) * BITMAP_HASH_SIZE);
-#if FUZZY_DEFTEMPLATES  
-    FuzzyValueTable = (FUZZY_VALUE_HN **)
-                    gm2((int) sizeof (FUZZY_VALUE_HN *) * FUZZY_VALUE_HASH_SIZE);
-
-    for (i = 0; i < FUZZY_VALUE_HASH_SIZE; i++) FuzzyValueTable[i] = NULL;
-#endif
-
-    /*===================================================*/
-    /* Initialize all of the hash table entries to NULL. */
-    /*===================================================*/
-
-    for (i = 0; i < SYMBOL_HASH_SIZE; i++) SymbolTable[i] = NULL;
-    for (i = 0; i < FLOAT_HASH_SIZE; i++) FloatTable[i] = NULL;
-    for (i = 0; i < INTEGER_HASH_SIZE; i++) IntegerTable[i] = NULL;
-    for (i = 0; i < BITMAP_HASH_SIZE; i++) BitMapTable[i] = NULL;
-
-    /*========================*/
-    /* Predefine some values. */
-    /*========================*/
-
-    TrueSymbol = AddSymbol(TRUE_STRING);
-    IncrementSymbolCount(TrueSymbol);
-    FalseSymbol = AddSymbol(FALSE_STRING);
-    IncrementSymbolCount(FalseSymbol);
-    PositiveInfinity = AddSymbol(POSITIVE_INFINITY_STRING);
-    IncrementSymbolCount(PositiveInfinity);
-    NegativeInfinity = AddSymbol(NEGATIVE_INFINITY_STRING);
-    IncrementSymbolCount(NegativeInfinity);
-    Zero = AddLong(0L);
-    IncrementIntegerCount(Zero);
-   }
 
 /***************************************************/
 /* HashSymbol: Computes a hash value for a symbol. */
 /***************************************************/
-globle int HashSymbol(
+globle unsigned long HashSymbol(
   char *word,
-  int range)
+  unsigned long range)
   {
-   register int k,j,i;
-   register int length;
-   int tally;
-   unsigned long count = 0L,tmpLong;
-   char *tmpPtr;
+   register int i;
+   unsigned long tally = 0;
 
-   tmpPtr = (char *) &tmpLong;
+   for (i = 0; word[i]; i++)
+     { tally = tally * 127 + word[i]; }
 
-   /*===============================================*/
-   /* Count the number of characters in the symbol. */
-   /*===============================================*/
-
-   for (length = 0; word[length]; length++)
-     { /* Do Nothing */ }
-
-   /*================================================================ */
-   /* Add up the first part of the word as unsigned long int values.  */
-   /*================================================================ */
-
-   length = length / sizeof(unsigned long);
-   for (i = 0 , j = 0 ; i < length; i++)
-     {
-      for (k = 0 ; k < sizeof(unsigned long) ; k++ , j++)
-        tmpPtr[k] = word[j];
-      count += tmpLong;
-     }
-
-   /*============================================*/
-   /* Add the remaining characters to the count. */
-   /*============================================*/
-
-   tmpLong = 0L;
-   for (word = (char *) &word[j], k = 0;
-        *word;
-        word++, k++)
-     {
-      tmpPtr[k] = *word;
-      /* count += (unsigned long) *word; */
-     }
-
-   count += tmpLong;
-
-   /*========================*/
-   /* Return the hash value. */
-   /*========================*/
-
-   tally = (int) (count % range);
-   if (tally < 0) return(-tally);
-
-   return(tally);
+   return(tally % range);
   }
 
 /*************************************************/
 /* HashFloat: Computes a hash value for a float. */
 /*************************************************/
-globle int HashFloat(
+globle unsigned HashFloat(
   double number,
-  int range)
+  unsigned range)
   {
-   union
-     {
-      double fv;
-      unsigned long int liv;
-     } fis;
-   unsigned long count;
-   int tally;
-
-   fis.liv = 0;
-   fis.fv = number;
-   count = fis.liv;
-
-   tally = (int) (count % range);
-
-   if (tally < 0) return(-tally);
-
-   return(tally);
+   unsigned long tally = 0;
+   char *word;
+   unsigned i;
+   
+   word = (char *) &number;
+   
+   for (i = 0; i < sizeof(double); i++)
+     { tally = tally * 127 + word[i]; }
+     
+   return(tally % range);
   }
 
 /******************************************************/
 /* HashInteger: Computes a hash value for an integer. */
 /******************************************************/
-globle int HashInteger(
+globle unsigned HashInteger(
   long int number,
-  int range)
+  unsigned range)
   {
-   int tally;
+   unsigned tally;
 
-   tally = (int) (number % range);
-
-   if (tally < 0) return(-tally);
+   tally = (labs(number) % range);
 
    return(tally);
   }
@@ -694,14 +836,14 @@ globle int HashInteger(
 /***************************************************/
 /* HashBitMap: Computes a hash value for a bitmap. */
 /***************************************************/
-globle int HashBitMap(
+globle unsigned HashBitMap(
   char *word,
-  int range,
-  int length)
+  unsigned range,
+  unsigned length)
   {
-   register int k,j,i;
-   int tally;
-   int longLength;
+   register unsigned k,j,i;
+   unsigned tally;
+   unsigned longLength;
    unsigned long count = 0L,tmpLong;
    char *tmpPtr;
 
@@ -729,18 +871,18 @@ globle int HashBitMap(
    /* Return the hash value. */
    /*========================*/
 
-   tally = (int) (count % range);
-   if (tally < 0) return(-tally);
+   tally = (count % range);
 
    return(tally);
   }
-
+  
 #if FUZZY_DEFTEMPLATES   
 
 /************************************************************/
 /* HashFuzzyValue: Computes a hash value for a fuzzy value. */
 /************************************************************/
 globle int HashFuzzyValue(
+  void *theEnv,
   struct fuzzy_value *fv,
   int range)
   {
@@ -775,39 +917,39 @@ globle int HashFuzzyValue(
 
    return(tally);
   }
-
+  
 /*************************************************************************************/
 /* DecrementFuzzyValueCount: Decrements the count value for a FuzzyValueTable entry. */
-/*   Adds the fuzzy Value to the EphemeralSymbolList if the count becomes zero.          */
+/*   Adds the fuzzy Value to the EphemeralSymbolList if the count becomes zero.      */
 /*                                                                                   */
 /*************************************************************************************/
 globle VOID DecrementFuzzyValueCount(
+  void *theEnv,
   FUZZY_VALUE_HN *theValue)
   {
-        if (theValue->count < 0)
-          {
-                SystemError("FUZZY VALUE",903);
-                ExitCLIPS(5);
-          }
+   if (theValue->count < 0)
+     {
+      SystemError(theEnv,"FUZZY VALUE",903);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
+     }
 
-        if (theValue->count == 0)
-          {
-                SystemError("FUZZY VALUE",904);
-                ExitCLIPS(5);
-          }
+   if (theValue->count == 0)
+     {
+      SystemError(theEnv,"FUZZY VALUE",904);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
+     }
 
-        theValue->count--;
+   theValue->count--;
 
-        if (theValue->count != 0) return;
+   if (theValue->count != 0) return;
 
-        if (theValue->markedEphemeral == FALSE)
+   if (theValue->markedEphemeral == FALSE)
+     {
+      AddEphemeralHashNode(theEnv,(GENERIC_HN *) theValue,&SymbolData(theEnv)->EphemeralFuzzyValueList,
+                           sizeof(FUZZY_VALUE_HN),AVERAGE_FUZZY_VALUE_SIZE);
+     }
 
-          {
-                AddEphemeralHashNode((GENERIC_HN *) theValue,&EphemeralFuzzyValueList,
-                                      sizeof(FUZZY_VALUE_HN),AVERAGE_FUZZY_VALUE_SIZE);
-          }
-
-        return;
+   return;
   }
 
 #endif
@@ -818,18 +960,19 @@ globle VOID DecrementFuzzyValueCount(
 /*   EphemeralSymbolList if the count becomes zero.  */
 /*****************************************************/
 globle void DecrementSymbolCount(
+  void *theEnv,
   SYMBOL_HN *theValue)
   {
    if (theValue->count < 0)
      {
-      SystemError("SYMBOL",3);
-      ExitRouter(EXIT_FAILURE);
+      SystemError(theEnv,"SYMBOL",3);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
    if (theValue->count == 0)
      {
-      SystemError("SYMBOL",4);
-      ExitRouter(EXIT_FAILURE);
+      SystemError(theEnv,"SYMBOL",4);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
    theValue->count--;
@@ -838,7 +981,7 @@ globle void DecrementSymbolCount(
 
    if (theValue->markedEphemeral == FALSE)
      {
-      AddEphemeralHashNode((GENERIC_HN *) theValue,&EphemeralSymbolList,
+      AddEphemeralHashNode(theEnv,(GENERIC_HN *) theValue,&SymbolData(theEnv)->EphemeralSymbolList,
                            sizeof(SYMBOL_HN),AVERAGE_STRING_SIZE);
      }
 
@@ -851,12 +994,13 @@ globle void DecrementSymbolCount(
 /*   EphemeralFloatList if the count becomes zero. */
 /***************************************************/
 globle void DecrementFloatCount(
+  void *theEnv,
   FLOAT_HN *theValue)
   {
    if (theValue->count <= 0)
      {
-      SystemError("SYMBOL",5);
-      ExitRouter(EXIT_FAILURE);
+      SystemError(theEnv,"SYMBOL",5);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
    theValue->count--;
@@ -865,7 +1009,7 @@ globle void DecrementFloatCount(
 
    if (theValue->markedEphemeral == FALSE)
      {
-      AddEphemeralHashNode((GENERIC_HN *) theValue,&EphemeralFloatList,
+      AddEphemeralHashNode(theEnv,(GENERIC_HN *) theValue,&SymbolData(theEnv)->EphemeralFloatList,
                            sizeof(FLOAT_HN),0);
      }
 
@@ -878,12 +1022,13 @@ globle void DecrementFloatCount(
 /*   EphemeralIntegerList if the count becomes zero.     */
 /*********************************************************/
 globle void DecrementIntegerCount(
+  void *theEnv,
   INTEGER_HN *theValue)
   {
    if (theValue->count <= 0)
      {
-      SystemError("SYMBOL",6);
-      ExitRouter(EXIT_FAILURE);
+      SystemError(theEnv,"SYMBOL",6);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
    theValue->count--;
@@ -892,7 +1037,7 @@ globle void DecrementIntegerCount(
 
    if (theValue->markedEphemeral == FALSE)
      {
-      AddEphemeralHashNode((GENERIC_HN *) theValue,&EphemeralIntegerList,
+      AddEphemeralHashNode(theEnv,(GENERIC_HN *) theValue,&SymbolData(theEnv)->EphemeralIntegerList,
                            sizeof(INTEGER_HN),0);
      }
 
@@ -905,18 +1050,19 @@ globle void DecrementIntegerCount(
 /*   EphemeralBitMapList if the count becomes zero.  */
 /*****************************************************/
 globle void DecrementBitMapCount(
+  void *theEnv,
   BITMAP_HN *theValue)
   {
    if (theValue->count < 0)
      {
-      SystemError("SYMBOL",7);
-      ExitRouter(EXIT_FAILURE);
+      SystemError(theEnv,"SYMBOL",7);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
    if (theValue->count == 0)
      {
-      SystemError("SYMBOL",8);
-      ExitRouter(EXIT_FAILURE);
+      SystemError(theEnv,"SYMBOL",8);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
    theValue->count--;
@@ -925,7 +1071,7 @@ globle void DecrementBitMapCount(
 
    if (theValue->markedEphemeral == FALSE)
      {
-      AddEphemeralHashNode((GENERIC_HN *) theValue,&EphemeralBitMapList,
+      AddEphemeralHashNode(theEnv,(GENERIC_HN *) theValue,&SymbolData(theEnv)->EphemeralBitMapList,
                            sizeof(BITMAP_HN),sizeof(long));
      }
 
@@ -937,6 +1083,7 @@ globle void DecrementBitMapCount(
 /*   FloatTable, IntegerTable, or BitMapTable.               */
 /*************************************************************/
 static void RemoveHashNode(
+  void *theEnv,
   GENERIC_HN *theValue,
   GENERIC_HN **theTable,
   int size,
@@ -958,8 +1105,8 @@ static void RemoveHashNode(
 
       if (currentNode == NULL)
         {
-         SystemError("SYMBOL",9);
-         ExitRouter(EXIT_FAILURE);
+         SystemError(theEnv,"SYMBOL",9);
+         EnvExitRouter(theEnv,EXIT_FAILURE);
         }
      }
 
@@ -980,19 +1127,18 @@ static void RemoveHashNode(
 
    if (type == SYMBOL)
      {
-      rm(((SYMBOL_HN *) theValue)->contents,
-         (int) strlen(((SYMBOL_HN *) theValue)->contents) + 1);
+      rm(theEnv,((SYMBOL_HN *) theValue)->contents,
+         strlen(((SYMBOL_HN *) theValue)->contents) + 1);
      }
    else if (type == BITMAPARRAY)
      {
-      rm(((BITMAP_HN *) theValue)->contents,
-         (int) ((BITMAP_HN *) theValue)->size);
+      rm(theEnv,((BITMAP_HN *) theValue)->contents,
+         ((BITMAP_HN *) theValue)->size);
      }
-
 #if FUZZY_DEFTEMPLATES   
    else if (type == FUZZY_VALUE)
      {
-      rtnFuzzyValue(((FUZZY_VALUE_HN *)theValue)->contents);
+      rtnFuzzyValue(theEnv,((FUZZY_VALUE_HN *) theValue)->contents);
      }
 #endif
 
@@ -1001,7 +1147,7 @@ static void RemoveHashNode(
    /* the pool of free memory.  */
    /*===========================*/
 
-   rtn_sized_struct(size,theValue);
+   rtn_sized_struct(theEnv,size,theValue);
   }
 
 /***********************************************************/
@@ -1011,6 +1157,7 @@ static void RemoveHashNode(
 /*   that no structure is using the data value.            */
 /***********************************************************/
 static void AddEphemeralHashNode(
+  void *theEnv,
   GENERIC_HN *theHashNode,
   struct ephemeron **theEphemeralList,
   int hashNodeSize,
@@ -1025,8 +1172,8 @@ static void AddEphemeralHashNode(
 
    if (theHashNode->count != 0)
      {
-      SystemError("SYMBOL",10);
-      ExitRouter(EXIT_FAILURE);
+      SystemError(theEnv,"SYMBOL",10);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
    /*=====================================*/
@@ -1040,7 +1187,7 @@ static void AddEphemeralHashNode(
    /* list of ephemeral values.   */
    /*=============================*/
 
-   temp = get_struct(ephemeron);
+   temp = get_struct(theEnv,ephemeron);
    temp->associatedValue = theHashNode;
    temp->next = *theEphemeralList;
    *theEphemeralList = temp;
@@ -1051,8 +1198,8 @@ static void AddEphemeralHashNode(
    /* to determine when garbage collection should occur.      */
    /*=========================================================*/
 
-   EphemeralItemCount++;
-   EphemeralItemSize += sizeof(struct ephemeron) + hashNodeSize +
+   UtilityData(theEnv)->EphemeralItemCount++;
+   UtilityData(theEnv)->EphemeralItemSize += sizeof(struct ephemeron) + hashNodeSize +
                         averageContentsSize;
   }
 
@@ -1062,18 +1209,19 @@ static void AddEphemeralHashNode(
 /*   maps that still have a count value of zero,   */
 /*   from their respective storage tables.         */
 /***************************************************/
-globle void RemoveEphemeralAtoms()
+globle void RemoveEphemeralAtoms(
+  void *theEnv)
   {
-   RemoveEphemeralHashNodes(&EphemeralSymbolList,(GENERIC_HN **) SymbolTable,
+   RemoveEphemeralHashNodes(theEnv,&SymbolData(theEnv)->EphemeralSymbolList,(GENERIC_HN **) SymbolData(theEnv)->SymbolTable,
                             sizeof(SYMBOL_HN),SYMBOL,AVERAGE_STRING_SIZE);
-   RemoveEphemeralHashNodes(&EphemeralFloatList,(GENERIC_HN **) FloatTable,
+   RemoveEphemeralHashNodes(theEnv,&SymbolData(theEnv)->EphemeralFloatList,(GENERIC_HN **) SymbolData(theEnv)->FloatTable,
                             sizeof(FLOAT_HN),FLOAT,0);
-   RemoveEphemeralHashNodes(&EphemeralIntegerList,(GENERIC_HN **) IntegerTable,
+   RemoveEphemeralHashNodes(theEnv,&SymbolData(theEnv)->EphemeralIntegerList,(GENERIC_HN **) SymbolData(theEnv)->IntegerTable,
                             sizeof(INTEGER_HN),INTEGER,0);
-   RemoveEphemeralHashNodes(&EphemeralBitMapList,(GENERIC_HN **) BitMapTable,
+   RemoveEphemeralHashNodes(theEnv,&SymbolData(theEnv)->EphemeralBitMapList,(GENERIC_HN **) SymbolData(theEnv)->BitMapTable,
                             sizeof(BITMAP_HN),BITMAPARRAY,AVERAGE_BITMAP_SIZE);
-#if FUZZY_DEFTEMPLATES    
-   RemoveEphemeralHashNodes(&EphemeralFuzzyValueList,(GENERIC_HN **) FuzzyValueTable,
+#if FUZZY_DEFTEMPLATES
+   RemoveEphemeralHashNodes(theEnv,&SymbolData(theEnv)->EphemeralFuzzyValueList,(GENERIC_HN **) SymbolData(theEnv)->FuzzyValueTable,
                             sizeof(FUZZY_VALUE_HN),FUZZY_VALUE,AVERAGE_FUZZY_VALUE_SIZE);
 #endif
   }
@@ -1090,6 +1238,7 @@ globle void RemoveEphemeralAtoms()
 /*   current evaluation depth.                                  */
 /****************************************************************/
 static void RemoveEphemeralHashNodes(
+  void *theEnv,
   struct ephemeron **theEphemeralList,
   GENERIC_HN **theTable,
   int hashNodeSize,
@@ -1117,14 +1266,14 @@ static void RemoveEphemeralHashNodes(
       /*==================================================*/
 
       if ((edPtr->associatedValue->count == 0) &&
-          (edPtr->associatedValue->depth > CurrentEvaluationDepth))
+          (edPtr->associatedValue->depth > EvaluationData(theEnv)->CurrentEvaluationDepth))
         {
-         RemoveHashNode(edPtr->associatedValue,theTable,hashNodeSize,hashNodeType);
-         rtn_struct(ephemeron,edPtr);
+         RemoveHashNode(theEnv,edPtr->associatedValue,theTable,hashNodeSize,hashNodeType);
+         rtn_struct(theEnv,ephemeron,edPtr);
          if (lastPtr == NULL) *theEphemeralList = nextPtr;
          else lastPtr->next = nextPtr;
-         EphemeralItemCount--;
-         EphemeralItemSize -= sizeof(struct ephemeron) + hashNodeSize +
+         UtilityData(theEnv)->EphemeralItemCount--;
+         UtilityData(theEnv)->EphemeralItemSize -= sizeof(struct ephemeron) + hashNodeSize +
                               averageContentsSize;
         }
 
@@ -1136,11 +1285,13 @@ static void RemoveEphemeralHashNodes(
       else if (edPtr->associatedValue->count > 0)
         {
          edPtr->associatedValue->markedEphemeral = FALSE;
-         rtn_struct(ephemeron,edPtr);
+
+         rtn_struct(theEnv,ephemeron,edPtr);
+
          if (lastPtr == NULL) *theEphemeralList = nextPtr;
          else lastPtr->next = nextPtr;
-         EphemeralItemCount--;
-         EphemeralItemSize -= sizeof(struct ephemeron) + hashNodeSize +
+         UtilityData(theEnv)->EphemeralItemCount--;
+         UtilityData(theEnv)->EphemeralItemSize -= sizeof(struct ephemeron) + hashNodeSize +
                               averageContentsSize;
         }
 
@@ -1158,88 +1309,98 @@ static void RemoveEphemeralHashNodes(
 /*********************************************************/
 /* GetSymbolTable: Returns a pointer to the SymbolTable. */
 /*********************************************************/
-globle SYMBOL_HN **GetSymbolTable()
+globle SYMBOL_HN **GetSymbolTable(
+  void *theEnv)
   {
-   return(SymbolTable);
+   return(SymbolData(theEnv)->SymbolTable);
   }
 
 /******************************************************/
 /* SetSymbolTable: Sets the value of the SymbolTable. */
 /******************************************************/
 globle void SetSymbolTable(
+  void *theEnv,
   SYMBOL_HN **value)
   {
-   SymbolTable = value;
+   SymbolData(theEnv)->SymbolTable = value;
   }
 
 /*******************************************************/
 /* GetFloatTable: Returns a pointer to the FloatTable. */
 /*******************************************************/
-globle FLOAT_HN **GetFloatTable()
+globle FLOAT_HN **GetFloatTable(
+  void *theEnv)
   {
-   return(FloatTable);
+   return(SymbolData(theEnv)->FloatTable);
   }
 
 /****************************************************/
 /* SetFloatTable: Sets the value of the FloatTable. */
 /****************************************************/
 globle void SetFloatTable(
+  void *theEnv,
   FLOAT_HN **value)
   {
-   FloatTable = value;
+   SymbolData(theEnv)->FloatTable = value;
   }
 
 /***********************************************************/
 /* GetIntegerTable: Returns a pointer to the IntegerTable. */
 /***********************************************************/
-globle INTEGER_HN **GetIntegerTable()
+globle INTEGER_HN **GetIntegerTable(
+  void *theEnv)
   {
-   return(IntegerTable);
+   return(SymbolData(theEnv)->IntegerTable);
   }
 
 /********************************************************/
 /* SetIntegerTable: Sets the value of the IntegerTable. */
 /********************************************************/
 globle void SetIntegerTable(
+  void *theEnv,
   INTEGER_HN **value)
   {
-   IntegerTable = value;
+   SymbolData(theEnv)->IntegerTable = value;
   }
 
 /*********************************************************/
 /* GetBitMapTable: Returns a pointer to the BitMapTable. */
 /*********************************************************/
-globle BITMAP_HN **GetBitMapTable()
+globle BITMAP_HN **GetBitMapTable(
+  void *theEnv)
   {
-   return(BitMapTable);
+   return(SymbolData(theEnv)->BitMapTable);
   }
 
 /******************************************************/
 /* SetBitMapTable: Sets the value of the BitMapTable. */
 /******************************************************/
 globle void SetBitMapTable(
+  void *theEnv,
   BITMAP_HN **value)
   {
-   BitMapTable = value;
+   SymbolData(theEnv)->BitMapTable = value;
   }
-
+  
 #if FUZZY_DEFTEMPLATES   
 
 /*****************************************************************/
 /* GetFuzzyValueTable: Returns a pointer to the FuzzyValueTable. */
 /*****************************************************************/
-globle FUZZY_VALUE_HN **GetFuzzyValueTable()
+globle FUZZY_VALUE_HN **GetFuzzyValueTable(
+  void *theEnv)
   {
-   return(FuzzyValueTable);
+   return(SymbolData(theEnv)->FuzzyValueTable);
   }
 
 /**************************************************************/
 /* SetFuzzyValueTable: Sets the value of the FuzzyValueTable. */
 /**************************************************************/
 globle VOID SetFuzzyValueTable(
+  void *theEnv,
   FUZZY_VALUE_HN **value)
   {
-   FuzzyValueTable = value;
+   SymbolData(theEnv)->FuzzyValueTable = value;
   }
 
 #endif
@@ -1249,13 +1410,14 @@ globle VOID SetFuzzyValueTable(
 /*   TrueSymbol, FalseSymbol, Zero, PositiveInfinity, */
 /*   and NegativeInfinity symbols.                    */
 /******************************************************/
-globle void RefreshSpecialSymbols()
+globle void RefreshSpecialSymbols(
+  void *theEnv)
   {
-   TrueSymbol = (void *) FindSymbol(TRUE_STRING);
-   FalseSymbol = (void *) FindSymbol(FALSE_STRING);
-   PositiveInfinity = (void *) FindSymbol(POSITIVE_INFINITY_STRING);
-   NegativeInfinity = (void *) FindSymbol(NEGATIVE_INFINITY_STRING);
-   Zero = (void *) FindLong(0L);
+   SymbolData(theEnv)->TrueSymbolHN = (void *) FindSymbolHN(theEnv,TRUE_STRING);
+   SymbolData(theEnv)->FalseSymbolHN = (void *) FindSymbolHN(theEnv,FALSE_STRING);
+   SymbolData(theEnv)->PositiveInfinity = (void *) FindSymbolHN(theEnv,POSITIVE_INFINITY_STRING);
+   SymbolData(theEnv)->NegativeInfinity = (void *) FindSymbolHN(theEnv,NEGATIVE_INFINITY_STRING);
+   SymbolData(theEnv)->Zero = (void *) FindLongHN(theEnv,0L);
   }
 
 /***********************************************************/
@@ -1265,22 +1427,23 @@ globle void RefreshSpecialSymbols()
 /*   found in some of the machine specific interfaces.     */
 /***********************************************************/
 globle struct symbolMatch *FindSymbolMatches(
+  void *theEnv,
   char *searchString,
-  int *numberOfMatches,
-  int *commonPrefixLength)
+  unsigned *numberOfMatches,
+  unsigned *commonPrefixLength)
   {
    struct symbolMatch *reply = NULL, *temp;
    struct symbolHashNode *hashPtr = NULL;
-   int searchLength;
+   unsigned searchLength;
 
    searchLength = strlen(searchString);
    *numberOfMatches = 0;
 
-   while ((hashPtr = GetNextSymbolMatch(searchString,searchLength,hashPtr,
+   while ((hashPtr = GetNextSymbolMatch(theEnv,searchString,searchLength,hashPtr,
                                         FALSE,commonPrefixLength)) != NULL)
      {
       *numberOfMatches = *numberOfMatches + 1;
-      temp = get_struct(symbolMatch);
+      temp = get_struct(theEnv,symbolMatch);
       temp->match = hashPtr;
       temp->next = reply;
       reply = temp;
@@ -1293,6 +1456,7 @@ globle struct symbolMatch *FindSymbolMatches(
 /* ReturnSymbolMatches: Returns a set of symbol matches. */
 /*********************************************************/
 globle void ReturnSymbolMatches(
+  void *theEnv,
   struct symbolMatch *listOfMatches)
   {
    struct symbolMatch *temp;
@@ -1300,7 +1464,7 @@ globle void ReturnSymbolMatches(
    while (listOfMatches != NULL)
      {
       temp = listOfMatches->next;
-      rtn_struct(symbolMatch,listOfMatches);
+      rtn_struct(theEnv,symbolMatch,listOfMatches);
       listOfMatches = temp;
      }
   }
@@ -1310,10 +1474,10 @@ globle void ReturnSymbolMatches(
 /***************************************************************/
 globle void ClearBitString(
   void *vTheBitMap,
-  int length)
+  unsigned length)
   {
    char *theBitMap = (char *) vTheBitMap;
-   int i;
+   unsigned i;
 
    for (i = 0; i < length; i++) theBitMap[i] = '\0';
   }
@@ -1325,16 +1489,17 @@ globle void ClearBitString(
 /*   of the machine specific interfaces.                         */
 /*****************************************************************/
 globle SYMBOL_HN *GetNextSymbolMatch(
+  void *theEnv,
   char *searchString,
-  int searchLength,
+  unsigned searchLength,
   SYMBOL_HN *prevSymbol,
   int anywhere,
-  int *commonPrefixLength)
+  unsigned *commonPrefixLength)
   {
-   register int i;
+   register unsigned long i;
    SYMBOL_HN *hashPtr;
    int flag = TRUE;
-   int prefixLength;
+   unsigned prefixLength;
 
    /*==========================================*/
    /* If we're looking anywhere in the string, */
@@ -1352,7 +1517,7 @@ globle SYMBOL_HN *GetNextSymbolMatch(
    if (prevSymbol == NULL)
      {
       i = 0;
-      hashPtr = SymbolTable[0];
+      hashPtr = SymbolData(theEnv)->SymbolTable[0];
      }
 
    /*==========================================*/
@@ -1444,7 +1609,7 @@ globle SYMBOL_HN *GetNextSymbolMatch(
       /*=================================================*/
 
       if (++i >= SYMBOL_HASH_SIZE) flag = FALSE;
-      else hashPtr = SymbolTable[i];
+      else hashPtr = SymbolData(theEnv)->SymbolTable[i];
      }
 
    /*=====================================*/
@@ -1477,11 +1642,11 @@ static char *StringWithinString(
 /* CommonPrefixLength: Determines the length of */
 /*    the maximumcommon prefix of two strings   */
 /************************************************/
-static int CommonPrefixLength(
+static unsigned CommonPrefixLength(
   char *cs,
   char *ct)
   {
-   register int i;
+   register unsigned i;
 
    for (i = 0 ; (cs[i] != '\0') && (ct[i] != '\0') ; i++)
      if (cs[i] != ct[i])
@@ -1498,10 +1663,11 @@ static int CommonPrefixLength(
 /*   fifth entry in the  hash table.                            */
 /****************************************************************/
 globle void SetAtomicValueIndices(
+  void *theEnv,
   int setAll)
   {
-   unsigned int count;
-   int i;
+   unsigned long count;
+   unsigned long i;
    SYMBOL_HN *symbolPtr, **symbolArray;
    FLOAT_HN *floatPtr, **floatArray;
    INTEGER_HN *integerPtr, **integerArray;
@@ -1515,7 +1681,7 @@ globle void SetAtomicValueIndices(
    /*===================================*/
 
    count = 0;
-   symbolArray = GetSymbolTable();
+   symbolArray = GetSymbolTable(theEnv);
 
    for (i = 0; i < SYMBOL_HASH_SIZE; i++)
      {
@@ -1527,7 +1693,7 @@ globle void SetAtomicValueIndices(
            {
             symbolPtr->bucket = count++;
             if (symbolPtr->bucket != (count - 1))
-              { SystemError("SYMBOL",667); }
+              { SystemError(theEnv,"SYMBOL",667); }
            }
         }
      }
@@ -1537,7 +1703,7 @@ globle void SetAtomicValueIndices(
    /*==================================*/
 
    count = 0;
-   floatArray = GetFloatTable();
+   floatArray = GetFloatTable(theEnv);
 
    for (i = 0; i < FLOAT_HASH_SIZE; i++)
      {
@@ -1549,7 +1715,7 @@ globle void SetAtomicValueIndices(
            {
             floatPtr->bucket = count++;
             if (floatPtr->bucket != (count - 1))
-              { SystemError("SYMBOL",668); }
+              { SystemError(theEnv,"SYMBOL",668); }
            }
         }
      }
@@ -1559,7 +1725,7 @@ globle void SetAtomicValueIndices(
    /*====================================*/
 
    count = 0;
-   integerArray = GetIntegerTable();
+   integerArray = GetIntegerTable(theEnv);
 
    for (i = 0; i < INTEGER_HASH_SIZE; i++)
      {
@@ -1571,7 +1737,7 @@ globle void SetAtomicValueIndices(
            {
             integerPtr->bucket = count++;
             if (integerPtr->bucket != (count - 1))
-              { SystemError("SYMBOL",669); }
+              { SystemError(theEnv,"SYMBOL",669); }
            }
         }
      }
@@ -1581,7 +1747,7 @@ globle void SetAtomicValueIndices(
    /*===================================*/
 
    count = 0;
-   bitMapArray = GetBitMapTable();
+   bitMapArray = GetBitMapTable(theEnv);
 
    for (i = 0; i < BITMAP_HASH_SIZE; i++)
      {
@@ -1593,37 +1759,30 @@ globle void SetAtomicValueIndices(
            {
             bitMapPtr->bucket = count++;
             if (bitMapPtr->bucket != (count - 1))
-              { SystemError("SYMBOL",670); }
+              { SystemError(theEnv,"SYMBOL",670); }
            }
         }
      }
+     
 #if FUZZY_DEFTEMPLATES    
    count = 0;
-   fuzzyValueArray = GetFuzzyValueTable();
+   fuzzyValueArray = GetFuzzyValueTable(theEnv);
 
    for (i = 0; i < FUZZY_VALUE_HASH_SIZE; i++)
      {
-/*       fuzzyValuePtr = fuzzyValueArray[i];
-       while (fuzzyValuePtr != NULL)
-        {
+      for (fuzzyValuePtr = fuzzyValueArray[i];
+           fuzzyValuePtr != NULL;
+           fuzzyValuePtr = fuzzyValuePtr->next)
+	    {
          if ((fuzzyValuePtr->neededFuzzyValue == TRUE) || setAll)
-           { fuzzyValuePtr->bucket = count++; }
-         fuzzyValuePtr = fuzzyValuePtr->next;
-        } */
-       for (fuzzyValuePtr = fuzzyValueArray[i];
-            fuzzyValuePtr != NULL;
-            fuzzyValuePtr = fuzzyValuePtr->next)
-	  {
-            if ((fuzzyValuePtr->neededFuzzyValue == TRUE) || setAll)
-               {
-                 fuzzyValuePtr->bucket = count++;
-                 if (fuzzyValuePtr->bucket != (count - 1))
-		    { SystemError("SYMBOL", 671); }
-               }
-          } 
+           {
+            fuzzyValuePtr->bucket = count++;
+            if (fuzzyValuePtr->bucket != (count - 1))
+		      { SystemError(theEnv,"SYMBOL", 671); }
+           }
+        } 
      }
 #endif
-
   }
 
 /***********************************************************************/
@@ -1631,22 +1790,23 @@ globle void SetAtomicValueIndices(
 /*   entries to the appropriate values. Normally called to undo the    */
 /*   effects of a call to the SetAtomicValueIndices function.          */
 /***********************************************************************/
-globle void RestoreAtomicValueBuckets()
+globle void RestoreAtomicValueBuckets(
+  void *theEnv)
   {
-   int i;
+   unsigned long i;
    SYMBOL_HN *symbolPtr, **symbolArray;
    FLOAT_HN *floatPtr, **floatArray;
    INTEGER_HN *integerPtr, **integerArray;
+   BITMAP_HN *bitMapPtr, **bitMapArray;
 #if FUZZY_DEFTEMPLATES    
    FUZZY_VALUE_HN *fuzzyValuePtr, **fuzzyValueArray;
 #endif
-   BITMAP_HN *bitMapPtr, **bitMapArray;
 
    /*================================================*/
    /* Restore the bucket values in the symbol table. */
    /*================================================*/
 
-   symbolArray = GetSymbolTable();
+   symbolArray = GetSymbolTable(theEnv);
 
    for (i = 0; i < SYMBOL_HASH_SIZE; i++)
      {
@@ -1660,7 +1820,7 @@ globle void RestoreAtomicValueBuckets()
    /* Restore the bucket values in the float table. */
    /*===============================================*/
 
-   floatArray = GetFloatTable();
+   floatArray = GetFloatTable(theEnv);
 
    for (i = 0; i < FLOAT_HASH_SIZE; i++)
      {
@@ -1674,7 +1834,7 @@ globle void RestoreAtomicValueBuckets()
    /* Restore the bucket values in the integer table. */
    /*=================================================*/
 
-   integerArray = GetIntegerTable();
+   integerArray = GetIntegerTable(theEnv);
 
    for (i = 0; i < INTEGER_HASH_SIZE; i++)
      {
@@ -1688,7 +1848,7 @@ globle void RestoreAtomicValueBuckets()
    /* Restore the bucket values in the bitmap table. */
    /*================================================*/
 
-   bitMapArray = GetBitMapTable();
+   bitMapArray = GetBitMapTable(theEnv);
 
    for (i = 0; i < BITMAP_HASH_SIZE; i++)
      {
@@ -1697,8 +1857,9 @@ globle void RestoreAtomicValueBuckets()
            bitMapPtr = bitMapPtr->next)
         { bitMapPtr->bucket = i; }
      }
+     
 #if FUZZY_DEFTEMPLATES   
-   fuzzyValueArray = GetFuzzyValueTable();
+   fuzzyValueArray = GetFuzzyValueTable(theEnv);
 
    for (i = 0; i < FUZZY_VALUE_HASH_SIZE; i++)
      {

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/classpsr.h,v 1.3 2001/08/11 21:04:19 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.10  04/13/98          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -35,13 +33,11 @@
 #define LOCALE extern
 #endif
 
-LOCALE int ParseDefclass(char *);
+LOCALE int ParseDefclass(void *,char *);
 
 #endif
 
 #endif
-
-
 
 
 

@@ -1,11 +1,9 @@
-/*  $Header: /dist/CVS/fzclips/src/objrtbld.h,v 1.3 2001/08/11 21:07:12 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.24  05/17/06          */
    /*                                                     */
-   /*                                                     */
+   /*          OBJECT PATTERN MATCHER MODULE              */
    /*******************************************************/
 
 /*************************************************************/
@@ -18,12 +16,15 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Converted INSTANCE_PATTERN_MATCHING to         */
+/*            DEFRULE_CONSTRUCT.                             */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_objrtbld
 #define _H_objrtbld
 
-#if INSTANCE_PATTERN_MATCHING
+#if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
 
 #ifdef LOCALE
 #undef LOCALE
@@ -35,14 +36,11 @@
 #define LOCALE extern
 #endif
 
-LOCALE void SetupObjectPatternStuff(void);
+LOCALE void SetupObjectPatternStuff(void *);
 
 #endif
 
 #endif
-
-
-
 
 
 

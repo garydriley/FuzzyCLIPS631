@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/sortfun.h,v 1.3 2001/08/11 21:07:55 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  05/23/96            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*            SORT FUNCTIONS HEADER MODULE             */
    /*******************************************************/
@@ -34,15 +32,12 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           SortFunctionDefinitions(void);
-   LOCALE void                           MergeSort(long,DATA_OBJECT *,
-                                                   int (*)(DATA_OBJECT *,DATA_OBJECT *));
-   LOCALE void                           SortFunction(DATA_OBJECT *);
+   LOCALE void                           SortFunctionDefinitions(void *);
+   LOCALE void                           MergeSort(void *,unsigned long,DATA_OBJECT *,
+                                                   int (*)(void *,DATA_OBJECT *,DATA_OBJECT *));
+   LOCALE void                           SortFunction(void *,DATA_OBJECT *);
 
 #endif
-
-
-
 
 
 

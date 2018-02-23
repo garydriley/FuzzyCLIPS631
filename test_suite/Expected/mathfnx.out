@@ -1,0 +1,853 @@
+TRUE
+FuzzyCLIPS> (batch "mathfnx.bat")
+TRUE
+FuzzyCLIPS> (clear)                            ; 10.6.1.1
+FuzzyCLIPS> (defglobal 
+   ?*pi1/4*  = (* (pi)  0.25)
+   ?*pi1/2*  = (* (pi)  0.50)
+   ?*pi3/4*  = (* (pi)  0.75)
+   ?*pi5/4*  = (* (pi)  1.25)
+   ?*pi3/2*  = (* (pi)  1.50)
+   ?*pi7/4*  = (* (pi)  1.75)
+   ?*pi2*    = (* (pi)  2.00)
+   ?*pi7*    = (* (pi)  7.00)
+   ?*pi-9/2* = (* (pi) -4.50))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (+)                                ; 10.6.1.1
+[ARGACCES4] Function + expected at least 2 argument(s)
+FuzzyCLIPS> (+ 1)                              ; 10.6.1.1
+[ARGACCES4] Function + expected at least 2 argument(s)
+FuzzyCLIPS> (+ a)                              ; 10.6.1.1
+[ARGACCES4] Function + expected at least 2 argument(s)
+FuzzyCLIPS> (+ 2 [a])                          ; 10.6.1.1
+[ARGACCES5] Function + expected argument #2 to be of type integer or float
+FuzzyCLIPS> (+ 1 2)                            ; 10.6.1.1 : 3
+3
+FuzzyCLIPS> (+ 4 5.0 8)                        ; 10.6.1.1 : 17.0
+17.0
+FuzzyCLIPS> (+ 2.3 3.2)                        ; 10.6.1.1 : 5.5
+5.5
+FuzzyCLIPS> (+ 12 3.5)                         ; 10.6.1.1 : 15.5
+15.5
+FuzzyCLIPS> (+ 7.5 123)                        ; 10.6.1.1 : 130.5
+130.5
+FuzzyCLIPS> (+ -10 5)                          ; 10.6.1.1 : -5
+-5
+FuzzyCLIPS> (+ 13.5 -26)                       ; 10.6.1.1 : -12.5
+-12.5
+FuzzyCLIPS> (+ -26 14.5)                       ; 10.6.1.1 : -11.5
+-11.5
+FuzzyCLIPS> (-)                                ; 10.6.1.2
+[ARGACCES4] Function - expected at least 2 argument(s)
+FuzzyCLIPS> (- 1)                              ; 10.6.1.2
+[ARGACCES4] Function - expected at least 2 argument(s)
+FuzzyCLIPS> (- a)                              ; 10.6.1.2
+[ARGACCES4] Function - expected at least 2 argument(s)
+FuzzyCLIPS> (- 2 "a")                          ; 10.6.1.2
+[ARGACCES5] Function - expected argument #2 to be of type integer or float
+FuzzyCLIPS> (- 1 2)                            ; 10.6.1.2 : -1
+-1
+FuzzyCLIPS> (- 24 5.0 8)                       ; 10.6.1.2 : 11.0
+11.0
+FuzzyCLIPS> (format nil "%0.6f" (- 2.3 3.2))   ; 10.6.1.2 : -0.9
+"-0.900000"
+FuzzyCLIPS> (- 12 3.5)                         ; 10.6.1.2 : 8.5
+8.5
+FuzzyCLIPS> (- 7.5 123)                        ; 10.6.1.2 : - 115.5
+-115.5
+FuzzyCLIPS> (- -10 5)                          ; 10.6.1.2 : -15
+-15
+FuzzyCLIPS> (- 13.5 -26)                       ; 10.6.1.2 : 39.5
+39.5
+FuzzyCLIPS> (- -26 14.5)                       ; 10.6.1.2 : -40.5
+-40.5
+FuzzyCLIPS> (*)                                ; 10.6.1.3
+[ARGACCES4] Function * expected at least 2 argument(s)
+FuzzyCLIPS> (* 1)                              ; 10.6.1.3
+[ARGACCES4] Function * expected at least 2 argument(s)
+FuzzyCLIPS> (* (create$))                      ; 10.6.1.3
+[ARGACCES4] Function * expected at least 2 argument(s)
+FuzzyCLIPS> (* 2 [b])                          ; 10.6.1.3
+[ARGACCES5] Function * expected argument #2 to be of type integer or float
+FuzzyCLIPS> (* 2 3)                            ; 10.6.1.3 : 6
+6
+FuzzyCLIPS> (format nil "%0.6f" (* -3.5 8.6))  ; 10.6.1.3 : -30.1
+"-30.100000"
+FuzzyCLIPS> (format nil "%0.6f" (* 4 11.1))    ; 10.6.1.3 : 44.4
+"44.400000"
+FuzzyCLIPS> (format nil "%0.6f" (* -13.2 -6))  ; 10.6.1.3 : 79.2
+"79.200000"
+FuzzyCLIPS> (format nil "%0.6f" (* 2 3.7 1.2)) ; 10.6.1.3 : 8.88
+"8.880000"
+FuzzyCLIPS> (/)                                ; 10.6.1.4
+[ARGACCES4] Function / expected at least 2 argument(s)
+FuzzyCLIPS> (/ 1)                              ; 10.6.1.4
+[ARGACCES4] Function / expected at least 2 argument(s)
+FuzzyCLIPS> (/ c)                              ; 10.6.1.4
+[ARGACCES4] Function / expected at least 2 argument(s)
+FuzzyCLIPS> (/ 2 a)                            ; 10.6.1.4
+[ARGACCES5] Function / expected argument #2 to be of type integer or float
+FuzzyCLIPS> (/ 4 0)                            ; 10.6.1.4
+[PRNTUTIL7] Attempt to divide by zero in / function.
+1.0
+FuzzyCLIPS> (/ 4 0.0)                          ; 10.6.1.4
+[PRNTUTIL7] Attempt to divide by zero in / function.
+1.0
+FuzzyCLIPS> (format nil "%0.6f" (/ 2 3))       ; 10.6.1.3 : 0.666667
+"0.666667"
+FuzzyCLIPS> (format nil "%0.6f" (/ -3.5 8.6))  ; 10.6.1.3 : -0.406977
+"-0.406977"
+FuzzyCLIPS> (format nil "%0.6f" (/ 4 11.1))    ; 10.6.1.3 : 0.360360
+"0.360360"
+FuzzyCLIPS> (format nil "%0.6f" (/ -13.2 -6))  ; 10.6.1.3 : 2.2
+"2.200000"
+FuzzyCLIPS> (format nil "%0.6f" (/ 2 3.7 1.2)) ; 10.6.1.3 : 0.450450
+"0.450450"
+FuzzyCLIPS> (set-auto-float-dividend FALSE)    ; 10.6.1.3
+TRUE
+FuzzyCLIPS> (/ 2 3)                            ; 10.6.1.3 : 0
+0
+FuzzyCLIPS> (format nil "%0.6f" (/ 2 3.0))     ; 10.6.1.3 : 0.666667
+"0.666667"
+FuzzyCLIPS> (format nil "%0.6f" (/ 2 4 3.0))   ; 10.6.1.3 : 0.0
+"0.000000"
+FuzzyCLIPS> (set-auto-float-dividend TRUE)     ; 10.6.1.3
+FALSE
+FuzzyCLIPS> (div)                              ; 10.6.1.5
+[ARGACCES4] Function div expected at least 2 argument(s)
+FuzzyCLIPS> (div 1)                            ; 10.6.1.5
+[ARGACCES4] Function div expected at least 2 argument(s)
+FuzzyCLIPS> (div a)                            ; 10.6.1.5
+[ARGACCES4] Function div expected at least 2 argument(s)
+FuzzyCLIPS> (div 1 0.0)                        ; 10.6.1.5
+[PRNTUTIL7] Attempt to divide by zero in div function.
+1
+FuzzyCLIPS> (div 1 0)                          ; 10.6.1.5
+[PRNTUTIL7] Attempt to divide by zero in div function.
+1
+FuzzyCLIPS> (div 1 0.4)                        ; 10.6.1.5
+[PRNTUTIL7] Attempt to divide by zero in div function.
+1
+FuzzyCLIPS> (div 5 2)                          ; 10.6.1.5 : 2
+2
+FuzzyCLIPS> (div 19 2 2)                       ; 10.6.1.5 : 4
+4
+FuzzyCLIPS> (div 7.5 1.5)                      ; 10.6.1.5 : 7
+7
+FuzzyCLIPS> (max)                              ; 10.6.1.6
+[ARGACCES4] Function max expected at least 2 argument(s)
+FuzzyCLIPS> (max a)                            ; 10.6.1.7
+[ARGACCES4] Function max expected at least 2 argument(s)
+FuzzyCLIPS> (max 1)                            ; 10.6.1.7
+[ARGACCES4] Function max expected at least 2 argument(s)
+FuzzyCLIPS> (max 1 2.0)                        ; 10.6.1.7 : 2.0
+2.0
+FuzzyCLIPS> (max 2.0 1)                        ; 10.6.1.7 : 2.0
+2.0
+FuzzyCLIPS> (max 1.0 1)                        ; 10.6.1.7 : 1.0
+1.0
+FuzzyCLIPS> (max 1 1.0)                        ; 10.6.1.7 : 1
+1
+FuzzyCLIPS> (max -3.0 2.0 4.0)                 ; 10.6.1.7 : 4.0
+4.0
+FuzzyCLIPS> (max 2.0 4 3.0)                    ; 10.6.1.7 : 4
+4
+FuzzyCLIPS> (max 3.0 4.0 -2.0)                 ; 10.6.1.7 : 4.0
+4.0
+FuzzyCLIPS> (max 4 -2.0 -3.0)                  ; 10.6.1.7 : 4
+4
+FuzzyCLIPS> (max 4.0 -3.0 2.0)                 ; 10.6.1.7 : 4.0
+4.0
+FuzzyCLIPS> (max 2.0 3.0 4.0)                  ; 10.6.1.6 : 4.0
+4.0
+FuzzyCLIPS> (min)                              ; 10.6.1.7
+[ARGACCES4] Function min expected at least 2 argument(s)
+FuzzyCLIPS> (min a)                            ; 10.6.1.7
+[ARGACCES4] Function min expected at least 2 argument(s)
+FuzzyCLIPS> (min 1)                            ; 10.6.1.7
+[ARGACCES4] Function min expected at least 2 argument(s)
+FuzzyCLIPS> (min 1 2.0)                        ; 10.6.1.7 : 1
+1
+FuzzyCLIPS> (min 2.0 1)                        ; 10.6.1.7 : 1
+1
+FuzzyCLIPS> (min 1.0 1)                        ; 10.6.1.7 : 1.0
+1.0
+FuzzyCLIPS> (min 1 1.0)                        ; 10.6.1.7 : 1
+1
+FuzzyCLIPS> (min -3.0 2.0 4.0)                 ; 10.6.1.7 : -3.0
+-3.0
+FuzzyCLIPS> (min 2.0 4.0 3.0)                  ; 10.6.1.7 : 2.0
+2.0
+FuzzyCLIPS> (min 3.0 4.0 -2.0)                 ; 10.6.1.7 : -2.0
+-2.0
+FuzzyCLIPS> (min 4.0 -2.0 -3.0)                ; 10.6.1.7 : -3.0
+-3.0
+FuzzyCLIPS> (min 4.0 -3.0 2.0)                 ; 10.6.1.7 : -3.0
+-3.0
+FuzzyCLIPS> (min 2.0 3.0 4.0)                  ; 10.6.1.7 : 2.0
+2.0
+FuzzyCLIPS> (abs)                              ; 10.6.1.8
+[ARGACCES4] Function abs expected exactly 1 argument(s)
+FuzzyCLIPS> (abs 1 2)                          ; 10.6.1.8
+[ARGACCES4] Function abs expected exactly 1 argument(s)
+FuzzyCLIPS> (abs a)                            ; 10.6.1.8
+[ARGACCES5] Function abs expected argument #1 to be of type integer or float
+FuzzyCLIPS> (abs 10)                           ; 10.6.1.8 : 10
+10
+FuzzyCLIPS> (abs 0)                            ; 10.6.1.8 : 0
+0
+FuzzyCLIPS> (abs -13)                          ; 10.6.1.8 : 13
+13
+FuzzyCLIPS> (abs -3.5)                         ; 10.6.1.8 : 3.5
+3.5
+FuzzyCLIPS> (abs 7.5)                          ; 10.6.1.8 : 7.5
+7.5
+FuzzyCLIPS> (abs 4.0)                          ; 10.6.1.8 : 4.0
+4.0
+FuzzyCLIPS> (abs -2)                           ; 10.6.1.8 : 2
+2
+FuzzyCLIPS> (abs -4128.2)                      ; 10.6.1.8 : 4128.2
+4128.2
+FuzzyCLIPS> (float)                            ; 10.6.1.9
+[ARGACCES4] Function float expected exactly 1 argument(s)
+FuzzyCLIPS> (float 1 2)                        ; 10.6.1.9
+[ARGACCES4] Function float expected exactly 1 argument(s)
+FuzzyCLIPS> (float a)                          ; 10.6.1.9
+[ARGACCES5] Function float expected argument #1 to be of type integer or float
+FuzzyCLIPS> (float 10)                         ; 10.6.1.9 : 10.0
+10.0
+FuzzyCLIPS> (float 0)                          ; 10.6.1.9 : 0.0
+0.0
+FuzzyCLIPS> (float -13)                        ; 10.6.1.9 : -13.0
+-13.0
+FuzzyCLIPS> (float -3.5)                       ; 10.6.1.9 : -3.5
+-3.5
+FuzzyCLIPS> (float 7.5)                        ; 10.6.1.9 : 7.5
+7.5
+FuzzyCLIPS> (float 4.0)                        ; 10.6.1.9 : 4.0
+4.0
+FuzzyCLIPS> (float -2)                         ; 10.6.1.9 : -2.0
+-2.0
+FuzzyCLIPS> (integer)                          ; 10.6.1.10
+[ARGACCES4] Function integer expected exactly 1 argument(s)
+FuzzyCLIPS> (integer 1 2)                      ; 10.6.1.10
+[ARGACCES4] Function integer expected exactly 1 argument(s)
+FuzzyCLIPS> (integer a)                        ; 10.6.1.10
+[ARGACCES5] Function integer expected argument #1 to be of type integer or float
+FuzzyCLIPS> (integer 10)                       ; 10.6.1.10 : 10
+10
+FuzzyCLIPS> (integer 0)                        ; 10.6.1.10 : 0
+0
+FuzzyCLIPS> (integer -13)                      ; 10.6.1.10 : -13
+-13
+FuzzyCLIPS> (integer -3.5)                     ; 10.6.1.10 : -3
+-3
+FuzzyCLIPS> (integer 7.5)                      ; 10.6.1.10 : 7
+7
+FuzzyCLIPS> (integer 4.0)                      ; 10.6.1.10 : 4
+4
+FuzzyCLIPS> (integer -2)                       ; 10.6.1.10 : -2
+-2
+FuzzyCLIPS> (acos)                             ; 10.6.2.1
+[ARGACCES4] Function acos expected exactly 1 argument(s)
+FuzzyCLIPS> (acos a)                           ; 10.6.2.1
+[ARGACCES5] Function acos expected argument #1 to be of type integer or float
+FuzzyCLIPS> (acos 1 [b])                       ; 10.6.2.1
+[ARGACCES4] Function acos expected exactly 1 argument(s)
+FuzzyCLIPS> (acos -1.1)                        ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for acos function.
+0.0
+FuzzyCLIPS> (acos 1.1)                         ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for acos function.
+0.0
+FuzzyCLIPS> (format nil "%0.6f" (acos 1.0))    ; 10.6.2.1 : 0.0
+"0.000000"
+FuzzyCLIPS> (format nil "%0.6f" (acos -1.0))   ; 10.6.2.1 : 3.141593
+"3.141593"
+FuzzyCLIPS> (format nil "%0.6f" (acos 0.5))    ; 10.6.2.1 : 1.047198
+"1.047198"
+FuzzyCLIPS> (acosh)                            ; 10.6.2.1
+[ARGACCES4] Function acosh expected exactly 1 argument(s)
+FuzzyCLIPS> (acosh a)                          ; 10.6.2.1
+[ARGACCES5] Function acosh expected argument #1 to be of type integer or float
+FuzzyCLIPS> (acosh 1 [b])                      ; 10.6.2.1
+[ARGACCES4] Function acosh expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (acosh 1.1))   ; 10.6.2.1 : 0.443568 
+"0.443568"
+FuzzyCLIPS> (format nil "%0.6f" (acosh 1.0))   ; 10.6.2.1 : 0.0
+"0.000000"
+FuzzyCLIPS> (format nil "%0.6f" (acosh 0.0))   ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for acosh function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (acosh -1.0))  ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for acosh function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (acosh 2.0))   ; 10.6.2.1 : 1.316958
+"1.316958"
+FuzzyCLIPS> (acot)                             ; 10.6.2.1
+[ARGACCES4] Function acot expected exactly 1 argument(s)
+FuzzyCLIPS> (acot a)                           ; 10.6.2.1
+[ARGACCES5] Function acot expected argument #1 to be of type integer or float
+FuzzyCLIPS> (acot 1 [b])                       ; 10.6.2.1
+[ARGACCES4] Function acot expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (acot -11))    ; 10.6.2.1 : -0.090660
+"-0.090660"
+FuzzyCLIPS> (format nil "%0.6f" (acot 11))     ; 10.6.2.1 : 0.090660
+"0.090660"
+FuzzyCLIPS> (format nil "%0.6f" (acot 1.0))    ; 10.6.2.1 : 0.785398
+"0.785398"
+FuzzyCLIPS> (format nil "%0.6f" (acot 0))      ; 10.6.2.1 : 1.570796
+"1.570796"
+FuzzyCLIPS> (format nil "%0.6f" (acot -1.0))   ; 10.6.2.1 : -0.785398
+"-0.785398"
+FuzzyCLIPS> (format nil "%0.6f" (acot 0.5))    ; 10.6.2.1 : 1.107149
+"1.107149"
+FuzzyCLIPS> (acoth)                            ; 10.6.2.1
+[ARGACCES4] Function acoth expected exactly 1 argument(s)
+FuzzyCLIPS> (acoth a)                          ; 10.6.2.1
+[ARGACCES5] Function acoth expected argument #1 to be of type integer or float
+FuzzyCLIPS> (acoth 1 [b])                      ; 10.6.2.1
+[ARGACCES4] Function acoth expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (acoth -1.1))  ; 10.6.2.1 : -1.522261
+"-1.522261"
+FuzzyCLIPS> (format nil "%0.6f" (acoth 1.1))   ; 10.6.2.1 : 1.522261
+"1.522261"
+FuzzyCLIPS> (format nil "%0.6f" (acoth 1.0))   ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for acoth function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (acoth 0.0))   ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for acoth function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (acoth -1.0))  ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for acoth function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (acoth 2))     ; 10.6.2.1 : 0.549306
+"0.549306"
+FuzzyCLIPS> (acsc)                             ; 10.6.2.1
+[ARGACCES4] Function acsc expected exactly 1 argument(s)
+FuzzyCLIPS> (acsc a)                           ; 10.6.2.1
+[ARGACCES5] Function acsc expected argument #1 to be of type integer or float
+FuzzyCLIPS> (acsc 1 [b])                       ; 10.6.2.1
+[ARGACCES4] Function acsc expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (acsc -1.1))   ; 10.6.2.1 : -1.141097
+"-1.141097"
+FuzzyCLIPS> (format nil "%0.6f" (acsc 1.1))    ; 10.6.2.1 : 1.141097
+"1.141097"
+FuzzyCLIPS> (format nil "%0.6f" (acsc 1.0))    ; 10.6.2.1 : 1.570796
+"1.570796"
+FuzzyCLIPS> (format nil "%0.6f" (acsc 0.0))    ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for acsc function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (acsc -1.0))   ; 10.6.2.1 : -1.570796
+"-1.570796"
+FuzzyCLIPS> (format nil "%0.6f" (acsc 2.0))    ; 10.6.2.1 : 0.523599
+"0.523599"
+FuzzyCLIPS> (acsch)                            ; 10.6.2.1
+[ARGACCES4] Function acsch expected exactly 1 argument(s)
+FuzzyCLIPS> (acsch a)                          ; 10.6.2.1
+[ARGACCES5] Function acsch expected argument #1 to be of type integer or float
+FuzzyCLIPS> (acsch 1 [b])                      ; 10.6.2.1
+[ARGACCES4] Function acsch expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (acsch 1.0))   ; 10.6.2.1 : 0.881374
+"0.881374"
+FuzzyCLIPS> (format nil "%0.6f" (acsch 0.0))   ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for acsch function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (acsch -1.0))  ; 10.6.2.1 : -0.881374
+"-0.881374"
+FuzzyCLIPS> (format nil "%0.6f" (acsch 2.0))   ; 10.6.2.1 : 0.481212
+"0.481212"
+FuzzyCLIPS> (asec)                             ; 10.6.2.1
+[ARGACCES4] Function asec expected exactly 1 argument(s)
+FuzzyCLIPS> (asec a)                           ; 10.6.2.1
+[ARGACCES5] Function asec expected argument #1 to be of type integer or float
+FuzzyCLIPS> (asec 1 [b])                       ; 10.6.2.1
+[ARGACCES4] Function asec expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (asec -1.1))   ; 10.6.2.1 : 2.711893
+"2.711893"
+FuzzyCLIPS> (format nil "%0.6f" (asec 1.1))    ; 10.6.2.1 : 0.429700
+"0.429700"
+FuzzyCLIPS> (format nil "%0.6f" (asec 1.0))    ; 10.6.2.1 : 0.0
+"0.000000"
+FuzzyCLIPS> (format nil "%0.6f" (asec 0.0))    ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for asec function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (asec -1.0))   ; 10.6.2.1 : 3.141593
+"3.141593"
+FuzzyCLIPS> (format nil "%0.6f" (asec 2.0))    ; 10.6.2.1 : 1.047198
+"1.047198"
+FuzzyCLIPS> (asech)                            ; 10.6.2.1
+[ARGACCES4] Function asech expected exactly 1 argument(s)
+FuzzyCLIPS> (asech a)                          ; 10.6.2.1
+[ARGACCES5] Function asech expected argument #1 to be of type integer or float
+FuzzyCLIPS> (asech 1 [b])                      ; 10.6.2.1
+[ARGACCES4] Function asech expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (asech -1))    ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for asech function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (asech 0.0))   ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for asech function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (asech 1.0))   ; 10.6.2.1 : 0.0
+"0.000000"
+FuzzyCLIPS> (format nil "%0.6f" (asech 1.5))   ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for asech function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (asech 0.5))   ; 10.6.2.1 : 1.316958
+"1.316958"
+FuzzyCLIPS> (asin)                             ; 10.6.2.1
+[ARGACCES4] Function asin expected exactly 1 argument(s)
+FuzzyCLIPS> (asin a)                           ; 10.6.2.1
+[ARGACCES5] Function asin expected argument #1 to be of type integer or float
+FuzzyCLIPS> (asin 1 [b])                       ; 10.6.2.1
+[ARGACCES4] Function asin expected exactly 1 argument(s)
+FuzzyCLIPS> (asin -1.1)                        ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for asin function.
+0.0
+FuzzyCLIPS> (asin 1.1)                         ; 10.6.2.1 : Error
+[EMATHFUN1] Domain error for asin function.
+0.0
+FuzzyCLIPS> (format nil "%0.6f" (asin 1.0))    ; 10.6.2.1 : 1.570796
+"1.570796"
+FuzzyCLIPS> (format nil "%0.6f" (asin -1.0))   ; 10.6.2.1 : -1.570796
+"-1.570796"
+FuzzyCLIPS> (format nil "%0.6f" (asin 0.5))    ; 10.6.2.1 : 0.523599
+"0.523599"
+FuzzyCLIPS> (asinh)                            ; 10.6.2.1
+[ARGACCES4] Function asinh expected exactly 1 argument(s)
+FuzzyCLIPS> (asinh a)                          ; 10.6.2.1
+[ARGACCES5] Function asinh expected argument #1 to be of type integer or float
+FuzzyCLIPS> (asinh 1 [b])                      ; 10.6.2.1
+[ARGACCES4] Function asinh expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (asinh -1))    ; 10.6.2.1 : -0.881374
+"-0.881374"
+FuzzyCLIPS> (format nil "%0.6f" (asinh 0.0))   ; 10.6.2.1 : 0.0
+"0.000000"
+FuzzyCLIPS> (format nil "%0.6f" (asinh 1.0))   ; 10.6.2.1 : 0.881374
+"0.881374"
+FuzzyCLIPS> (format nil "%0.6f" (asinh 2.0))   ; 10.6.2.1 : 1.443635
+"1.443635"
+FuzzyCLIPS> (atan)                             ; 10.6.2.1
+[ARGACCES4] Function atan expected exactly 1 argument(s)
+FuzzyCLIPS> (atan a)                           ; 10.6.2.1
+[ARGACCES5] Function atan expected argument #1 to be of type integer or float
+FuzzyCLIPS> (atan 1 [b])                       ; 10.6.2.1
+[ARGACCES4] Function atan expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (atan -11))    ; 10.6.2.1 : -1.480136
+"-1.480136"
+FuzzyCLIPS> (format nil "%0.6f" (atan 11))     ; 10.6.2.1 : 1.480136
+"1.480136"
+FuzzyCLIPS> (format nil "%0.6f" (atan 1.0))    ; 10.6.2.1 : 0.785398
+"0.785398"
+FuzzyCLIPS> (format nil "%0.6f" (atan 0))      ; 10.6.2.1 : 0.0
+"0.000000"
+FuzzyCLIPS> (format nil "%0.6f" (atan -1.0))   ; 10.6.2.1 : -0.785398
+"-0.785398"
+FuzzyCLIPS> (format nil "%0.6f" (atan 0.5))    ; 10.6.2.1 : 0.463648
+"0.463648"
+FuzzyCLIPS> (atanh)                            ; 10.6.2.1
+[ARGACCES4] Function atanh expected exactly 1 argument(s)
+FuzzyCLIPS> (atanh a)                          ; 10.6.2.1
+[ARGACCES5] Function atanh expected argument #1 to be of type integer or float
+FuzzyCLIPS> (atanh 1 [b])                      ; 10.6.2.1
+[ARGACCES4] Function atanh expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (atanh -1))    ; 10.6.2.1 : -Infinity
+[EMATHFUN1] Domain error for atanh function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (atanh 0.0))   ; 10.6.2.1 : 0.0
+"0.000000"
+FuzzyCLIPS> (format nil "%0.6f" (atanh 1.0))   ; 10.6.2.1 : +Infinity
+[EMATHFUN1] Domain error for atanh function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (atanh 0.5))   ; 10.6.2.1 : 0.549306
+"0.549306"
+FuzzyCLIPS> (cos)                              ; 10.6.2.1
+[ARGACCES4] Function cos expected exactly 1 argument(s)
+FuzzyCLIPS> (cos a)                            ; 10.6.2.1
+[ARGACCES5] Function cos expected argument #1 to be of type integer or float
+FuzzyCLIPS> (cos 1 [b])                        ; 10.6.2.1
+[ARGACCES4] Function cos expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (cos 0.0))     ; 10.6.2.1 : 1.0
+"1.000000"
+FuzzyCLIPS> (format nil "%0.6f" (cos ?*pi7*))  ; 10.6.2.1 : -1.0
+"-1.000000"
+FuzzyCLIPS> (format nil "%0.6f" (cos ?*pi5/4*)); 10.6.2.1 : -0.707107
+"-0.707107"
+FuzzyCLIPS> (format nil "%0.6f" (cos 1))       ; 10.6.2.1 : 0.540302
+"0.540302"
+FuzzyCLIPS> (cosh)                             ; 10.6.2.1
+[ARGACCES4] Function cosh expected exactly 1 argument(s)
+FuzzyCLIPS> (cosh a)                           ; 10.6.2.1
+[ARGACCES5] Function cosh expected argument #1 to be of type integer or float
+FuzzyCLIPS> (cosh 1 [b])                       ; 10.6.2.1
+[ARGACCES4] Function cosh expected exactly 1 argument(s)
+FuzzyCLIPS> (cosh 0)                           ; 10.6.2.1 : 1.0
+1.0
+FuzzyCLIPS> (format nil "%0.6f" (cosh 1.0))    ; 10.6.2.1 : 1.543081
+"1.543081"
+FuzzyCLIPS> (format nil "%0.6f" (cosh -1.0))   ; 10.6.2.1 : 1.543081
+"1.543081"
+FuzzyCLIPS> (format nil "%0.6f" (cosh 0.5))    ; 10.6.2.1 : 1.127626
+"1.127626"
+FuzzyCLIPS> (cot)                              ; 10.6.2.1
+[ARGACCES4] Function cot expected exactly 1 argument(s)
+FuzzyCLIPS> (cot a)                            ; 10.6.2.1
+[ARGACCES5] Function cot expected argument #1 to be of type integer or float
+FuzzyCLIPS> (cot 1 [b])                        ; 10.6.2.1
+[ARGACCES4] Function cot expected exactly 1 argument(s)
+FuzzyCLIPS> (cot 0)                            ; 10.6.2.1 : Error
+[EMATHFUN3] Singularity at asymptote in cot function.
+0.0
+FuzzyCLIPS> (format nil "%0.6f" (cot ?*pi1/2*)); 10.6.2.1 : 0.0 
+"0.000000"
+FuzzyCLIPS> (format nil "%0.6f" (cot ?*pi3/4*)); 10.6.2.1 : -1.0
+"-1.000000"
+FuzzyCLIPS> (format nil "%0.6f" (cot ?*pi7*))  ; 10.6.2.1 : Error
+[EMATHFUN3] Singularity at asymptote in cot function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (cot 1))       ; 10.6.2.1 : 0.642093
+"0.642093"
+FuzzyCLIPS> (coth)                             ; 10.6.2.1
+[ARGACCES4] Function coth expected exactly 1 argument(s)
+FuzzyCLIPS> (coth a)                           ; 10.6.2.1
+[ARGACCES5] Function coth expected argument #1 to be of type integer or float
+FuzzyCLIPS> (coth 1 [b])                       ; 10.6.2.1
+[ARGACCES4] Function coth expected exactly 1 argument(s)
+FuzzyCLIPS> (coth 0)                           ; 10.6.2.1 : Error
+[EMATHFUN3] Singularity at asymptote in coth function.
+0.0
+FuzzyCLIPS> (format nil "%0.6f" (coth 1.0))    ; 10.6.2.1 : 1.313035
+"1.313035"
+FuzzyCLIPS> (format nil "%0.6f" (coth -1.0))   ; 10.6.2.1 : -1.313035
+"-1.313035"
+FuzzyCLIPS> (format nil "%0.6f" (coth 0.5))    ; 10.6.2.1 : 2.163953
+"2.163953"
+FuzzyCLIPS> (csc)                              ; 10.6.2.1
+[ARGACCES4] Function csc expected exactly 1 argument(s)
+FuzzyCLIPS> (csc a)                            ; 10.6.2.1
+[ARGACCES5] Function csc expected argument #1 to be of type integer or float
+FuzzyCLIPS> (csc 1 [b])                        ; 10.6.2.1
+[ARGACCES4] Function csc expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (csc (pi)))    ; 10.6.2.1 : Error
+[EMATHFUN3] Singularity at asymptote in csc function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (csc 0.0))     ; 10.6.2.1 : Error
+[EMATHFUN3] Singularity at asymptote in csc function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (csc ?*pi1/2*)); 10.6.2.1 : 1.0
+"1.000000"
+FuzzyCLIPS> (format nil "%0.6f" (csc 1.0))     ; 10.6.2.1 : 1.188395
+"1.188395"
+FuzzyCLIPS> (csch)                             ; 10.6.2.1
+[ARGACCES4] Function csch expected exactly 1 argument(s)
+FuzzyCLIPS> (csch a)                           ; 10.6.2.1
+[ARGACCES5] Function csch expected argument #1 to be of type integer or float
+FuzzyCLIPS> (csch 1 [b])                       ; 10.6.2.10
+[ARGACCES4] Function csch expected exactly 1 argument(s)
+FuzzyCLIPS> (csch 0)                           ; 10.6.2.1 : Error
+[EMATHFUN3] Singularity at asymptote in csch function.
+0.0
+FuzzyCLIPS> (format nil "%0.6f" (csch 1.0))    ; 10.6.2.1 : 0.850918
+"0.850918"
+FuzzyCLIPS> (format nil "%0.6f" (csch -1.0))   ; 10.6.2.1 : -0.850918
+"-0.850918"
+FuzzyCLIPS> (format nil "%0.6f" (csch 0.5))    ; 10.6.2.1 : 1.919035
+"1.919035"
+FuzzyCLIPS> (sec)                              ; 10.6.2.1
+[ARGACCES4] Function sec expected exactly 1 argument(s)
+FuzzyCLIPS> (sec a)                            ; 10.6.2.1
+[ARGACCES5] Function sec expected argument #1 to be of type integer or float
+FuzzyCLIPS> (sec 1 [b])                        ; 10.6.2.1
+[ARGACCES4] Function sec expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (sec ?*pi-9/2*)); 10.6.2.1 : Error
+[EMATHFUN3] Singularity at asymptote in sec function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (sec 0.0))     ; 10.6.2.1 : 1.0
+"1.000000"
+FuzzyCLIPS> (format nil "%0.6f" (sec ?*pi1/2*)); 10.6.2.1 : Error
+[EMATHFUN3] Singularity at asymptote in sec function.
+""
+FuzzyCLIPS> (format nil "%0.6f" (sec 1.0))     ; 10.6.2.1 : 1.850816
+"1.850816"
+FuzzyCLIPS> (sech)                             ; 10.6.2.1
+[ARGACCES4] Function sech expected exactly 1 argument(s)
+FuzzyCLIPS> (sech a)                           ; 10.6.2.1
+[ARGACCES5] Function sech expected argument #1 to be of type integer or float
+FuzzyCLIPS> (sech 1 [b])                       ; 10.6.2.1
+[ARGACCES4] Function sech expected exactly 1 argument(s)
+FuzzyCLIPS> (sech 0)                           ; 10.6.2.1 : 1.0
+1.0
+FuzzyCLIPS> (format nil "%0.6f" (sech 1.0))    ; 10.6.2.1 : 0.648054
+"0.648054"
+FuzzyCLIPS> (format nil "%0.6f" (sech -1.0))   ; 10.6.2.1 : 0.648054
+"0.648054"
+FuzzyCLIPS> (format nil "%0.6f" (sech 0.5))    ; 10.6.2.1 : 0.886819
+"0.886819"
+FuzzyCLIPS> (sin)                              ; 10.6.2.1 
+[ARGACCES4] Function sin expected exactly 1 argument(s)
+FuzzyCLIPS> (sin a)                            ; 10.6.2.1
+[ARGACCES5] Function sin expected argument #1 to be of type integer or float
+FuzzyCLIPS> (sin 1 [b])                        ; 10.6.2.1
+[ARGACCES4] Function sin expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (sin 0.0))     ; 10.6.2.1 : 0.0
+"0.000000"
+FuzzyCLIPS> (format nil "%0.6f" (sin ?*pi3/2*)); 10.6.2.1 : -1.0
+"-1.000000"
+FuzzyCLIPS> (format nil "%0.6f" (sin ?*pi5/4*)); 10.6.2.1 : -0.707107
+"-0.707107"
+FuzzyCLIPS> (format nil "%0.6f" (sin 2))       ; 10.6.2.1 : 0.909297
+"0.909297"
+FuzzyCLIPS> (sinh)                             ; 10.6.2.1
+[ARGACCES4] Function sinh expected exactly 1 argument(s)
+FuzzyCLIPS> (sinh a)                           ; 10.6.2.1
+[ARGACCES5] Function sinh expected argument #1 to be of type integer or float
+FuzzyCLIPS> (sinh 1 [b])                       ; 10.6.2.1
+[ARGACCES4] Function sinh expected exactly 1 argument(s)
+FuzzyCLIPS> (sinh 0)                           ; 10.6.2.1 : 0.0
+0.0
+FuzzyCLIPS> (format nil "%0.6f" (sinh 1.0))    ; 10.6.2.1 : 1.175201
+"1.175201"
+FuzzyCLIPS> (format nil "%0.6f" (sinh -1.0))   ; 10.6.2.1 : -1.175201
+"-1.175201"
+FuzzyCLIPS> (format nil "%0.6f" (sinh 0.5))    ; 10.6.2.1 : 0.521095
+"0.521095"
+FuzzyCLIPS> (tan)                              ; 10.6.2.1 
+[ARGACCES4] Function tan expected exactly 1 argument(s)
+FuzzyCLIPS> (tan a)                            ; 10.6.2.1
+[ARGACCES5] Function tan expected argument #1 to be of type integer or float
+FuzzyCLIPS> (tan 1 [b])                        ; 10.6.2.1
+[ARGACCES4] Function tan expected exactly 1 argument(s)
+FuzzyCLIPS> (tan 0)                            ; 10.6.2.1 : 0.0
+0.0
+FuzzyCLIPS> (tan ?*pi1/2*)                     ; 10.6.2.1 : Error
+[EMATHFUN3] Singularity at asymptote in tan function.
+0.0
+FuzzyCLIPS> (format nil "%0.6f" (tan ?*pi3/4*)); 10.6.2.1 : -1.0
+"-1.000000"
+FuzzyCLIPS> (format nil "%0.6f" (abs (tan ?*pi7*))) ; 10.6.2.1 : 0.0
+"0.000000"
+FuzzyCLIPS> (format nil "%0.6f" (tan 1))       ; 10.6.2.1 : 1.557408
+"1.557408"
+FuzzyCLIPS> (tanh)                             ; 10.6.2.1
+[ARGACCES4] Function tanh expected exactly 1 argument(s)
+FuzzyCLIPS> (tanh a)                           ; 10.6.2.1
+[ARGACCES5] Function tanh expected argument #1 to be of type integer or float
+FuzzyCLIPS> (tanh 1 [b])                       ; 10.6.2.1
+[ARGACCES4] Function tanh expected exactly 1 argument(s)
+FuzzyCLIPS> (tanh 0)                           ; 10.6.2.1 : 0.0
+0.0
+FuzzyCLIPS> (format nil "%0.6f" (tanh 1.0))    ; 10.6.2.1 : 0.761594
+"0.761594"
+FuzzyCLIPS> (format nil "%0.6f" (tanh -1.0))   ; 10.6.2.1 : -0.761594
+"-0.761594"
+FuzzyCLIPS> (format nil "%0.6f" (tanh 0.5))    ; 10.6.2.1 : 0.462117
+"0.462117"
+FuzzyCLIPS> (deg-grad)                         ; 10.6.2.2
+[ARGACCES4] Function deg-grad expected exactly 1 argument(s)
+FuzzyCLIPS> (deg-grad (create$))               ; 10.6.2.2
+[ARGACCES5] Function deg-grad expected argument #1 to be of type integer or float
+FuzzyCLIPS> (deg-grad 0 0.0)                   ; 10.6.2.2
+[ARGACCES4] Function deg-grad expected exactly 1 argument(s)
+FuzzyCLIPS> (deg-grad 360)                     ; 10.6.2.2 : 400.0
+400.0
+FuzzyCLIPS> (deg-grad -90.0)                   ; 10.6.2.2 : -100.0
+-100.0
+FuzzyCLIPS> (deg-grad 540.0)                   ; 10.6.2.2 : 600.0
+600.0
+FuzzyCLIPS> (deg-grad -720.0)                  ; 10.6.2.2 : -800.0
+-800.0
+FuzzyCLIPS> (deg-rad)                          ; 10.6.2.3
+[ARGACCES4] Function deg-rad expected exactly 1 argument(s)
+FuzzyCLIPS> (deg-rad a)                        ; 10.6.2.3
+[ARGACCES5] Function deg-rad expected argument #1 to be of type integer or float
+FuzzyCLIPS> (deg-rad 360 9.3)                  ; 10.6.2.3
+[ARGACCES4] Function deg-rad expected exactly 1 argument(s)
+FuzzyCLIPS> (deg-rad 0.0)                      ; 10.6.2.3 : 0.0
+0.0
+FuzzyCLIPS> (format nil "%0.6f" (deg-rad 360)) ; 10.6.2.3 : 6.283185
+"6.283185"
+FuzzyCLIPS> (format nil "%0.6f" (deg-rad -90.0))  ; 10.6.2.3 : -1.570796
+"-1.570796"
+FuzzyCLIPS> (format nil "%0.6f" (deg-rad 1800.0)) ; 10.6.2.3 : 31.415927
+"31.415927"
+FuzzyCLIPS> (grad-deg)                         ; 10.6.2.4
+[ARGACCES4] Function grad-deg expected exactly 1 argument(s)
+FuzzyCLIPS> (grad-deg a)                       ; 10.6.2.4
+[ARGACCES5] Function grad-deg expected argument #1 to be of type integer or float
+FuzzyCLIPS> (grad-deg 400 90)                  ; 10.6.2.4
+[ARGACCES4] Function grad-deg expected exactly 1 argument(s)
+FuzzyCLIPS> (grad-deg 0)                       ; 10.6.2.4 : 0.0
+0.0
+FuzzyCLIPS> (grad-deg 100)                     ; 10.6.2.4 : 90.0
+90.0
+FuzzyCLIPS> (grad-deg -800.0)                  ; 10.6.2.4 : -720.0
+-720.0
+FuzzyCLIPS> (grad-deg 600.0)                   ; 10.6.2.4 : 540.0
+540.0
+FuzzyCLIPS> (rad-deg)                          ; 10.6.2.5
+[ARGACCES4] Function rad-deg expected exactly 1 argument(s)
+FuzzyCLIPS> (rad-deg a)                        ; 10.6.2.5
+[ARGACCES5] Function rad-deg expected argument #1 to be of type integer or float
+FuzzyCLIPS> (rad-deg (pi) a))                  ; 10.6.2.5
+[ARGACCES4] Function rad-deg expected exactly 1 argument(s)
+FuzzyCLIPS> (rad-deg 0)                        ; 10.6.2.5 : 0.0
+0.0
+FuzzyCLIPS> (rad-deg (pi))                     ; 10.6.2.5 : 180.0
+180.0
+FuzzyCLIPS> (format nil "%0.6f" (rad-deg ?*pi-9/2*)) ; 10.6.2.5 : -810.0
+"-810.000000"
+FuzzyCLIPS> (rad-deg ?*pi7*)                   ; 10.6.2.5 : 1260.0
+1260.0
+FuzzyCLIPS> (format nil "%0.6f" (pi))          ; 10.6.2.6 : 3.141593
+"3.141593"
+FuzzyCLIPS> (pi 3.14)                          ; 10.6.2.6
+[ARGACCES4] Function pi expected exactly 0 argument(s)
+FuzzyCLIPS> (sqrt)                             ; 10.6.2.7
+[ARGACCES4] Function sqrt expected exactly 1 argument(s)
+FuzzyCLIPS> (sqrt a)                           ; 10.6.2.7
+[ARGACCES5] Function sqrt expected argument #1 to be of type integer or float
+FuzzyCLIPS> (sqrt 9 3)                         ; 10.6.2.7
+[ARGACCES4] Function sqrt expected exactly 1 argument(s)
+FuzzyCLIPS> (sqrt -9)                          ; 10.6.2.7
+[EMATHFUN1] Domain error for sqrt function.
+0.0
+FuzzyCLIPS> (format nil "%0.6f" (sqrt 2))      ; 10.6.2.7 : 1.414214
+"1.414214"
+FuzzyCLIPS> (sqrt 16)                          ; 10.6.2.7 : 4.0
+4.0
+FuzzyCLIPS> (sqrt 9.0)                         ; 10.6.2.7 : 3.0
+3.0
+FuzzyCLIPS> (sqrt 10.89)                       ; 10.6.2.7 : 3.3
+3.3
+FuzzyCLIPS> (**)                               ; 10.6.2.8
+[ARGACCES4] Function ** expected exactly 2 argument(s)
+FuzzyCLIPS> (** 3)                             ; 10.6.2.8
+[ARGACCES4] Function ** expected exactly 2 argument(s)
+FuzzyCLIPS> (** 3 a)                           ; 10.6.2.8
+[ARGACCES5] Function ** expected argument #2 to be of type integer or float
+FuzzyCLIPS> (** 3 2 1)                         ; 10.6.2.8
+[ARGACCES4] Function ** expected exactly 2 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (** -3 -2))    ; 10.6.2.8 : 0.111111
+"0.111111"
+FuzzyCLIPS> (** 3 2)                           ; 10.6.2.8 : 9.0
+9.0
+FuzzyCLIPS> (** 4.0 3)                         ; 10.6.2.8 : 64.0
+64.0
+FuzzyCLIPS> (** 3 3.0)                         ; 10.6.2.8 : 27.0
+27.0
+FuzzyCLIPS> (format nil "%0.6f" (** 27.0 (/ 1 3))); 10.6.2.8 : 3.0
+"3.000000"
+FuzzyCLIPS> (** -3 3)                          ; 10.6.2.8 : -27.0
+-27.0
+FuzzyCLIPS> (format nil "%0.6f" (** 10.89 -2.0)); 10.6.2.8 : 0.008432
+"0.008432"
+FuzzyCLIPS> (format nil "%0.6f" (** 10.89 0.5)); 10.6.2.8 : 3.3
+"3.300000"
+FuzzyCLIPS> (format nil "%0.6f" (** 2.1 3.2))  ; 10.6.2.8 : 10.742410
+"10.742410"
+FuzzyCLIPS> (exp)                              ; 10.6.2.9
+[ARGACCES4] Function exp expected exactly 1 argument(s)
+FuzzyCLIPS> (exp a)                            ; 10.6.2.9
+[ARGACCES5] Function exp expected argument #1 to be of type integer or float
+FuzzyCLIPS> (exp 20 3.5)                       ; 10.6.2.9
+[ARGACCES4] Function exp expected exactly 1 argument(s)
+FuzzyCLIPS> (format nil "%0.6f" (exp -3.3))    ; 10.6.2.9 : 0.036883
+"0.036883"
+FuzzyCLIPS> (exp 0)                            ; 10.6.2.9 : 1
+1.0
+FuzzyCLIPS> (format nil "%0.6f" (exp 1))       ; 10.6.2.9 : 2.171828
+"2.718282"
+FuzzyCLIPS> (format nil "%0.6f" (exp 2.0))     ; 10.6.2.9 : 7.389056
+"7.389056"
+FuzzyCLIPS> (log)                              ; 10.6.2.10
+[ARGACCES4] Function log expected exactly 1 argument(s)
+FuzzyCLIPS> (log a)                            ; 10.6.2.10
+[ARGACCES5] Function log expected argument #1 to be of type integer or float
+FuzzyCLIPS> (log 20 3.5)                       ; 10.6.2.10
+[ARGACCES4] Function log expected exactly 1 argument(s)
+FuzzyCLIPS> (log -5.3)                         ; 10.6.2.10 : Error
+[EMATHFUN1] Domain error for log function.
+0.0
+FuzzyCLIPS> (log 0)                            ; 10.6.2.10 : -Infinity
+[EMATHFUN2] Argument overflow for log function.
+0.0
+FuzzyCLIPS> (format nil "%0.6f" (log 2.71828)) ; 10.6.2.10 : 0.999999
+"0.999999"
+FuzzyCLIPS> (format nil "%0.6f" (log 2.0))     ; 10.6.2.10 : 0.693147
+"0.693147"
+FuzzyCLIPS> (format nil "%0.6f" (log 2))       ; 10.6.2.10 : 0.693147
+"0.693147"
+FuzzyCLIPS> (log10 a)                          ; 10.6.2.11
+[ARGACCES5] Function log10 expected argument #1 to be of type integer or float
+FuzzyCLIPS> (log10 100 10)                     ; 10.6.2.11
+[ARGACCES4] Function log10 expected exactly 1 argument(s)
+FuzzyCLIPS> (log10 -100)                       ; 10.6.2.11 : Error
+[EMATHFUN1] Domain error for log10 function.
+0.0
+FuzzyCLIPS> (log10 0)                          ; 10.6.2.11 : -Infinity
+[EMATHFUN2] Argument overflow for log10 function.
+0.0
+FuzzyCLIPS> (log10 0.01)                       ; 10.6.2.11 : -2.0
+-2.0
+FuzzyCLIPS> (log10 0.1)                        ; 10.6.2.11 : -1.0
+-1.0
+FuzzyCLIPS> (log10 1)                          ; 10.6.2.11 : 0.0
+0.0
+FuzzyCLIPS> (log10 10)                         ; 10.6.2.11 : 1.0
+1.0
+FuzzyCLIPS> (log10 100)                        ; 10.6.2.11 : 2.0
+2.0
+FuzzyCLIPS> (format nil "%0.6f" (log10 2.0))   ; 10.6.2.11 : 0.301030
+"0.301030"
+FuzzyCLIPS> (round)                            ; 10.6.2.12
+[ARGACCES4] Function round expected exactly 1 argument(s)
+FuzzyCLIPS> (round a)                          ; 10.6.2.12
+[ARGACCES5] Function round expected argument #1 to be of type integer or float
+FuzzyCLIPS> (round 3.8 2)                      ; 10.6.2.12
+[ARGACCES4] Function round expected exactly 1 argument(s)
+FuzzyCLIPS> (round 0)                          ; 10.6.2.12 : 0
+0
+FuzzyCLIPS> (round 4)                          ; 10.6.2.12 : 4
+4
+FuzzyCLIPS> (round -4)                         ; 10.6.2.12 : -4
+-4
+FuzzyCLIPS> (round 3.6)                        ; 10.6.2.12 : 4
+4
+FuzzyCLIPS> (round 3.5)                        ; 10.6.2.12 : 3
+3
+FuzzyCLIPS> (round 3.4)                        ; 10.6.2.12 : 3
+3
+FuzzyCLIPS> (round -3.6)                       ; 10.6.2.12 : -4
+-4
+FuzzyCLIPS> (round -3.5)                       ; 10.6.2.12 : -4
+-4
+FuzzyCLIPS> (round -3.4)                       ; 10.6.2.12 : -3
+-3
+FuzzyCLIPS> (mod)                              ; 10.6.2.13
+[ARGACCES4] Function mod expected exactly 2 argument(s)
+FuzzyCLIPS> (mod 3)                            ; 10.6.2.13
+[ARGACCES4] Function mod expected exactly 2 argument(s)
+FuzzyCLIPS> (mod 3 a)                          ; 10.6.2.13
+[ARGACCES5] Function mod expected argument #2 to be of type integer or float
+FuzzyCLIPS> (mod 7 0)                          ; 10.6.2.13
+[PRNTUTIL7] Attempt to divide by zero in mod function.
+0
+FuzzyCLIPS> (mod 5.0 0.0)                      ; 10.6.2.13
+[PRNTUTIL7] Attempt to divide by zero in mod function.
+0
+FuzzyCLIPS> (mod 3 2 1)                        ; 10.6.2.13
+[ARGACCES4] Function mod expected exactly 2 argument(s)
+FuzzyCLIPS> (mod 5 2.0)                        ; 10.6.2.13 : 1.0
+1.0
+FuzzyCLIPS> (mod 5.0 2)                        ; 10.6.2.13 : 1.0
+1.0
+FuzzyCLIPS> (mod -5 2)                         ; 10.6.2.13 : -1
+-1
+FuzzyCLIPS> (mod 10.0 4.0)                     ; 10.6.2.13 : 2.0
+2.0
+FuzzyCLIPS> (mod 5 2)                          ; 10.6.2.13 : 1
+1
+FuzzyCLIPS> (format nil "%0.6f" (mod 3.7 1.2)) ; 10.6.2.13 : 0.1
+"0.100000"
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (dribble-off)

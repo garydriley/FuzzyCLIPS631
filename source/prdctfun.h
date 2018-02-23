@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/prdctfun.h,v 1.3 2001/08/11 21:07:30 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*            PREDICATE FUNCTIONS HEADER FILE          */
    /*******************************************************/
@@ -17,6 +15,8 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -34,28 +34,28 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           PredicateFunctionDefinitions(void);
-   LOCALE BOOLEAN                        EqFunction(void);
-   LOCALE BOOLEAN                        NeqFunction(void);
-   LOCALE BOOLEAN                        StringpFunction(void);
-   LOCALE BOOLEAN                        SymbolpFunction(void);
-   LOCALE BOOLEAN                        LexemepFunction(void);
-   LOCALE BOOLEAN                        NumberpFunction(void);
-   LOCALE BOOLEAN                        FloatpFunction(void);
-   LOCALE BOOLEAN                        IntegerpFunction(void);
-   LOCALE BOOLEAN                        MultifieldpFunction(void);
-   LOCALE BOOLEAN                        PointerpFunction(void);
-   LOCALE BOOLEAN                        NotFunction(void);
-   LOCALE BOOLEAN                        AndFunction(void);
-   LOCALE BOOLEAN                        OrFunction(void);
-   LOCALE BOOLEAN                        LessThanOrEqualFunction(void);
-   LOCALE BOOLEAN                        GreaterThanOrEqualFunction(void);
-   LOCALE BOOLEAN                        LessThanFunction(void);
-   LOCALE BOOLEAN                        GreaterThanFunction(void);
-   LOCALE BOOLEAN                        NumericEqualFunction(void);
-   LOCALE BOOLEAN                        NumericNotEqualFunction(void);
-   LOCALE BOOLEAN                        OddpFunction(void);
-   LOCALE BOOLEAN                        EvenpFunction(void);
+   LOCALE void                           PredicateFunctionDefinitions(void *);
+   LOCALE intBool                        EqFunction(void *);
+   LOCALE intBool                        NeqFunction(void *);
+   LOCALE intBool                        StringpFunction(void *);
+   LOCALE intBool                        SymbolpFunction(void *);
+   LOCALE intBool                        LexemepFunction(void *);
+   LOCALE intBool                        NumberpFunction(void *);
+   LOCALE intBool                        FloatpFunction(void *);
+   LOCALE intBool                        IntegerpFunction(void *);
+   LOCALE intBool                        MultifieldpFunction(void *);
+   LOCALE intBool                        PointerpFunction(void *);
+   LOCALE intBool                        NotFunction(void *);
+   LOCALE intBool                        AndFunction(void *);
+   LOCALE intBool                        OrFunction(void *);
+   LOCALE intBool                        LessThanOrEqualFunction(void *);
+   LOCALE intBool                        GreaterThanOrEqualFunction(void *);
+   LOCALE intBool                        LessThanFunction(void *);
+   LOCALE intBool                        GreaterThanFunction(void *);
+   LOCALE intBool                        NumericEqualFunction(void *);
+   LOCALE intBool                        NumericNotEqualFunction(void *);
+   LOCALE intBool                        OddpFunction(void *);
+   LOCALE intBool                        EvenpFunction(void *);
 
 #endif
 

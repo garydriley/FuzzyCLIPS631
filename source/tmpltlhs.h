@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/tmpltlhs.h,v 1.3 2001/08/11 21:08:16 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*              DEFTEMPLATE LHS HEADER FILE            */
    /*******************************************************/
@@ -41,22 +39,9 @@
 #define LOCALE extern
 #endif
 
-   LOCALE struct lhsParseNode           *DeftemplateLHSParse(char *,struct deftemplate *);
-
-#if FUZZY_DEFTEMPLATES
-
-#ifndef _TMPLTLHS_SOURCE_
-
-#include "tmpltdef.h"
-
-   extern struct deftemplate *FuzzyDeftemplate;
-#endif
+   LOCALE struct lhsParseNode           *DeftemplateLHSParse(void *,char *,struct deftemplate *);
 
 #endif
-
-#endif
-
-
 
 
 

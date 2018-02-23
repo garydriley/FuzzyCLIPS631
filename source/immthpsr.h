@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/immthpsr.h,v 1.3 2001/08/11 21:06:23 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-  /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -37,7 +35,7 @@
 #define LOCALE extern
 #endif
 
-LOCALE void AddImplicitMethods(DEFGENERIC *);
+LOCALE void AddImplicitMethods(void *,DEFGENERIC *);
 
 #ifndef _IMMTHPSR_SOURCE_
 #endif

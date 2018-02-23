@@ -1,10 +1,8 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factcmp.c,v 1.3 2001/08/11 21:05:30 dave Exp $" ;
-
 
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*     FACT PATTERN NETWORK CONSTRUCTS-TO-C MODULE     */
    /*******************************************************/
@@ -28,7 +26,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factcmp.c,v 1.3 2001/08/11
 
 #if DEFRULE_CONSTRUCT && (! RUN_TIME) && DEFTEMPLATE_CONSTRUCT && CONSTRUCT_COMPILER
 
-#define FactPrefix() ArbitraryPrefix(FactCodeItem,0)
+#define FactPrefix() ArbitraryPrefix(FactData(theEnv)->FactCodeItem,0)
 
 #include <stdio.h>
 #define _STDIO_INCLUDED_
@@ -37,29 +35,26 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factcmp.c,v 1.3 2001/08/11
 #include "conscomp.h"
 #include "factcmp.h"
 #include "tmpltdef.h"
+#include "envrnmnt.h"
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     PatternNetworkToCode(char *,int,FILE *,int,int);
-   static void                    BeforePatternNetworkToCode(void);
+   static int                     PatternNetworkToCode(void *,char *,int,FILE *,int,int);
+   static void                    BeforePatternNetworkToCode(void *);
    static struct factPatternNode *GetNextPatternNode(struct factPatternNode *);
-   static void                    CloseNetworkFiles(FILE *,int);
-   static void                    PatternNodeToCode(FILE *,struct factPatternNode *,int,int);
-
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-   static struct CodeGeneratorItem *FactCodeItem;
+   static void                    CloseNetworkFiles(void *,FILE *,int);
+   static void                    PatternNodeToCode(void *,FILE *,struct factPatternNode *,int,int);
 
 /**************************************************************/
 /* FactPatternsCompilerSetup: Initializes the constructs-to-c */
 /*   command for use with the fact pattern network.           */
 /**************************************************************/
-globle void FactPatternsCompilerSetup()
+globle void FactPatternsCompilerSetup(  
+  void *theEnv)
   {
-   FactCodeItem = AddCodeGeneratorItem("facts",0,BeforePatternNetworkToCode,
+   FactData(theEnv)->FactCodeItem = AddCodeGeneratorItem(theEnv,"facts",0,BeforePatternNetworkToCode,
                                        NULL,PatternNetworkToCode,1);
   }
 
@@ -68,7 +63,8 @@ globle void FactPatternsCompilerSetup()
 /*   unique ID which will be used for pointer references when   */
 /*   the data structures are written to a file as C code        */
 /****************************************************************/
-static void BeforePatternNetworkToCode()
+static void BeforePatternNetworkToCode(
+  void *theEnv)
   {
    int whichPattern = 0;
    int whichDeftemplate = 0;
@@ -80,23 +76,23 @@ static void BeforePatternNetworkToCode()
    /* Loop through each module. */
    /*===========================*/
 
-   for (theModule = (struct defmodule *) GetNextDefmodule(NULL);
+   for (theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
         theModule != NULL;
-        theModule = (struct defmodule *) GetNextDefmodule(theModule))
+        theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule))
      {
       /*=========================*/
       /* Set the current module. */
       /*=========================*/
 
-      SetCurrentModule((void *) theModule);
+      EnvSetCurrentModule(theEnv,(void *) theModule);
 
       /*======================================================*/
       /* Loop through each deftemplate in the current module. */
       /*======================================================*/
 
-      for (theDeftemplate = (struct deftemplate *) GetNextDeftemplate(NULL);
+      for (theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,NULL);
            theDeftemplate != NULL;
-           theDeftemplate = (struct deftemplate *) GetNextDeftemplate(theDeftemplate))
+           theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,theDeftemplate))
         {
          /*=================================================*/
          /* Assign each pattern node in the pattern network */
@@ -159,6 +155,7 @@ static struct factPatternNode *GetNextPatternNode(
 /*   a run-time module created using the constructs-to-c function.  */
 /********************************************************************/
 static int PatternNetworkToCode(
+  void *theEnv,
   char *fileName,
   int fileID,
   FILE *headerFP,
@@ -182,24 +179,24 @@ static int PatternNetworkToCode(
    /* Loop through all the modules. */
    /*===============================*/
 
-   for (theModule = (struct defmodule *) GetNextDefmodule(NULL);
+   for (theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
         theModule != NULL;
-        theModule = (struct defmodule *) GetNextDefmodule(theModule))
+        theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule))
      {
       /*=========================*/
       /* Set the current module. */
       /*=========================*/
 
-      SetCurrentModule((void *) theModule);
+      EnvSetCurrentModule(theEnv,(void *) theModule);
 
       /*======================================*/
       /* Loop through all of the deftemplates */
       /* in the current module.               */
       /*======================================*/
 
-      for (theTemplate = (struct deftemplate *) GetNextDeftemplate(NULL);
+      for (theTemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,NULL);
            theTemplate != NULL;
-           theTemplate = (struct deftemplate *) GetNextDeftemplate(theTemplate))
+           theTemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,theTemplate))
         {
          /*======================================================*/
          /* Loop through each pattern node in the deftemplate's  */
@@ -211,18 +208,18 @@ static int PatternNetworkToCode(
               thePatternNode != NULL;
               thePatternNode = GetNextPatternNode(thePatternNode))
            {
-            networkFile = OpenFileIfNeeded(networkFile,fileName,fileID,imageID,&fileCount,
+            networkFile = OpenFileIfNeeded(theEnv,networkFile,fileName,fileID,imageID,&fileCount,
                                          networkArrayVersion,headerFP,
                                          "struct factPatternNode",FactPrefix(),FALSE,NULL);
             if (networkFile == NULL)
               {
-               CloseNetworkFiles(networkFile,maxIndices);
+               CloseNetworkFiles(theEnv,networkFile,maxIndices);
                return(0);
               }
 
-            PatternNodeToCode(networkFile,thePatternNode,imageID,maxIndices);
+            PatternNodeToCode(theEnv,networkFile,thePatternNode,imageID,maxIndices);
             networkArrayCount++;
-            networkFile = CloseFileIfNeeded(networkFile,&networkArrayCount,
+            networkFile = CloseFileIfNeeded(theEnv,networkFile,&networkArrayCount,
                                             &networkArrayVersion,maxIndices,NULL,NULL);
            }
         }
@@ -232,7 +229,7 @@ static int PatternNetworkToCode(
    /* Close any C files left open. */
    /*==============================*/
 
-   CloseNetworkFiles(networkFile,maxIndices);
+   CloseNetworkFiles(theEnv,networkFile,maxIndices);
 
    /*===============================*/
    /* Return TRUE to indicate the C */
@@ -249,6 +246,7 @@ static int PatternNetworkToCode(
 /*   written to the files.                                      */
 /****************************************************************/
 static void CloseNetworkFiles(
+  void *theEnv,
   FILE *networkFile,
   int maxIndices)
   {
@@ -257,7 +255,7 @@ static void CloseNetworkFiles(
 
    if (networkFile != NULL)
      {
-      CloseFileIfNeeded(networkFile,&count,&arrayVersion,maxIndices,NULL,NULL);
+      CloseFileIfNeeded(theEnv,networkFile,&count,&arrayVersion,maxIndices,NULL,NULL);
      }
   }
 
@@ -266,6 +264,7 @@ static void CloseNetworkFiles(
 /*   single fact pattern node slot to the specified file.   */
 /************************************************************/
 static void PatternNodeToCode(
+  void *theEnv,
   FILE *theFile,
   struct factPatternNode *thePatternNode,
   int imageID,
@@ -277,7 +276,7 @@ static void PatternNodeToCode(
    /* Pattern Node Header */
    /*=====================*/
 
-   PatternNodeHeaderToCode(theFile,&thePatternNode->header,imageID,maxIndices);
+   PatternNodeHeaderToCode(theEnv,theFile,&thePatternNode->header,imageID,maxIndices);
 
    /*========================*/
    /* Field and Slot Indices */
@@ -291,7 +290,7 @@ static void PatternNodeToCode(
    /* Network Tests */
    /*===============*/
 
-   PrintHashedExpressionReference(theFile,thePatternNode->networkTest,imageID,maxIndices);
+   PrintHashedExpressionReference(theEnv,theFile,thePatternNode->networkTest,imageID,maxIndices);
 
    /*============*/
    /* Next Level */
@@ -351,6 +350,7 @@ static void PatternNodeToCode(
 /*   of a fact pattern node data structure reference.     */
 /**********************************************************/
 globle void FactPatternNodeReference(
+  void *theEnv,
   void *theVPattern,
   FILE *theFile,
   int imageID,

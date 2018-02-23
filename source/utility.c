@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/utility.c,v 1.3 2001/08/11 21:08:22 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                   UTILITY MODULE                    */
    /*******************************************************/
@@ -22,6 +20,8 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/utility.c,v 1.3 2001/08/11
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
 /*************************************************************/
 
 #define _UTILITY_SOURCE_
@@ -34,8 +34,8 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/utility.c,v 1.3 2001/08/11
 #include <stdio.h>
 #define _STDIO_INCLUDED_
 #include <string.h>
-#include <math.h>
 
+#include "envrnmnt.h"
 #include "evaluatn.h"
 #include "facthsh.h"
 #include "memalloc.h"
@@ -49,38 +49,59 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/utility.c,v 1.3 2001/08/11
 #define COUNT_INCREMENT 1000L
 #define SIZE_INCREMENT 10240L
 
-struct cleanupFunction
-  {
-   char *name;
-   void (*ip)(void);
-   int priority;
-   struct cleanupFunction *next;
-  };
-
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static BOOLEAN                 AddCPFunction(char *,void (*)(void),int,struct cleanupFunction **);
-   static BOOLEAN                 RemoveCPFunction(char *,struct cleanupFunction **);
+   static intBool                 AddCPFunction(void *,char *,void (*)(void *),
+                                                int,struct cleanupFunction **,intBool);
+   static intBool                 RemoveCPFunction(void *,char *,struct cleanupFunction **);
+   static void                    DeallocateUtilityData(void *);
 
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
+/************************************************/
+/* InitializeUtilityData: Allocates environment */
+/*    data for utility routines.                */
+/************************************************/
+globle void InitializeUtilityData(
+  void *theEnv)
+  {
+   AllocateEnvironmentData(theEnv,UTILITY_DATA,sizeof(struct utilityData),DeallocateUtilityData);
+   
+   UtilityData(theEnv)->GarbageCollectionLocks = 0;
+   UtilityData(theEnv)->GarbageCollectionHeuristicsEnabled = TRUE;
+   UtilityData(theEnv)->PeriodicFunctionsEnabled = TRUE;
+   UtilityData(theEnv)->YieldFunctionEnabled = TRUE;
 
-   static struct cleanupFunction   *ListOfCleanupFunctions = NULL;
-   static struct cleanupFunction   *ListOfPeriodicFunctions = NULL;
+   UtilityData(theEnv)->CurrentEphemeralCountMax = MAX_EPHEMERAL_COUNT;
+   UtilityData(theEnv)->CurrentEphemeralSizeMax = MAX_EPHEMERAL_SIZE;
+   UtilityData(theEnv)->LastEvaluationDepth = -1;
+  }
+  
+/**************************************************/
+/* DeallocateUtilityData: Deallocates environment */
+/*    data for utility routines.                  */
+/**************************************************/
+static void DeallocateUtilityData(
+  void *theEnv)
+  {
+   struct cleanupFunction *tmpPtr, *nextPtr;
 
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
+   tmpPtr = UtilityData(theEnv)->ListOfPeriodicFunctions;
+   while (tmpPtr != NULL)
+     {
+      nextPtr = tmpPtr->next;
+      rtn_struct(theEnv,cleanupFunction,tmpPtr);
+      tmpPtr = nextPtr;
+     }
 
-   globle unsigned long          EphemeralItemCount = 0;
-   globle unsigned long          EphemeralItemSize = 0;
-   globle unsigned long          CurrentEphemeralCountMax = MAX_EPHEMERAL_COUNT;
-   globle unsigned long          CurrentEphemeralSizeMax = MAX_EPHEMERAL_SIZE;
-
-   globle void                 (*YieldTimeFunction)(void) = NULL;
+   tmpPtr = UtilityData(theEnv)->ListOfCleanupFunctions;
+   while (tmpPtr != NULL)
+     {
+      nextPtr = tmpPtr->next;
+      rtn_struct(theEnv,cleanupFunction,tmpPtr);
+      tmpPtr = nextPtr;
+     }
+  }
 
 /*************************************************************/
 /* PeriodicCleanup: Returns garbage created during execution */
@@ -91,22 +112,37 @@ struct cleanupFunction
 /*   Usually used by interfaces to update displays.          */
 /*************************************************************/
 globle void PeriodicCleanup(
-  BOOLEAN cleanupAllDepths,
-  BOOLEAN useHeuristics)
+  void *theEnv,
+  intBool cleanupAllDepths,
+  intBool useHeuristics)
   {
    int oldDepth = -1;
    struct cleanupFunction *cleanupPtr,*periodPtr;
-   static int lastEvaluationDepth = -1;
 
+   /*===================================*/
+   /* Don't use heuristics if disabled. */
+   /*===================================*/
+   
+   if (! UtilityData(theEnv)->GarbageCollectionHeuristicsEnabled) 
+     { useHeuristics = FALSE; }
+     
    /*=============================================*/
    /* Call functions for handling periodic tasks. */
    /*=============================================*/
 
-   for (periodPtr = ListOfPeriodicFunctions;
-        periodPtr != NULL;
-        periodPtr = periodPtr->next)
-     { (*periodPtr->ip)(); }
-
+   if (UtilityData(theEnv)->PeriodicFunctionsEnabled)
+     {
+      for (periodPtr = UtilityData(theEnv)->ListOfPeriodicFunctions;
+           periodPtr != NULL;
+           periodPtr = periodPtr->next)
+        { 
+         if (periodPtr->environmentAware)
+           { (*periodPtr->ip)(theEnv); }
+         else            
+           { (* (void (*)(void)) periodPtr->ip)(); }
+        }
+     }
+     
    /*===================================================*/
    /* If the last level we performed cleanup was deeper */
    /* than the current level, reset the values used by  */
@@ -118,11 +154,11 @@ globle void PeriodicCleanup(
    /* them when we go back to a lower evaluation depth. */
    /*===================================================*/
 
-   if (lastEvaluationDepth > CurrentEvaluationDepth)
+   if (UtilityData(theEnv)->LastEvaluationDepth > EvaluationData(theEnv)->CurrentEvaluationDepth)
      {
-      lastEvaluationDepth = CurrentEvaluationDepth;
-      CurrentEphemeralCountMax = MAX_EPHEMERAL_COUNT;
-      CurrentEphemeralSizeMax = MAX_EPHEMERAL_SIZE;
+      UtilityData(theEnv)->LastEvaluationDepth = EvaluationData(theEnv)->CurrentEvaluationDepth;
+      UtilityData(theEnv)->CurrentEphemeralCountMax = MAX_EPHEMERAL_COUNT;
+      UtilityData(theEnv)->CurrentEphemeralSizeMax = MAX_EPHEMERAL_SIZE;
      }
 
    /*======================================================*/
@@ -131,9 +167,11 @@ globle void PeriodicCleanup(
    /* garbage has been created to make cleanup worthwhile. */
    /*======================================================*/
 
+   if (UtilityData(theEnv)->GarbageCollectionLocks > 0)  return;
+   
    if (useHeuristics &&
-       (EphemeralItemCount < CurrentEphemeralCountMax) &&
-       (EphemeralItemSize < CurrentEphemeralSizeMax))
+       (UtilityData(theEnv)->EphemeralItemCount < UtilityData(theEnv)->CurrentEphemeralCountMax) &&
+       (UtilityData(theEnv)->EphemeralItemSize < UtilityData(theEnv)->CurrentEphemeralSizeMax))
      { return; }
 
    /*==========================================================*/
@@ -145,37 +183,42 @@ globle void PeriodicCleanup(
 
    if (cleanupAllDepths)
      {
-      oldDepth = CurrentEvaluationDepth;
-      CurrentEvaluationDepth = -1;
+      oldDepth = EvaluationData(theEnv)->CurrentEvaluationDepth;
+      EvaluationData(theEnv)->CurrentEvaluationDepth = -1;
      }
 
    /*=============================================*/
    /* Free up multifield values no longer in use. */
    /*=============================================*/
 
-   FlushMultifields();
+   FlushMultifields(theEnv);
 
    /*=====================================*/
    /* Call the list of cleanup functions. */
    /*=====================================*/
 
-   for (cleanupPtr = ListOfCleanupFunctions;
+   for (cleanupPtr = UtilityData(theEnv)->ListOfCleanupFunctions;
         cleanupPtr != NULL;
         cleanupPtr = cleanupPtr->next)
-     { (*cleanupPtr->ip)(); }
+     {
+      if (cleanupPtr->environmentAware)
+        { (*cleanupPtr->ip)(theEnv); }
+      else            
+        { (* (void (*)(void)) cleanupPtr->ip)(); }
+    }
 
    /*================================================*/
    /* Free up atomic values that are no longer used. */
    /*================================================*/
 
-   RemoveEphemeralAtoms();
+   RemoveEphemeralAtoms(theEnv);
 
    /*=========================================*/
    /* Restore the evaluation depth if cleanup */
    /* was performed on all depths.            */
    /*=========================================*/
 
-   if (cleanupAllDepths) CurrentEvaluationDepth = oldDepth;
+   if (cleanupAllDepths) EvaluationData(theEnv)->CurrentEvaluationDepth = oldDepth;
 
    /*============================================================*/
    /* If very little memory was freed up, then increment the     */
@@ -183,11 +226,11 @@ globle void PeriodicCleanup(
    /* try to free up memory that isn't being released.           */
    /*============================================================*/
 
-   if ((EphemeralItemCount + COUNT_INCREMENT) > CurrentEphemeralCountMax)
-     { CurrentEphemeralCountMax = EphemeralItemCount + COUNT_INCREMENT; }
+   if ((UtilityData(theEnv)->EphemeralItemCount + COUNT_INCREMENT) > UtilityData(theEnv)->CurrentEphemeralCountMax)
+     { UtilityData(theEnv)->CurrentEphemeralCountMax = UtilityData(theEnv)->EphemeralItemCount + COUNT_INCREMENT; }
 
-   if ((EphemeralItemSize + SIZE_INCREMENT) > CurrentEphemeralSizeMax)
-     { CurrentEphemeralSizeMax = EphemeralItemSize + SIZE_INCREMENT; }
+   if ((UtilityData(theEnv)->EphemeralItemSize + SIZE_INCREMENT) > UtilityData(theEnv)->CurrentEphemeralSizeMax)
+     { UtilityData(theEnv)->CurrentEphemeralSizeMax = UtilityData(theEnv)->EphemeralItemSize + SIZE_INCREMENT; }
 
    /*===============================================================*/
    /* Remember the evaluation depth at which garbage collection was */
@@ -195,7 +238,7 @@ globle void PeriodicCleanup(
    /* ephemeral count and size numbers used by the heuristics.      */
    /*===============================================================*/
 
-   lastEvaluationDepth = CurrentEvaluationDepth;
+   UtilityData(theEnv)->LastEvaluationDepth = EvaluationData(theEnv)->CurrentEvaluationDepth;
   }
 
 /***************************************************/
@@ -203,43 +246,67 @@ globle void PeriodicCleanup(
 /*   of functions called to perform cleanup such   */
 /*   as returning free memory to the memory pool.  */
 /***************************************************/
-globle BOOLEAN AddCleanupFunction(
+globle intBool AddCleanupFunction(
+  void *theEnv,
   char *name,
-  void (*theFunction)(void),
+  void (*theFunction)(void *),
   int priority)
   {
-   return(AddCPFunction(name,theFunction,priority,&ListOfCleanupFunctions));
+   return(AddCPFunction(theEnv,name,theFunction,priority,&UtilityData(theEnv)->ListOfCleanupFunctions,TRUE));
   }
 
+#if (! ENVIRONMENT_API_ONLY) && ALLOW_ENVIRONMENT_GLOBALS
 /****************************************************/
 /* AddPeriodicFunction: Adds a function to the list */
 /*   of functions called to handle periodic tasks.  */
 /****************************************************/
-globle BOOLEAN AddPeriodicFunction(
+globle intBool AddPeriodicFunction(
   char *name,
   void (*theFunction)(void),
   int priority)
   {
-   return(AddCPFunction(name,theFunction,priority,&ListOfPeriodicFunctions));
+   void *theEnv;
+   
+   theEnv = GetCurrentEnvironment();
+   
+   return(AddCPFunction(theEnv,name,(void (*)(void *)) theFunction,priority,
+                        &UtilityData(theEnv)->ListOfPeriodicFunctions,FALSE));
+  }
+#endif
+
+/*******************************************************/
+/* EnvAddPeriodicFunction: Adds a function to the list */
+/*   of functions called to handle periodic tasks.     */
+/*******************************************************/
+globle intBool EnvAddPeriodicFunction(
+  void *theEnv,
+  char *name,
+  void (*theFunction)(void *),
+  int priority)
+  {
+   return(AddCPFunction(theEnv,name,theFunction,priority,&UtilityData(theEnv)->ListOfPeriodicFunctions,TRUE));
   }
 
 /**********************************/
 /* AddCPFunction: Adds a function */
 /*   to a list of functions.      */
 /**********************************/
-static BOOLEAN AddCPFunction(
+static intBool AddCPFunction(
+  void *theEnv,
   char *name,
-  void (*theFunction)(void),
+  void (*theFunction)(void *),
   int priority,
-  struct cleanupFunction **head)
+  struct cleanupFunction **head,
+  intBool environmentAware)
   {
    struct cleanupFunction *newPtr, *currentPtr, *lastPtr = NULL;
 
-   newPtr = get_struct(cleanupFunction);
+   newPtr = get_struct(theEnv,cleanupFunction);
 
    newPtr->name = name;
    newPtr->ip = theFunction;
    newPtr->priority = priority;
+   newPtr->environmentAware = (short) environmentAware;
 
    if (*head == NULL)
      {
@@ -274,27 +341,30 @@ static BOOLEAN AddCPFunction(
 /*   list of functions called to perform cleanup such  */
 /*   as returning free memory to the memory pool.      */
 /*******************************************************/
-globle BOOLEAN RemoveCleanupFunction(
+globle intBool RemoveCleanupFunction(
+  void *theEnv,
   char *name)
   {
-   return(RemoveCPFunction(name,&ListOfCleanupFunctions));
+   return(RemoveCPFunction(theEnv,name,&UtilityData(theEnv)->ListOfCleanupFunctions));
   }
 
-/********************************************************/
-/* RemovePeriodicFunction: Removes a function from the  */
-/*   list of functions called to handle periodic tasks. */
-/********************************************************/
-globle BOOLEAN RemovePeriodicFunction(
+/**********************************************************/
+/* EnvRemovePeriodicFunction: Removes a function from the */
+/*   list of functions called to handle periodic tasks.   */
+/**********************************************************/
+globle intBool EnvRemovePeriodicFunction(
+  void *theEnv,
   char *name)
   {
-   return(RemoveCPFunction(name,&ListOfPeriodicFunctions));
+   return(RemoveCPFunction(theEnv,name,&UtilityData(theEnv)->ListOfPeriodicFunctions));
   }
 
 /****************************************/
 /* RemoveCPFunction: Removes a function */
 /*   from a list of functions.          */
 /****************************************/
-static BOOLEAN RemoveCPFunction(
+static intBool RemoveCPFunction(
+  void *theEnv,
   char *name,
   struct cleanupFunction **head)
   {
@@ -311,7 +381,7 @@ static BOOLEAN RemoveCPFunction(
            { *head = currentPtr->next; }
          else
            { lastPtr->next = currentPtr->next; }
-         rtn_struct(cleanupFunction,currentPtr);
+         rtn_struct(theEnv,cleanupFunction,currentPtr);
          return(TRUE);
         }
       lastPtr = currentPtr;
@@ -326,29 +396,31 @@ static BOOLEAN RemoveCPFunction(
 /*   of a string. Replaces / with // and " with /".  */
 /*****************************************************/
 globle char *StringPrintForm(
+  void *theEnv,
   char *str)
   {
-   int i = 0, pos = 0, max = 0;
+   int i = 0, pos = 0;
+   unsigned max = 0;
    char *theString = NULL;
    void *thePtr;
 
-   theString = ExpandStringWithChar('"',theString,&pos,&max,max+80);
+   theString = ExpandStringWithChar(theEnv,'"',theString,&pos,&max,max+80);
    while (str[i] != EOS)
      {
       if ((str[i] == '"') || (str[i] == '\\'))
         {
-         theString = ExpandStringWithChar('\\',theString,&pos,&max,max+80);
-         theString = ExpandStringWithChar(str[i],theString,&pos,&max,max+80);
+         theString = ExpandStringWithChar(theEnv,'\\',theString,&pos,&max,max+80);
+         theString = ExpandStringWithChar(theEnv,str[i],theString,&pos,&max,max+80);
         }
       else
-        { theString = ExpandStringWithChar(str[i],theString,&pos,&max,max+80); }
+        { theString = ExpandStringWithChar(theEnv,str[i],theString,&pos,&max,max+80); }
       i++;
      }
 
-   theString = ExpandStringWithChar('"',theString,&pos,&max,max+80);
+   theString = ExpandStringWithChar(theEnv,'"',theString,&pos,&max,max+80);
 
-   thePtr = AddSymbol(theString);
-   rm(theString,max);
+   thePtr = EnvAddSymbol(theEnv,theString);
+   rm(theEnv,theString,max);
    return(ValueToString(thePtr));
   }
 
@@ -358,18 +430,20 @@ globle char *StringPrintForm(
 /*   necessary to deallocate the string returned.          */
 /***********************************************************/
 globle char *AppendStrings(
+  void *theEnv,
   char *str1,
   char *str2)
   {
-   int pos = 0, max = 0;
+   int pos = 0;
+   unsigned max = 0;
    char *theString = NULL;
    void *thePtr;
 
-   theString = AppendToString(str1,theString,&pos,&max);
-   theString = AppendToString(str2,theString,&pos,&max);
+   theString = AppendToString(theEnv,str1,theString,&pos,&max);
+   theString = AppendToString(theEnv,str2,theString,&pos,&max);
 
-   thePtr = AddSymbol(theString);
-   rm(theString,max);
+   thePtr = EnvAddSymbol(theEnv,theString);
+   rm(theEnv,theString,max);
    return(ValueToString(thePtr));
   }
 
@@ -378,12 +452,13 @@ globle char *AppendStrings(
 /*   (expanding the other string if necessary).       */
 /******************************************************/
 globle char *AppendToString(
+  void *theEnv,
   char *appendStr,
   char *oldStr,
   int *oldPos,
-  int *oldMax)
+  unsigned *oldMax)
   {
-   int length;
+   size_t length;
 
    /*=========================================*/
    /* Expand the old string so it can contain */
@@ -393,7 +468,7 @@ globle char *AppendToString(
    length = strlen(appendStr);
    if (length + *oldPos + 1 > *oldMax)
      {
-      oldStr = (char *) genrealloc(oldStr,(unsigned) *oldMax,(unsigned) length + *oldPos + 1);
+      oldStr = (char *) genrealloc(theEnv,oldStr,(unsigned) *oldMax,(unsigned) length + *oldPos + 1);
       *oldMax = length + *oldPos + 1;
      }
 
@@ -408,7 +483,7 @@ globle char *AppendToString(
    /*===============================================*/
 
    strcpy(&oldStr[*oldPos],appendStr);
-   *oldPos += length;
+   *oldPos += (int) length;
 
    /*============================================================*/
    /* Return the expanded string containing the appended string. */
@@ -424,13 +499,14 @@ globle char *AppendToString(
 /*   the string.                                       */
 /*******************************************************/
 globle char *AppendNToString(
+  void *theEnv,
   char *appendStr,
   char *oldStr,
-  int length,
+  unsigned length,
   int *oldPos,
-  int *oldMax)
+  unsigned *oldMax)
   {
-   int lengthWithEOS;
+   unsigned lengthWithEOS;
 
    /*====================================*/
    /* Determine the number of characters */
@@ -447,8 +523,8 @@ globle char *AppendNToString(
 
    if (lengthWithEOS + *oldPos > *oldMax)
      {
-      oldStr = (char *) genrealloc(oldStr,(unsigned) *oldMax,(unsigned) *oldPos + lengthWithEOS);
-      *oldMax = *oldPos + lengthWithEOS;
+      oldStr = (char *) genrealloc(theEnv,oldStr,(unsigned) *oldMax,(unsigned) *oldPos + lengthWithEOS);
+      *oldMax = (unsigned) *oldPos + lengthWithEOS;
      }
 
    /*==============================================================*/
@@ -463,7 +539,7 @@ globle char *AppendNToString(
    /*==================================*/
 
    strncpy(&oldStr[*oldPos],appendStr,(STD_SIZE) length);
-   *oldPos += (lengthWithEOS - 1);
+   *oldPos += (int) (lengthWithEOS - 1);
    oldStr[*oldPos] = '\0';
 
    /*============================================================*/
@@ -481,15 +557,16 @@ globle char *AppendNToString(
 /*   the string.                                       */
 /*******************************************************/
 globle char *ExpandStringWithChar(
+  void *theEnv,
   int inchar,
   char *str,
   int *pos,
-  int *max,
-  int newSize)
+  unsigned *max,
+  unsigned newSize)
   {
-   if (*pos >= (*max - 1))
+   if ((*pos + 1) >= (int) *max)
      {
-      str = (char *) genrealloc(str,(unsigned) *max,(unsigned) newSize);
+      str = (char *) genrealloc(theEnv,str,*max,newSize);
       *max = newSize;
      }
 
@@ -514,18 +591,21 @@ globle char *ExpandStringWithChar(
 /*   reset, and bload functions).                                */
 /*****************************************************************/
 globle struct callFunctionItem *AddFunctionToCallList(
+  void *theEnv,
   char *name,
   int priority,
-  void (*func)(void),
-  struct callFunctionItem *head)
+  void (*func)(void *),
+  struct callFunctionItem *head,
+  intBool environmentAware)
   {
    struct callFunctionItem *newPtr, *currentPtr, *lastPtr = NULL;
 
-   newPtr = get_struct(callFunctionItem);
+   newPtr = get_struct(theEnv,callFunctionItem);
 
    newPtr->name = name;
    newPtr->func = func;
    newPtr->priority = priority;
+   newPtr->environmentAware = (short) environmentAware;
 
    if (head == NULL)
      {
@@ -560,6 +640,7 @@ globle struct callFunctionItem *AddFunctionToCallList(
 /*   (e.g. clear, reset, and bload functions).                   */
 /*****************************************************************/
 globle struct callFunctionItem *RemoveFunctionFromCallList(
+  void *theEnv,
   char *name,
   struct callFunctionItem *head,
   int *found)
@@ -580,7 +661,7 @@ globle struct callFunctionItem *RemoveFunctionFromCallList(
          else
            { lastPtr->next = currentPtr->next; }
 
-         rtn_struct(callFunctionItem,currentPtr);
+         rtn_struct(theEnv,callFunctionItem,currentPtr);
          return(head);
         }
 
@@ -591,21 +672,36 @@ globle struct callFunctionItem *RemoveFunctionFromCallList(
    return(head);
   }
 
+/**************************************************************/
+/* DeallocateCallList: Removes all functions from a list of   */
+/*   functions which are called to perform certain operations */
+/*   (e.g. clear, reset, and bload functions).                */
+/**************************************************************/
+globle void DeallocateCallList(
+  void *theEnv,
+  struct callFunctionItem *theList)
+  {
+   struct callFunctionItem *tmpPtr, *nextPtr;
+   
+   tmpPtr = theList;
+   while (tmpPtr != NULL)
+     {
+      nextPtr = tmpPtr->next;
+      rtn_struct(theEnv,callFunctionItem,tmpPtr);
+      tmpPtr = nextPtr;
+     }
+  }
+
 /*****************************************/
 /* ItemHashValue: Returns the hash value */
 /*   for the specified value.            */
 /*****************************************/
-globle int ItemHashValue(
-  int theType,
+globle unsigned ItemHashValue(
+  void *theEnv,
+  unsigned short theType,
   void *theValue,
-  int theRange)
+  unsigned theRange)
   {
-   union
-     {
-      void *vv;
-      unsigned uv;
-     } fis;
-
    switch(theType)
      {
       case FLOAT:
@@ -633,17 +729,11 @@ globle int ItemHashValue(
 #if OBJECT_SYSTEM
       case INSTANCE_ADDRESS:
 #endif
-        fis.uv = 0;
-        fis.vv = theValue;
-        return(fis.uv % theRange);
-
-      default:
-        SystemError("UTILITY",1);
-        return(-1L);
-
+        return(((unsigned) theValue) % theRange);
      }
 
-   return(-1L);
+   SystemError(theEnv,"UTILITY",1);
+   return(0);
   }
 
 /********************************************/
@@ -652,8 +742,78 @@ globle int ItemHashValue(
 /*   application responsiveness when CLIPS  */
 /*   is running in the background.          */
 /********************************************/
-void YieldTime()
+void YieldTime(
+  void *theEnv)
   {
-   if (YieldTimeFunction != NULL)
-     { (*YieldTimeFunction)(); }
+   if ((UtilityData(theEnv)->YieldTimeFunction != NULL) && UtilityData(theEnv)->YieldFunctionEnabled)
+     { (*UtilityData(theEnv)->YieldTimeFunction)(); }
+  }
+  
+/********************************************/
+/* SetGarbageCollectionHeuristics:         */
+/********************************************/
+short SetGarbageCollectionHeuristics(
+  void *theEnv,
+  short newValue)
+  {
+   short oldValue;
+
+   oldValue = UtilityData(theEnv)->GarbageCollectionHeuristicsEnabled;
+   
+   UtilityData(theEnv)->GarbageCollectionHeuristicsEnabled = newValue;
+   
+   return(oldValue);
+  }
+ 
+/**********************************************/
+/* EnvIncrementGCLocks: Increments the number */
+/*   of garbage collection locks.             */
+/**********************************************/
+globle void EnvIncrementGCLocks(
+  void *theEnv)
+  {
+   UtilityData(theEnv)->GarbageCollectionLocks++;
+  }
+
+/**********************************************/
+/* EnvDecrementGCLocks: Decrements the number */
+/*   of garbage collection locks.             */
+/**********************************************/
+globle void EnvDecrementGCLocks(
+  void *theEnv)
+  {
+   if (UtilityData(theEnv)->GarbageCollectionLocks > 0)
+     { UtilityData(theEnv)->GarbageCollectionLocks--; }
+  }
+ 
+/********************************************/
+/* EnablePeriodicFunctions:         */
+/********************************************/
+short EnablePeriodicFunctions(
+  void *theEnv,
+  short value)
+  {
+   short oldValue;
+   
+   oldValue = UtilityData(theEnv)->PeriodicFunctionsEnabled;
+   
+   UtilityData(theEnv)->PeriodicFunctionsEnabled = value;
+   
+   return(oldValue);
+  }
+  
+/********************************************/
+/* EnableYieldFunction:         */
+/********************************************/
+short EnableYieldFunction(
+  void *theEnv,
+  short value)
+  {
+   short oldValue;
+   
+   oldValue = UtilityData(theEnv)->YieldFunctionEnabled;
+   
+   UtilityData(theEnv)->YieldFunctionEnabled = value;
+   
+   return(oldValue);
   }

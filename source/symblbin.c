@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/symblbin.c,v 1.3 2001/08/11 21:08:01 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                 SYMBOL BSAVE MODULE                 */
    /*******************************************************/
@@ -32,24 +30,22 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/symblbin.c,v 1.3 2001/08/1
 
 #if BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE || BLOAD_INSTANCES || BSAVE_INSTANCES
 
+#include "argacces.h"
+#include "bload.h"
+#include "bsave.h"
+#include "cstrnbin.h"
+#include "envrnmnt.h"
+#include "exprnpsr.h"
+#include "memalloc.h"
+#include "moduldef.h"
+#include "router.h"
+
 #if FUZZY_DEFTEMPLATES  
-#include "symbol.h"
 #include "tmpltbin.h"
-#include "fuzzyval.h"
+//#include "fuzzyval.h"
 #include "fuzzyrhs.h"
 #include "fuzzypsr.h"
 #endif
-
-
-#include "memalloc.h"
-#include "exprnpsr.h"
-#include "argacces.h"
-#include "router.h"
-#include "cstrnbin.h"
-#include "moduldef.h"
-#include "bload.h"
-
-#include "bsave.h"
 
 #include "symblbin.h"
 
@@ -57,45 +53,22 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/symblbin.c,v 1.3 2001/08/1
 /* LOCAL INTERNAL VARIABLE DEFINITIONS */
 /***************************************/
 
-   static long                                   NumberOfSymbols = 0;
-   static long                                   NumberOfFloats = 0;
-   static long                                   NumberOfIntegers = 0;
-   static long                                   NumberOfBitMaps = 0;
-#if FUZZY_DEFTEMPLATES 
-   static long                                   NumberOfFuzzyValues = 0;
-#endif
-
 /****************************************/
 /* GLOBAL INTERNAL VARIABLE DEFINITIONS */
 /****************************************/
-
-   globle SYMBOL_HN                  **SymbolArray;
-   globle struct floatHashNode       **FloatArray;
-   globle INTEGER_HN                 **IntegerArray;
-   globle BITMAP_HN                  **BitMapArray;
-#if FUZZY_DEFTEMPLATES  
-   globle FUZZY_VALUE_HN             **FuzzyValueArray;
-#endif
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static void                        ReadNeededSymbols(void);
-   static void                        ReadNeededFloats(void);
-   static void                        ReadNeededIntegers(void);
-   static void                        ReadNeededBitMaps(void);
+   static void                        ReadNeededBitMaps(void *);
 #if FUZZY_DEFTEMPLATES 
-   static void                        ReadNeededFuzzyValues(void);
+   static void                        ReadNeededFuzzyValues(void *);
 #endif
-
 #if BLOAD_AND_BSAVE || BSAVE_INSTANCES
-   static void                        WriteNeededSymbols(FILE *);
-   static void                        WriteNeededFloats(FILE *);
-   static void                        WriteNeededIntegers(FILE *);
-   static void                        WriteNeededBitMaps(FILE *);
+   static void                        WriteNeededBitMaps(void *,FILE *);
 #if FUZZY_DEFTEMPLATES 
-   static void                        WriteNeededFuzzyValues(FILE *);
+   static void                        WriteNeededFuzzyValues(void *,FILE *);
 #endif
 #endif
 
@@ -107,14 +80,15 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/symblbin.c,v 1.3 2001/08/1
 /*   this binary image to the binary file.    */
 /**********************************************/
 globle void WriteNeededAtomicValues(
+  void *theEnv,
   FILE *fp)
   {
-   WriteNeededSymbols(fp);
-   WriteNeededFloats(fp);
-   WriteNeededIntegers(fp);
-   WriteNeededBitMaps(fp);
+   WriteNeededSymbols(theEnv,fp);
+   WriteNeededFloats(theEnv,fp);
+   WriteNeededIntegers(theEnv,fp);
+   WriteNeededBitMaps(theEnv,fp);
 #if FUZZY_DEFTEMPLATES
-   WriteNeededFuzzyValues(fp);
+   WriteNeededFuzzyValues(theEnv,fp);
 #endif
   }
 
@@ -123,9 +97,10 @@ globle void WriteNeededAtomicValues(
 /*   floats, integers, and bitmaps as being unneeded by */
 /*   the binary image being saved.                      */
 /********************************************************/
-globle void InitAtomicValueNeededFlags()
+globle void InitAtomicValueNeededFlags(
+  void *theEnv)
   {
-   int i;
+   unsigned long i;
    SYMBOL_HN *symbolPtr, **symbolArray;
    FLOAT_HN *floatPtr, **floatArray;
    INTEGER_HN *integerPtr, **integerArray;
@@ -142,7 +117,7 @@ globle void InitAtomicValueNeededFlags()
    /* Mark symbols. */
    /*===============*/
 
-   symbolArray = GetSymbolTable();
+   symbolArray = GetSymbolTable(theEnv);
 
    for (i = 0; i < SYMBOL_HASH_SIZE; i++)
      {
@@ -158,7 +133,7 @@ globle void InitAtomicValueNeededFlags()
    /* Mark floats. */
    /*==============*/
 
-   floatArray = GetFloatTable();
+   floatArray = GetFloatTable(theEnv);
 
    for (i = 0; i < FLOAT_HASH_SIZE; i++)
      {
@@ -174,7 +149,7 @@ globle void InitAtomicValueNeededFlags()
    /* Mark integers. */
    /*================*/
 
-   integerArray = GetIntegerTable();
+   integerArray = GetIntegerTable(theEnv);
 
    for (i = 0; i < INTEGER_HASH_SIZE; i++)
      {
@@ -190,7 +165,7 @@ globle void InitAtomicValueNeededFlags()
    /* Mark bitmaps. */
    /*===============*/
 
-   bitMapArray = GetBitMapTable();
+   bitMapArray = GetBitMapTable(theEnv);
 
    for (i = 0; i < BITMAP_HASH_SIZE; i++)
      {
@@ -203,7 +178,7 @@ globle void InitAtomicValueNeededFlags()
      }
 
 #if FUZZY_DEFTEMPLATES   
-   fuzzyValueArray = GetFuzzyValueTable();
+   fuzzyValueArray = GetFuzzyValueTable(theEnv);
 
    for (i = 0; i < FUZZY_VALUE_HASH_SIZE; i++)
      {
@@ -214,19 +189,19 @@ globle void InitAtomicValueNeededFlags()
          fuzzyValuePtr = fuzzyValuePtr->next;
         }
      }
-#endif
-
-
+#endif        
   }
 
 /*****************************************************************/
 /* WriteNeededSymbols: Stores all of the symbols in the symbol   */
 /*   table needed for this binary image in the binary save file. */
 /*****************************************************************/
-static void WriteNeededSymbols(
+globle void WriteNeededSymbols(
+  void *theEnv,
   FILE *fp)
   {
-   int i, length;
+   unsigned long i;
+   unsigned length;
    SYMBOL_HN **symbolArray;
    SYMBOL_HN *symbolPtr;
    unsigned long int numberOfUsedSymbols = 0, size = 0;
@@ -235,7 +210,7 @@ static void WriteNeededSymbols(
    /* Get a copy of the symbol table. */
    /*=================================*/
 
-   symbolArray = GetSymbolTable();
+   symbolArray = GetSymbolTable(theEnv);
 
    /*======================================================*/
    /* Get the number of symbols and the total string size. */
@@ -281,7 +256,8 @@ static void WriteNeededSymbols(
 /* WriteNeededFloats: Stores all of the floats in the float      */
 /*   table needed for this binary image in the binary save file. */
 /*****************************************************************/
-static void WriteNeededFloats(
+globle void WriteNeededFloats(
+  void *theEnv,
   FILE *fp)
   {
    int i;
@@ -293,7 +269,7 @@ static void WriteNeededFloats(
    /* Get a copy of the float table. */
    /*================================*/
 
-   floatArray = GetFloatTable();
+   floatArray = GetFloatTable(theEnv);
 
    /*===========================*/
    /* Get the number of floats. */
@@ -330,7 +306,8 @@ static void WriteNeededFloats(
 /* WriteNeededIntegers: Stores all of the integers in the integer */
 /*   table needed for this binary image in the binary save file.  */
 /******************************************************************/
-static void WriteNeededIntegers(
+globle void WriteNeededIntegers(
+  void *theEnv,
   FILE *fp)
   {
    int i;
@@ -342,7 +319,7 @@ static void WriteNeededIntegers(
    /* Get a copy of the integer table. */
    /*==================================*/
 
-   integerArray = GetIntegerTable();
+   integerArray = GetIntegerTable(theEnv);
 
    /*=============================*/
    /* Get the number of integers. */
@@ -384,6 +361,7 @@ static void WriteNeededIntegers(
 /*   table needed for this binary image in the binary save file. */
 /*****************************************************************/
 static void WriteNeededBitMaps(
+  void *theEnv,
   FILE *fp)
   {
    int i;
@@ -396,7 +374,7 @@ static void WriteNeededBitMaps(
    /* Get a copy of the bitmap table. */
    /*=================================*/
 
-   bitMapArray = GetBitMapTable();
+   bitMapArray = GetBitMapTable(theEnv);
 
    /*======================================================*/
    /* Get the number of bitmaps and the total bitmap size. */
@@ -411,7 +389,7 @@ static void WriteNeededBitMaps(
          if (bitMapPtr->neededBitMap)
            {
             numberOfUsedBitMaps++;
-            size += bitMapPtr->size + 1;
+            size += (unsigned long) (bitMapPtr->size + 1);
            }
         }
      }
@@ -431,14 +409,14 @@ static void WriteNeededBitMaps(
         {
          if (bitMapPtr->neededBitMap)
            {
-            tempSize = bitMapPtr->size;
+            tempSize = (char) bitMapPtr->size;
             GenWrite((void *) &tempSize,(unsigned long) sizeof(char),fp);
             GenWrite((void *) bitMapPtr->contents,(unsigned long) bitMapPtr->size,fp);
            }
         }
      }
   }
-
+  
 #if FUZZY_DEFTEMPLATES    
 
 /************************************************************************/
@@ -446,6 +424,7 @@ static void WriteNeededBitMaps(
 /*   symbol table needed for this binary image in the binary save file  */
 /************************************************************************/
 static void WriteNeededFuzzyValues(
+  void *theEnv,
   FILE *fp)
   {
    int i;
@@ -457,7 +436,7 @@ static void WriteNeededFuzzyValues(
    /* Get a copy of the symbol table. */
    /*=================================*/
 
-   fuzzyValueArray = GetFuzzyValueTable();
+   fuzzyValueArray = GetFuzzyValueTable(theEnv);
 
    /*======================================================*/
    /* Get the number of fuzzy values and the total size.   */
@@ -525,18 +504,19 @@ static void WriteNeededFuzzyValues(
 /*   floats, integers, and bitmaps needed by */
 /*   this binary image from the binary file. */
 /*********************************************/
-globle void ReadNeededAtomicValues()
+globle void ReadNeededAtomicValues(
+  void *theEnv)
   {
-   ReadNeededSymbols();
-   ReadNeededFloats();
-   ReadNeededIntegers();
-   ReadNeededBitMaps();
+   ReadNeededSymbols(theEnv);
+   ReadNeededFloats(theEnv);
+   ReadNeededIntegers(theEnv);
+   ReadNeededBitMaps(theEnv);
 #if FUZZY_DEFTEMPLATES    
 
    /* this MUST be done after ReadNeededSymbols
       because of the symbol HN in a fuzzy value
    */
-   ReadNeededFuzzyValues();
+   ReadNeededFuzzyValues(theEnv);
 #endif
   }
 
@@ -544,7 +524,8 @@ globle void ReadNeededAtomicValues()
 /* ReadNeededSymbols: Reads in the symbols */
 /*   used by the binary image.             */
 /*******************************************/
-static void ReadNeededSymbols()
+globle void ReadNeededSymbols(
+  void *theEnv)
   {
    char *symbolNames, *namePtr;
    unsigned long space;
@@ -555,11 +536,11 @@ static void ReadNeededSymbols()
    /* and space required for them.                    */
    /*=================================================*/
 
-   GenRead((void *) &NumberOfSymbols,(unsigned long) sizeof(long int));
-   GenRead(&space,(unsigned long) sizeof(unsigned long int));
-   if (NumberOfSymbols == 0)
+   GenReadBinary(theEnv,(void *) &SymbolData(theEnv)->NumberOfSymbols,(unsigned long) sizeof(long int));
+   GenReadBinary(theEnv,&space,(unsigned long) sizeof(unsigned long int));
+   if (SymbolData(theEnv)->NumberOfSymbols == 0)
      {
-      SymbolArray = NULL;
+      SymbolData(theEnv)->SymbolArray = NULL;
       return;
      }
 
@@ -567,19 +548,19 @@ static void ReadNeededSymbols()
    /* Allocate area for strings to be read. */
    /*=======================================*/
 
-   symbolNames = (char *) gm3((long) space);
-   GenRead((void *) symbolNames,space);
+   symbolNames = (char *) gm3(theEnv,(long) space);
+   GenReadBinary(theEnv,(void *) symbolNames,space);
 
    /*================================================*/
    /* Store the symbol pointers in the symbol array. */
    /*================================================*/
 
-   SymbolArray = (SYMBOL_HN **)
-                 gm3((long) sizeof(SYMBOL_HN *) *  NumberOfSymbols);
+   SymbolData(theEnv)->SymbolArray = (SYMBOL_HN **)
+                 gm3(theEnv,(long) sizeof(SYMBOL_HN *) *  SymbolData(theEnv)->NumberOfSymbols);
    namePtr = symbolNames;
-   for (i = 0; i < NumberOfSymbols; i++)
+   for (i = 0; i < SymbolData(theEnv)->NumberOfSymbols; i++)
      {
-      SymbolArray[i] = (SYMBOL_HN *) AddSymbol(namePtr);
+      SymbolData(theEnv)->SymbolArray[i] = (SYMBOL_HN *) EnvAddSymbol(theEnv,namePtr);
       namePtr += strlen(namePtr) + 1;
      }
 
@@ -587,14 +568,15 @@ static void ReadNeededSymbols()
    /* Free the name buffer. */
    /*=======================*/
 
-   rm3((void *) symbolNames,(long) space);
+   rm3(theEnv,(void *) symbolNames,(long) space);
   }
 
 /*****************************************/
 /* ReadNeededFloats: Reads in the floats */
 /*   used by the binary image.           */
 /*****************************************/
-static void ReadNeededFloats()
+globle void ReadNeededFloats(
+  void *theEnv)
   {
    double *floatValues;
    long i;
@@ -603,10 +585,10 @@ static void ReadNeededFloats()
    /* Determine the number of floats to be read. */
    /*============================================*/
 
-   GenRead(&NumberOfFloats,(unsigned long) sizeof(long int));
-   if (NumberOfFloats == 0)
+   GenReadBinary(theEnv,&SymbolData(theEnv)->NumberOfFloats,(unsigned long) sizeof(long int));
+   if (SymbolData(theEnv)->NumberOfFloats == 0)
      {
-      FloatArray = NULL;
+      SymbolData(theEnv)->FloatArray = NULL;
       return;
      }
 
@@ -614,30 +596,31 @@ static void ReadNeededFloats()
    /* Allocate area for the floats. */
    /*===============================*/
 
-   floatValues = (double *) gm3((long) sizeof(double) * NumberOfFloats);
-   GenRead((void *) floatValues,(unsigned long) (sizeof(double) * NumberOfFloats));
+   floatValues = (double *) gm3(theEnv,(long) sizeof(double) * SymbolData(theEnv)->NumberOfFloats);
+   GenReadBinary(theEnv,(void *) floatValues,(unsigned long) (sizeof(double) * SymbolData(theEnv)->NumberOfFloats));
 
    /*======================================*/
    /* Store the floats in the float array. */
    /*======================================*/
 
-   FloatArray = (FLOAT_HN **)
-               gm3((long) sizeof(FLOAT_HN *) * NumberOfFloats);
-   for (i = 0; i < NumberOfFloats; i++)
-     { FloatArray[i] = (FLOAT_HN *) AddDouble(floatValues[i]); }
+   SymbolData(theEnv)->FloatArray = (FLOAT_HN **)
+               gm3(theEnv,(long) sizeof(FLOAT_HN *) * SymbolData(theEnv)->NumberOfFloats);
+   for (i = 0; i < SymbolData(theEnv)->NumberOfFloats; i++)
+     { SymbolData(theEnv)->FloatArray[i] = (FLOAT_HN *) EnvAddDouble(theEnv,floatValues[i]); }
 
    /*========================*/
    /* Free the float buffer. */
    /*========================*/
 
-   rm3((void *) floatValues,(long) (sizeof(double) * NumberOfFloats));
+   rm3(theEnv,(void *) floatValues,(long) (sizeof(double) * SymbolData(theEnv)->NumberOfFloats));
   }
 
 /*********************************************/
 /* ReadNeededIntegers: Reads in the integers */
 /*   used by the binary image.               */
 /*********************************************/
-static void ReadNeededIntegers()
+globle void ReadNeededIntegers(
+  void *theEnv)
   {
    long int *integerValues;
    long i;
@@ -646,10 +629,10 @@ static void ReadNeededIntegers()
    /* Determine the number of integers to be read. */
    /*==============================================*/
 
-   GenRead(&NumberOfIntegers,(unsigned long) sizeof(unsigned long int));
-   if (NumberOfIntegers == 0)
+   GenReadBinary(theEnv,&SymbolData(theEnv)->NumberOfIntegers,(unsigned long) sizeof(unsigned long int));
+   if (SymbolData(theEnv)->NumberOfIntegers == 0)
      {
-      IntegerArray = NULL;
+      SymbolData(theEnv)->IntegerArray = NULL;
       return;
      }
 
@@ -657,30 +640,31 @@ static void ReadNeededIntegers()
    /* Allocate area for the integers. */
    /*=================================*/
 
-   integerValues = (long *) gm3((long) (sizeof(long) * NumberOfIntegers));
-   GenRead((void *) integerValues,(unsigned long) (sizeof(long) * NumberOfIntegers));
+   integerValues = (long *) gm3(theEnv,(long) (sizeof(long) * SymbolData(theEnv)->NumberOfIntegers));
+   GenReadBinary(theEnv,(void *) integerValues,(unsigned long) (sizeof(long) * SymbolData(theEnv)->NumberOfIntegers));
 
    /*==========================================*/
    /* Store the integers in the integer array. */
    /*==========================================*/
 
-   IntegerArray = (INTEGER_HN **)
-           gm3((long) (sizeof(INTEGER_HN *) * NumberOfIntegers));
-   for (i = 0; i < NumberOfIntegers; i++)
-     { IntegerArray[i] = (INTEGER_HN *) AddLong(integerValues[i]); }
+   SymbolData(theEnv)->IntegerArray = (INTEGER_HN **)
+           gm3(theEnv,(long) (sizeof(INTEGER_HN *) * SymbolData(theEnv)->NumberOfIntegers));
+   for (i = 0; i < SymbolData(theEnv)->NumberOfIntegers; i++)
+     { SymbolData(theEnv)->IntegerArray[i] = (INTEGER_HN *) EnvAddLong(theEnv,integerValues[i]); }
 
    /*==========================*/
    /* Free the integer buffer. */
    /*==========================*/
 
-   rm3((void *) integerValues,(long) (sizeof(long int) * NumberOfIntegers));
+   rm3(theEnv,(void *) integerValues,(long) (sizeof(long int) * SymbolData(theEnv)->NumberOfIntegers));
   }
 
 /*******************************************/
 /* ReadNeededBitMaps: Reads in the bitmaps */
 /*   used by the binary image.             */
 /*******************************************/
-static void ReadNeededBitMaps()
+static void ReadNeededBitMaps(
+  void *theEnv)
   {
    char *bitMapStorage, *bitMapPtr;
    unsigned long space;
@@ -691,11 +675,11 @@ static void ReadNeededBitMaps()
    /* read and space required for them.     */
    /*=======================================*/
 
-   GenRead((void *) &NumberOfBitMaps,(unsigned long) sizeof(long int));
-   GenRead(&space,(unsigned long) sizeof(unsigned long int));
-   if (NumberOfBitMaps == 0)
+   GenReadBinary(theEnv,(void *) &SymbolData(theEnv)->NumberOfBitMaps,(unsigned long) sizeof(long int));
+   GenReadBinary(theEnv,&space,(unsigned long) sizeof(unsigned long int));
+   if (SymbolData(theEnv)->NumberOfBitMaps == 0)
      {
-      BitMapArray = NULL;
+      SymbolData(theEnv)->BitMapArray = NULL;
       return;
      }
 
@@ -703,19 +687,19 @@ static void ReadNeededBitMaps()
    /* Allocate area for bitmaps to be read. */
    /*=======================================*/
 
-   bitMapStorage = (char *) gm3((long) space);
-   GenRead((void *) bitMapStorage,space);
+   bitMapStorage = (char *) gm3(theEnv,(long) space);
+   GenReadBinary(theEnv,(void *) bitMapStorage,space);
 
    /*================================================*/
    /* Store the bitMap pointers in the bitmap array. */
    /*================================================*/
 
-   BitMapArray = (BITMAP_HN **)
-                 gm3((long) sizeof(BITMAP_HN *) *  NumberOfBitMaps);
+   SymbolData(theEnv)->BitMapArray = (BITMAP_HN **)
+                 gm3(theEnv,(long) sizeof(BITMAP_HN *) *  SymbolData(theEnv)->NumberOfBitMaps);
    bitMapPtr = bitMapStorage;
-   for (i = 0; i < NumberOfBitMaps; i++)
+   for (i = 0; i < SymbolData(theEnv)->NumberOfBitMaps; i++)
      {
-      BitMapArray[i] = (BITMAP_HN *) AddBitMap(bitMapPtr+1,(int) *bitMapPtr);
+      SymbolData(theEnv)->BitMapArray[i] = (BITMAP_HN *) AddBitMap(theEnv,bitMapPtr+1,*bitMapPtr);
       bitMapPtr += *bitMapPtr + 1;
      }
 
@@ -723,17 +707,17 @@ static void ReadNeededBitMaps()
    /* Free the bitmap buffer. */
    /*=========================*/
 
-   rm3((void *) bitMapStorage,(long) space);
+   rm3(theEnv,(void *) bitMapStorage,(long) space);
   }
-
+  
 #if FUZZY_DEFTEMPLATES   
-
 
 /****************************************************/
 /* ReadNeededFuzzyValues: Reads in the fuzzy values */
 /*   saved by the binary image.                     */
 /****************************************************/
-static VOID ReadNeededFuzzyValues()
+static void ReadNeededFuzzyValues(
+  void *theEnv)
   {
    long i;
    struct fuzzy_value *fvptr;
@@ -745,10 +729,10 @@ static VOID ReadNeededFuzzyValues()
    /* Determine the number of fuzzy values to be read. */
    /*==================================================*/
 
-   GenRead(&NumberOfFuzzyValues,(unsigned long) sizeof(long int));
-   if (NumberOfFuzzyValues == 0)
+   GenReadBinary(theEnv,&SymbolData(theEnv)->NumberOfFuzzyValues,(unsigned long) sizeof(long int));
+   if (SymbolData(theEnv)->NumberOfFuzzyValues == 0)
      {
-      FuzzyValueArray = NULL;
+      SymbolData(theEnv)->FuzzyValueArray = NULL;
       return;
      }
 
@@ -756,15 +740,15 @@ static VOID ReadNeededFuzzyValues()
    /* Store the fuzzy values in the fuzzy value array. */
    /*==================================================*/
 
-   FuzzyValueArray = (FUZZY_VALUE_HN **)
-               gm3((long) sizeof(FUZZY_VALUE_HN *) * NumberOfFuzzyValues);
+   SymbolData(theEnv)->FuzzyValueArray = (FUZZY_VALUE_HN **)
+               gm3(theEnv,(long) sizeof(FUZZY_VALUE_HN *) * SymbolData(theEnv)->NumberOfFuzzyValues);
 
-   for (i = 0; i < NumberOfFuzzyValues; i++)
+   for (i = 0; i < SymbolData(theEnv)->NumberOfFuzzyValues; i++)
      {
            /* get a fuzzy value structure and put the contents into it */
-           fvptr = get_struct(fuzzy_value);
+           fvptr = get_struct(theEnv,fuzzy_value);
 
-       GenRead(&deftemplateBsaveID,(unsigned long) sizeof(long));
+       GenReadBinary(theEnv,&deftemplateBsaveID,(unsigned long) sizeof(long));
 /* At this time Instances do not use fuzzy values -- later if this capability
    is added then we will need to save detemplates when instances can be
    saved since fuzzy values need them!!
@@ -777,20 +761,20 @@ static VOID ReadNeededFuzzyValues()
 #else
        fvptr->whichDeftemplate = NULL;
 #endif
-      GenRead(&nameLen, (unsigned long) sizeof(int));
-      fvptr->name = (char *) gm2(nameLen);
-      GenRead(fvptr->name, (unsigned long) sizeof(char)*nameLen);
-           GenRead(&fvptr->n,(unsigned long) sizeof(int));
+      GenReadBinary(theEnv,&nameLen, (unsigned long) sizeof(int));
+      fvptr->name = (char *) gm2(theEnv,nameLen);
+      GenReadBinary(theEnv,fvptr->name, (unsigned long) sizeof(char)*nameLen);
+           GenReadBinary(theEnv,&fvptr->n,(unsigned long) sizeof(int));
            fvptr->maxn = fvptr->n;
-           fvptr->x = FgetArray(fvptr->n);
-           fvptr->y = FgetArray(fvptr->n);
-           GenRead(fvptr->x,(unsigned long) sizeof(double) * fvptr->n);
-           GenRead(fvptr->y,(unsigned long) sizeof(double) * fvptr->n);
+           fvptr->x = FgetArray(theEnv,fvptr->n);
+           fvptr->y = FgetArray(theEnv,fvptr->n);
+           GenReadBinary(theEnv,fvptr->x,(unsigned long) sizeof(double) * fvptr->n);
+           GenReadBinary(theEnv,fvptr->y,(unsigned long) sizeof(double) * fvptr->n);
 
-           FuzzyValueArray[i] = (FUZZY_VALUE_HN *) AddFuzzyValue(fvptr);
+           SymbolData(theEnv)->FuzzyValueArray[i] = (FUZZY_VALUE_HN *) AddFuzzyValue(theEnv,fvptr);
 
            /* must return the fuzzy value structure since AddFuzzyValue makes a copy */
-           rtnFuzzyValue(fvptr);
+           rtnFuzzyValue(theEnv,fvptr);
          }
 
   }
@@ -798,26 +782,37 @@ static VOID ReadNeededFuzzyValues()
 
 #endif /* FUZZY_DEFTEMPLATES */
 
-
 /**********************************************************/
 /* FreeAtomicValueStorage: Returns the memory allocated   */
 /*   for storing the pointers to atomic data values used  */
 /*   in refreshing expressions and other data structures. */
 /**********************************************************/
-globle void FreeAtomicValueStorage()
+globle void FreeAtomicValueStorage(
+  void *theEnv)
   {
-   if (SymbolArray != NULL)
-     rm3((void *) SymbolArray,(long) sizeof(SYMBOL_HN *) * NumberOfSymbols);
-   if (FloatArray != NULL)
-     rm3((void *) FloatArray,(long) sizeof(FLOAT_HN *) * NumberOfFloats);
-   if (IntegerArray != NULL)
-     rm3((void *) IntegerArray,(long) sizeof(INTEGER_HN *) * NumberOfIntegers);
-   if (BitMapArray != NULL)
-     rm3((void *) BitMapArray,(long) sizeof(BITMAP_HN *) * NumberOfBitMaps);
+   if (SymbolData(theEnv)->SymbolArray != NULL)
+     rm3(theEnv,(void *) SymbolData(theEnv)->SymbolArray,(long) sizeof(SYMBOL_HN *) * SymbolData(theEnv)->NumberOfSymbols);
+   if (SymbolData(theEnv)->FloatArray != NULL)
+     rm3(theEnv,(void *) SymbolData(theEnv)->FloatArray,(long) sizeof(FLOAT_HN *) * SymbolData(theEnv)->NumberOfFloats);
+   if (SymbolData(theEnv)->IntegerArray != NULL)
+     rm3(theEnv,(void *) SymbolData(theEnv)->IntegerArray,(long) sizeof(INTEGER_HN *) * SymbolData(theEnv)->NumberOfIntegers);
+   if (SymbolData(theEnv)->BitMapArray != NULL)
+     rm3(theEnv,(void *) SymbolData(theEnv)->BitMapArray,(long) sizeof(BITMAP_HN *) * SymbolData(theEnv)->NumberOfBitMaps);
 #if FUZZY_DEFTEMPLATES   
-   if (FuzzyValueArray != NULL)
-     rm3((void *) FuzzyValueArray,(long) sizeof(FUZZY_VALUE_HN *) * NumberOfFuzzyValues);
+   if (SymbolData(theEnv)->FuzzyValueArray != NULL)
+     rm3(theEnv,(void *) SymbolData(theEnv)->FuzzyValueArray,(long) sizeof(FUZZY_VALUE_HN *) * SymbolData(theEnv)->NumberOfFuzzyValues);
+   SymbolData(theEnv)->FuzzyValueArray = NULL;
+   SymbolData(theEnv)->NumberOfFuzzyValues = 0;
 #endif
+
+   SymbolData(theEnv)->SymbolArray = NULL;
+   SymbolData(theEnv)->FloatArray = NULL;
+   SymbolData(theEnv)->IntegerArray = NULL;
+   SymbolData(theEnv)->BitMapArray = NULL;
+   SymbolData(theEnv)->NumberOfSymbols = 0;
+   SymbolData(theEnv)->NumberOfFloats = 0;
+   SymbolData(theEnv)->NumberOfIntegers = 0;
+   SymbolData(theEnv)->NumberOfBitMaps = 0;
   }
 
 #endif /* BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE || BLOAD_INSTANCES || BSAVE_INSTANCES */

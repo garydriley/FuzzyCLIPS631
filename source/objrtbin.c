@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/objrtbin.c,v 1.3 2001/08/11 21:07:09 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.24  05/17/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -19,6 +17,12 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/objrtbin.c,v 1.3 2001/08/1
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Converted INSTANCE_PATTERN_MATCHING to         */
+/*            DEFRULE_CONSTRUCT.                             */
+/*                                                           */
+/*            ResetObjectMatchTimeTags did not pass in the   */
+/*            environment argument when BLOAD_ONLY was set.  */
+/*                                                           */
 /*************************************************************/
 
 /* =========================================
@@ -28,23 +32,19 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/objrtbin.c,v 1.3 2001/08/1
    ***************************************** */
 #include "setup.h"
 
-#if INSTANCE_PATTERN_MATCHING && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE)
+#if DEFRULE_CONSTRUCT && OBJECT_SYSTEM && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE)
 
 #include "bload.h"
 #include "bsave.h"
+#include "envrnmnt.h"
 #include "memalloc.h"
 #include "insfun.h"
 #include "objrtmch.h"
+#include "reteutil.h"
 #include "rulebin.h"
 
 #define _OBJRTBIN_SOURCE_
 #include "objrtbin.h"
-
-/* =========================================
-   *****************************************
-                   CONSTANTS
-   =========================================
-   ***************************************** */
 
 /* =========================================
    *****************************************
@@ -81,8 +81,8 @@ typedef struct bsaveObjectAlphaNode
 #define BsaveObjectPatternIndex(op) ((op != NULL) ? op->bsaveID : -1L)
 #define BsaveObjectAlphaIndex(ap)   ((ap != NULL) ? ap->bsaveID : -1L)
 
-#define ObjectPatternPointer(i) ((i == -1L) ? NULL : (OBJECT_PATTERN_NODE *) &PatternArray[i])
-#define ObjectAlphaPointer(i)   ((i == -1L) ? NULL : (OBJECT_ALPHA_NODE *) &AlphaArray[i])
+#define ObjectPatternPointer(i) ((i == -1L) ? NULL : (OBJECT_PATTERN_NODE *) &ObjectReteBinaryData(theEnv)->PatternArray[i])
+#define ObjectAlphaPointer(i)   ((i == -1L) ? NULL : (OBJECT_ALPHA_NODE *) &ObjectReteBinaryData(theEnv)->AlphaArray[i])
 
 /* =========================================
    *****************************************
@@ -91,32 +91,16 @@ typedef struct bsaveObjectAlphaNode
    ***************************************** */
 
 #if BLOAD_AND_BSAVE
-static void BsaveObjectPatternsFind(void);
-static void BsaveStorageObjectPatterns(FILE *);
-static void BsaveObjectPatterns(FILE *);
+static void BsaveObjectPatternsFind(void *);
+static void BsaveStorageObjectPatterns(void *,FILE *);
+static void BsaveObjectPatterns(void *,FILE *);
 #endif
-static void BloadStorageObjectPatterns(void);
-static void BloadObjectPatterns(void);
-static void UpdateAlpha(void *,long);
-static void UpdatePattern(void *,long);
-static void ClearBloadObjectPatterns(void);
-
-/* =========================================
-   *****************************************
-      EXTERNALLY VISIBLE GLOBAL VARIABLES
-   =========================================
-   ***************************************** */
-
-/* =========================================
-   *****************************************
-      INTERNALLY VISIBLE GLOBAL VARIABLES
-   =========================================
-   ***************************************** */
-static long AlphaNodeCount = 0L,
-            PatternNodeCount = 0L;
-
-static OBJECT_ALPHA_NODE *AlphaArray = NULL;
-static OBJECT_PATTERN_NODE *PatternArray = NULL;
+static void BloadStorageObjectPatterns(void *);
+static void BloadObjectPatterns(void *);
+static void UpdateAlpha(void *,void *,long);
+static void UpdatePattern(void *,void *,long);
+static void ClearBloadObjectPatterns(void *);
+static void DeallocateObjectReteBinaryData(void *);
 
 /* =========================================
    *****************************************
@@ -134,18 +118,44 @@ static OBJECT_PATTERN_NODE *PatternArray = NULL;
   SIDE EFFECTS : Routines defined and structures initialized
   NOTES        : None
  ***********************************************************/
-globle void SetupObjectPatternsBload()
+globle void SetupObjectPatternsBload(
+  void *theEnv)
   {
+   AllocateEnvironmentData(theEnv,OBJECTRETEBIN_DATA,sizeof(struct objectReteBinaryData),DeallocateObjectReteBinaryData);
+
 #if BLOAD_AND_BSAVE
-   AddBinaryItem("object patterns",0,BsaveObjectPatternsFind,NULL,
+   AddBinaryItem(theEnv,"object patterns",0,BsaveObjectPatternsFind,NULL,
                              BsaveStorageObjectPatterns,BsaveObjectPatterns,
                              BloadStorageObjectPatterns,BloadObjectPatterns,
                              ClearBloadObjectPatterns);
 #endif
 #if BLOAD || BLOAD_ONLY
-   AddBinaryItem("object patterns",0,NULL,NULL,NULL,NULL,
+   AddBinaryItem(theEnv,"object patterns",0,NULL,NULL,NULL,NULL,
                              BloadStorageObjectPatterns,BloadObjectPatterns,
                              ClearBloadObjectPatterns);
+#endif
+  }
+  
+/***********************************************************/
+/* DeallocateObjectReteBinaryData: Deallocates environment */
+/*    data for object rete binary functionality.           */
+/***********************************************************/
+static void DeallocateObjectReteBinaryData(
+  void *theEnv)
+  {
+#if (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) && (! RUN_TIME)
+   unsigned long space;
+   long i;
+
+   for (i = 0; i < ObjectReteBinaryData(theEnv)->AlphaNodeCount; i++)
+     { DestroyAlphaBetaMemory(theEnv,ObjectReteBinaryData(theEnv)->AlphaArray[i].header.alphaMemory); }
+
+   space = ObjectReteBinaryData(theEnv)->AlphaNodeCount * sizeof(struct objectAlphaNode);
+   if (space != 0) genlongfree(theEnv,(void *) ObjectReteBinaryData(theEnv)->AlphaArray,space);
+
+   space = ObjectReteBinaryData(theEnv)->PatternNodeCount * sizeof(struct objectPatternNode);
+   if (space != 0) genlongfree(theEnv,(void *) ObjectReteBinaryData(theEnv)->PatternArray,space);
+
 #endif
   }
 
@@ -169,32 +179,31 @@ globle void SetupObjectPatternsBload()
   SIDE EFFECTS : Counts written
   NOTES        : None
  ***************************************************/
-static void BsaveObjectPatternsFind()
+static void BsaveObjectPatternsFind(
+  void *theEnv)
   {
    OBJECT_ALPHA_NODE *alphaPtr;
    OBJECT_PATTERN_NODE *patternPtr;
 
-   if (Bloaded())
-     {
-      SaveBloadCount(AlphaNodeCount);
-      SaveBloadCount(PatternNodeCount);
-     }
-   AlphaNodeCount = 0L;
-   alphaPtr = ObjectNetworkTerminalPointer();
+   SaveBloadCount(theEnv,ObjectReteBinaryData(theEnv)->AlphaNodeCount);
+   SaveBloadCount(theEnv,ObjectReteBinaryData(theEnv)->PatternNodeCount);
+
+   ObjectReteBinaryData(theEnv)->AlphaNodeCount = 0L;
+   alphaPtr = ObjectNetworkTerminalPointer(theEnv);
    while (alphaPtr != NULL)
      {
       alphaPtr->classbmp->neededBitMap = TRUE;
       if (alphaPtr->slotbmp != NULL)
         alphaPtr->slotbmp->neededBitMap = TRUE;
-      alphaPtr->bsaveID = AlphaNodeCount++;
+      alphaPtr->bsaveID = ObjectReteBinaryData(theEnv)->AlphaNodeCount++;
       alphaPtr = alphaPtr->nxtTerminal;
      }
 
-   PatternNodeCount = 0L;
-   patternPtr = ObjectNetworkPointer();
+   ObjectReteBinaryData(theEnv)->PatternNodeCount = 0L;
+   patternPtr = ObjectNetworkPointer(theEnv);
    while (patternPtr != NULL)
      {
-      patternPtr->bsaveID = PatternNodeCount++;
+      patternPtr->bsaveID = ObjectReteBinaryData(theEnv)->PatternNodeCount++;
       if (patternPtr->nextLevel == NULL)
         {
          while (patternPtr->rightNode == NULL)
@@ -222,14 +231,15 @@ static void BsaveObjectPatternsFind()
   NOTES        : None
  ****************************************************/
 static void BsaveStorageObjectPatterns(
+  void *theEnv,
   FILE *fp)
   {
    UNLN space;
 
    space = sizeof(long) * 2;
    GenWrite(&space,(UNLN) sizeof(UNLN),fp);
-   GenWrite(&AlphaNodeCount,(UNLN) sizeof(long),fp);
-   GenWrite(&PatternNodeCount,(UNLN) sizeof(long),fp);
+   GenWrite(&ObjectReteBinaryData(theEnv)->AlphaNodeCount,(UNLN) sizeof(long),fp);
+   GenWrite(&ObjectReteBinaryData(theEnv)->PatternNodeCount,(UNLN) sizeof(long),fp);
   }
 
 /***************************************************
@@ -244,6 +254,7 @@ static void BsaveStorageObjectPatterns(
                  alignment of structues on bload
  ***************************************************/
 static void BsaveObjectPatterns(
+  void *theEnv,
   FILE *fp)
   {
    UNLN space;
@@ -252,20 +263,20 @@ static void BsaveObjectPatterns(
    BSAVE_OBJECT_ALPHA_NODE dummyAlpha;
    BSAVE_OBJECT_PATTERN_NODE dummyPattern;
 
-   space = (sizeof(BSAVE_OBJECT_ALPHA_NODE) * AlphaNodeCount) +
-           (sizeof(BSAVE_OBJECT_PATTERN_NODE) * PatternNodeCount);
+   space = (sizeof(BSAVE_OBJECT_ALPHA_NODE) * ObjectReteBinaryData(theEnv)->AlphaNodeCount) +
+           (sizeof(BSAVE_OBJECT_PATTERN_NODE) * ObjectReteBinaryData(theEnv)->PatternNodeCount);
    GenWrite(&space,(UNLN) sizeof(UNLN),fp);
 
    /* ==========================================
       Write out the alpha terminal pattern nodes
       ========================================== */
-   alphaPtr = ObjectNetworkTerminalPointer();
+   alphaPtr = ObjectNetworkTerminalPointer(theEnv);
    while (alphaPtr != NULL)
      {
       AssignBsavePatternHeaderValues(&dummyAlpha.header,&alphaPtr->header);
-      dummyAlpha.classbmp = alphaPtr->classbmp->bucket;
+      dummyAlpha.classbmp = (long) alphaPtr->classbmp->bucket;
       if (alphaPtr->slotbmp != NULL)
-        dummyAlpha.slotbmp = alphaPtr->slotbmp->bucket;
+        dummyAlpha.slotbmp = (long) alphaPtr->slotbmp->bucket;
       else
         dummyAlpha.slotbmp = -1L;
       dummyAlpha.patternNode = BsaveObjectPatternIndex(alphaPtr->patternNode);
@@ -278,7 +289,7 @@ static void BsaveObjectPatterns(
    /* ========================================
       Write out the intermediate pattern nodes
       ======================================== */
-   patternPtr = ObjectNetworkPointer();
+   patternPtr = ObjectNetworkPointer(theEnv);
    while (patternPtr != NULL)
      {
       dummyPattern.multifieldNode = patternPtr->multifieldNode;
@@ -286,7 +297,7 @@ static void BsaveObjectPatterns(
       dummyPattern.leaveFields = patternPtr->leaveFields;
       dummyPattern.endSlot = patternPtr->endSlot;
       dummyPattern.slotNameID = patternPtr->slotNameID;
-      dummyPattern.networkTest = HashedExpressionIndex(patternPtr->networkTest);
+      dummyPattern.networkTest = HashedExpressionIndex(theEnv,patternPtr->networkTest);
       dummyPattern.nextLevel = BsaveObjectPatternIndex(patternPtr->nextLevel);
       dummyPattern.lastLevel = BsaveObjectPatternIndex(patternPtr->lastLevel);
       dummyPattern.leftNode = BsaveObjectPatternIndex(patternPtr->leftNode);
@@ -300,7 +311,11 @@ static void BsaveObjectPatterns(
            {
             patternPtr = patternPtr->lastLevel;
             if (patternPtr == NULL)
-              return;
+              {
+               RestoreBloadCount(theEnv,&ObjectReteBinaryData(theEnv)->AlphaNodeCount);
+               RestoreBloadCount(theEnv,&ObjectReteBinaryData(theEnv)->PatternNodeCount);
+               return;
+              }
            }
          patternPtr = patternPtr->rightNode;
         }
@@ -308,11 +323,8 @@ static void BsaveObjectPatterns(
         patternPtr = patternPtr->nextLevel;
      }
 
-   if (Bloaded())
-     {
-      RestoreBloadCount(&AlphaNodeCount);
-      RestoreBloadCount(&PatternNodeCount);
-     }
+   RestoreBloadCount(theEnv,&ObjectReteBinaryData(theEnv)->AlphaNodeCount);
+   RestoreBloadCount(theEnv,&ObjectReteBinaryData(theEnv)->PatternNodeCount);
   }
 
 #endif
@@ -327,29 +339,30 @@ static void BsaveObjectPatterns(
   SIDE EFFECTS : Counts read and arrays allocated
   NOTES        : None
  ***************************************************/
-static void BloadStorageObjectPatterns()
+static void BloadStorageObjectPatterns(
+  void *theEnv)
   {
    UNLN space;
    long counts[2];
 
-   GenRead((void *) &space,(UNLN) sizeof(UNLN));
-   GenRead((void *) counts,space);
-   AlphaNodeCount = counts[0];
-   PatternNodeCount = counts[1];
+   GenReadBinary(theEnv,(void *) &space,(UNLN) sizeof(UNLN));
+   GenReadBinary(theEnv,(void *) counts,space);
+   ObjectReteBinaryData(theEnv)->AlphaNodeCount = counts[0];
+   ObjectReteBinaryData(theEnv)->PatternNodeCount = counts[1];
 
-   if (AlphaNodeCount == 0L)
-     AlphaArray = NULL;
+   if (ObjectReteBinaryData(theEnv)->AlphaNodeCount == 0L)
+     ObjectReteBinaryData(theEnv)->AlphaArray = NULL;
    else
      {
-      space = (UNLN) (AlphaNodeCount * sizeof(OBJECT_ALPHA_NODE));
-      AlphaArray = (OBJECT_ALPHA_NODE *) genlongalloc(space);
+      space = (UNLN) (ObjectReteBinaryData(theEnv)->AlphaNodeCount * sizeof(OBJECT_ALPHA_NODE));
+      ObjectReteBinaryData(theEnv)->AlphaArray = (OBJECT_ALPHA_NODE *) genlongalloc(theEnv,space);
      }
-   if (PatternNodeCount == 0L)
-     PatternArray = NULL;
+   if (ObjectReteBinaryData(theEnv)->PatternNodeCount == 0L)
+     ObjectReteBinaryData(theEnv)->PatternArray = NULL;
    else
      {
-      space = (UNLN) (PatternNodeCount * sizeof(OBJECT_PATTERN_NODE));
-      PatternArray = (OBJECT_PATTERN_NODE *) genlongalloc(space);
+      space = (UNLN) (ObjectReteBinaryData(theEnv)->PatternNodeCount * sizeof(OBJECT_PATTERN_NODE));
+      ObjectReteBinaryData(theEnv)->PatternArray = (OBJECT_PATTERN_NODE *) genlongalloc(theEnv,space);
      }
   }
 
@@ -363,25 +376,26 @@ static void BloadStorageObjectPatterns()
   SIDE EFFECTS : Binary data structures updated
   NOTES        : Assumes storage allocated previously
  ****************************************************/
-static void BloadObjectPatterns()
+static void BloadObjectPatterns(
+  void *theEnv)
   {
    UNLN space;
 
-   GenRead((void *) &space,(UNLN) sizeof(UNLN));
+   GenReadBinary(theEnv,(void *) &space,(UNLN) sizeof(UNLN));
    if (space == 0L)
      return;
 
    /* ================================================
       Read in the alpha and intermediate pattern nodes
       ================================================ */
-   BloadandRefresh(AlphaNodeCount,(unsigned) sizeof(BSAVE_OBJECT_ALPHA_NODE),UpdateAlpha);
-   BloadandRefresh(PatternNodeCount,(unsigned) sizeof(BSAVE_OBJECT_PATTERN_NODE),UpdatePattern);
+   BloadandRefresh(theEnv,ObjectReteBinaryData(theEnv)->AlphaNodeCount,(unsigned) sizeof(BSAVE_OBJECT_ALPHA_NODE),UpdateAlpha);
+   BloadandRefresh(theEnv,ObjectReteBinaryData(theEnv)->PatternNodeCount,(unsigned) sizeof(BSAVE_OBJECT_PATTERN_NODE),UpdatePattern);
 
    /* =======================
       Set the global pointers
       ======================= */
-   SetObjectNetworkTerminalPointer((OBJECT_ALPHA_NODE *) &AlphaArray[0]);
-   SetObjectNetworkPointer((OBJECT_PATTERN_NODE *) &PatternArray[0]);
+   SetObjectNetworkTerminalPointer(theEnv,(OBJECT_ALPHA_NODE *) &ObjectReteBinaryData(theEnv)->AlphaArray[0]);
+   SetObjectNetworkPointer(theEnv,(OBJECT_PATTERN_NODE *) &ObjectReteBinaryData(theEnv)->PatternArray[0]);
   }
 
 /***************************************************
@@ -398,6 +412,7 @@ static void BloadObjectPatterns()
   NOTES        : None
  ***************************************************/
 static void UpdateAlpha(
+  void *theEnv,
   void *buf,
   long obji)
   {
@@ -405,9 +420,9 @@ static void UpdateAlpha(
    OBJECT_ALPHA_NODE *ap;
 
    bap = (BSAVE_OBJECT_ALPHA_NODE *) buf;
-   ap = (OBJECT_ALPHA_NODE *) &AlphaArray[obji];
+   ap = (OBJECT_ALPHA_NODE *) &ObjectReteBinaryData(theEnv)->AlphaArray[obji];
 
-   UpdatePatternNodeHeader(&ap->header,&bap->header);
+   UpdatePatternNodeHeader(theEnv,&ap->header,&bap->header);
    ap->matchTimeTag = 0L;
    ap->classbmp = BitMapPointer(bap->classbmp);
    if (bap->slotbmp != -1L)
@@ -438,6 +453,7 @@ static void UpdateAlpha(
   NOTES        : None
  ***************************************************/
 static void UpdatePattern(
+  void *theEnv,
   void *buf,
   long obji)
   {
@@ -445,7 +461,7 @@ static void UpdatePattern(
    OBJECT_PATTERN_NODE *op;
 
    bop = (BSAVE_OBJECT_PATTERN_NODE *) buf;
-   op = (OBJECT_PATTERN_NODE *) &PatternArray[obji];
+   op = (OBJECT_PATTERN_NODE *) &ObjectReteBinaryData(theEnv)->PatternArray[obji];
 
    op->blocked = FALSE;
    op->multifieldNode = bop->multifieldNode;
@@ -473,7 +489,8 @@ static void UpdatePattern(
                  network pointers set to NULL
   NOTES        : None
  ***************************************************/
-static void ClearBloadObjectPatterns()
+static void ClearBloadObjectPatterns(
+  void *theEnv)
   {
    UNLN space;
    register long i;
@@ -483,38 +500,31 @@ static void ClearBloadObjectPatterns()
       so we don't need to worry about clearing partial
       matches
       ================================================ */
-   for (i = 0L ; i < AlphaNodeCount ; i++)
+   for (i = 0L ; i < ObjectReteBinaryData(theEnv)->AlphaNodeCount ; i++)
      {
-      DecrementBitMapCount(AlphaArray[i].classbmp);
-      if (AlphaArray[i].slotbmp != NULL)
-        DecrementBitMapCount(AlphaArray[i].slotbmp);
+      DecrementBitMapCount(theEnv,ObjectReteBinaryData(theEnv)->AlphaArray[i].classbmp);
+      if (ObjectReteBinaryData(theEnv)->AlphaArray[i].slotbmp != NULL)
+        DecrementBitMapCount(theEnv,ObjectReteBinaryData(theEnv)->AlphaArray[i].slotbmp);
      }
 
-   if (AlphaNodeCount != 0L)
+   if (ObjectReteBinaryData(theEnv)->AlphaNodeCount != 0L)
      {
-      space = (UNLN) (AlphaNodeCount * sizeof(OBJECT_ALPHA_NODE));
-      genlongfree((void *) AlphaArray,space);
-      AlphaArray = NULL;
-      space = (UNLN) (PatternNodeCount * sizeof(OBJECT_PATTERN_NODE));
-      genlongfree((void *) PatternArray,space);
-      PatternArray = NULL;
+      space = (UNLN) (ObjectReteBinaryData(theEnv)->AlphaNodeCount * sizeof(OBJECT_ALPHA_NODE));
+      genlongfree(theEnv,(void *) ObjectReteBinaryData(theEnv)->AlphaArray,space);
+      ObjectReteBinaryData(theEnv)->AlphaArray = NULL;
+      ObjectReteBinaryData(theEnv)->AlphaNodeCount = 0;
+      space = (UNLN) (ObjectReteBinaryData(theEnv)->PatternNodeCount * sizeof(OBJECT_PATTERN_NODE));
+      genlongfree(theEnv,(void *) ObjectReteBinaryData(theEnv)->PatternArray,space);
+      ObjectReteBinaryData(theEnv)->PatternArray = NULL;
+      ObjectReteBinaryData(theEnv)->PatternNodeCount = 0;
      }
 
-   SetObjectNetworkTerminalPointer(NULL);
-   SetObjectNetworkPointer(NULL);
+   SetObjectNetworkTerminalPointer(theEnv,NULL);
+   SetObjectNetworkPointer(theEnv,NULL);
 #if BLOAD_ONLY
-   ResetObjectMatchTimeTags();
+   ResetObjectMatchTimeTags(theEnv);
 #endif
   }
 
 #endif
-
-/***************************************************
-  NAME         :
-  DESCRIPTION  :
-  INPUTS       :
-  RETURNS      :
-  SIDE EFFECTS :
-  NOTES        :
- ***************************************************/
 

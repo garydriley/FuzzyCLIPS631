@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/reteutil.h,v 1.3 2001/08/11 21:07:35 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*              RETE UTILITY HEADER FILE               */
    /*******************************************************/
@@ -18,6 +16,9 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Rule with exists CE has incorrect activation.  */
+/*            DR0867                                         */
 /*                                                           */
 /*************************************************************/
 
@@ -44,28 +45,24 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           PrintPartialMatch(char *,struct partialMatch *);
-   LOCALE struct partialMatch           *CopyPartialMatch(struct partialMatch *,int,int);
-   LOCALE struct partialMatch           *MergePartialMatches(struct partialMatch *,struct partialMatch *,int,int);
-   LOCALE struct partialMatch           *AddSingleMatch(struct partialMatch *,struct alphaMatch *,int,int);
-   LOCALE struct partialMatch           *NewPseudoFactPartialMatch(void);
+   LOCALE void                           PrintPartialMatch(void *,char *,struct partialMatch *);
+   LOCALE struct partialMatch           *CopyPartialMatch(void *,struct partialMatch *,int,int);
+   LOCALE struct partialMatch           *MergePartialMatches(void *,struct partialMatch *,struct partialMatch *,int,int);
+   LOCALE struct partialMatch           *AddSingleMatch(void *,struct partialMatch *,struct alphaMatch *,int,int);
+   LOCALE struct partialMatch           *NewPseudoFactPartialMatch(void *);
    LOCALE long int                       IncrementPseudoFactIndex(void);
-   LOCALE void                           FlushAlphaBetaMemory(struct partialMatch *);
+   LOCALE void                           FlushAlphaBetaMemory(void *,struct partialMatch *);
+   LOCALE void                           DestroyAlphaBetaMemory(void *,struct partialMatch *);
    LOCALE int                            GetPatternNumberFromJoin(struct joinNode *);
    LOCALE void                           PrimeJoin(struct joinNode *);
-   LOCALE struct multifieldMarker       *CopyMultifieldMarkers(struct multifieldMarker *);
-   LOCALE struct partialMatch           *CreateAlphaMatch(void *,struct multifieldMarker *,
+   LOCALE struct multifieldMarker       *CopyMultifieldMarkers(void *,struct multifieldMarker *);
+   LOCALE struct partialMatch           *CreateAlphaMatch(void *,void *,struct multifieldMarker *,
                                                        struct patternNodeHeader *);
-   LOCALE void                           TraceErrorToRule(struct joinNode *,char *);
-   LOCALE void                           InitializePatternHeader(struct patternNodeHeader *);
-   LOCALE void                           MarkRuleNetwork(int);
-   LOCALE void                           TagRuleNetwork(long *,long *,long *);
-
-#ifndef _RETEUTIL_SOURCE_
-   extern struct partialMatch           *GlobalLHSBinds;
-   extern struct partialMatch           *GlobalRHSBinds;
-   extern struct joinNode               *GlobalJoin;
-#endif
+   LOCALE void                           TraceErrorToRule(void *,struct joinNode *,char *);
+   LOCALE void                           InitializePatternHeader(void *,struct patternNodeHeader *);
+   LOCALE void                           MarkRuleNetwork(void *,int);
+   LOCALE void                           TagRuleNetwork(void *,long *,long *,long *);
+   LOCALE int                            FindEntityInPartialMatch(struct patternEntity *,struct partialMatch *);
 
 #endif
 

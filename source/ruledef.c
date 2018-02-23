@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/ruledef.c,v 1.3 2001/08/11 21:07:46 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                   DEFRULE MODULE                    */
    /*******************************************************/
@@ -20,6 +18,13 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/ruledef.c,v 1.3 2001/08/11
 /*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
+/*      6.24: Removed CONFLICT_RESOLUTION_STRATEGIES         */
+/*            compilation flag.                              */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Corrected code to remove run-time program      */
+/*            compiler warnings.                             */
 /*                                                           */
 /*************************************************************/
 
@@ -32,15 +37,17 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/ruledef.c,v 1.3 2001/08/11
 #include <stdio.h>
 #define _STDIO_INCLUDED_
 
-#include "memalloc.h"
+#include "agenda.h"
+#include "drive.h"
 #include "engine.h"
+#include "envrnmnt.h"
+#include "memalloc.h"
 #include "pattern.h"
+#include "retract.h"
 #include "rulebsc.h"
 #include "rulecom.h"
-#include "drive.h"
 #include "rulepsr.h"
 #include "ruledlt.h"
-#include "agenda.h"
 
 #if BLOAD || BLOAD_AND_BSAVE || BLOAD_ONLY
 #include "bload.h"
@@ -57,55 +64,117 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/ruledef.c,v 1.3 2001/08/11
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static void                   *AllocateModule(void);
-   static void                    ReturnModule(void *);
-   static void                    InitializeDefruleModules(void);
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle struct construct       *DefruleConstruct;
-   globle int                     DefruleModuleIndex;
-   globle long                    CurrentEntityTimeTag = 0L;
+   static void                   *AllocateModule(void *);
+   static void                    ReturnModule(void *,void *);
+   static void                    InitializeDefruleModules(void *);
+   static void                    DeallocateDefruleData(void *);
+   static void                    DestroyDefruleAction(void *,struct constructHeader *,void *);
 
 /**********************************************************/
 /* InitializeDefrules: Initializes the defrule construct. */
 /**********************************************************/
-globle void InitializeDefrules()
-  {
-   InitializeEngine();
-   InitializeAgenda();
+globle void InitializeDefrules(
+  void *theEnv)
+  {   
+   AllocateEnvironmentData(theEnv,DEFRULE_DATA,sizeof(struct defruleData),DeallocateDefruleData);
 
-   InitializeDefruleModules();
+   InitializeEngine(theEnv);
+   InitializeAgenda(theEnv);
+   InitializePatterns(theEnv);
+   InitializeDefruleModules(theEnv);
 
-   AddReservedPatternSymbol("and",NULL);
-   AddReservedPatternSymbol("not",NULL);
-   AddReservedPatternSymbol("or",NULL);
-   AddReservedPatternSymbol("test",NULL);
-   AddReservedPatternSymbol("logical",NULL);
-   AddReservedPatternSymbol("exists",NULL);
-   AddReservedPatternSymbol("forall",NULL);
+   AddReservedPatternSymbol(theEnv,"and",NULL);
+   AddReservedPatternSymbol(theEnv,"not",NULL);
+   AddReservedPatternSymbol(theEnv,"or",NULL);
+   AddReservedPatternSymbol(theEnv,"test",NULL);
+   AddReservedPatternSymbol(theEnv,"logical",NULL);
+   AddReservedPatternSymbol(theEnv,"exists",NULL);
+   AddReservedPatternSymbol(theEnv,"forall",NULL);
 
-   DefruleBasicCommands();
+   DefruleBasicCommands(theEnv);
 
-   DefruleCommands();
+   DefruleCommands(theEnv);
 
-   DefruleConstruct =
-      AddConstruct("defrule","defrules",
-                   ParseDefrule,FindDefrule,
+   DefruleData(theEnv)->DefruleConstruct =
+      AddConstruct(theEnv,"defrule","defrules",
+                   ParseDefrule,EnvFindDefrule,
                    GetConstructNamePointer,GetConstructPPForm,
-                   GetConstructModuleItem,GetNextDefrule,SetNextConstruct,
-                   IsDefruleDeletable,Undefrule,ReturnDefrule);
+                   GetConstructModuleItem,EnvGetNextDefrule,SetNextConstruct,
+                   EnvIsDefruleDeletable,EnvUndefrule,ReturnDefrule);
+  }
+  
+/***************************************************/
+/* DeallocateDefruleData: Deallocates environment */
+/*    data for the deffacts construct.             */
+/***************************************************/
+static void DeallocateDefruleData(
+  void *theEnv)
+  {
+   struct defruleModule *theModuleItem;
+   void *theModule;
+   struct activation *theActivation, *tmpActivation;
+
+#if BLOAD || BLOAD_AND_BSAVE
+   if (Bloaded(theEnv)) return;
+#endif
+   
+   DoForAllConstructs(theEnv,DestroyDefruleAction,DefruleData(theEnv)->DefruleModuleIndex,FALSE,NULL);
+
+   for (theModule = EnvGetNextDefmodule(theEnv,NULL);
+        theModule != NULL;
+        theModule = EnvGetNextDefmodule(theEnv,theModule))
+     {
+      theModuleItem = (struct defruleModule *)
+                      GetModuleItem(theEnv,(struct defmodule *) theModule,
+                                    DefruleData(theEnv)->DefruleModuleIndex);
+                                    
+      theActivation = theModuleItem->agenda;
+      while (theActivation != NULL)
+        {
+         tmpActivation = theActivation->next;
+         
+         if (theActivation->sortedBasis != NULL)
+           { DestroyPartialMatch(theEnv,theActivation->sortedBasis); }
+
+         rtn_struct(theEnv,activation,theActivation);
+         
+         theActivation = tmpActivation;
+        }
+
+#if ! RUN_TIME                                    
+      rtn_struct(theEnv,defruleModule,theModuleItem);
+#endif
+     }
+  }
+  
+/********************************************************/
+/* DestroyDefruleAction: Action used to remove defrules */
+/*   as a result of DestroyEnvironment.                 */
+/********************************************************/
+#if IBM_TBC
+#pragma argsused
+#endif
+static void DestroyDefruleAction(
+  void *theEnv,
+  struct constructHeader *theConstruct,
+  void *buffer)
+  {
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(buffer)
+#endif
+   struct defrule *theDefrule = (struct defrule *) theConstruct;
+   
+   DestroyDefrule(theEnv,theDefrule);
   }
 
 /*****************************************************/
 /* InitializeDefruleModules: Initializes the defrule */
 /*   construct for use with the defmodule construct. */
 /*****************************************************/
-static void InitializeDefruleModules()
+static void InitializeDefruleModules(
+  void *theEnv)
   {
-   DefruleModuleIndex = RegisterModuleItem("defrule",
+   DefruleData(theEnv)->DefruleModuleIndex = RegisterModuleItem(theEnv,"defrule",
                                     AllocateModule,
                                     ReturnModule,
 #if BLOAD_AND_BSAVE || BLOAD || BLOAD_ONLY
@@ -118,17 +187,18 @@ static void InitializeDefruleModules()
 #else
                                     NULL,
 #endif
-                                    FindDefrule);
+                                    EnvFindDefrule);
   }
 
 /***********************************************/
 /* AllocateModule: Allocates a defrule module. */
 /***********************************************/
-static void *AllocateModule()
+static void *AllocateModule(
+  void *theEnv)
   {
    struct defruleModule *theItem;
 
-   theItem = get_struct(defruleModule);
+   theItem = get_struct(theEnv,defruleModule);
    theItem->agenda = NULL;
    return((void *) theItem);
   }
@@ -137,10 +207,11 @@ static void *AllocateModule()
 /* ReturnModule: Deallocates a defrule module. */
 /*********************************************/
 static void ReturnModule(
+  void *theEnv,
   void *theItem)
   {
-   FreeConstructHeaderModule((struct defmoduleItemHeader *) theItem,DefruleConstruct);
-   rtn_struct(defruleModule,theItem);
+   FreeConstructHeaderModule(theEnv,(struct defmoduleItemHeader *) theItem,DefruleData(theEnv)->DefruleConstruct);
+   rtn_struct(theEnv,defruleModule,theItem);
   }
 
 /************************************************************/
@@ -148,53 +219,57 @@ static void ReturnModule(
 /*  item for the specified defrule or defmodule.            */
 /************************************************************/
 globle struct defruleModule *GetDefruleModuleItem(
+  void *theEnv,
   struct defmodule *theModule)
-  { return((struct defruleModule *) GetConstructModuleItemByIndex(theModule,DefruleModuleIndex)); }
+  {   
+   return((struct defruleModule *) GetConstructModuleItemByIndex(theEnv,theModule,DefruleData(theEnv)->DefruleModuleIndex)); 
+  }
 
-/****************************************************************/
-/* FindDefrule: Searches for a defrule in the list of defrules. */
-/*   Returns a pointer to the defrule if found, otherwise NULL. */
-/****************************************************************/
-globle void *FindDefrule(
+/*******************************************************************/
+/* EnvFindDefrule: Searches for a defrule in the list of defrules. */
+/*   Returns a pointer to the defrule if found, otherwise NULL.    */
+/*******************************************************************/
+globle void *EnvFindDefrule(
+  void *theEnv,
   char *defruleName)
-  { return(FindNamedConstruct(defruleName,DefruleConstruct)); }
+  {   
+   return(FindNamedConstruct(theEnv,defruleName,DefruleData(theEnv)->DefruleConstruct)); 
+  }
 
-/***************************************************************/
-/* GetNextDefrule: If passed a NULL pointer, returns the first */
-/*   defrule in the ListOfDefrules. Otherwise returns the next */
-/*   defrule following the defrule passed as an argument.      */
-/***************************************************************/
-globle void *GetNextDefrule(
+/************************************************************/
+/* EnvGetNextDefrule: If passed a NULL pointer, returns the */
+/*   first defrule in the ListOfDefrules. Otherwise returns */
+/*   the next defrule following the defrule passed as an    */
+/*   argument.                                              */
+/************************************************************/
+globle void *EnvGetNextDefrule(
+  void *theEnv,
   void *defrulePtr)
-  { return((void *) GetNextConstructItem((struct constructHeader *) defrulePtr,DefruleModuleIndex)); }
+  {   
+   return((void *) GetNextConstructItem(theEnv,(struct constructHeader *) defrulePtr,DefruleData(theEnv)->DefruleModuleIndex)); 
+  }
 
-/******************************************************/
-/* IsDefruleDeletable: Returns TRUE if a particular   */
-/*   defrule can be deleted, otherwise returns FALSE. */
-/******************************************************/
-globle BOOLEAN IsDefruleDeletable(
+/*******************************************************/
+/* EnvIsDefruleDeletable: Returns TRUE if a particular */
+/*   defrule can be deleted, otherwise returns FALSE.  */
+/*******************************************************/
+globle intBool EnvIsDefruleDeletable(
+  void *theEnv,
   void *vTheDefrule)
   {
-#if BLOAD_ONLY || RUN_TIME
-#if MAC_MPW || MAC_MCW
-#pragma unused(vTheDefrule)
-#endif
-   return(FALSE);
-#else
    struct defrule *theDefrule;
-#if BLOAD || BLOAD_AND_BSAVE
-   if (Bloaded()) return(FALSE);
-#endif
+
+   if (! ConstructsDeletable(theEnv))
+     { return FALSE; }
 
    for (theDefrule = (struct defrule *) vTheDefrule;
         theDefrule != NULL;
         theDefrule = theDefrule->disjunct)
      { if (theDefrule->executing) return(FALSE); }
 
-   if (JoinOperationInProgress) return(FALSE);
+   if (EngineData(theEnv)->JoinOperationInProgress) return(FALSE);
 
    return(TRUE);
-#endif
   }
 
 #endif /* DEFRULE_CONSTRUCT */

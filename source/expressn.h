@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/expressn.h,v 1.3 2001/08/11 21:05:21 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*               EXPRESSION HEADER FILE                */
    /*******************************************************/
@@ -19,6 +17,8 @@
 /*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -39,7 +39,7 @@ struct exprHashNode;
 
 struct expr
    {
-    short type;
+    unsigned short type;
     void *value;
     struct expr *argList;
     struct expr *nextArg;
@@ -55,7 +55,7 @@ typedef struct exprHashNode
    unsigned hashval;
    unsigned count;
    struct expr *exp;
-   struct exprHashNode *nxt;
+   struct exprHashNode *next;
    long bsaveID;
   } EXPRESSION_HN;
 
@@ -67,12 +67,54 @@ typedef struct exprHashNode
 
 #define GetType(target)         ((target).type)
 #define GetpType(target)        ((target)->type)
-#define SetType(target,val)     ((target).type = (val))
-#define SetpType(target,val)    ((target)->type = (val))
+#define SetType(target,val)     ((target).type = (unsigned short) (val))
+#define SetpType(target,val)    ((target)->type = (unsigned short) (val))
 #define GetValue(target)        ((target).value)
 #define GetpValue(target)       ((target)->value)
 #define SetValue(target,val)    ((target).value = (void *) (val))
 #define SetpValue(target,val)   ((target)->value = (void *) (val))
+
+#define EnvGetType(theEnv,target)         ((target).type)
+#define EnvGetpType(theEnv,target)        ((target)->type)
+#define EnvSetType(theEnv,target,val)     ((target).type = (unsigned short) (val))
+#define EnvSetpType(theEnv,target,val)    ((target)->type = (unsigned short) (val))
+#define EnvGetValue(theEnv,target)        ((target).value)
+#define EnvGetpValue(theEnv,target)       ((target)->value)
+#define EnvSetValue(theEnv,target,val)    ((target).value = (void *) (val))
+#define EnvSetpValue(theEnv,target,val)   ((target)->value = (void *) (val))
+
+/********************/
+/* ENVIRONMENT DATA */
+/********************/
+
+#ifndef _H_exprnpsr
+#include "exprnpsr.h"
+#endif
+
+#define EXPRESSION_DATA 45
+
+struct expressionData
+  { 
+   void *PTR_AND;
+   void *PTR_OR;
+   void *PTR_EQ;
+   void *PTR_NEQ;
+   void *PTR_NOT;
+   EXPRESSION_HN **ExpressionHashTable;
+#if (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE)
+   long NumberOfExpressions;
+   struct expr *ExpressionArray;
+   long int ExpressionCount;
+#endif
+#if (! RUN_TIME)
+   SAVED_CONTEXTS *svContexts;
+   int ReturnContext;
+   int BreakContext;
+#endif
+   intBool SequenceOpMode;
+  };
+
+#define ExpressionData(theEnv) ((struct expressionData *) GetEnvironmentData(theEnv,EXPRESSION_DATA))
 
 /********************/
 /* Global Functions */
@@ -88,35 +130,21 @@ typedef struct exprHashNode
 #define LOCALE extern
 #endif
 
-   LOCALE void                           ReturnExpression(struct expr *);
-   LOCALE void                           ExpressionInstall(struct expr *);
-   LOCALE void                           ExpressionDeinstall(struct expr *);
-   LOCALE struct expr                   *CopyExpression(struct expr *);
-   LOCALE struct expr                   *PackExpression(struct expr *);
-   LOCALE void                           ReturnPackedExpression(struct expr *);
-   LOCALE void                           InitExpressionData(void);
-   LOCALE void                           InitExpressionPointers(void);
+   LOCALE void                           ReturnExpression(void *,struct expr *);
+   LOCALE void                           ExpressionInstall(void *,struct expr *);
+   LOCALE void                           ExpressionDeinstall(void *,struct expr *);
+   LOCALE struct expr                   *PackExpression(void *,struct expr *);
+   LOCALE void                           ReturnPackedExpression(void *,struct expr *);
+   LOCALE void                           InitExpressionData(void *);
+   LOCALE void                           InitExpressionPointers(void *);
 #if (! BLOAD_ONLY) && (! RUN_TIME)
-   LOCALE EXPRESSION                    *AddHashedExpression(EXPRESSION *);
+   LOCALE EXPRESSION                    *AddHashedExpression(void *,EXPRESSION *);
 #endif
 #if (! RUN_TIME)
-   LOCALE void                           RemoveHashedExpression(EXPRESSION *);
+   LOCALE void                           RemoveHashedExpression(void *,EXPRESSION *);
 #endif
 #if BLOAD_AND_BSAVE || BLOAD_ONLY || BLOAD || CONSTRUCT_COMPILER
-   LOCALE long                           HashedExpressionIndex(EXPRESSION *);
-#endif
-
-/********************/
-/* Global Variables */
-/********************/
-
-#ifndef _EXPRESSN_SOURCE_
-   extern void                          *PTR_AND;
-   extern void                          *PTR_OR;
-   extern void                          *PTR_EQ;
-   extern void                          *PTR_NEQ;
-   extern void                          *PTR_NOT;
-   extern EXPRESSION_HN                **ExpressionHashTable;
+   LOCALE long                           HashedExpressionIndex(void *,EXPRESSION *);
 #endif
 
 #endif

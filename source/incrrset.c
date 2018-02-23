@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/incrrset.c,v 1.3 2001/08/11 21:06:24 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*              INCREMENTAL RESET MODULE               */
    /*******************************************************/
@@ -19,6 +17,11 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/incrrset.c,v 1.3 2001/08/1
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
+/*      6.24: Removed INCREMENTAL_RESET compilation flag.    */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -29,15 +32,18 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/incrrset.c,v 1.3 2001/08/1
 #include <stdio.h>
 #define _STDIO_INCLUDED_
 
-#if DEFRULE_CONSTRUCT && INCREMENTAL_RESET
+#if DEFRULE_CONSTRUCT
 
-#include "constant.h"
 #include "agenda.h"
-#include "router.h"
-#include "drive.h"
-#include "pattern.h"
-#include "evaluatn.h"
 #include "argacces.h"
+#include "constant.h"
+#include "drive.h"
+#include "engine.h"
+#include "envrnmnt.h"
+#include "evaluatn.h"
+#include "pattern.h"
+#include "router.h"
+
 #include "incrrset.h"
 
 /***************************************/
@@ -45,32 +51,21 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/incrrset.c,v 1.3 2001/08/1
 /***************************************/
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   static void                    MarkNetworkForIncrementalReset(struct defrule *,int);
-   static void                    CheckForPrimableJoins(struct defrule *);
-   static void                    PrimeJoin(struct joinNode *);
-   static void                    MarkPatternForIncrementalReset(int,struct patternNodeHeader *,int);
+   static void                    MarkNetworkForIncrementalReset(void *,struct defrule *,int);
+   static void                    CheckForPrimableJoins(void *,struct defrule *);
+   static void                    PrimeJoin(void *,struct joinNode *);
+   static void                    MarkPatternForIncrementalReset(void *,int,struct patternNodeHeader *,int);
 #endif
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle BOOLEAN              IncrementalResetInProgress = FALSE;
-
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-
-   static BOOLEAN              IncrementalResetFlag = TRUE;
 
 /**************************************************************/
 /* IncrementalReset: Incrementally resets the specified rule. */
 /**************************************************************/
 globle void IncrementalReset(
+  void *theEnv,
   struct defrule *tempRule)
   {
-#if (MAC_MPW || MAC_MCW) && (RUN_TIME || BLOAD_ONLY)
-#pragma unused(tempRule)
+#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
+#pragma unused(theEnv,tempRule)
 #endif
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
@@ -81,20 +76,20 @@ globle void IncrementalReset(
    /* If incremental reset is disabled, then return. */
    /*================================================*/
 
-   if (! GetIncrementalReset()) return;
+   if (! EnvGetIncrementalReset(theEnv)) return;
 
    /*=====================================================*/
    /* Mark the pattern and join network data structures   */
    /* associated with the rule being incrementally reset. */
    /*=====================================================*/
 
-   MarkNetworkForIncrementalReset(tempRule,TRUE);
+   MarkNetworkForIncrementalReset(theEnv,tempRule,TRUE);
 
    /*==========================*/
    /* Begin incremental reset. */
    /*==========================*/
 
-   IncrementalResetInProgress = TRUE;
+   EngineData(theEnv)->IncrementalResetInProgress = TRUE;
 
    /*============================================================*/
    /* If the new rule shares patterns or joins with other rules, */
@@ -105,32 +100,32 @@ globle void IncrementalReset(
    for (tempPtr = tempRule;
         tempPtr != NULL;
         tempPtr = tempPtr->disjunct)
-     { CheckForPrimableJoins(tempPtr); }
+     { CheckForPrimableJoins(theEnv,tempPtr); }
 
    /*===============================================*/
    /* Filter existing data entities through the new */
    /* portions of the pattern and join networks.    */
    /*===============================================*/
 
-   for (theParser = ListOfPatternParsers;
+   for (theParser = PatternData(theEnv)->ListOfPatternParsers;
         theParser != NULL;
         theParser = theParser->next)
      {
       if (theParser->incrementalResetFunction != NULL)
-        { (*theParser->incrementalResetFunction)(); }
+        { (*theParser->incrementalResetFunction)(theEnv); }
      }
 
    /*========================*/
    /* End incremental reset. */
    /*========================*/
 
-   IncrementalResetInProgress = FALSE;
+   EngineData(theEnv)->IncrementalResetInProgress = FALSE;
 
    /*====================================================*/
    /* Remove the marks in the pattern and join networks. */
    /*====================================================*/
 
-   MarkNetworkForIncrementalReset(tempRule,FALSE);
+   MarkNetworkForIncrementalReset(theEnv,tempRule,FALSE);
 #endif
   }
 
@@ -142,6 +137,7 @@ globle void IncrementalReset(
 /*   incremental reset.                                               */
 /**********************************************************************/
 static void MarkNetworkForIncrementalReset(
+  void *theEnv,
   struct defrule *tempRule,
   int value)
   {
@@ -173,7 +169,7 @@ static void MarkNetworkForIncrementalReset(
            {
             joinPtr->initialize = value;
             patternPtr = (struct patternNodeHeader *) GetPatternForJoin(joinPtr);
-            MarkPatternForIncrementalReset((int) joinPtr->rhsType,patternPtr,value);
+            MarkPatternForIncrementalReset(theEnv,(int) joinPtr->rhsType,patternPtr,value);
            }
         }
      }
@@ -188,11 +184,12 @@ static void MarkNetworkForIncrementalReset(
 /*   PrimeJoin is used to update joins which meet these criteria.              */
 /*******************************************************************************/
 static void CheckForPrimableJoins(
+  void *theEnv,
   struct defrule *tempRule)
   {
    struct joinNode *joinPtr;
    struct partialMatch *theList;
-
+   
    /*========================================*/
    /* Loop through each of the rule's joins. */
    /*========================================*/
@@ -211,13 +208,13 @@ static void CheckForPrimableJoins(
            {
             if (((struct patternNodeHeader *) GetPatternForJoin(joinPtr))->initialize == FALSE)
               {
-               PrimeJoin(joinPtr);
+               PrimeJoin(theEnv,joinPtr);
                joinPtr->marked = TRUE; /* GDR 6.05 */
               }
            }
          else if (joinPtr->lastLevel->initialize == FALSE)
            {
-            PrimeJoin(joinPtr);
+            PrimeJoin(theEnv,joinPtr);
             joinPtr->marked = TRUE; /* GDR 6.05 */
            }
         }
@@ -234,7 +231,7 @@ static void CheckForPrimableJoins(
          for (theList = joinPtr->beta;
               theList != NULL;
               theList = theList->next)
-           { AddActivation(tempRule,theList); }
+           { AddActivation(theEnv,tempRule,theList); }
         }
      }
   }
@@ -248,10 +245,11 @@ static void CheckForPrimableJoins(
 /*   pattern node has not been marked for initialization.                   */
 /****************************************************************************/
 static void PrimeJoin(
+  void *theEnv,
   struct joinNode *joinPtr)
   {
    struct partialMatch *theList;
-
+   
    /*===========================================================*/
    /* If the join is the first join of a rule, then send all of */
    /* the partial matches from the alpha memory of the pattern  */
@@ -264,7 +262,7 @@ static void PrimeJoin(
       for (theList = ((struct patternNodeHeader *) joinPtr->rightSideEntryStructure)->alphaMemory;
            theList != NULL;
            theList = theList->next)
-        { NetworkAssert(theList,joinPtr,RHS); }
+        { NetworkAssert(theEnv,theList,joinPtr,RHS); }
       return;
      }
 
@@ -285,7 +283,7 @@ static void PrimeJoin(
         theList = theList->next)
      {
       if (! theList->counterf) /* 6.05 incremental reset bug fix */
-        { NetworkAssert(theList,joinPtr,LHS); }
+        { NetworkAssert(theEnv,theList,joinPtr,LHS); }
      }
   }
 
@@ -296,42 +294,47 @@ static void PrimeJoin(
 /*   nodes both before and after an incremental reset.               */
 /*********************************************************************/
 static void MarkPatternForIncrementalReset(
+  void *theEnv,
   int rhsType,
   struct patternNodeHeader *theHeader,
   int value)
   {
    struct patternParser *tempParser;
-
-   tempParser = GetPatternParser(rhsType);
+   
+   tempParser = GetPatternParser(theEnv,rhsType);
 
    if (tempParser != NULL)
      {
       if (tempParser->markIRPatternFunction != NULL)
-        { (*tempParser->markIRPatternFunction)(theHeader,value); }
+        { (*tempParser->markIRPatternFunction)(theEnv,theHeader,value); }
      }
   }
 
 #endif
 
-/*********************************************/
-/* GetIncrementalReset: C access routine for */
-/*   the get-incremental-reset command.      */
-/*********************************************/
-globle BOOLEAN GetIncrementalReset()
-  { return(IncrementalResetFlag); }
+/********************************************/
+/* EnvGetIncrementalReset: C access routine */
+/*   for the get-incremental-reset command. */
+/********************************************/
+globle intBool EnvGetIncrementalReset(
+  void *theEnv)
+  {   
+   return(EngineData(theEnv)->IncrementalResetFlag);
+  }
 
-/*********************************************/
-/* SetIncrementalReset: C access routine for */
-/*   the set-incremental-reset command.      */
-/*********************************************/
-globle BOOLEAN SetIncrementalReset(
+/********************************************/
+/* EnvSetIncrementalReset: C access routine */
+/*   for the set-incremental-reset command. */
+/********************************************/
+globle intBool EnvSetIncrementalReset(
+  void *theEnv,
   int value)
   {
    int ov;
 
-   ov = IncrementalResetFlag;
-   if (GetNextDefrule(NULL) != NULL) return(-1);
-   IncrementalResetFlag = value;
+   ov = EngineData(theEnv)->IncrementalResetFlag;
+   if (EnvGetNextDefrule(theEnv,NULL) != NULL) return(-1);
+   EngineData(theEnv)->IncrementalResetFlag = value;
    return(ov);
   }
 
@@ -339,18 +342,19 @@ globle BOOLEAN SetIncrementalReset(
 /* SetIncrementalResetCommand: H/L access routine   */
 /*   for the set-incremental-reset command.         */
 /****************************************************/
-globle int SetIncrementalResetCommand()
+globle int SetIncrementalResetCommand(
+  void *theEnv)
   {
    int oldValue;
    DATA_OBJECT argPtr;
 
-   oldValue = GetIncrementalReset();
+   oldValue = EnvGetIncrementalReset(theEnv);
 
    /*============================================*/
    /* Check for the correct number of arguments. */
    /*============================================*/
 
-   if (ArgCountCheck("set-incremental-reset",EXACTLY,1) == -1)
+   if (EnvArgCountCheck(theEnv,"set-incremental-reset",EXACTLY,1) == -1)
      { return(oldValue); }
 
    /*=========================================*/
@@ -358,11 +362,11 @@ globle int SetIncrementalResetCommand()
    /* changed when rules are loaded.          */
    /*=========================================*/
 
-   if (GetNextDefrule(NULL) != NULL)
+   if (EnvGetNextDefrule(theEnv,NULL) != NULL)
      {
-      PrintErrorID("INCRRSET",1,FALSE);
-      PrintRouter(WERROR,"The incremental reset behavior cannot be changed with rules loaded.\n");
-      SetEvaluationError(TRUE);
+      PrintErrorID(theEnv,"INCRRSET",1,FALSE);
+      EnvPrintRouter(theEnv,WERROR,"The incremental reset behavior cannot be changed with rules loaded.\n");
+      SetEvaluationError(theEnv,TRUE);
       return(oldValue);
      }
 
@@ -371,12 +375,12 @@ globle int SetIncrementalResetCommand()
    /* other value enables incremental reset.           */
    /*==================================================*/
 
-   RtnUnknown(1,&argPtr);
+   EnvRtnUnknown(theEnv,1,&argPtr);
 
-   if ((argPtr.value == FalseSymbol) && (argPtr.type == SYMBOL))
-     { SetIncrementalReset(FALSE); }
+   if ((argPtr.value == EnvFalseSymbol(theEnv)) && (argPtr.type == SYMBOL))
+     { EnvSetIncrementalReset(theEnv,FALSE); }
    else
-     { SetIncrementalReset(TRUE); }
+     { EnvSetIncrementalReset(theEnv,TRUE); }
 
    /*=======================*/
    /* Return the old value. */
@@ -389,16 +393,17 @@ globle int SetIncrementalResetCommand()
 /* GetIncrementalResetCommand: H/L access routine   */
 /*   for the get-incremental-reset command.         */
 /****************************************************/
-globle int GetIncrementalResetCommand()
+globle int GetIncrementalResetCommand(
+  void *theEnv)
   {
    int oldValue;
 
-   oldValue = GetIncrementalReset();
+   oldValue = EnvGetIncrementalReset(theEnv);
 
-   if (ArgCountCheck("get-incremental-reset",EXACTLY,0) == -1)
+   if (EnvArgCountCheck(theEnv,"get-incremental-reset",EXACTLY,0) == -1)
      { return(oldValue); }
 
    return(oldValue);
   }
 
-#endif /* DEFRULE_CONSTRUCT && INCREMENTAL_RESET */
+#endif /* DEFRULE_CONSTRUCT */

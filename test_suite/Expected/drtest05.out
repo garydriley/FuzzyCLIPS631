@@ -1,0 +1,307 @@
+TRUE
+FuzzyCLIPS> (batch "drtest05.bat")
+TRUE
+FuzzyCLIPS> (clear)                            ; DR0405
+FuzzyCLIPS> (deffacts first (fact1 =(reset)))  ; DR0405
+FuzzyCLIPS> (reset)                            ; DR0405
+FuzzyCLIPS> (facts)                            ; DR0405
+f-0     (initial-fact) CF 1.00 
+f-1     (fact1) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (clear)                            ; DR0410
+FuzzyCLIPS> (defrule foo                       ; DR0410
+   (fact ?x&:(and (< ?x 3) (> ?x 1)))
+   =>)
+FuzzyCLIPS> (assert (fact a))                  ; DR0410 - Only one error message
+[ARGACCES5] Function < expected argument #1 to be of type integer or float
+
+[FACTMCH1] This error occurred in the fact pattern network
+   Currently active fact: (fact a) CF 1.00 
+   Problem resides in field #1
+      Of pattern #1 in rule(s):
+         foo
+
+<Fact-0>
+FuzzyCLIPS> (clear)                            ; DR0411
+FuzzyCLIPS> (defrule foo                       ; DR0411
+   (fact ?x)
+   (fact $?y)
+   (test (eq ?y (str-explode ?x)))
+   =>)
+FuzzyCLIPS> (reset)                            ; DR0411
+FuzzyCLIPS> (assert (fact "a b c"))            ; DR0411
+<Fact-1>
+FuzzyCLIPS> (assert (fact a b c))              ; DR0411
+<Fact-2>
+FuzzyCLIPS> (agenda)                           ; DR0411
+0      foo: f-1,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (facts)                            ; DR0411
+f-0     (initial-fact) CF 1.00 
+f-1     (fact "a b c") CF 1.00 
+f-2     (fact a b c) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (save-facts "Temp//foo.tmp")       ; DR0411
+TRUE
+FuzzyCLIPS> (reset)                            ; DR0411
+FuzzyCLIPS> (load-facts "Temp//foo.tmp")       ; DR0411
+TRUE
+FuzzyCLIPS> (facts)                            ; DR0411
+f-0     (initial-fact) CF 1.00 
+f-1     (fact "a b c") CF 1.00 
+f-2     (fact a b c) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (agenda)                           ; DR0411
+0      foo: f-1,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (clear)                            ; DR0427
+FuzzyCLIPS> (deftemplate first (fild one))     ; DR0427
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for deftemplate.
+
+ERROR:
+(deftemplate MAIN::first
+   (fild
+FuzzyCLIPS> (list-deftemplates)                ; DR0427
+initial-fact
+For a total of 1 deftemplate.
+FuzzyCLIPS> (eval (str-cat                     ; DR0435
+      (printout t " fact-list "))) ; DR0435
+ fact-list [ARGACCES5] Function str-cat expected argument #1 to be of type string, instance name, symbol, float, or integer
+FALSE
+FuzzyCLIPS> (clear)                            ; DR0441
+FuzzyCLIPS> (deftemplate a)                    ; DR0441
+FuzzyCLIPS> (assert (a))                       ; DR0441
+<Fact-0>
+FuzzyCLIPS> (clear)                            ; DR0441
+FuzzyCLIPS> (list-deftemplates)                ; DR0441
+initial-fact
+For a total of 1 deftemplate.
+FuzzyCLIPS> (clear)                            ; DR0445
+FuzzyCLIPS> (deftemplate congestion            ; DR0445
+   (field no-of-nets))
+FuzzyCLIPS> (deftemplate total                 ; DR0445
+   (field net-name)
+   (field cong))
+FuzzyCLIPS> (deffacts start                    ; DR0445
+   (congestion (no-of-nets 5))
+   (total (net-name 8) (cong nil))
+   (total (net-name 4) (cong 5)))
+FuzzyCLIPS> (defrule p403                      ; DR0445
+   ?t1 <-  (total (cong nil))
+   (congestion (no-of-nets ?non))
+   =>
+   (retract ?t1))
+FuzzyCLIPS> (defrule p410                      ; DR0445
+   (total (net-name ?nn) (cong ?non))
+   (not (total (cong nil)))
+   ?t <- (total (net-name ~?nn) (cong ?x&:(<= ?x ?non)))
+   =>
+   (retract ?t))
+FuzzyCLIPS> (watch facts)                      ; DR0445
+FuzzyCLIPS> (reset)                            ; DR0445
+==> f-0     (initial-fact) CF 1.00 
+==> f-1     (congestion (no-of-nets 5)) CF 1.00 
+==> f-2     (total (net-name 8) (cong nil)) CF 1.00 
+==> f-3     (total (net-name 4) (cong 5)) CF 1.00 
+FuzzyCLIPS> (run)                              ; DR0445
+<== f-2     (total (net-name 8) (cong nil)) CF 1.00 
+FuzzyCLIPS> (unwatch facts)                    ; DR0445
+FuzzyCLIPS> (clear)                            ; DR0447
+FuzzyCLIPS> (deffacts one                      ; DR0447
+   (first =(assert let's see)))    ; DR0447
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for RHS patterns.
+
+ERROR:
+(deffacts MAIN::one
+   (first =(assert let's
+FuzzyCLIPS> (clear)                            ; DR0451
+FuzzyCLIPS> (defrule erroneous-syntax-error    ; DR0451
+   (fact1 test ?symbol&:(eq ?symbol :) ?num)
+   =>) 
+FuzzyCLIPS> (clear)                            ; DR0452
+FuzzyCLIPS> (deftemplate a (fileld one) (field two))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for deftemplate.
+
+ERROR:
+(deftemplate MAIN::a
+   (fileld
+FuzzyCLIPS> (defrule b                         ; DR0452
+   (not (a (one first) (three second)))
+   => 
+   (assert (problem)))             ; DR0452
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule MAIN::b
+   (not (a (
+FuzzyCLIPS> (clear)                            ; DR0453
+FuzzyCLIPS> (deftemplate a (field one))        ; DR0453
+FuzzyCLIPS> (defrule a                         ; DR0453
+   ?f1 <- (a (one two three))
+   =>
+   (assert (not good)))            ; DR0453
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for deftemplate patterns.
+
+ERROR:
+(defrule MAIN::a
+   ?f1 <- (a (one two three
+FuzzyCLIPS> (clear)                            ; DR0460
+FuzzyCLIPS> (deftemplate a                     ; DR0460
+   (field one) (field two))
+FuzzyCLIPS> (defrule one                       ; DR0460
+   ?fact <- (a)
+   =>
+   (modify ?a (two)))
+
+[PRCCODE3] Undefined variable a referenced in RHS of defrule.
+
+ERROR:
+(defrule MAIN::one
+   ?fact <- (a)
+   =>
+   (modify ?a (two)))
+FuzzyCLIPS> (clear)                            ; DR0462
+FuzzyCLIPS> (defrule a => (assert (x ?h)))     ; DR0462
+
+[PRCCODE3] Undefined variable h referenced in RHS of defrule.
+
+ERROR:
+(defrule MAIN::a
+   =>
+   (assert (x ?h)))
+FuzzyCLIPS> (reset)                            ; DR0462
+FuzzyCLIPS> (watch rules)                      ; DR0462
+FuzzyCLIPS> (run)                              ; DR0462
+FuzzyCLIPS> (unwatch rules)                    ; DR0462
+FuzzyCLIPS> (clear)                            ; DR0466
+FuzzyCLIPS> (defrule a 
+   ?f1 <- (fact 1)
+   =>
+   (eval "(retract ?f1)"))
+FuzzyCLIPS> (reset)                            ; DR0466
+FuzzyCLIPS> (assert (fact 1))                  ; DR0466
+<Fact-1>
+FuzzyCLIPS> (run)                              ; DR0466
+[STRNGFUN2] Some variables could not be accessed by the eval function.
+[PRCCODE4] Execution halted during the actions of defrule a.
+FuzzyCLIPS> (facts)                            ; DR0466
+f-0     (initial-fact) CF 1.00 
+f-1     (fact 1) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (mod 160 100)                      ; DR0475
+60
+FuzzyCLIPS> (mod (+ 100 60) 100)               ; DR0475
+60
+FuzzyCLIPS> (send diamond get-hardness)        ; DR0478
+[MSGFUN1] No applicable primary message-handlers found for get-hardness.
+FALSE
+FuzzyCLIPS> (clear)                            ; DR0479
+FuzzyCLIPS> (defclass FOO (is-a USER)          ; DR0479
+   (role concrete)
+   (multislot BAR (create-accessor read-write)))
+FuzzyCLIPS> (make-instance foo of FOO)         ; DR0479 - [foo]
+[foo]
+FuzzyCLIPS> (send [foo] put-BAR a b c)         ; DR0479 - TRUE
+(a b c)
+FuzzyCLIPS> (find-instance ((?x FOO))          ; DR0479
+    (member d (send ?x get-BAR)))  ; DR0479 - ()
+()
+FuzzyCLIPS> (clear)                            ; DR0480
+FuzzyCLIPS> (defclass mineral (is-a USER)      ; DR0480
+   (role concrete)
+   (slot gemname (create-accessor read-write))
+   (slot group (create-accessor read-write)))
+FuzzyCLIPS> (definstances gems                 ; DR0480
+   (almandite of mineral
+      (gemname almandite) (class garnet))
+   (grossularite of mineral
+      (gemname grossularite) (group garnet))
+   (spessartite of mineral
+      (gemname spessartite) (group garnet)))
+FuzzyCLIPS> (reset)                            ; DR0480 - one error message
+[INSMNGR13] Slot class does not exist in instance almandite.
+FuzzyCLIPS> (clear)                            ; DR0484
+FuzzyCLIPS> (send [bogus-instance] bogus-message) ; DR0484
+[MSGPASS2] No such instance bogus-instance in function send.
+FALSE
+FuzzyCLIPS> (clear)                            ; DR0486
+FuzzyCLIPS> (defrule allie                     ; DR0486
+  (menu compress)
+  (compress ?nos ?range ?no&:(eq ?no 1))
+=>
+  (printout t "rule allie ?nos= " ?nos " ?range= " ?range " " ?no crlf))
+FuzzyCLIPS> (reset)                            ; DR0486
+FuzzyCLIPS> (assert (menu compress))           ; DR0486
+<Fact-1>
+FuzzyCLIPS> (assert (compress "19k" "date" 1)) ; DR0486
+<Fact-2>
+FuzzyCLIPS> (run)                              ; DR0486
+rule allie ?nos= 19k ?range= date 1
+FuzzyCLIPS> "1234567890
+ 1234567890
+ 1234567890
+ 1234567890
+ 1234567890
+ 1234567890
+ 1234567890
+ 1234567890
+ 1234567890
+ 1234567890"                       ; DR0488
+"1234567890
+ 1234567890
+ 1234567890
+ 1234567890
+ 1234567890
+ 1234567890
+ 1234567890
+ 1234567890
+ 1234567890
+ 1234567890"
+FuzzyCLIPS> (instance-address [bogus])         ; DR0491 - Error should contain function name
+[INSFUN2] No such instance bogus in function instance-address.
+FALSE
+FuzzyCLIPS> (instance-namep [foo])             ; DR0492 - TRUE
+TRUE
+FuzzyCLIPS> (clear)                            ; DR0494
+FuzzyCLIPS> (defmethod foo (?a))               ; DR0494
+FuzzyCLIPS> (defmethod foo ((?a NUMBER)))      ; DR0494
+FuzzyCLIPS> (preview-generic foo 45)           ; DR0494
+foo #2  (NUMBER)
+foo #1  ()
+FuzzyCLIPS> (clear)                            ; DR0495
+FuzzyCLIPS> (defmethod foo ())                 ; DR0495
+FuzzyCLIPS> (ppdefmethod foo 1)                ; DR0495
+(defmethod MAIN::foo
+   ())
+FuzzyCLIPS> (clear)                            ; DR0496
+FuzzyCLIPS> (defmethod foo ((?a INTEGER SYMBOL)))
+FuzzyCLIPS> (defmethod foo ((?a INTEGER)))     ; DR0496
+FuzzyCLIPS> (list-defmethods)                  ; DR0496
+foo #2  (INTEGER)
+foo #1  (INTEGER SYMBOL)
+For a total of 2 methods.
+FuzzyCLIPS> (clear)                            ; DR0499
+FuzzyCLIPS> (defmethod foo 1 (?a))             ; DR0499
+FuzzyCLIPS> (defmethod foo 2 () (undefmethod foo 1))
+FuzzyCLIPS> (foo)                              ; DR0499
+[GENRCFUN1] Defgeneric foo cannot be modified while one of its methods is executing.
+FuzzyCLIPS> (clear)                            ; DR0500
+FuzzyCLIPS> (defclass a (is-a USER) (role concrete))           ; DR0500
+FuzzyCLIPS> (defmessage-handler a create-new-handler ()
+   (build "(defmessage-handler a new-handler ())"))
+FuzzyCLIPS> (make-instance a of a)             ; DR0500 - [a]
+[a]
+FuzzyCLIPS> (send [a] create-new-handler)      ; DR0500 - Error
+[MSGPSR2] Cannot (re)define message-handlers during execution of 
+  other message-handlers for the same class.
+
+ERROR:
+(defmessage-handler MAIN::a
+   new-handler
+FALSE
+FuzzyCLIPS> (dribble-off)

@@ -1,6 +1,10 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/edstruct.c,v 1.3 2001/08/11 21:05:14 dave Exp $" ;
-
-/*   CLIPS Version 6.05  04/09/97 */
+   /*******************************************************/
+   /*      "C" Language Integrated Production System      */
+   /*                                                     */
+   /*              CLIPS Version 6.20  01/31/02           */
+   /*                                                     */
+   /*                                                     */
+   /*******************************************************/
 
 #include "setup.h"
 
@@ -46,7 +50,7 @@ static char    *kbufp  = NULL;                 /* Kill buffer data             *
 static int     kused   = 0;                    /* # of bytes used in KB        */
 static int     ksize   = 0;                    /* # of bytes allocated in KB   */
 
-static VOID int_to_ascii(char [],int,int);
+static void int_to_ascii(char [],int,int);
 
 /* ==========================================================================
  *                      BUFFER MANAGEMENT FUNCTIONS
@@ -69,8 +73,9 @@ static VOID int_to_ascii(char [],int,int);
 #pragma argsused
 #endif
 globle int usebuffer(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
 {
         register BUFFER *bp;
         register WINDOW *wp;
@@ -79,13 +84,13 @@ int n)
         char            prompt[NBUFN + 15];
 
         sprintf(prompt,"Use buffer [%s]: ",lastbufn);
-        if ((s=mlreply(prompt, bufn, NBUFN)) != TRUE) {
+        if ((s=mlreply(theEnv,prompt, bufn, NBUFN)) != TRUE) {
                 if (( s == FALSE) && (strlen(lastbufn) != 0))
                    strcpy(bufn, lastbufn);
                 else
                    return (s);
                 }
-        if ((bp=bfind(bufn, TRUE, 0)) == NULL)
+        if ((bp=bfind(theEnv,bufn, TRUE, 0)) == NULL)
                 return (FALSE);
         strcpy(lastbufn, curbp->b_bname);       /* Save current bufname */
         if (--curbp->b_nwnd == 0) {             /* Last use.            */
@@ -131,8 +136,9 @@ int n)
 #pragma argsused
 #endif
 globle int killbuffer(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
 {
         register BUFFER *bp;
         register BUFFER *bp1;
@@ -140,17 +146,17 @@ int n)
         register int    s;
         char            bufn[NBUFN];
 
-        if ((s=mlreply("Kill buffer: ", bufn, NBUFN)) != TRUE)
+        if ((s=mlreply(theEnv,"Kill buffer: ", bufn, NBUFN)) != TRUE)
                 return (s);
-        if ((bp=bfind(bufn, FALSE, 0)) == NULL) /* Easy if unknown.     */
+        if ((bp=bfind(theEnv,bufn, FALSE, 0)) == NULL) /* Easy if unknown.     */
                 return (TRUE);
         if (bp->b_nwnd != 0) {                  /* Error if on screen.  */
                 mlwrite("Buffer is being displayed");
                 return (FALSE);
         }
-        if ((s=bclear(bp)) != TRUE)             /* Blow text away.      */
+        if ((s=bclear(theEnv,bp)) != TRUE)             /* Blow text away.      */
                 return (s);
-        genfree((VOID *) bp->b_linep,(unsigned) (sizeof(LINE) + bp->b_linep->l_size));
+        genfree(theEnv,(void *) bp->b_linep,(unsigned) (sizeof(LINE) + bp->b_linep->l_size));
         bp1 = NULL;                             /* Find the header.     */
         bp2 = bheadp;
         while (bp2 != bp) {
@@ -162,7 +168,7 @@ int n)
                 bheadp = bp2;
         else
                 bp1->b_bufp = bp2;
-        genfree((VOID *) bp, (unsigned) sizeof(BUFFER));   /* Release buffer block */
+        genfree(theEnv,(void *) bp, (unsigned) sizeof(BUFFER));   /* Release buffer block */
         mlwrite("Buffer Killed!");
         return (TRUE);
 }
@@ -181,17 +187,18 @@ int n)
 #pragma argsused
 #endif
 globle int listbuffers(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
 {
         register WINDOW *wp;
         register BUFFER *bp;
         register int    s;
 
-        if ((s=makelist()) != TRUE)
+        if ((s=makelist(theEnv)) != TRUE)
                 return (s);
         if (blistp->b_nwnd == 0) {              /* Not on screen yet.   */
-                if ((wp=wpopup()) == NULL)
+                if ((wp=wpopup(theEnv)) == NULL)
                         return (FALSE);
                 bp = wp->w_bufp;
                 if (--bp->b_nwnd == 0) {
@@ -226,7 +233,8 @@ int n)
  * if everything works. Return FALSE if there
  * is an error (if there is no memory).
  */
-globle int makelist()
+globle int makelist(
+  void *theEnv)
 {
         register char   *cp1;
         register char   *cp2;
@@ -239,11 +247,11 @@ globle int makelist()
         char            line[128];
 
         blistp->b_flag &= ~BFCHG;               /* Don't complain!      */
-        if ((s=bclear(blistp)) != TRUE)         /* Blow old text away   */
+        if ((s=bclear(theEnv,blistp)) != TRUE)         /* Blow old text away   */
                 return (s);
         strcpy(blistp->b_fname, "");
-        if (addline(blistp,"C   Size Buffer           File") == FALSE
-        ||  addline(blistp,"-   ---- ------           ----") == FALSE)
+        if (addline(theEnv,blistp,"C   Size Buffer           File") == FALSE
+        ||  addline(theEnv,blistp,"-   ---- ------           ----") == FALSE)
                 return (FALSE);
         bp = bheadp;                            /* For all buffers      */
         while (bp != NULL) {
@@ -281,7 +289,7 @@ globle int makelist()
                         }
                 }
                 *cp1 = 0;                       /* Add to the buffer.   */
-                if (addline(blistp,line) == FALSE)
+                if (addline(theEnv,blistp,line) == FALSE)
                         return (FALSE);
                 bp = bp->b_bufp;
         }
@@ -296,15 +304,16 @@ globle int makelist()
  * FALSE if you ran out of room.
  */
 globle int addline(
-BUFFER *bufferp,
-char    *text)
+  void *theEnv,
+  BUFFER *bufferp,
+  char    *text)
 {
         register LINE   *lp;
         register int    i;
         register int    ntext;
 
         ntext = strlen(text);
-        if ((lp=lalloc(ntext)) == NULL)
+        if ((lp=lalloc(theEnv,ntext)) == NULL)
                 return (FALSE);
         for (i=0; i<ntext; ++i)
                 lputc(lp, i, text[i]);
@@ -349,6 +358,7 @@ globle int anycb()
  * the settings for the flags in in buffer.
  */
 globle BUFFER  *bfind(
+  void *theEnv,
 char   *bname,
 int cflag,
 int bflag)
@@ -368,10 +378,10 @@ int bflag)
                 bp = bp->b_bufp;
         }
         if (cflag != FALSE) {
-                if ((bp=(BUFFER *)genalloc((unsigned) sizeof(BUFFER))) == NULL)
+                if ((bp=(BUFFER *)genalloc(theEnv,(unsigned) sizeof(BUFFER))) == NULL)
                         return (NULL);
-                if ((lp=lalloc(0)) == NULL) {
-                        genfree((VOID *) bp,(unsigned) sizeof(BUFFER));
+                if ((lp=lalloc(theEnv,0)) == NULL) {
+                        genfree(theEnv,(void *) bp,(unsigned) sizeof(BUFFER));
                         return (NULL);
                 }
                 bp->b_bufp  = bheadp;
@@ -402,19 +412,20 @@ int bflag)
  * looks good.
  */
 globle int bclear(
-BUFFER *bp)
+  void *theEnv,
+  BUFFER *bp)
 {
         register LINE   *lp;
         register int    s;
 
         if ((bp->b_flag&BFTEMP) == 0            /* Not scratch buffer.  */
            && (bp->b_flag&BFCHG) != 0              /* Something changed    */
-           && (s=mlyesno("Discard changes")) != TRUE)
+           && (s=mlyesno(theEnv,"Discard changes")) != TRUE)
                 return (s);
         bp->b_flag  &= ~BFCHG;                  /* Not changed          */
 
         while ((lp=lforw(bp->b_linep)) != bp->b_linep)
-                lfree(lp);
+                lfree(theEnv,lp);
         bp->b_dotp  = bp->b_linep;              /* Fix "."              */
         bp->b_doto  = 0;
         bp->b_markp = NULL;                     /* Invalidate "mark"    */
@@ -447,7 +458,8 @@ BUFFER *bp)
  * message in the message line if no space.
  */
 globle LINE    *lalloc(
-int    used)
+  void *theEnv,
+  int    used)
 {
         register LINE   *lp;
         register int    size;
@@ -455,7 +467,7 @@ int    used)
         size = (used+NBLOCK-1) & ~(NBLOCK-1);
         if (size == 0)                          /* Assume that an empty */
                 size = NBLOCK;                  /* line is for type-in. */
-        lp = (LINE *) genalloc((unsigned) sizeof(LINE)+size);
+        lp = (LINE *) genalloc(theEnv,(unsigned) sizeof(LINE)+size);
         lp->l_size = size;
         lp->l_used = used;
         return (lp);
@@ -467,8 +479,9 @@ int    used)
  * might be in. Release the memory. The buffers are updated too; the magic
  * conditions described in the above comments don't hold here.
  */
-globle VOID lfree(
-LINE   *lp)
+globle void lfree(
+  void *theEnv,
+  LINE   *lp)
 {
         register BUFFER *bp;
         register WINDOW *wp;
@@ -503,7 +516,7 @@ LINE   *lp)
         }
         lp->l_bp->l_fp = lp->l_fp;
         lp->l_fp->l_bp = lp->l_bp;
-        genfree((VOID *) lp, (unsigned) (sizeof(LINE) + lp->l_size));
+        genfree(theEnv,(void *) lp, (unsigned) (sizeof(LINE) + lp->l_size));
 }
 
 /*
@@ -513,7 +526,7 @@ LINE   *lp)
  * displayed in more than 1 window we change EDIT t HARD. Set MODE if the
  * mode line needs to be updated (the "*" has to be set).
  */
-globle VOID lchange(
+globle void lchange(
 int    flag)
 {
         register WINDOW *wp;
@@ -542,8 +555,9 @@ int    flag)
  * well, and FALSE on errors.
  */
 globle int linsert(
-int n,
-int c)
+  void *theEnv,
+  int n,
+  int c)
 {
         register char   *cp1;
         register char   *cp2;
@@ -561,7 +575,7 @@ int c)
                         mlwrite("bug: linsert");
                         return (FALSE);
                 }
-                if ((lp2=lalloc(n)) == NULL)    /* Allocate new line    */
+                if ((lp2=lalloc(theEnv,n)) == NULL)    /* Allocate new line    */
                         return (FALSE);
                 lp3 = lp1->l_bp;                /* Previous line        */
                 lp3->l_fp = lp2;                /* Link in              */
@@ -576,7 +590,7 @@ int c)
         }
         doto = curwp->w_doto;                   /* Save for later.      */
         if (lp1->l_used+n > lp1->l_size) {      /* Hard: reallocate     */
-                if ((lp2=lalloc(lp1->l_used+n)) == NULL)
+                if ((lp2=lalloc(theEnv,lp1->l_used+n)) == NULL)
                         return (FALSE);
                 cp1 = &lp1->l_text[0];
                 cp2 = &lp2->l_text[0];
@@ -589,7 +603,7 @@ int c)
                 lp2->l_fp = lp1->l_fp;
                 lp1->l_fp->l_bp = lp2;
                 lp2->l_bp = lp1->l_bp;
-                genfree((VOID *) lp1, (unsigned) (sizeof(LINE) + lp1->l_size));
+                genfree(theEnv,(void *) lp1, (unsigned) (sizeof(LINE) + lp1->l_size));
         } else {                                /* Easy: in place       */
                 lp2 = lp1;                      /* Pretend new line     */
                 lp2->l_used += n;
@@ -627,7 +641,8 @@ int c)
  * update of dot and mark is a bit easier then in the above case, because the
  * split forces more updating.
  */
-globle int lnewline()
+globle int lnewline(
+  void *theEnv)
 {
         register char   *cp1;
         register char   *cp2;
@@ -639,7 +654,7 @@ globle int lnewline()
         lchange(WFHARD);
         lp1  = curwp->w_dotp;                   /* Get the address and  */
         doto = curwp->w_doto;                   /* offset of "."        */
-        if ((lp2=lalloc(doto)) == NULL)         /* New first half line  */
+        if ((lp2=lalloc(theEnv,doto)) == NULL)         /* New first half line  */
                 return (FALSE);
         cp1 = &lp1->l_text[0];                  /* Shuffle text around  */
         cp2 = &lp2->l_text[0];
@@ -681,8 +696,9 @@ globle int lnewline()
  * buffer. The "kflag" is TRUE if the text should be put in the kill buffer.
  */
 globle int ldelete(
-long n,
-int kflag)
+  void *theEnv,
+  long n,
+  int kflag)
 {
         register char   *cp1;
         register char   *cp2;
@@ -701,8 +717,8 @@ int kflag)
                         chunk = (int) n;
                 if (chunk == 0) {               /* End of line, merge.  */
                         lchange(WFHARD);
-                        if (ldelnewline() == FALSE
-                        || (kflag!=FALSE && kinsert('\n')==FALSE))
+                        if (ldelnewline(theEnv) == FALSE
+                        || (kflag!=FALSE && kinsert(theEnv,'\n')==FALSE))
                                 return (FALSE);
                         --n;
                         continue;
@@ -712,7 +728,7 @@ int kflag)
                 cp2 = cp1 + chunk;
                 if (kflag != FALSE) {           /* Kill?                */
                         while (cp1 != cp2) {
-                                if (kinsert(*cp1) == FALSE)
+                                if (kinsert(theEnv,*cp1) == FALSE)
                                         return (FALSE);
                                 ++cp1;
                         }
@@ -749,7 +765,8 @@ int kflag)
  * about in memory. Return FALSE on error and TRUE if all looks ok. Called by
  * "ldelete" only.
  */
-globle int ldelnewline()
+globle int ldelnewline(
+  void *theEnv)
 {
         register char   *cp1;
         register char   *cp2;
@@ -762,7 +779,7 @@ globle int ldelnewline()
         lp2 = lp1->l_fp;
         if (lp2 == curbp->b_linep) {            /* At the buffer end.   */
                 if (lp1->l_used == 0)           /* Blank line.          */
-                        lfree(lp1);
+                        lfree(theEnv,lp1);
                 return (TRUE);
         }
         if (lp2->l_used <= lp1->l_size-lp1->l_used) {
@@ -787,10 +804,10 @@ globle int ldelnewline()
                 lp1->l_used += lp2->l_used;
                 lp1->l_fp = lp2->l_fp;
                 lp2->l_fp->l_bp = lp1;
-                genfree((VOID *) lp2, (unsigned) (sizeof(LINE) + lp2->l_size));
+                genfree(theEnv,(void *) lp2, (unsigned) (sizeof(LINE) + lp2->l_size));
                 return (TRUE);
         }
-        if ((lp3=lalloc(lp1->l_used+lp2->l_used)) == NULL)
+        if ((lp3=lalloc(theEnv,lp1->l_used+lp2->l_used)) == NULL)
                 return (FALSE);
         cp1 = &lp1->l_text[0];
         cp2 = &lp3->l_text[0];
@@ -821,8 +838,8 @@ globle int ldelnewline()
                 }
                 wp = wp->w_wndp;
         }
-        genfree((VOID *) lp1, (unsigned) (sizeof(LINE) + lp1->l_size));
-        genfree((VOID *) lp2, (unsigned) (sizeof(LINE) + lp2->l_size));
+        genfree(theEnv,(void *) lp1, (unsigned) (sizeof(LINE) + lp1->l_size));
+        genfree(theEnv,(void *) lp2, (unsigned) (sizeof(LINE) + lp2->l_size));
         return (TRUE);
 }
 
@@ -831,10 +848,11 @@ globle int ldelnewline()
  * new kill context is being created. The kill buffer array is released, just
  * in case the buffer has grown to immense size. No errors.
  */
-globle VOID kdelete()
+globle void kdelete(
+  void *theEnv)
 {
         if (kbufp != NULL) {
-                genfree((VOID *) kbufp, (unsigned) ksize);
+                genfree(theEnv,(void *) kbufp, (unsigned) ksize);
                 kbufp = NULL;
                 kused = 0;
                 ksize = 0;
@@ -848,7 +866,8 @@ globle VOID kdelete()
  * later. Return TRUE if all is well, and FALSE on errors.
  */
 globle int kinsert(
-int c)
+  void *theEnv,
+  int c)
 {
 #if  IBM_MSC || IBM_TBC || IBM_ICB
 	char far *nbufp;
@@ -858,12 +877,12 @@ int c)
         register int    i;
 
         if (kused == ksize) {
-                if ((nbufp= (char *) genalloc((unsigned) ksize+KBLOCK)) == NULL)
+                if ((nbufp= (char *) genalloc(theEnv,(unsigned) ksize+KBLOCK)) == NULL)
                         return (FALSE);
                 for (i=0; i<ksize; ++i)
                         nbufp[i] = kbufp[i];
                 if (kbufp != NULL)
-                        genfree((VOID *) kbufp, (unsigned) ksize);
+                        genfree(theEnv,(void *) kbufp, (unsigned) ksize);
                 kbufp  = nbufp;
                 ksize += KBLOCK;
         }
@@ -907,8 +926,9 @@ int n)
 #pragma argsused
 #endif
 globle int reposition(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
     {
     curwp->w_force = (char) n;
     curwp->w_flag |= WFFORCE;
@@ -923,8 +943,9 @@ int n)
 #pragma argsused
 #endif
 globle int EditorRefresh(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
     {
     if (f == FALSE)
         sgarbf = TRUE;
@@ -946,8 +967,9 @@ int n)
 #pragma argsused
 #endif
 globle int nextwind(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
     {
     register WINDOW *wp;
 
@@ -968,8 +990,9 @@ int n)
 #pragma argsused
 #endif
 globle int prevwind(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
     {
     register WINDOW *wp1;
     register WINDOW *wp2;
@@ -996,10 +1019,11 @@ int n)
  * "move up". Magic. Bound to "C-X C-N".
  */
 globle int mvdnwind(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
     {
-    return (mvupwind(f, -n));
+    return (mvupwind(theEnv,f, -n));
     }
 
 /*
@@ -1013,8 +1037,9 @@ int n)
 #pragma argsused
 #endif
 globle int mvupwind(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
     {
     register LINE *lp;
     register int i;
@@ -1066,8 +1091,9 @@ int n)
 #pragma argsused
 #endif
 globle int onlywind(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
 {
         register WINDOW *wp;
         register LINE   *lp;
@@ -1082,7 +1108,7 @@ int n)
                         wp->w_bufp->b_markp = wp->w_markp;
                         wp->w_bufp->b_marko = wp->w_marko;
                 }
-                genfree((VOID *) wp, (unsigned) sizeof(WINDOW));
+                genfree(theEnv,(void *) wp, (unsigned) sizeof(WINDOW));
         }
         while (curwp->w_wndp != NULL) {
                 wp = curwp->w_wndp;
@@ -1093,7 +1119,7 @@ int n)
                         wp->w_bufp->b_markp = wp->w_markp;
                         wp->w_bufp->b_marko = wp->w_marko;
                 }
-                genfree((VOID *) wp, (unsigned) sizeof(WINDOW));
+                genfree(theEnv,(void *) wp, (unsigned) sizeof(WINDOW));
         }
         lp = curwp->w_linep;
         i  = curwp->w_toprow;
@@ -1117,8 +1143,9 @@ int n)
 #pragma argsused
 #endif
 globle int splitwind(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
 {
         register WINDOW *wp;
         register LINE   *lp;
@@ -1132,7 +1159,7 @@ int n)
                 mlwrite("Cannot split a %d line window", curwp->w_ntrows);
                 return (FALSE);
         }
-        if ((wp = (WINDOW *) genalloc((unsigned) sizeof(WINDOW))) == NULL) {
+        if ((wp = (WINDOW *) genalloc(theEnv,(unsigned) sizeof(WINDOW))) == NULL) {
                 mlwrite("Cannot allocate WINDOW block");
                 return (FALSE);
         }
@@ -1195,15 +1222,16 @@ int n)
  * move. Bound to "C-X Z".
  */
 globle int enlargewind(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
 {
         register WINDOW *adjwp;
         register LINE   *lp;
         register int    i;
 
         if (n < 0)
-                return (shrinkwind(f, -n));
+                return (shrinkwind(theEnv,f, -n));
         if (wheadp->w_wndp == NULL) {
                 mlwrite("Only one window");
                 return (FALSE);
@@ -1243,15 +1271,16 @@ int n)
  * "C-X C-Z".
  */
 globle int shrinkwind(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
 {
         register WINDOW *adjwp;
         register LINE   *lp;
         register int    i;
 
         if (n < 0)
-                return (enlargewind(f, -n));
+                return (enlargewind(theEnv,f, -n));
         if (wheadp->w_wndp == NULL) {
                 mlwrite("Only one window");
                 return (FALSE);
@@ -1290,12 +1319,13 @@ int n)
  * Pick the uppermost window that isn't the current window. An LRU algorithm
  * might be better. Return a pointer, or NULL on error.
  */
-globle WINDOW  *wpopup()
+globle WINDOW  *wpopup(
+  void *theEnv)
 {
         register WINDOW *wp;
 
         if (wheadp->w_wndp == NULL              /* Only 1 window        */
-        && splitwind(FALSE, 0) == FALSE)        /* and it won't split   */
+        && splitwind(theEnv,FALSE, 0) == FALSE)        /* and it won't split   */
                 return (NULL);
         wp = wheadp;                            /* Find window to use   */
         while (wp!=NULL && wp==curwp)
@@ -1330,32 +1360,33 @@ globle WINDOW  *wpopup()
  * The original window has "WFCHG" set, so that it will get completely
  * redrawn on the first call to "update".
  */
-globle VOID vtinit()
+globle void vtinit(
+  void *theEnv)
 {
     register int i;
 
     register VIDEO *vp;
 
     (*term.t_open)();
-    vscreen = (VIDEO **) genalloc((unsigned) term.t_nrow*sizeof(VIDEO *));
+    vscreen = (VIDEO **) genalloc(theEnv,(unsigned) term.t_nrow*sizeof(VIDEO *));
 
     if (vscreen == NULL)
         exit(1);
 
-    pscreen = (VIDEO **) genalloc((unsigned) term.t_nrow*sizeof(VIDEO *));
+    pscreen = (VIDEO **) genalloc(theEnv,(unsigned) term.t_nrow*sizeof(VIDEO *));
 
     if (pscreen == NULL)
         exit(1);
 
     for (i = 0; i < term.t_nrow; ++i)
         {
-        vp = (VIDEO *) genalloc((unsigned) sizeof(VIDEO)+term.t_ncol);
+        vp = (VIDEO *) genalloc(theEnv,(unsigned) sizeof(VIDEO)+term.t_ncol);
 
         if (vp == NULL)
             exit(1);
 
         vscreen[i] = vp;
-        vp = (VIDEO *) genalloc((unsigned) sizeof(VIDEO)+term.t_ncol);
+        vp = (VIDEO *) genalloc(theEnv,(unsigned) sizeof(VIDEO)+term.t_ncol);
 
         if (vp == NULL)
             exit(1);
@@ -1370,7 +1401,7 @@ globle VOID vtinit()
  * system prompt will be written in the line). Shut down the channel to the
  * terminal.
  */
-globle VOID vttidy()
+globle void vttidy()
 {
     movecursor(term.t_nrow, 0);
     (*term.t_eeol)();
@@ -1382,7 +1413,7 @@ globle VOID vttidy()
  * screen. There is no checking for nonsense values; this might be a good
  * idea during the early stages.
  */
-globle VOID vtmove(
+globle void vtmove(
 int row,
 int col)
 {
@@ -1396,7 +1427,7 @@ int col)
  * only puts printing characters into the virtual terminal buffers. Only
  * column overflow is checked.
  */
-globle VOID vtputc(
+globle void vtputc(
     int c)
 {
     register VIDEO      *vp;
@@ -1426,7 +1457,7 @@ globle VOID vtputc(
  * Erase from the end of the software cursor to the end of the line on which
  * the software cursor is located.
  */
-globle VOID vteeol()
+globle void vteeol()
 {
     register VIDEO      *vp;
 
@@ -1442,7 +1473,7 @@ globle VOID vteeol()
  * correct for the current window. Third, make the virtual and physical
  * screens the same.
  */
-globle VOID update()
+globle void update()
 {
     register LINE *lp;
     register WINDOW *wp;
@@ -1651,7 +1682,7 @@ mlwrite(prompt);*/
  * row and column variables. It does try an exploit erase to end of line. The
  * RAINBOW version of this routine uses fast video.
  */
-globle VOID updateline(
+globle void updateline(
     int row,
     char vline[],
     char pline[])
@@ -1727,7 +1758,7 @@ globle VOID updateline(
  * change the modeline format by hacking at this routine. Called by "update"
  * any time there is a dirty window.
  */
-globle VOID modeline(
+globle void modeline(
     WINDOW *wp)
 {
     register char *cp;
@@ -1810,7 +1841,7 @@ globle VOID modeline(
  * and column "col". The row and column arguments are origin 0. Optimize out
  * random calls. Update "ttrow" and "ttcol".
  */
-globle VOID movecursor(
+globle void movecursor(
 int row,
 int col)
     {
@@ -1827,7 +1858,7 @@ int col)
  * is not considered to be part of the virtual screen. It always works
  * immediately; the terminal buffer is flushed via a call to the flusher.
  */
-globle VOID mlerase()
+globle void mlerase()
     {
     movecursor(term.t_nrow, 0);
     (*term.t_eeol)();
@@ -1841,6 +1872,7 @@ globle VOID mlerase()
  * with a ^G. Used any time a confirmation is required.
  */
 globle int mlyesno(
+    void *theEnv,
     char *prompt)
     {
     register int s;
@@ -1850,7 +1882,7 @@ globle int mlyesno(
         {
         strcpy(buf, prompt);
         strcat(buf, " [y/n]? ");
-        s = mlreply(buf, buf, sizeof(buf));
+        s = mlreply(theEnv,buf, buf, sizeof(buf));
 
         if (s == ABORT)
             return (ABORT);
@@ -1874,6 +1906,7 @@ globle int mlyesno(
  * carriage return. Handle erase, kill, and abort keys.
  */
 globle int mlreply(
+   void *theEnv,
     char *prompt,
     char *buf,
     int nbuf)
@@ -1912,7 +1945,7 @@ globle int mlreply(
                     {
                     if (kbdmip+cpos > &kbdm[NKBDM-3])
                         {
-                        ctrlg(FALSE, 0);
+                        ctrlg(theEnv,FALSE, 0);
                         (*term.t_flush)();
                         return (ABORT);
                         }
@@ -1934,7 +1967,7 @@ globle int mlreply(
                 (*term.t_putchar)('^');
                 (*term.t_putchar)('G');
                 ttcol += 2;
-                ctrlg(FALSE, 0);
+                ctrlg(theEnv,FALSE, 0);
                 (*term.t_flush)();
                 return (ABORT);
 
@@ -2007,7 +2040,7 @@ globle int mlreply(
  * loop. Set the "message line" flag TRUE.
  */
 
-globle VOID mlwrite(char *fmt,...)
+globle void mlwrite(char *fmt,...)
     {
     register int c;
     va_list ap;
@@ -2060,7 +2093,7 @@ globle VOID mlwrite(char *fmt,...)
  * the characters in the string all have width "1"; if this is not the case
  * things will get screwed up a little.
  */
-globle VOID mlputs(
+globle void mlputs(
     char *s)
     {
     register int c;
@@ -2076,7 +2109,7 @@ globle VOID mlputs(
  * Write out an integer, in the specified radix. Update the physical cursor
  * position. This will not handle any negative numbers; maybe it should.
  */
-globle VOID mlputi(
+globle void mlputi(
 int i,
 int r)
     {
@@ -2101,7 +2134,7 @@ int r)
 /*
  * do the same except as a long integer.
  */
-globle VOID mlputli(
+globle void mlputli(
     long l,
     int r)
     {
@@ -2123,20 +2156,21 @@ globle VOID mlputli(
     }
 
 
-globle VOID kill_video_buffers()
-{
+globle void kill_video_buffers(
+  void *theEnv)
+  {
     int i;
 
     for (i = 0; i < term.t_nrow; ++i) {
-        genfree((VOID *) vscreen[i],(unsigned) (sizeof(VIDEO)+term.t_ncol));
-        genfree((VOID *) pscreen[i],(unsigned) (sizeof(VIDEO)+term.t_ncol));
+        genfree(theEnv,(void *) vscreen[i],(unsigned) (sizeof(VIDEO)+term.t_ncol));
+        genfree(theEnv,(void *) pscreen[i],(unsigned) (sizeof(VIDEO)+term.t_ncol));
         }
 
-    genfree((VOID *) vscreen, (unsigned) (term.t_nrow*sizeof(VIDEO *)));
-    genfree((VOID *) pscreen, (unsigned) (term.t_nrow*sizeof(VIDEO *)));
- }
+    genfree(theEnv,(void *) vscreen, (unsigned) (term.t_nrow*sizeof(VIDEO *)));
+    genfree(theEnv,(void *) pscreen, (unsigned) (term.t_nrow*sizeof(VIDEO *)));
+   }
 
-static VOID int_to_ascii(
+static void int_to_ascii(
 char   buf[],
 int    width,
 int    num)

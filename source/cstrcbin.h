@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/cstrcbin.h,v 1.3 2001/08/11 21:04:31 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.10  04/13/98          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -52,9 +50,10 @@ LOCALE void AssignBsaveConstructHeaderVals(struct bsaveConstructHeader *,
                                              struct constructHeader *);
 #endif
 
-LOCALE void UpdateConstructHeader(struct bsaveConstructHeader *,
+LOCALE void UpdateConstructHeader(void *,
+                                  struct bsaveConstructHeader *,
                                   struct constructHeader *,int,void *,int,void *);
-LOCALE void UnmarkConstructHeader(struct constructHeader *);
+LOCALE void UnmarkConstructHeader(void *,struct constructHeader *);
 
 #ifndef _CSTRCBIN_SOURCE_
 #endif

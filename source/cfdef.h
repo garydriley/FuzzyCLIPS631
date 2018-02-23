@@ -1,5 +1,3 @@
-/*  $Header: /dist/CVS/fzclips/src/cfdef.h,v 1.3 2001/08/11 21:04:10 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
@@ -38,6 +36,19 @@
 #include "factmngr.h"
 #endif
 
+#ifndef _H_fuzzyval
+#include "fuzzyval.h"
+#endif
+
+#define CF_DATA USER_ENVIRONMENT_DATA
+
+struct certaintyFactorData
+  { 
+   double Threshold_CF;
+   int rule_cf_calculation;
+  };
+  
+#define CertaintyFactorData(theEnv) ((struct certaintyFactorData *) GetEnvironmentData(theEnv,CF_DATA))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -49,38 +60,32 @@
 #define LOCALE extern
 #endif
 
-   LOCALE double                possibility( struct fuzzy_value *f1, struct fuzzy_value *f2 );
-   LOCALE double                necessity( struct fuzzy_value *f1, struct fuzzy_value *f2 );
-   LOCALE double                similarity( struct fuzzy_value *f1, struct fuzzy_value *f2 );
-   LOCALE void                  InitializeCF();
-   LOCALE struct expr           *ParseDeclareUncertainty(char *readSource,
+   LOCALE double                possibility(void *theEnv, struct fuzzy_value *f1, struct fuzzy_value *f2 );
+   LOCALE double                necessity(void *theEnv, struct fuzzy_value *f1, struct fuzzy_value *f2 );
+   LOCALE double                similarity(void *theEnv, struct fuzzy_value *f1, struct fuzzy_value *f2 );
+   LOCALE void                  InitializeCF(void *theEnv);
+   LOCALE struct expr           *ParseDeclareUncertainty(void *theEnv,char *readSource,
                                                         char *ruleName,
                                                         int *error,
                                                         double *cfVALUE);
-   LOCALE double                computeStdConclCF(double theRuleCF,
+   LOCALE double                computeStdConclCF(void *theEnv,double theRuleCF,
                                                   struct partialMatch *binds);
 #if FUZZY_DEFTEMPLATES
-   LOCALE double                computeFuzzyCrispConclCF(struct defrule *theRule,
+   LOCALE double                computeFuzzyCrispConclCF(void *theEnv,struct defrule *theRule,
                                                   struct partialMatch *binds);
 #endif
-   LOCALE void                  changeCFofNewFact(struct fact *newfact);
-   LOCALE void                  changeCFofExistingFact(struct fact *fact1,struct fact *fact2);
+   LOCALE void                  changeCFofNewFact(void *theEnv,struct fact *newfact);
+   LOCALE void                  changeCFofExistingFact(void *theEnv,struct fact *fact1,struct fact *fact2);
    LOCALE void                  changeCFofNewVsExistingFact(struct fact *fact1,struct fact *fact2);
-   LOCALE void                  cfInformationError(char *);
-   LOCALE void                  cfRangeError();
-   LOCALE void                  cfNonNumberError();
-   LOCALE void                  printCF(char *logicalName, double cf);
-   LOCALE double                getcf();
-   LOCALE void                  set_threshold();
-   LOCALE void                  unthreshold();
-   LOCALE double                get_threshold();
-	LOCALE void                  enable_rule_cf_calculation();
-	LOCALE void                  disable_rule_cf_calculation();
-
-#ifndef _CFDEF_SOURCE_
-   extern double               Threshold_CF;
-#endif
-
+   LOCALE void                  cfInformationError(void *,char *);
+   LOCALE void                  cfRangeError(void *theEnv);
+   LOCALE void                  cfNonNumberError(void *theEnv);
+   LOCALE void                  printCF(void *theEnv,char *logicalName, double cf);
+   LOCALE double                getcf(void *theEnv);
+   LOCALE void                  set_threshold(void *theEnv);
+   LOCALE double                get_threshold(void *theEnv);
+   LOCALE void                  enable_rule_cf_calculation(void *theEnv);
+   LOCALE void                  disable_rule_cf_calculation(void *theEnv);
 
 #endif
 

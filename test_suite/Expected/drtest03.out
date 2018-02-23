@@ -1,0 +1,255 @@
+TRUE
+FuzzyCLIPS> (batch "drtest03.bat")
+TRUE
+FuzzyCLIPS> (reset)                            ; DR0201
+FuzzyCLIPS> (progn (assert (red)) (retract 1)) ; DR0201
+FuzzyCLIPS> (facts)                            ; DR0201
+f-0     (initial-fact) CF 1.00 
+For a total of 1 fact.
+FuzzyCLIPS> (clear)                            ; DR0202
+FuzzyCLIPS> (deffacts stuff
+   (point 1)
+   (point 2)
+   (point 3)
+   (point 4))
+FuzzyCLIPS> (defrule get-min
+   ?x <-  (point ?min)
+   (not (point ?y&:(< ?y ?min)))
+   ?fy <- (point ?minp1&:(<> ?min ?minp1))
+   (not (point ?z&:(<> ?z ?min)&:(< ?z ?minp1)))
+   =>
+   (retract ?x ?fy)
+   (printout t "This rule fires" crlf))
+FuzzyCLIPS> (reset)                            ; DR0202
+FuzzyCLIPS> (agenda)                           ; DR0202
+0      get-min: f-1,,f-2,
+For a total of 1 activation.
+FuzzyCLIPS> (watch rules)                      ; DR0202
+FuzzyCLIPS> (run)                              ; DR0202
+FIRE    1 get-min: f-1,,f-2,
+This rule fires
+FIRE    2 get-min: f-3,,f-4,
+This rule fires
+FuzzyCLIPS> (unwatch rules)                    ; DR0202
+FuzzyCLIPS> (clear)                            ; DR0204
+FuzzyCLIPS> (defrule test
+   ?fact <- (initial-fact)
+   =>
+   (printout t "any thing" crlf)
+   (retract ?fact))
+FuzzyCLIPS> (reset)                            ; DR0204
+FuzzyCLIPS> (run)                              ; DR0204
+any thing
+FuzzyCLIPS> (clear)                            ; DR0206
+FuzzyCLIPS> (deffacts test "rebinding of mulitfield vars"
+   (_1 to see if the vars mess up if the fields are long)
+   (_2 if so what is the limit also see if there is problem with bind))
+FuzzyCLIPS> (defrule ok 
+   ?f1 <- (_1 $?one)
+   ?f2 <- (_2 ? $?two)
+   =>
+   (retract ?f1 ?f2)
+   (printout t "to see ... are long = " ?one  crlf)
+   (printout t "if so ... with bind = "?two crlf)
+   (bind ?one (create$ ?one (subseq$ ?two 1 10)))
+   (printout t ?one crlf))
+FuzzyCLIPS> (reset)                            ; DR0206
+FuzzyCLIPS> (run)                              ; DR0206
+to see ... are long = (to see if the vars mess up if the fields are long)
+if so ... with bind = (so what is the limit also see if there is problem with bind)
+(to see if the vars mess up if the fields are long so what is the limit also see if there is)
+FuzzyCLIPS> (clear)                            ; DR0207
+FuzzyCLIPS> (deffacts input
+   (gift ball shoe food "candies  " 3 1 )
+   (but we didn't have time !))
+FuzzyCLIPS> (defrule check 
+   ?f1 <- (gift ?ball $?multi)
+   ?f2 <- (but $?rest)
+   =>
+   (printout t "?ball = "?ball crlf "?multi " ?multi crlf)
+   (printout t "but " ?rest crlf)
+   (printout t "let's mess with them " crlf)
+   (bind ?multi (create$ (subseq$ ?rest 1 3)))
+   (printout t "we didn't have = " ?multi  crlf))
+FuzzyCLIPS> (reset)                            ; DR0207
+FuzzyCLIPS> (run)                              ; DR0207
+?ball = ball
+?multi (shoe food "candies  " 3 1)
+but (we didn't have time !)
+let's mess with them 
+we didn't have = (we didn't have)
+FuzzyCLIPS> (clear)                            ; DR0232
+FuzzyCLIPS> (defrule a => (initialize-it))     ; DR0232
+
+[EXPRNPSR3] Missing function declaration for initialize-it.
+
+ERROR:
+(defrule MAIN::a
+   =>
+   (initialize-it
+FuzzyCLIPS> (reset)                            ; DR0232
+FuzzyCLIPS> (run)                              ; DR0232
+FuzzyCLIPS> (format t "%6.5 " 8655.3)          ; DR0233
+[ARGACCES4] Function format expected exactly 2 argument(s)
+""
+FuzzyCLIPS> (clear)                            ; DR0235
+FuzzyCLIPS> (deftemplate colors 
+   (field standard (default white))
+   (multifield metallic (default "plain black")))
+FuzzyCLIPS> (reset)                            ; DR0235
+FuzzyCLIPS> (assert (colors))                  ; DR0235
+<Fact-1>
+FuzzyCLIPS> (assert (colors (standard black))) ; DR0235
+<Fact-2>
+FuzzyCLIPS> (assert (colors (metallic "navy blue")))
+<Fact-3>
+FuzzyCLIPS> (facts)                            ; DR0235
+f-0     (initial-fact) CF 1.00 
+f-1     (colors (standard white) (metallic "plain black")) CF 1.00 
+f-2     (colors (standard black) (metallic "plain black")) CF 1.00 
+f-3     (colors (standard white) (metallic "navy blue")) CF 1.00 
+For a total of 4 facts.
+FuzzyCLIPS> (clear)                            ; DR0238
+FuzzyCLIPS> (deftemplate auto (field name))
+FuzzyCLIPS> (defrule one 
+   ?f1 <- (auto (name nil))
+   =>
+   (modify ?f1 (namse any))) 
+
+[TMPLTDEF1] Invalid slot namse not defined in corresponding deftemplate auto.
+
+ERROR:
+(defrule MAIN::one
+   ?f1 <- (auto (name nil))
+   =>
+   (modify ?f1 (namse any)))
+FuzzyCLIPS> (reset)                            ; DR0238
+FuzzyCLIPS> (assert (auto))                    ; DR0238
+<Fact-1>
+FuzzyCLIPS> (agenda)                           ; DR0238
+FuzzyCLIPS> (run)                              ; DR0238
+FuzzyCLIPS> (format nil "%6.5f" 864)           ; DR0240
+"864.00000"
+FuzzyCLIPS> (format nil "%6.5f" 86.543)        ; DR0240
+"86.54300"
+FuzzyCLIPS> (format nil "%6.5f" 86551.)        ; DR0240    
+"86551.00000"
+FuzzyCLIPS> (clear)                            ; DR0245
+FuzzyCLIPS> (deftemplate a                     ; DR0245
+   (field one) (field two))
+FuzzyCLIPS> (defrule b
+   (not (a (one anything) (three whatever)))
+   =>)       
+
+[TMPLTDEF1] Invalid slot three not defined in corresponding deftemplate a.
+
+ERROR:
+(defrule MAIN::b
+   (not (a (one anything) (three
+FuzzyCLIPS> (clear)                            ; DR0246
+FuzzyCLIPS> (defrule error                     ; DR0246
+   ?f <- (fact)
+   =>
+   (assert (new-fact ?f))) 
+FuzzyCLIPS> (assert (fact))                    ; DR0246
+<Fact-0>
+FuzzyCLIPS> (run)                              ; DR0246
+FuzzyCLIPS> (facts)                            ; DR0246
+f-0     (fact) CF 1.00 
+f-1     (new-fact <Fact-0>) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (clear)                            ; DR0248
+FuzzyCLIPS> (deffacts a)                       ; DR0248
+FuzzyCLIPS> (clear)                            ; DR0251
+FuzzyCLIPS> (deftemplate auto (field name))    ; DR0251
+FuzzyCLIPS> (defrule one "test the naked assert & modify"
+   ?f1 <- (auto (name nil))
+   (not (auto (mane nil)))
+   =>
+   (modify ?f1 (name any)))
+
+[TMPLTDEF1] Invalid slot mane not defined in corresponding deftemplate auto.
+
+ERROR:
+(defrule MAIN::one "test the naked assert & modify"
+   ?f1 <- (auto (name nil))
+   (not (auto (mane
+FuzzyCLIPS> (str-implode (create$))          ; DR0256
+""
+FuzzyCLIPS> (clear)                            ; DR0257
+FuzzyCLIPS> (defrule foo                       ; DR0257
+   ?f1 <- (a 1) 
+   ?f2 <- (b 1)
+   (test (neq ?f1 ?f2))
+   =>)
+FuzzyCLIPS> (defrule bar                       ; DR0257
+   ?f1 <- (a ?) 
+   ?f2 <- (b ?)
+   (test (neq ?f1 ?f2))
+   =>)
+FuzzyCLIPS> (assert (a 1) (a 2) (b 1))         ; DR0257
+<Fact-2>
+FuzzyCLIPS> (agenda)                           ; DR0257
+0      foo: f-0,f-2
+0      bar: f-0,f-2
+0      bar: f-1,f-2
+For a total of 3 activations.
+FuzzyCLIPS> (clear)                            ; DR0261
+FuzzyCLIPS> (deffacts a (one =(reset)))        ; DR0261
+FuzzyCLIPS> (reset)                            ; DR0261
+FuzzyCLIPS> (facts)                            ; DR0261
+f-0     (initial-fact) CF 1.00 
+f-1     (one) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (clear)                            ; DR0279
+FuzzyCLIPS> (defrule with-error                ; DR0279
+   (value ?a&:(> ?a max))
+   =>)
+[ARGACCES5] Function > expected argument #2 to be of type integer or float
+
+ERROR:
+(defrule MAIN::with-error
+   (value ?a&:(> ?a max)
+FuzzyCLIPS> (defrule with-error-inside-not     ; DR0279
+   (not (value ?b&:(> ?b max)))
+   =>)
+[ARGACCES5] Function > expected argument #2 to be of type integer or float
+
+ERROR:
+(defrule MAIN::with-error-inside-not
+   (not (value ?b&:(> ?b max)
+FuzzyCLIPS> (clear)                            ; DR0296
+FuzzyCLIPS> (create$ / 3 1)                  ; DR0296
+(/ 3 1)
+FuzzyCLIPS> (eval "(create$ / 3 1)")         ; DR0296
+(/ 3 1)
+FuzzyCLIPS> (deffacts a (one =(eval "(create$ / 3 1)")))
+FuzzyCLIPS> (reset)                            ; DR0296
+FuzzyCLIPS> (facts)                            ; DR0296
+f-0     (initial-fact) CF 1.00 
+f-1     (one / 3 1) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (clear)                            ; DR0298
+FuzzyCLIPS> (deftemplate foo (field x) (field y))
+FuzzyCLIPS> (defrule this-rule-doesnt-work     ; DR0298
+   (foo (y ?x1) (x ?x2&~?x1))
+   =>)
+FuzzyCLIPS> (defrule this-rule-works           ; DR0298
+   (foo (y ?x1&~?x2) (x ?x2))
+   =>)
+
+[ANALYSIS4] Variable ?x2 was referenced in CE #1 slot y before being defined.
+
+ERROR:
+(defrule MAIN::this-rule-works
+   (foo (y ?x1&~?x2) (x ?x2))
+   =>)
+FuzzyCLIPS> (assert (foo (x 3) (y 4)))         ; DR0298
+<Fact-0>
+FuzzyCLIPS> (assert (foo (x 4) (y 3)))         ; DR0298
+<Fact-1>
+FuzzyCLIPS> (agenda)                           ; DR0298
+0      this-rule-doesnt-work: f-1
+0      this-rule-doesnt-work: f-0
+For a total of 2 activations.
+FuzzyCLIPS> (dribble-off)

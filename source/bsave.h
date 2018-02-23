@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/bsave.h,v 1.3 2001/08/11 21:04:09 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.10  04/13/98          */
+   /*               CLIPS Version 6.24  06/05/06          */
    /*                                                     */
    /*                 BSAVE HEADER FILE                   */
    /*******************************************************/
@@ -18,6 +16,8 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -48,40 +48,67 @@ struct BinaryItem;
 struct BinaryItem
   {
    char *name;
-   void (*findFunction)(void);
-   void (*bloadStorageFunction)(void);
-   void (*bloadFunction)(void);
-   void (*clearFunction)(void);
-   void (*expressionFunction)(FILE *);
-   void (*bsaveStorageFunction)(FILE *);
-   void (*bsaveFunction)(FILE *);
+   void (*findFunction)(void *);
+   void (*bloadStorageFunction)(void *);
+   void (*bloadFunction)(void *);
+   void (*clearFunction)(void *);
+   void (*expressionFunction)(void *,FILE *);
+   void (*bsaveStorageFunction)(void *,FILE *);
+   void (*bsaveFunction)(void *,FILE *);
    int priority;
    struct BinaryItem *next;
   };
 
+#if BLOAD_AND_BSAVE
+typedef struct bloadcntsv
+  {
+   long val;
+   struct bloadcntsv *nxt;
+  } BLOADCNTSV;
+#endif
 
 typedef struct bsave_expr
   {
-   short type;
+   unsigned short type;
    long value,arg_list,next_arg;
   } BSAVE_EXPRESSION;
 
 #define CONSTRUCT_HEADER_SIZE 20
 
-   LOCALE int                     BsaveCommand(void);
+#define BSAVE_DATA 39
+
+struct bsaveData
+  { 
+   struct BinaryItem *ListOfBinaryItems;
 #if BLOAD_AND_BSAVE
-   LOCALE BOOLEAN                 Bsave(char *);
-   LOCALE void                    MarkNeededItems(struct expr *);
-   LOCALE void                    SaveBloadCount(long);
-   LOCALE void                    RestoreBloadCount(long *);
+   BLOADCNTSV *BloadCountSaveTop;
 #endif
-#if BLOAD_AND_BSAVE || BSAVE_INSTANCES
-   LOCALE void                    GenWrite(void *,unsigned long,FILE *);
+  };
+
+#define BsaveData(theEnv) ((struct bsaveData *) GetEnvironmentData(theEnv,BSAVE_DATA))
+
+#if ENVIRONMENT_API_ONLY
+#define Bsave(theEnv,a) EnvBsave(theEnv,a)
+#else
+#define Bsave(a) EnvBsave(GetCurrentEnvironment(),a)
 #endif
-   LOCALE BOOLEAN                 AddBinaryItem(char *,int ,void (*)(void),
-                                                void (*)(FILE *),void (*)(FILE *),
-                                                void (*)(FILE *),void (*)(void),
-                                                void (*)(void),void (*)(void));
+
+   LOCALE void                    InitializeBsaveData(void *);
+   LOCALE int                     BsaveCommand(void *);
+#if BLOAD_AND_BSAVE
+   LOCALE intBool                 EnvBsave(void *,char *);
+   LOCALE void                    MarkNeededItems(void *,struct expr *);
+   LOCALE void                    SaveBloadCount(void *,long);
+   LOCALE void                    RestoreBloadCount(void *,long *);
+#endif
+   LOCALE intBool                 AddBinaryItem(void *,char *,int,
+                                                void (*)(void *),
+                                                void (*)(void *,FILE *),
+                                                void (*)(void *,FILE *),
+                                                void (*)(void *,FILE *),
+                                                void (*)(void *),
+                                                void (*)(void *),
+                                                void (*)(void *));
 
 #ifndef _BSAVE_SOURCE_
    extern struct BinaryItem      *ListOfBinaryItems;

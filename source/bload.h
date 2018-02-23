@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/bload.h,v 1.3 2001/08/11 21:04:06 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.10  04/13/98          */
+   /*               CLIPS Version 6.24  06/05/06          */
    /*                                                     */
    /*                 BLOAD HEADER FILE                   */
    /*******************************************************/
@@ -19,11 +17,16 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_bload
 #define _H_bload
 
+#ifndef _H_utility
+#include "utility.h"
+#endif
 #ifndef _H_extnfunc
 #include "extnfunc.h"
 #endif
@@ -40,6 +43,22 @@
 #include "symblbin.h"
 #endif
 
+#define BLOAD_DATA 38
+
+struct bloadData
+  { 
+   char *BinaryPrefixID;
+   char *BinaryVersionID;
+   struct FunctionDefinition **FunctionArray;
+   int BloadActive;
+   struct callFunctionItem *BeforeBloadFunctions;
+   struct callFunctionItem *AfterBloadFunctions;
+   struct callFunctionItem *ClearBloadReadyFunctions;
+   struct callFunctionItem *AbortBloadFunctions;
+  };
+
+#define BloadData(theEnv) ((struct bloadData *) GetEnvironmentData(theEnv,BLOAD_DATA))
+
 #ifdef LOCALE
 #undef LOCALE
 #endif
@@ -49,25 +68,25 @@
 #define LOCALE extern
 #endif
 
-#define FunctionPointer(i) ((struct FunctionDefinition *) (((i) == -1L) ? NULL : FunctionArray[i]))
+#define FunctionPointer(i) ((struct FunctionDefinition *) (((i) == -1L) ? NULL : BloadData(theEnv)->FunctionArray[i]))
 
-   LOCALE int                     BloadCommand(void);
-   LOCALE BOOLEAN                 Bload(char *);
-   LOCALE void                    BloadandRefresh(long,unsigned,void (*)(void *,long));
-   LOCALE BOOLEAN                 Bloaded(void);
-   LOCALE void                    AddBeforeBloadFunction(char *,void (*)(void),int);
-   LOCALE void                    AddAfterBloadFunction(char *,void (*)(void),int);
-   LOCALE void                    AddBloadReadyFunction(char *,int (*)(void),int);
-   LOCALE void                    AddClearBloadReadyFunction(char *,int (*)(void),int);
-   LOCALE void                    AddAbortBloadFunction(char *,void (*)(void),int);
-   LOCALE void                    CannotLoadWithBloadMessage(char *);
-
-#ifndef _BLOAD_SOURCE_
-   extern char                                  *BinaryPrefixID;
-   extern char                                  *BinaryVersionID;
-   extern struct FunctionDefinition            **FunctionArray;
+#if ENVIRONMENT_API_ONLY
+#define Bload(theEnv,a) EnvBload(theEnv,a)
+#else
+#define Bload(a) EnvBload(GetCurrentEnvironment(),a)
 #endif
 
-#endif
+   LOCALE void                    InitializeBloadData(void *);
+   LOCALE int                     BloadCommand(void *);
+   LOCALE intBool                 EnvBload(void *,char *);
+   LOCALE void                    BloadandRefresh(void *,long,unsigned,void (*)(void *,void *,long));
+   LOCALE intBool                 Bloaded(void *);
+   LOCALE void                    AddBeforeBloadFunction(void *,char *,void (*)(void *),int);
+   LOCALE void                    AddAfterBloadFunction(void *,char *,void (*)(void *),int);
+   LOCALE void                    AddBloadReadyFunction(void *,char *,int (*)(void),int);
+   LOCALE void                    AddClearBloadReadyFunction(void *,char *,int (*)(void *),int);
+   LOCALE void                    AddAbortBloadFunction(void *,char *,void (*)(void *),int);
+   LOCALE void                    CannotLoadWithBloadMessage(void *,char *);
 
+#endif
 

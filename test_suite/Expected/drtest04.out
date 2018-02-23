@@ -1,0 +1,88 @@
+TRUE
+FuzzyCLIPS> (batch "drtest04.bat")
+TRUE
+FuzzyCLIPS> (clear)                            ; DR0301
+FuzzyCLIPS> (assert (clock =(create$ a)))    ; DR0301 
+<Fact-0>
+FuzzyCLIPS> (clear)                            ; DR0301
+FuzzyCLIPS> (assert (clock =(create$ a)))    ; DR0301
+<Fact-0>
+FuzzyCLIPS> (clear)                            ; DR0301
+FuzzyCLIPS> (assert (clock =(create$ a)))    ; DR0301
+<Fact-0>
+FuzzyCLIPS> (clear)                            ; DR0301
+FuzzyCLIPS> (watch compile)                    ; DR0303
+[ARGACCES5] Function watch expected argument #1 to be of type watchable symbol
+FuzzyCLIPS> (subseq$)                        ; DR0305
+[ARGACCES4] Function subseq$ expected exactly 3 argument(s)
+FuzzyCLIPS> (clear)                            ; DR0336
+FuzzyCLIPS> (deffacts initial (bounds  nil))   ; DR0336
+FuzzyCLIPS> (defrule Print                     ; DR0336
+   (bounds ?type&:(or (eq ?type Cube) (eq ?type Square)))
+   =>)
+FuzzyCLIPS> (reset)                            ; DR0336
+FuzzyCLIPS> (run)                              ; DR0336
+FuzzyCLIPS> (clear)                            ; DR0363
+FuzzyCLIPS> (deftemplate a                     ; DR0363
+   (field one (default a a a)))    ; DR0363
+
+[DEFAULT1] The default value for a single field slot must be a single field value
+
+ERROR:
+(deftemplate MAIN::a
+   (field one (default a a a)
+FuzzyCLIPS> (clear)                            ; DR0365
+FuzzyCLIPS> (deftemplate bar                   ; DR0365
+   (field a) (multifield b))
+FuzzyCLIPS> (reset)                            ; DR0365
+FuzzyCLIPS> (assert (bar (b x y z) (a w)))     ; DR0365
+<Fact-1>
+FuzzyCLIPS> (assert (bar (a g) (b =(create$ h i j))))
+<Fact-2>
+FuzzyCLIPS> (facts)                            ; DR0365
+f-0     (initial-fact) CF 1.00 
+f-1     (bar (a w) (b x y z)) CF 1.00 
+f-2     (bar (a g) (b h i j)) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (clear)                            ; DR0380
+FuzzyCLIPS> (if (= 2 2)                        ; DR0380
+    then (eval (str-cat (run))))   ; DR0380
+[ARGACCES5] Function str-cat expected argument #1 to be of type string, instance name, symbol, float, or integer
+FALSE
+FuzzyCLIPS> (clear)                            ; DR0381
+FuzzyCLIPS> (deftemplate a                     ; DR0381
+   (field one
+      (max-number-of-elements 9)
+      (min-number-of-elements 3)))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for slot attributes.
+
+ERROR:
+(deftemplate MAIN::a
+   (field one (max-number-of-elements
+FuzzyCLIPS> (clear)                            ; DR0382
+FuzzyCLIPS> (deftemplate a                     ; DR0382
+   (field one (default nothing)))  ; DR0382
+FuzzyCLIPS> (assert (a (one a a a a)))         ; DR0382
+
+[TMPLTDEF2] The single field slot one can only contain a single field value.
+FuzzyCLIPS> (clear)                            ; DR0383
+FuzzyCLIPS> (deftemplate data (field one) (field two))
+FuzzyCLIPS> (assert (data (one)))              ; DR0383
+
+[TMPLTDEF2] The single field slot one can only contain a single field value.
+FuzzyCLIPS> (clear)                            ; DR0396
+FuzzyCLIPS> (create$)                        ; DR0396
+()
+FuzzyCLIPS> (str-compare (str-cat (create$)) 
+             (str-cat (create$)))
+[ARGACCES5] Function str-cat expected argument #1 to be of type string, instance name, symbol, float, or integer
+0
+FuzzyCLIPS> (clear)                            ; DR0397
+FuzzyCLIPS> (assert-string (str-cat " (" (bind ?var (read)) ")"))
+anything
+<Fact-0>
+FuzzyCLIPS> (facts)                            ; DR0397
+f-0     (anything) CF 1.00 
+For a total of 1 fact.
+FuzzyCLIPS> (dribble-off)

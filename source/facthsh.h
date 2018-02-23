@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/facthsh.h,v 1.3 2001/08/11 21:05:36 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                 FACT HASHING MODULE                 */
    /*******************************************************/
@@ -17,6 +15,8 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -36,7 +36,7 @@ struct factHashEntry
    struct factHashEntry *next;
   };
 
-#define SIZE_FACT_HASH  1013
+#define SIZE_FACT_HASH  7717
 
 #ifdef LOCALE
 #undef LOCALE
@@ -47,21 +47,26 @@ struct factHashEntry
 #define LOCALE extern
 #endif
 
-   LOCALE void                           AddHashedFact(struct fact *,int);
-   LOCALE BOOLEAN                        RemoveHashedFact(struct fact *);
-   LOCALE int                            HandleFactDuplication(void *);
-#if FUZZY_DEFTEMPLATES
-   LOCALE int                            HandleExistingFuzzyFact(VOID **);
+#if ENVIRONMENT_API_ONLY
+#define GetFactDuplication(theEnv) EnvGetFactDuplication(theEnv)
+#define SetFactDuplication(theEnv,a) EnvSetFactDuplication(theEnv,a)
+#else
+#define GetFactDuplication() EnvGetFactDuplication(GetCurrentEnvironment())
+#define SetFactDuplication(a) EnvSetFactDuplication(GetCurrentEnvironment(),a)
 #endif
-   LOCALE BOOLEAN                        GetFactDuplication(void);
-   LOCALE BOOLEAN                        SetFactDuplication(int);
-   LOCALE void                           InitializeFactHashTable(void);
-   LOCALE void                           ShowFactHashTable(void);
+
+   LOCALE void                           AddHashedFact(void *,struct fact *,int);
+   LOCALE intBool                        RemoveHashedFact(void *,struct fact *);
+   LOCALE int                            HandleFactDuplication(void *,void *);
+#if FUZZY_DEFTEMPLATES
+   LOCALE int                            HandleExistingFuzzyFact(void *,void **);
+#endif
+   LOCALE intBool                        EnvGetFactDuplication(void *);
+   LOCALE intBool                        EnvSetFactDuplication(void *,int);
+   LOCALE void                           InitializeFactHashTable(void *);
+   LOCALE void                           ShowFactHashTable(void *);
    LOCALE int                            HashFact(struct fact *);
 
 #endif
-
-
-
 
 

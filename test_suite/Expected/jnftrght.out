@@ -1,0 +1,535 @@
+TRUE
+FuzzyCLIPS> (batch "jnftrght.bat")
+TRUE
+FuzzyCLIPS> (clear)      ; Test logicals
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> 
+(defrule r1
+   (logical (exists (a ?) (b ?)))
+   (c ?)
+   =>
+   (assert (yaba)))
+FuzzyCLIPS> 
+(defrule r2
+   (exists (a ?) (b ?))
+   (c ?)
+   =>
+   (assert (daba)))
+FuzzyCLIPS> 
+(defrule r3
+   (logical (forall (a ?) (b ?)))
+   (c ?)
+   =>
+   (assert (doo)))
+FuzzyCLIPS> (reset)
+==> f-0     (initial-fact) CF 1.00 
+FuzzyCLIPS> (assert (a 1) (b 1) (a 2) (b 2) (c 1))
+==> f-1     (a 1) CF 1.00 
+==> f-2     (b 1) CF 1.00 
+==> f-3     (a 2) CF 1.00 
+==> f-4     (b 2) CF 1.00 
+==> f-5     (c 1) CF 1.00 
+==> Activation 0      r3: f-0,,f-5
+==> Activation 0      r2: f-0,,f-5
+==> Activation 0      r1: f-0,,f-5
+<Fact-5>
+FuzzyCLIPS> (run)
+==> f-6     (yaba) CF 1.00 
+==> f-7     (daba) CF 1.00 
+==> f-8     (doo) CF 1.00 
+FuzzyCLIPS> (retract 5)  ; (c 1)
+<== f-5     (c 1) CF 1.00 
+FuzzyCLIPS> (retract 1)  ; (a 1)
+<== f-1     (a 1) CF 1.00 
+FuzzyCLIPS> (retract 3)  ; (a 2)
+<== f-3     (a 2) CF 1.00 
+<== f-6     (yaba) CF 1.00 
+FuzzyCLIPS> (retract 2)  ; (b 1)
+<== f-2     (b 1) CF 1.00 
+FuzzyCLIPS> (retract 4)  ; (b 2)
+<== f-4     (b 2) CF 1.00 
+FuzzyCLIPS> (assert (a 3))
+==> f-9     (a 3) CF 1.00 
+<== f-8     (doo) CF 1.00 
+<Fact-9>
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear)      ; Test logical CE within not CE error
+FuzzyCLIPS> (defrule r1 "error" (exists (logical (a ?) (b ?))) =>)
+
+[RULELHS1] The logical CE cannot be used within a not/exists/forall CE.
+
+ERROR:
+(defrule MAIN::r1 "error"
+   (exists
+        (logical
+             
+FuzzyCLIPS> (defrule r2 "error" (forall (logical (a ?)) (b ?) (c ?)) =>)
+
+[RULELHS1] The logical CE cannot be used within a not/exists/forall CE.
+
+ERROR:
+(defrule MAIN::r2 "error"
+   (forall
+        (logical
+             
+FuzzyCLIPS> (defrule r3 "error" (not (logical (a ?) (b ?))) =>) 
+
+[RULELHS1] The logical CE cannot be used within a not/exists/forall CE.
+
+ERROR:
+(defrule MAIN::r3 "error"
+   (not (logical
+             
+FuzzyCLIPS> (clear)      ; Test forall CE
+FuzzyCLIPS> 
+(defrule all-trained
+   (forall (player ?x)
+           (batted ?x)
+           (pitched ?x))
+   =>)
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (reset)
+==> f-0     (initial-fact) CF 1.00 
+==> Activation 0      all-trained: f-0,
+FuzzyCLIPS> (agenda)
+0      all-trained: f-0,
+For a total of 1 activation.
+FuzzyCLIPS> (assert (player Gary))
+==> f-1     (player Gary) CF 1.00 
+<== Activation 0      all-trained: f-0,
+<Fact-1>
+FuzzyCLIPS> (assert (pitched Gary))
+==> f-2     (pitched Gary) CF 1.00 
+<Fact-2>
+FuzzyCLIPS> (assert (batted Gary))
+==> f-3     (batted Gary) CF 1.00 
+==> Activation 0      all-trained: f-0,
+<Fact-3>
+FuzzyCLIPS> (assert (player Brian))
+==> f-4     (player Brian) CF 1.00 
+<== Activation 0      all-trained: f-0,
+<Fact-4>
+FuzzyCLIPS> (assert (player Tom))
+==> f-5     (player Tom) CF 1.00 
+<Fact-5>
+FuzzyCLIPS> (assert (pitched Tom))
+==> f-6     (pitched Tom) CF 1.00 
+<Fact-6>
+FuzzyCLIPS> (assert (pitched Brian))
+==> f-7     (pitched Brian) CF 1.00 
+<Fact-7>
+FuzzyCLIPS> (assert (batted Tom))
+==> f-8     (batted Tom) CF 1.00 
+<Fact-8>
+FuzzyCLIPS> (assert (batted Brian))
+==> f-9     (batted Brian) CF 1.00 
+==> Activation 0      all-trained: f-0,
+<Fact-9>
+FuzzyCLIPS> (retract 8)
+<== f-8     (batted Tom) CF 1.00 
+<== Activation 0      all-trained: f-0,
+FuzzyCLIPS> (retract 5)
+<== f-5     (player Tom) CF 1.00 
+==> Activation 0      all-trained: f-0,
+FuzzyCLIPS> (reset)
+<== f-0     (initial-fact) CF 1.00 
+<== Activation 0      all-trained: f-0,
+<== f-1     (player Gary) CF 1.00 
+<== f-2     (pitched Gary) CF 1.00 
+<== f-3     (batted Gary) CF 1.00 
+<== f-4     (player Brian) CF 1.00 
+<== f-6     (pitched Tom) CF 1.00 
+<== f-7     (pitched Brian) CF 1.00 
+<== f-9     (batted Brian) CF 1.00 
+==> f-0     (initial-fact) CF 1.00 
+==> Activation 0      all-trained: f-0,
+FuzzyCLIPS> (agenda)
+0      all-trained: f-0,
+For a total of 1 activation.
+FuzzyCLIPS> (assert (player Gary))   ;1
+==> f-1     (player Gary) CF 1.00 
+<== Activation 0      all-trained: f-0,
+<Fact-1>
+FuzzyCLIPS> (assert (pitched Gary))  ;2
+==> f-2     (pitched Gary) CF 1.00 
+<Fact-2>
+FuzzyCLIPS> (assert (batted Gary))   ;3
+==> f-3     (batted Gary) CF 1.00 
+==> Activation 0      all-trained: f-0,
+<Fact-3>
+FuzzyCLIPS> (assert (player Tom))    ;4
+==> f-4     (player Tom) CF 1.00 
+<== Activation 0      all-trained: f-0,
+<Fact-4>
+FuzzyCLIPS> (assert (pitched Tom))   ;5
+==> f-5     (pitched Tom) CF 1.00 
+<Fact-5>
+FuzzyCLIPS> (assert (batted Tom))    ;6
+==> f-6     (batted Tom) CF 1.00 
+==> Activation 0      all-trained: f-0,
+<Fact-6>
+FuzzyCLIPS> (retract 6)
+<== f-6     (batted Tom) CF 1.00 
+<== Activation 0      all-trained: f-0,
+FuzzyCLIPS> (retract 4)
+<== f-4     (player Tom) CF 1.00 
+==> Activation 0      all-trained: f-0,
+FuzzyCLIPS> (reset)
+<== f-0     (initial-fact) CF 1.00 
+<== Activation 0      all-trained: f-0,
+<== f-1     (player Gary) CF 1.00 
+<== f-2     (pitched Gary) CF 1.00 
+<== f-3     (batted Gary) CF 1.00 
+<== f-5     (pitched Tom) CF 1.00 
+==> f-0     (initial-fact) CF 1.00 
+==> Activation 0      all-trained: f-0,
+FuzzyCLIPS> (agenda)
+0      all-trained: f-0,
+For a total of 1 activation.
+FuzzyCLIPS> (assert (player Gary))   ;1
+==> f-1     (player Gary) CF 1.00 
+<== Activation 0      all-trained: f-0,
+<Fact-1>
+FuzzyCLIPS> (assert (pitched Gary))  ;2
+==> f-2     (pitched Gary) CF 1.00 
+<Fact-2>
+FuzzyCLIPS> (assert (batted Gary))   ;3
+==> f-3     (batted Gary) CF 1.00 
+==> Activation 0      all-trained: f-0,
+<Fact-3>
+FuzzyCLIPS> (retract 3)
+<== f-3     (batted Gary) CF 1.00 
+<== Activation 0      all-trained: f-0,
+FuzzyCLIPS> (retract 1)
+<== f-1     (player Gary) CF 1.00 
+==> Activation 0      all-trained: f-0,
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> 
+(defrule rule-1
+  (declare (salience 5))
+  (forall (a ?x) (b ?x) (c ?x))
+  =>)
+FuzzyCLIPS> 
+(defrule rule-2
+  (declare (salience 4))
+  (exists (a ?x) (b ?x) (c ?x))
+  =>)
+FuzzyCLIPS> 
+(defrule rule-3
+  (declare (salience 3))
+  (not (and (a ?x) (b ?x)))
+  =>)
+FuzzyCLIPS> 
+(defrule rule-4
+  (declare (salience 2))
+  (not (and (b ?x) (d ?x)))
+  =>)
+FuzzyCLIPS> 
+(defrule rule-5
+  (declare (salience 1))
+  (forall (d ?x) (e ?x) (f ?x))
+  =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+5      rule-1: f-0,
+3      rule-3: f-0,
+2      rule-4: f-0,
+1      rule-5: f-0,
+For a total of 4 activations.
+FuzzyCLIPS> (assert (a 1) (a 2) (a 3))
+<Fact-3>
+FuzzyCLIPS> (agenda)
+3      rule-3: f-0,
+2      rule-4: f-0,
+1      rule-5: f-0,
+For a total of 3 activations.
+FuzzyCLIPS> (assert (b 1) (b 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+2      rule-4: f-0,
+1      rule-5: f-0,
+For a total of 2 activations.
+FuzzyCLIPS> (assert (c 2) (c 3) (c 4) (c 5))
+<Fact-9>
+FuzzyCLIPS> (agenda)
+4      rule-2: f-0,
+2      rule-4: f-0,
+1      rule-5: f-0,
+For a total of 3 activations.
+FuzzyCLIPS> (assert (d 3) (d 4))
+<Fact-11>
+FuzzyCLIPS> (agenda)
+4      rule-2: f-0,
+2      rule-4: f-0,
+For a total of 2 activations.
+FuzzyCLIPS> (assert (e 3) (e 4))
+<Fact-13>
+FuzzyCLIPS> (agenda)
+4      rule-2: f-0,
+2      rule-4: f-0,
+For a total of 2 activations.
+FuzzyCLIPS> (assert (f 3) (f 4))
+<Fact-15>
+FuzzyCLIPS> (agenda)
+4      rule-2: f-0,
+2      rule-4: f-0,
+1      rule-5: f-0,
+For a total of 3 activations.
+FuzzyCLIPS> (assert (b 3) (c 1))
+<Fact-17>
+FuzzyCLIPS> (agenda)
+5      rule-1: f-0,
+4      rule-2: f-0,
+1      rule-5: f-0,
+For a total of 3 activations.
+FuzzyCLIPS> (retract 2 3 4)
+FuzzyCLIPS> (agenda)
+3      rule-3: f-0,
+1      rule-5: f-0,
+For a total of 2 activations.
+FuzzyCLIPS> (assert (d 2))
+<Fact-18>
+FuzzyCLIPS> (agenda)
+3      rule-3: f-0,
+For a total of 1 activation.
+FuzzyCLIPS> (retract 10)
+FuzzyCLIPS> (agenda)
+3      rule-3: f-0,
+For a total of 1 activation.
+FuzzyCLIPS> (retract 1)
+FuzzyCLIPS> (agenda)
+5      rule-1: f-0,
+3      rule-3: f-0,
+For a total of 2 activations.
+FuzzyCLIPS> (retract 5 6 7 8 9)
+FuzzyCLIPS> (agenda)
+5      rule-1: f-0,
+3      rule-3: f-0,
+2      rule-4: f-0,
+For a total of 3 activations.
+FuzzyCLIPS> (retract 11 13 15)
+FuzzyCLIPS> (agenda)
+5      rule-1: f-0,
+3      rule-3: f-0,
+2      rule-4: f-0,
+For a total of 3 activations.
+FuzzyCLIPS> (retract 18)
+FuzzyCLIPS> (agenda)
+5      rule-1: f-0,
+3      rule-3: f-0,
+2      rule-4: f-0,
+1      rule-5: f-0,
+For a total of 4 activations.
+FuzzyCLIPS> (retract 12 14 16 17)
+FuzzyCLIPS> (agenda)
+5      rule-1: f-0,
+3      rule-3: f-0,
+2      rule-4: f-0,
+1      rule-5: f-0,
+For a total of 4 activations.
+FuzzyCLIPS> (clear) ; Test combinations of variable use
+FuzzyCLIPS> 
+(defrule foo-1
+  (a ?x)
+  (not (and (b ?x) (c ?x) (d ?x)))
+  (e ?x)
+  (f ?x)
+  =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (a 3) (e 3) (f 3))
+<Fact-3>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-1: f-1,,f-2,f-3
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b 4) (c 4) (d 4))
+<Fact-6>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-1: f-1,,f-2,f-3
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b 3) (c 3) (d 3))
+<Fact-9>
+FuzzyCLIPS> (agenda) ;; Should have no activations
+FuzzyCLIPS> (retract 1 2 3)
+FuzzyCLIPS> (agenda) ;; Should have no activations
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule foo-2
+  (a ?x)
+  (not (and (b ?x) (c ?x) (d ?x)))
+  (not (and (e ?x) (f ?x) (g ?x)))
+  (h ?x)
+  (i ?x)
+  =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (a 3) (h 3) (i 3))
+<Fact-3>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-2: f-1,,,f-2,f-3
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b 4) (c 4) (d 4))
+<Fact-6>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-2: f-1,,,f-2,f-3
+For a total of 1 activation.
+FuzzyCLIPS> (assert (e 5) (f 5) (g 5))
+<Fact-9>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-2: f-1,,,f-2,f-3
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b 3) (c 3) (d 3))
+<Fact-12>
+FuzzyCLIPS> (agenda) ;; Should have no activations
+FuzzyCLIPS> (assert (e 3) (f 3) (g 3))
+<Fact-15>
+FuzzyCLIPS> (agenda) ;; Should have no activations
+FuzzyCLIPS> (retract 10 11 12)
+FuzzyCLIPS> (agenda) ;; Should have no activations
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule foo-3
+  (a ?x)
+  (b ?x)
+  (not (and (c ?x) (d ?x)))
+  (e ?x)
+  =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (a 3) (b 3) (e 3))
+<Fact-3>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-3: f-1,f-2,,f-3
+For a total of 1 activation.
+FuzzyCLIPS> (assert (c 4) (d 4))
+<Fact-5>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-3: f-1,f-2,,f-3
+For a total of 1 activation.
+FuzzyCLIPS> (assert (c 3) (d 3))
+<Fact-7>
+FuzzyCLIPS> (agenda) ;; Should have no activations
+FuzzyCLIPS> (retract 1 2 3)
+FuzzyCLIPS> (agenda) ;; Should have no activations
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule foo-4
+  (a ?x)
+  (not (and (b ?x) 
+            (c ?x)
+            (not (and (e ?x) (f ?x) (g ?x)))
+            (h ?x)))
+  (i ?x)
+  =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (a 3) (i 3))
+<Fact-2>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-4: f-1,,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b 4) (c 4) (h 4))
+<Fact-5>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-4: f-1,,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (assert (e 4) (f 4) (g 4))
+<Fact-8>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-4: f-1,,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b 3) (c 3) (h 3))
+<Fact-11>
+FuzzyCLIPS> (agenda) ;; Should have no activations
+FuzzyCLIPS> (assert (e 3) (f 3) (g 3))
+<Fact-14>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-4: f-1,,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (retract 9 10 11)
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-4: f-1,,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule foo-5
+  (a ?x)
+  (not (and (b ?) 
+            (c ?x)
+            (not (and (d ?) (e ?) (f ?)))
+            (g ?x)))
+  (h ?x)
+  =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (a 3) (h 3))
+<Fact-2>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-5: f-1,,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b 4) (c 4) (g 4))
+<Fact-5>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-5: f-1,,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b 3) (c 3) (g 3))
+<Fact-8>
+FuzzyCLIPS> (agenda) ;; Should have no activations
+FuzzyCLIPS> (assert (d 1) (e 2) (f 3))
+<Fact-11>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-5: f-1,,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (retract 3 4 5)
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-5: f-1,,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule foo-6
+  (a ?)
+  (not (and (b ?) 
+            (c ?)
+            (not (and (d ?) 
+                      (e ?x)))
+            (f ?x)))
+  (g ?)
+  =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (a 3) (g 3))
+<Fact-2>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-6: f-1,,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b 4) (c 4) (f 4))
+<Fact-5>
+FuzzyCLIPS> (agenda) ;; Should have no activations
+FuzzyCLIPS> (assert (d 1) (e 3))
+<Fact-7>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-6: f-1,,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (assert (e 4))
+<Fact-8>
+FuzzyCLIPS> (agenda) ;; Should have activations
+0      foo-6: f-1,,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ;; Test not/or
+FuzzyCLIPS> (defrule foo (not (or (a) (b))) =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+0      foo: f-0,,
+For a total of 1 activation.
+FuzzyCLIPS> (assert (a))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (retract 1)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (retract 2)
+FuzzyCLIPS> (agenda)
+0      foo: f-0,,
+For a total of 1 activation.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (dribble-off)

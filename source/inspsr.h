@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/inspsr.h,v 1.3 2001/08/11 21:06:36 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -38,18 +36,16 @@
 #endif
 
 #if ! RUN_TIME
-LOCALE EXPRESSION *ParseInitializeInstance(EXPRESSION *,char *);
-LOCALE EXPRESSION *ParseSlotOverrides(char *,int *);
+LOCALE EXPRESSION *ParseInitializeInstance(void *,EXPRESSION *,char *);
+LOCALE EXPRESSION *ParseSlotOverrides(void *,char *,int *);
 #endif
 
-LOCALE EXPRESSION *ParseSimpleInstance(EXPRESSION *,char *);
+LOCALE EXPRESSION *ParseSimpleInstance(void *,EXPRESSION *,char *);
 
 #ifndef _INSCOM_SOURCE_
 #endif
 
 #endif
-
-
 
 
 

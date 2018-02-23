@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/exprnbin.h,v 1.3 2001/08/11 21:05:22 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*           EXPRESSION BLOAD/BSAVE HEADER FILE        */
    /*******************************************************/
@@ -42,21 +40,16 @@
 #define LOCALE extern
 #endif
 
-#define ExpressionPointer(i) ((struct expr *) (((i) == -1L) ? NULL : &ExpressionArray[i]))
+#define ExpressionPointer(i) ((struct expr *) (((i) == -1L) ? NULL : &ExpressionData(theEnv)->ExpressionArray[i]))
 #define HashedExpressionPointer(i) ExpressionPointer(i)
 
-   LOCALE void                        AllocateExpressions(void);
-   LOCALE void                        RefreshExpressions(void);
-   LOCALE void                        ClearBloadedExpressions(void);
-   LOCALE void                        FindHashedExpressions(void);
-   LOCALE void                        BsaveHashedExpressions(FILE *);
-   LOCALE void                        BsaveConstructExpressions(FILE *);
-   LOCALE void                        BsaveExpression(struct expr *,FILE *);
-
-#ifndef _EXPRNBIN_SOURCE_
-   extern struct expr                           *ExpressionArray;
-   extern long int                               ExpressionCount;
-#endif
+   LOCALE void                        AllocateExpressions(void *);
+   LOCALE void                        RefreshExpressions(void *);
+   LOCALE void                        ClearBloadedExpressions(void *);
+   LOCALE void                        FindHashedExpressions(void *);
+   LOCALE void                        BsaveHashedExpressions(void *,FILE *);
+   LOCALE void                        BsaveConstructExpressions(void *,FILE *);
+   LOCALE void                        BsaveExpression(void *,struct expr *,FILE *);
 
 #endif
 

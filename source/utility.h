@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/utility.h,v 1.3 2001/08/11 21:08:22 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                 UTILITY HEADER FILE                 */
    /*******************************************************/
@@ -21,6 +19,8 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_utility
@@ -30,43 +30,85 @@
 #undef LOCALE
 #endif
 
+struct cleanupFunction
+  {
+   char *name;
+   void (*ip)(void *);
+   int priority;
+   struct cleanupFunction *next;
+   short int environmentAware;
+  };
+
 struct callFunctionItem
   {
    char *name;
-   void (*func)(void);
+   void (*func)(void *);
    int priority;
    struct callFunctionItem *next;
+   short int environmentAware;
+  };
+  
+#define UTILITY_DATA 55
+
+struct utilityData
+  { 
+   struct cleanupFunction *ListOfCleanupFunctions;
+   struct cleanupFunction *ListOfPeriodicFunctions;
+   short GarbageCollectionLocks;
+   short GarbageCollectionHeuristicsEnabled;
+   short PeriodicFunctionsEnabled;
+   short YieldFunctionEnabled;
+   unsigned long EphemeralItemCount;
+   unsigned long EphemeralItemSize;
+   unsigned long CurrentEphemeralCountMax;
+   unsigned long CurrentEphemeralSizeMax;
+   void (*YieldTimeFunction)(void);
+   int LastEvaluationDepth ;
   };
 
+#define UtilityData(theEnv) ((struct utilityData *) GetEnvironmentData(theEnv,UTILITY_DATA))
+  
 #ifdef _UTILITY_SOURCE_
 #define LOCALE
 #else
 #define LOCALE extern
 #endif
 
-   LOCALE void                           PeriodicCleanup(BOOLEAN,BOOLEAN);
-   LOCALE BOOLEAN                        AddCleanupFunction(char *,void (*)(void),int);
-   LOCALE BOOLEAN                        AddPeriodicFunction(char *,void (*)(void),int);
-   LOCALE BOOLEAN                        RemoveCleanupFunction(char *);
-   LOCALE BOOLEAN                        RemovePeriodicFunction(char *);
-   LOCALE char                          *AppendStrings(char *,char *);
-   LOCALE char                          *StringPrintForm(char *);
-   LOCALE char                          *AppendToString(char *,char *,int *,int *);
-   LOCALE char                          *AppendNToString(char *,char *,int,int *,int *);
-   LOCALE char                          *ExpandStringWithChar(int,char *,int *,int *,int);
-   LOCALE struct callFunctionItem       *AddFunctionToCallList(char *,int,void (*)(void),
-                                                               struct callFunctionItem *);
-   LOCALE struct callFunctionItem       *RemoveFunctionFromCallList(char *,
+#if ENVIRONMENT_API_ONLY
+#define DecrementGCLocks(theEnv) EnvDecrementGCLocks(theEnv)
+#define IncrementGCLocks(theEnv) EnvIncrementGCLocks(theEnv)
+#define RemovePeriodicFunction(theEnv,a) EnvRemovePeriodicFunction(theEnv,a)
+#else
+#define DecrementGCLocks() EnvDecrementGCLocks(GetCurrentEnvironment())
+#define IncrementGCLocks() EnvIncrementGCLocks(GetCurrentEnvironment())
+#define RemovePeriodicFunction(a) EnvRemovePeriodicFunction(GetCurrentEnvironment(),a)
+#endif
+
+   LOCALE void                           InitializeUtilityData(void *);
+   LOCALE void                           PeriodicCleanup(void *,intBool,intBool);
+   LOCALE intBool                        AddCleanupFunction(void *,char *,void (*)(void *),int);
+   LOCALE intBool                        EnvAddPeriodicFunction(void *,char *,void (*)(void *),int);
+   LOCALE intBool                        AddPeriodicFunction(char *,void (*)(void),int);
+   LOCALE intBool                        RemoveCleanupFunction(void *,char *);
+   LOCALE intBool                        EnvRemovePeriodicFunction(void *,char *);
+   LOCALE char                          *AppendStrings(void *,char *,char *);
+   LOCALE char                          *StringPrintForm(void *,char *);
+   LOCALE char                          *AppendToString(void *,char *,char *,int *,unsigned *);
+   LOCALE char                          *AppendNToString(void *,char *,char *,unsigned,int *,unsigned *);
+   LOCALE char                          *ExpandStringWithChar(void *,int,char *,int *,unsigned *,unsigned);
+   LOCALE struct callFunctionItem       *AddFunctionToCallList(void *,char *,int,void (*)(void *),
+                                                               struct callFunctionItem *,intBool);
+   LOCALE struct callFunctionItem       *RemoveFunctionFromCallList(void *,char *,
                                                              struct callFunctionItem *,
                                                              int *);
-   LOCALE int                            ItemHashValue(int,void *,int);
-   LOCALE void                           YieldTime(void);
-
-#ifndef _UTILITY_SOURCE_
-   extern unsigned long               EphemeralItemCount;
-   extern unsigned long               EphemeralItemSize;
-   extern void                      (*YieldTimeFunction)(void);
-#endif
+   LOCALE void                           DeallocateCallList(void *,struct callFunctionItem *);
+   LOCALE unsigned                       ItemHashValue(void *,unsigned short,void *,unsigned);
+   LOCALE void                           YieldTime(void *);
+   LOCALE short                          SetGarbageCollectionHeuristics(void *,short);
+   LOCALE void                           EnvIncrementGCLocks(void *);
+   LOCALE void                           EnvDecrementGCLocks(void *);
+   LOCALE short                          EnablePeriodicFunctions(void *,short);
+   LOCALE short                          EnableYieldFunction(void *,short);
 
 #endif
 

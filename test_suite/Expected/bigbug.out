@@ -1,0 +1,23 @@
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (release-mem)
+4967 ;; A different number is OK
+FuzzyCLIPS> (mem-used)
+52109 ;; Reference mem-used number
+FuzzyCLIPS> (load-facts bigbug.dat)
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (release-mem)
+379567 ;; A different number is OK
+FuzzyCLIPS> (mem-used)
+52109 ;; Should be the same as above
+FuzzyCLIPS> (load bigbug.clp)
+:
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (release-mem)
+379702 ;; A different number is OK
+FuzzyCLIPS> (mem-used)
+52109 ;; Should be the same as above
+FuzzyCLIPS> (dribble-off)

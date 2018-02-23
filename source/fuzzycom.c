@@ -1,4 +1,3 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/fuzzycom.c,v 1.3 2001/08/11 21:05:50 dave Exp $" ;
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
@@ -92,31 +91,24 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/fuzzycom.c,v 1.3 2001/08/1
     Local Internal Function Declarations
  ******************************************************************/
  
-    static struct fuzzyLv *getFuzzyUniversePtr(DATA_OBJECT *theResult, char *functionName, int argn);
-    static struct fuzzy_value *getFuzzyValuePtr(DATA_OBJECT *theResult, char *functionName, int argn);
-    static char          *u_to_string ( struct fuzzyLv *up, int *length );
+    static struct fuzzyLv *getFuzzyUniversePtr(void *theEnv,DATA_OBJECT *theResult, char *functionName, int argn);
+    static struct fuzzy_value *getFuzzyValuePtr(void *theEnv,DATA_OBJECT *theResult, char *functionName, int argn);
+    static char          *u_to_string ( void *theEnv, struct fuzzyLv *up, int *length );
     static char          *fs_to_string ( struct fact *factPtr, int *length );
-    static double         moment_defuzzification( struct fuzzy_value *fvPtr );  
+    static double         moment_defuzzification( void *,struct fuzzy_value *fvPtr );  
     static VOID           assert_defuzzified_fact( char *name, double value);
     static VOID           get_moment_and_area ( double *moment_ptr, double *area_ptr, double x1,
                                                 double y1, double x2, double y2 );
-    static double         maximum_defuzzification( struct fuzzy_value *fvPtr );  
-    static char          *fv_to_string ( struct fuzzy_value *fv_ptr, int *length_ptr );    
-    static struct expr   *CreateFuzzyValueParse( struct expr *top, char *logName );
-    globle BOOLEAN        is_defuzzify_value_valid(void); /* Changed from static to global to avoid
+    static double         maximum_defuzzification(void *, struct fuzzy_value *fvPtr );  
+    static char          *fv_to_string ( void *theEnv, struct fuzzy_value *fv_ptr, int *length_ptr );    
+    static struct expr   *CreateFuzzyValueParse( void *theEnv, struct expr *top, char *logName );
+    globle intBool        is_defuzzify_value_valid(void *); /* Changed from static to global to avoid
 								compiler warning DPW 22 May 2001 */
 
 /******************************************************************
     Local Internal Variable Declarations
  ******************************************************************/
    
-   /* ALL defuzzify functions must set this variable before exiting. 
-      They must set it to TRUE if the defuzzify is valid or
-      to FALSE if it is returning a default value when the
-      defuzzificztion is undefined (e.g. moment-defuzzify being done
-      for a fuzzy set that has zero area)
-   */
-   static BOOLEAN is_last_defuzzify_valid = TRUE;
    
 /******************************************************************
     Global External Variable Declarations
@@ -138,52 +130,53 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/fuzzycom.c,v 1.3 2001/08/1
 **************************************************************/
 
 
-globle VOID DeffuzzyCommands()
+globle void DeffuzzyCommands(
+  void *theEnv)
 {
 
 #if ! RUN_TIME
  
- DefineFunction2("moment-defuzzify",'d',PTIF moment_defuzzify, "moment_defuzzify", "11Z");
- DefineFunction2("maximum-defuzzify",'d',PTIF maximum_defuzzify, "maximum_defuzzify", "11Z");
- DefineFunction2("get-u", 'w', PTIF getu, "getu", "11Z");
- DefineFunction2("get-u-from", 'd', PTIF getu_from, "getu_from", "11Z");
- DefineFunction2("get-u-to", 'd', PTIF getu_to, "getu_to", "11Z");
- DefineFunction2("get-u-units", 'w', PTIF getu_units, "getu_units", "11Z");
- DefineFunction2("get-fs", 'w', PTIF get_fs, "get_fs", "11Z");
- DefineFunction2("get-fs-lv", 'w', PTIF get_fs_lv, "get_fs_lv", "11Z");
- DefineFunction2("get-fs-template", 'w', PTIF get_fs_template, "get_fs_template", "11Z");
- DefineFunction2("get-fs-value", 'd', PTIF get_fs_value, "get_fs_value", "22*Zn");
- DefineFunction2("get-fs-length", 'i', PTIF get_fs_length, "get_fs_length", "11Z");
- DefineFunction2("get-fs-x", 'd', PTIF get_fs_x, "get_fs_x", "22*Zi");
- DefineFunction2("get-fs-y", 'd', PTIF get_fs_y, "get_fs_y", "22*Zi");
- DefineFunction2("add-fuzzy-modifier", 'v', PTIF add_fuzzy_modifier, 
+ EnvDefineFunction2(theEnv,"moment-defuzzify",'d',PTIEF moment_defuzzify, "moment_defuzzify", "11Z");
+ EnvDefineFunction2(theEnv,"maximum-defuzzify",'d',PTIEF maximum_defuzzify, "maximum_defuzzify", "11Z");
+ EnvDefineFunction2(theEnv,"get-u", 'w', PTIEF getu, "getu", "11Z");
+ EnvDefineFunction2(theEnv,"get-u-from", 'd', PTIEF getu_from, "getu_from", "11Z");
+ EnvDefineFunction2(theEnv,"get-u-to", 'd', PTIEF getu_to, "getu_to", "11Z");
+ EnvDefineFunction2(theEnv,"get-u-units", 'w', PTIEF getu_units, "getu_units", "11Z");
+ EnvDefineFunction2(theEnv,"get-fs", 'w', PTIEF get_fs, "get_fs", "11Z");
+ EnvDefineFunction2(theEnv,"get-fs-lv", 'w', PTIEF get_fs_lv, "get_fs_lv", "11Z");
+ EnvDefineFunction2(theEnv,"get-fs-template", 'w', PTIEF get_fs_template, "get_fs_template", "11Z");
+ EnvDefineFunction2(theEnv,"get-fs-value", 'd', PTIEF get_fs_value, "get_fs_value", "22*Zn");
+ EnvDefineFunction2(theEnv,"get-fs-length", 'i', PTIEF get_fs_length, "get_fs_length", "11Z");
+ EnvDefineFunction2(theEnv,"get-fs-x", 'd', PTIEF get_fs_x, "get_fs_x", "22*Zi");
+ EnvDefineFunction2(theEnv,"get-fs-y", 'd', PTIEF get_fs_y, "get_fs_y", "22*Zi");
+ EnvDefineFunction2(theEnv,"add-fuzzy-modifier", 'v', PTIEF add_fuzzy_modifier, 
                  "add_fuzzy_modifier", "22*ww");
- DefineFunction2("remove-fuzzy-modifier", 'v', PTIF remove_fuzzy_modifier, 
+ EnvDefineFunction2(theEnv,"remove-fuzzy-modifier", 'v', PTIEF remove_fuzzy_modifier, 
                  "remove_fuzzy_modifier", "11*w");
- DefineFunction2("set-fuzzy-inference-type", 'v', PTIF set_fuzzy_inference_type, 
+ EnvDefineFunction2(theEnv,"set-fuzzy-inference-type", 'v', PTIEF set_fuzzy_inference_type, 
                  "set_fuzzy_inference_type", "11*w");
- DefineFunction2("get-fuzzy-inference-type", 'w', PTIF get_fuzzy_inference_type, 
+ EnvDefineFunction2(theEnv,"get-fuzzy-inference-type", 'w', PTIEF get_fuzzy_inference_type, 
                  "get_fuzzy_inference_type", "00");
- DefineFunction2("set-fuzzy-display-precision", 'v', PTIF set_fuzzy_display_precision, 
+ EnvDefineFunction2(theEnv,"set-fuzzy-display-precision", 'v', PTIEF set_fuzzy_display_precision, 
                  "set_fuzzy_display_precision", "11*l");
- DefineFunction2("get-fuzzy-display-precision", 'l', PTIF get_fuzzy_display_precision, 
+ EnvDefineFunction2(theEnv,"get-fuzzy-display-precision", 'l', PTIEF get_fuzzy_display_precision, 
                  "get_fuzzy_display_precision", "00");
- DefineFunction2("plot-fuzzy-value", 'v', PTIF plot_fuzzy_value, 
+ EnvDefineFunction2(theEnv,"plot-fuzzy-value", 'v', PTIEF plot_fuzzy_value, 
                  "plot_fuzzy_value", "5*ZkkggZ");
- DefineFunction2("set-alpha-value", 'v', PTIF set_alpha_value, "set_alpha_value", "11n");
- DefineFunction2("get-alpha-value", 'd', PTIF get_alpha_value, "get_alpha_value", "00");
- DefineFunction2("get-fuzzy-slot", 'F', PTIF get_fuzzy_slot, "get_fuzzy_slot", "12*zw");
- DefineFunction2("create-fuzzy-value", 'F', PTIF create_fuzzy_value, "create_fuzzy_value", NULL);
- DefineFunction2("fuzzy-union", 'F', PTIF fuzzy_union, "fuzzy_union", "22*FF");
- DefineFunction2("fuzzy-intersection", 'F', PTIF fuzzy_intersection, "fuzzy_intersection", "22*FF");
- DefineFunction2("fuzzy-modify", 'F', PTIF fuzzy_modify, "fuzzy_modify", "22*Fw");
- DefineFunction2("is-defuzzify-value-valid", 'b', is_defuzzify_value_valid, "is_defuzzify_value_valid", "00");
+ EnvDefineFunction2(theEnv,"set-alpha-value", 'v', PTIEF set_alpha_value, "set_alpha_value", "11n");
+ EnvDefineFunction2(theEnv,"get-alpha-value", 'd', PTIEF get_alpha_value, "get_alpha_value", "00");
+ EnvDefineFunction2(theEnv,"get-fuzzy-slot", 'F', PTIEF get_fuzzy_slot, "get_fuzzy_slot", "12*zw");
+ EnvDefineFunction2(theEnv,"create-fuzzy-value", 'F', PTIEF create_fuzzy_value, "create_fuzzy_value", NULL);
+ EnvDefineFunction2(theEnv,"fuzzy-union", 'F', PTIEF fuzzy_union, "fuzzy_union", "22*FF");
+ EnvDefineFunction2(theEnv,"fuzzy-intersection", 'F', PTIEF fuzzy_intersection, "fuzzy_intersection", "22*FF");
+ EnvDefineFunction2(theEnv,"fuzzy-modify", 'F', PTIEF fuzzy_modify, "fuzzy_modify", "22*Fw");
+ EnvDefineFunction2(theEnv,"is-defuzzify-value-valid", 'b', is_defuzzify_value_valid, "is_defuzzify_value_valid", "00");
 
 
  /* Special parser for the create-fuzzy-value function -- needs to handle
     linguistic expressions and standard or singleton fuzzy set expressions
  */
- AddFunctionParser("create-fuzzy-value", CreateFuzzyValueParse);
+ AddFunctionParser(theEnv,"create-fuzzy-value", CreateFuzzyValueParse);
 
 #endif
 
@@ -193,14 +186,15 @@ globle VOID DeffuzzyCommands()
 /****************************************/
 /* is_defuzzify_value_valid:            */
 /****************************************/
-globle BOOLEAN is_defuzzify_value_valid()
+globle intBool is_defuzzify_value_valid(
+  void *theEnv)
   {
-   if (ArgCountCheck("is-defuzzify-value-valid",EXACTLY,0) == -1)
+   if (EnvArgCountCheck(theEnv,"is-defuzzify-value-valid",EXACTLY,0) == -1)
      {
-      SetEvaluationError(TRUE);
+      SetEvaluationError(theEnv,TRUE);
      }
 
-   return(is_last_defuzzify_valid);
+   return(FuzzyData(theEnv)->is_last_defuzzify_valid);
   }
 
 
@@ -222,6 +216,7 @@ globle BOOLEAN is_defuzzify_value_valid()
     or NULL if error occurred
 ************************************************************/
 static struct fuzzy_value *seeIfFuzzyFact( 
+  void *theEnv,
   DATA_OBJECT  *theResult,
   char *functionName,
   int argn)
@@ -237,11 +232,11 @@ static struct fuzzy_value *seeIfFuzzyFact(
        factIndex = ValueToLong(theResult->value); 
        if (factIndex < 0)
          {            
-           ExpectedTypeError1(functionName,argn,"fact-index must be positive");
+           ExpectedTypeError1(theEnv,functionName,argn,"fact-index must be positive");
            return(NULL);
          }
        found_fact = FALSE;
-       factPtr = (struct fact *) GetNextFact(NULL);
+       factPtr = (struct fact *) EnvGetNextFact(theEnv,NULL);
        while (factPtr != NULL)
          {
            if (factPtr->factIndex == factIndex)
@@ -255,7 +250,7 @@ static struct fuzzy_value *seeIfFuzzyFact(
        if (found_fact == FALSE)
          {
            sprintf(tempBuffer,"f-%ld",factIndex);
-           CantFindItemErrorMessage("fuzzy fact",tempBuffer);
+           CantFindItemErrorMessage(theEnv,"fuzzy fact",tempBuffer);
            return(NULL);
          }
       }
@@ -273,7 +268,7 @@ static struct fuzzy_value *seeIfFuzzyFact(
     else 
       {
         sprintf(tempBuffer,"f-%ld (or NOT a fuzzy fact)",factPtr->factIndex);
-        CantFindItemErrorMessage("fact", tempBuffer);
+        CantFindItemErrorMessage(theEnv,"fact", tempBuffer);
         return( NULL );
       }
 }
@@ -288,18 +283,19 @@ static struct fuzzy_value *seeIfFuzzyFact(
     returns a ptr to a fact or NULL if error occurred
 ************************************************************/
 static struct fuzzy_value *getFuzzyValuePtr(
+  void *theEnv,
   DATA_OBJECT  *theResult,
   char *functionName,
   int argn)
 {      
    if ((theResult->type == INTEGER) || (theResult->type == FACT_ADDRESS))
      {
-       return( seeIfFuzzyFact(theResult, functionName, argn) );
+       return( seeIfFuzzyFact(theEnv,theResult, functionName, argn) );
      }
    else if (theResult->type == FUZZY_VALUE)
       return( (struct fuzzy_value *)ValueToFuzzyValue(theResult->value) );
    
-   ExpectedTypeError1(functionName,argn,"fact-index/fact-address of fuzzy fact or FUZZY_VALUE");
+   ExpectedTypeError1(theEnv,functionName,argn,"fact-index/fact-address of fuzzy fact or FUZZY_VALUE");
    return( NULL );
 }
 
@@ -313,26 +309,27 @@ static struct fuzzy_value *getFuzzyValuePtr(
     the fuzzy value
     
 ************************************************************/
-globle VOID *get_fs_template()
+globle void *get_fs_template(
+  void *theEnv)
 
 {
    struct fuzzy_value *fvPtr;
    DATA_OBJECT theArgument;
   
-   if (ArgCountCheck("get-u-units",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"get-u-units",EXACTLY,1) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
-       fvPtr = getFuzzyValuePtr(&theArgument, "get-fs-template", 1);
+       fvPtr = getFuzzyValuePtr(theEnv,&theArgument, "get-fs-template", 1);
          
        if (fvPtr != NULL && fvPtr->whichDeftemplate != NULL)
          {
-           return( (VOID *)(fvPtr->whichDeftemplate->header.name) );
+           return( (void *)(fvPtr->whichDeftemplate->header.name) );
          }
       }    
         
-    SetEvaluationError(TRUE);
-    return((VOID *) AddSymbol(""));
+    SetEvaluationError(theEnv,TRUE);
+    return((void *) EnvAddSymbol(theEnv,""));
 }
 
 
@@ -348,6 +345,7 @@ globle VOID *get_fs_template()
     error occurred
 ************************************************************/
 static struct fuzzyLv *getFuzzyUniversePtr(
+  void *theEnv,
   DATA_OBJECT  *theResult,
   char *functionName,
   int argn)
@@ -357,7 +355,7 @@ static struct fuzzyLv *getFuzzyUniversePtr(
          
    if ((theResult->type == INTEGER) || (theResult->type == FACT_ADDRESS))
      { /* Fuzzy fact being referenced */
-       fvPtr = seeIfFuzzyFact(theResult, functionName, argn);
+       fvPtr = seeIfFuzzyFact(theEnv,theResult, functionName, argn);
        if (fvPtr == NULL)
          return( NULL );
        else
@@ -371,16 +369,16 @@ static struct fuzzyLv *getFuzzyUniversePtr(
        theName = ValueToString(theResult->value);
        if (FindModuleSeparator(theName))
          {
-           theDeftemplate = (struct deftemplate *) FindDeftemplate(theName);
+           theDeftemplate = (struct deftemplate *) EnvFindDeftemplate(theEnv,theName);
          }
        else
          {
            theDeftemplate = (struct deftemplate *)
-                 FindImportedConstruct("deftemplate",NULL,theName,
+                 FindImportedConstruct(theEnv,"deftemplate",NULL,theName,
                                         &count,TRUE,NULL);
            if (count > 1)
              {
-               AmbiguousReferenceErrorMessage("deftemplate",theName);
+               AmbiguousReferenceErrorMessage(theEnv,"deftemplate",theName);
                return(NULL);
              }
           }
@@ -391,7 +389,7 @@ static struct fuzzyLv *getFuzzyUniversePtr(
               return( theDeftemplate->fuzzyTemplate );
            else
 	     {
-               CantFindItemErrorMessage("fuzzy fact", theName);
+               CantFindItemErrorMessage(theEnv,"fuzzy fact", theName);
                return( NULL );
              }
          }
@@ -403,7 +401,7 @@ static struct fuzzyLv *getFuzzyUniversePtr(
        return( fvPtr->whichDeftemplate->fuzzyTemplate );
      }   
 
-   ExpectedTypeError1(functionName,argn,"fact-index/fact-address of \nfuzzy fact, fuzzy deftemplate name, or FUZZY_VALUE\n(fuzzy deftemplate name may be out of scope)");
+   ExpectedTypeError1(theEnv,functionName,argn,"fact-index/fact-address of \nfuzzy fact, fuzzy deftemplate name, or FUZZY_VALUE\n(fuzzy deftemplate name may be out of scope)");
    return( NULL );
 }
 
@@ -416,31 +414,32 @@ static struct fuzzyLv *getFuzzyUniversePtr(
     returns the universe limits and units of a single fact in
     SYMBOL format
 ************************************************************/
-globle VOID *getu()
+globle void *getu(
+  void *theEnv)
   {
    struct fuzzyLv *uPtr;
    DATA_OBJECT theArgument;
-   VOID *hashresult;
+   void *hashresult;
    char *ustring;
    int ulength = 0;
 
-   if (ArgCountCheck("get-u",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"get-u",EXACTLY,1) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
-       uPtr = getFuzzyUniversePtr(&theArgument, "get-u", 1);
+       uPtr = getFuzzyUniversePtr(theEnv,&theArgument, "get-u", 1);
        
        if (uPtr != NULL)
          {
-           ustring = u_to_string(uPtr, &ulength); 
-           hashresult = (VOID *) AddSymbol(ustring);
-           rm(ustring, ulength + 1);
+           ustring = u_to_string(theEnv,uPtr, &ulength); 
+           hashresult = (void *) EnvAddSymbol(theEnv,ustring);
+           rm(theEnv,ustring, ulength + 1);
            return(hashresult);
          }
       }
         
-    SetEvaluationError(TRUE);
-    return((VOID *) AddSymbol(""));
+    SetEvaluationError(theEnv,TRUE);
+    return((void *) EnvAddSymbol(theEnv,""));
   }
   
   
@@ -453,6 +452,7 @@ globle VOID *getu()
     
 ************************************************************/
 static char *u_to_string (
+void *theEnv,
 struct fuzzyLv *up,
 int *length_ptr)
 {
@@ -461,13 +461,13 @@ int *length_ptr)
     if (up->units != NULL)
     {
         *length_ptr = 36 + strlen(ValueToString(up->units));
-        string = (char *) gm2( (*length_ptr + 1));
+        string = (char *) gm2(theEnv, (*length_ptr + 1));
         sprintf( string, "%.2f - %.2f %s", up->from, up->to, ValueToString(up->units));
     }
     else    /* no units specified */
     {
         *length_ptr = 36;
-        string = (char *) gm2((*length_ptr + 1));
+        string = (char *) gm2(theEnv,(*length_ptr + 1));
         sprintf( string, "%.2f - %.2f", up->from, up->to);
     }
 
@@ -481,16 +481,17 @@ int *length_ptr)
     returns the universe minimum limit of a single fact in
     double format
 ************************************************************/
-globle double getu_from()
+globle double getu_from(
+  void *theEnv)
   {
    struct fuzzyLv *uPtr;
    DATA_OBJECT theArgument;
 
-   if (ArgCountCheck("get-u-from",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"get-u-from",EXACTLY,1) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
-       uPtr = getFuzzyUniversePtr(&theArgument, "get-u-from", 1);
+       uPtr = getFuzzyUniversePtr(theEnv,&theArgument, "get-u-from", 1);
        
        if (uPtr != NULL)
          {
@@ -498,7 +499,7 @@ globle double getu_from()
          }
       }
         
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
     return(0.0);
 }
 
@@ -510,16 +511,17 @@ globle double getu_from()
     returns the universe maximum limit of a single fact in
     double format
 ************************************************************/
-globle double getu_to()
+globle double getu_to(
+  void *theEnv)
   {
    struct fuzzyLv *uPtr;
    DATA_OBJECT theArgument;
 
-   if (ArgCountCheck("get-u-to",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"get-u-to",EXACTLY,1) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
-       uPtr = getFuzzyUniversePtr(&theArgument, "get-u-to", 1);
+       uPtr = getFuzzyUniversePtr(theEnv,&theArgument, "get-u-to", 1);
        
        if (uPtr != NULL)
          {
@@ -527,7 +529,7 @@ globle double getu_to()
          }
       }
         
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
     return(0.0);
 }
 
@@ -541,28 +543,29 @@ globle double getu_to()
 
     returns "" if no units specified in deffuzzy
 ************************************************************/
-globle VOID *getu_units()
+globle void *getu_units(
+  void *theEnv)
   {
    struct fuzzyLv *uPtr;
    DATA_OBJECT theArgument;
   
-   if (ArgCountCheck("get-u-units",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"get-u-units",EXACTLY,1) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
-       uPtr = getFuzzyUniversePtr(&theArgument, "get-u-units", 1);
+       uPtr = getFuzzyUniversePtr(theEnv,&theArgument, "get-u-units", 1);
     
        if (uPtr != NULL)
          {
            if (uPtr->units != NULL)
-              return( (VOID *)uPtr->units );
+              return( (void *)uPtr->units );
            else
-              return((VOID *) AddSymbol(""));
+              return((void *) EnvAddSymbol(theEnv,""));
          }
       }    
         
-    SetEvaluationError(TRUE);
-    return((VOID *) AddSymbol(""));
+    SetEvaluationError(theEnv,TRUE);
+    return((void *) EnvAddSymbol(theEnv,""));
   }
   
   
@@ -581,31 +584,32 @@ globle VOID *getu_units()
     if the fact is not fuzzy, a warning is printed and 
     the word "" is returned.
 ************************************************************/
-globle VOID *get_fs()
+globle void *get_fs(
+  void *theEnv)
   {
    struct fuzzy_value *fvPtr;
    DATA_OBJECT theArgument;
-   VOID *hashresult;
+   void *hashresult;
    char *ustring;
    int ulength = 0;
 
-   if (ArgCountCheck("get-fs",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"get-fs",EXACTLY,1) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
-       fvPtr = getFuzzyValuePtr(&theArgument, "get-fs", 1);
+       fvPtr = getFuzzyValuePtr(theEnv,&theArgument, "get-fs", 1);
        
        if (fvPtr != NULL)
          {
-           ustring = fv_to_string(fvPtr, &ulength); 
-           hashresult = (VOID *) AddSymbol(ustring);
-           rm(ustring, ulength + 1);
+           ustring = fv_to_string(theEnv,fvPtr, &ulength); 
+           hashresult = (void *) EnvAddSymbol(theEnv,ustring);
+           rm(theEnv,ustring, ulength + 1);
            return(hashresult);
          }
       }
         
-    SetEvaluationError(TRUE);
-    return((VOID *) AddSymbol(""));
+    SetEvaluationError(theEnv,TRUE);
+    return((void *) EnvAddSymbol(theEnv,""));
 }
 
  /************************************************************
@@ -617,25 +621,26 @@ globle VOID *get_fs()
     if the fact is not fuzzy, a warning is printed and 
     the word "" is returned.
 ************************************************************/
-globle VOID *get_fs_lv()
+globle void *get_fs_lv(
+  void *theEnv)
   {
    struct fuzzy_value *fvPtr;
    DATA_OBJECT theArgument;
 
-   if (ArgCountCheck("get-fs-lv",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"get-fs-lv",EXACTLY,1) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
-       fvPtr = getFuzzyValuePtr(&theArgument, "get-fs-lv", 1);
+       fvPtr = getFuzzyValuePtr(theEnv,&theArgument, "get-fs-lv", 1);
        
        if (fvPtr != NULL && fvPtr->name != NULL)
          {
-           return( (VOID *)AddSymbol(fvPtr->name) );
+           return( (void *)EnvAddSymbol(theEnv,fvPtr->name) );
          }
       }
         
-    SetEvaluationError(TRUE);
-    return((VOID *) AddSymbol(""));
+    SetEvaluationError(theEnv,TRUE);
+    return((void *) EnvAddSymbol(theEnv,""));
 }
 
 
@@ -649,6 +654,7 @@ globle VOID *get_fs_lv()
 ************************************************************/
 
 static char *fv_to_string (   
+void *theEnv,
 struct fuzzy_value *fv_ptr,
 int *length_ptr)
 {
@@ -663,7 +669,7 @@ int *length_ptr)
        
     *length_ptr = num*33 + 50;  
 
-    string = (char *) gm2(*length_ptr + 1);
+    string = (char *) gm2(theEnv,*length_ptr + 1);
     strindex = string;
     
     for (i=0; i < num; i++)    
@@ -674,8 +680,8 @@ int *length_ptr)
                   append them to each other as needed 
                */
                strcpy(strindex, " ... ");
-               PrintRouter(WERROR,"Internal Problem *****\n");
-               PrintRouter(WERROR,"String space exceeded in fs_to_string (FUZZYCOM.C)\n");
+               EnvPrintRouter(theEnv,WERROR,"Internal Problem *****\n");
+               EnvPrintRouter(theEnv,WERROR,"String space exceeded in fs_to_string (FUZZYCOM.C)\n");
                break;
              }
              
@@ -697,16 +703,17 @@ int *length_ptr)
     if the fact is not fuzzy, a warning is printed and 
     a value of 0 is returned.
 ************************************************************/
-globle int get_fs_length()
+globle int get_fs_length(
+  void *theEnv)
   {
    DATA_OBJECT theArgument;
    struct fuzzy_value *fv_ptr;
 
-   if (ArgCountCheck("get-fs-length",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"get-fs-length",EXACTLY,1) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
-       fv_ptr = getFuzzyValuePtr(&theArgument, "get-fs-length", 1);
+       fv_ptr = getFuzzyValuePtr(theEnv,&theArgument, "get-fs-length", 1);
        
        if (fv_ptr != NULL)
          {
@@ -714,7 +721,7 @@ globle int get_fs_length()
          }
       }
         
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
     return(0);
 }
 
@@ -730,7 +737,8 @@ globle int get_fs_length()
     universe of discourse, the value 0.0 is returned.
 
  ************************************************************************/
-globle double get_fs_value()
+globle double get_fs_value(
+  void *theEnv)
 {
    DATA_OBJECT theArgument;
    struct fuzzy_value *fv_ptr;
@@ -738,18 +746,18 @@ globle double get_fs_value()
    double xvalue, yvalue;
    double from, to;
 
-   if (ArgCountCheck("get-fs-x",EXACTLY,2) != -1)
+   if (EnvArgCountCheck(theEnv,"get-fs-x",EXACTLY,2) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
-       fv_ptr = getFuzzyValuePtr(&theArgument, "(get-fs-value", 1);
+       fv_ptr = getFuzzyValuePtr(theEnv,&theArgument, "(get-fs-value", 1);
        
        if (fv_ptr != NULL)
          {
            from = fv_ptr->whichDeftemplate->fuzzyTemplate->from;
            to = fv_ptr->whichDeftemplate->fuzzyTemplate->to;
 
-           if (ArgTypeCheck("get-fs-x",2,INTEGER_OR_FLOAT,&result) == TRUE)
+           if (EnvArgTypeCheck(theEnv,"get-fs-x",2,INTEGER_OR_FLOAT,&result) == TRUE)
              {
                if (result.type == INTEGER)
                  { xvalue = (double) ValueToInteger(result.value); }
@@ -758,7 +766,7 @@ globle double get_fs_value()
                  
                if (xvalue < from || xvalue > to)
                  { /* error - out of range */
-                   PrintRouter(WERROR,"Function get-fs-value, x value out of range\n");
+                   EnvPrintRouter(theEnv,WERROR,"Function get-fs-value, x value out of range\n");
                  }
                else
                  {
@@ -793,8 +801,8 @@ globle double get_fs_value()
                             
                            if (i == n)  /* major problem -- didn't find it! */
                              {
-                              PrintRouter(WERROR,"Function get-fs-value, internal problem, see system manager\n");
-                              SetEvaluationError(TRUE);
+                              EnvPrintRouter(theEnv,WERROR,"Function get-fs-value, internal problem, see system manager\n");
+                              SetEvaluationError(theEnv,TRUE);
                               return( 0.0 );
                              }
 
@@ -839,7 +847,7 @@ globle double get_fs_value()
          }
       }
         
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
     return(0.0);
     
 }
@@ -856,22 +864,23 @@ globle double get_fs_value()
     If the expression evaluates to a number which is not an integer
     value, the expression result is truncated to an integer.
  ************************************************************************/
-globle double get_fs_x()
+globle double get_fs_x(
+  void *theEnv)
 {
    DATA_OBJECT theArgument;
    struct fuzzy_value *fv_ptr;
    DATA_OBJECT result;
    int index;
 
-   if (ArgCountCheck("get-fs-x",EXACTLY,2) != -1)
+   if (EnvArgCountCheck(theEnv,"get-fs-x",EXACTLY,2) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
-       fv_ptr = getFuzzyValuePtr(&theArgument, "get-fs-x", 1);
+       fv_ptr = getFuzzyValuePtr(theEnv,&theArgument, "get-fs-x", 1);
        
        if (fv_ptr != NULL)
          {
-           if (ArgTypeCheck("get-fs-x",2,INTEGER_OR_FLOAT,&result) == TRUE)
+           if (EnvArgTypeCheck(theEnv,"get-fs-x",2,INTEGER_OR_FLOAT,&result) == TRUE)
               {
                 if (result.type == INTEGER)
                   { index = ValueToInteger(result.value); }
@@ -880,7 +889,7 @@ globle double get_fs_x()
                       
                 if (index < 0 || index >= fv_ptr->n)
                   { /* error - out of range */
-                    PrintRouter(WERROR,"Function get-fs-x, index out of range\n");
+                    EnvPrintRouter(theEnv,WERROR,"Function get-fs-x, index out of range\n");
                   }
                 else
                   {
@@ -890,7 +899,7 @@ globle double get_fs_x()
          }
       }
         
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
     return(0.0);
     
 }
@@ -907,22 +916,23 @@ globle double get_fs_x()
     If the expression evaluates to a number which is not an integer
     value, the expression result is truncated to an integer.
  ************************************************************************/
-globle double get_fs_y()
+globle double get_fs_y(
+  void *theEnv)
 {
    DATA_OBJECT theArgument;
    struct fuzzy_value *fv_ptr;
    DATA_OBJECT result;
    int index;
 
-   if (ArgCountCheck("get-fs-y",EXACTLY,2) != -1)
+   if (EnvArgCountCheck(theEnv,"get-fs-y",EXACTLY,2) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
-       fv_ptr = getFuzzyValuePtr(&theArgument, "get-fs-y", 1);
+       fv_ptr = getFuzzyValuePtr(theEnv,&theArgument, "get-fs-y", 1);
        
        if (fv_ptr != NULL)
          {
-           if (ArgTypeCheck("get-fs-y",2,INTEGER_OR_FLOAT,&result) == TRUE)
+           if (EnvArgTypeCheck(theEnv,"get-fs-y",2,INTEGER_OR_FLOAT,&result) == TRUE)
               {
                 if (result.type == INTEGER)
                   { index = ValueToInteger(result.value); }
@@ -931,7 +941,7 @@ globle double get_fs_y()
                       
                 if (index < 0 || index >= fv_ptr->n)
                   { /* error - out of range */
-                    PrintRouter(WERROR,"Function get-fs-y, index out of range\n");
+                    EnvPrintRouter(theEnv,WERROR,"Function get-fs-y, index out of range\n");
                   }
                 else
                   {
@@ -941,7 +951,7 @@ globle double get_fs_y()
          }
       }
         
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
     return(0.0);
     
 }
@@ -957,24 +967,25 @@ globle double get_fs_y()
 /************************************************************/
 /* moment-defuzzify function:                               */
 /************************************************************/
-globle double moment_defuzzify()
+globle double moment_defuzzify(
+  void *theEnv)
 {
    struct fuzzy_value *fv_ptr;
    DATA_OBJECT theArgument;
 
-   if (ArgCountCheck("moment-defuzzify",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"moment-defuzzify",EXACTLY,1) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
-       fv_ptr = getFuzzyValuePtr(&theArgument, "moment-defuzzify", 1);
+       fv_ptr = getFuzzyValuePtr(theEnv,&theArgument, "moment-defuzzify", 1);
        
        if (fv_ptr != NULL)
          {
-           return(moment_defuzzification(fv_ptr));
+           return(moment_defuzzification(theEnv,fv_ptr));
          }
       }
         
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
     return(0.0);
 }
 
@@ -1002,6 +1013,7 @@ globle double moment_defuzzify()
 
  **********************************************************************/   
 static double moment_defuzzification(
+  void *theEnv,
   struct fuzzy_value *fv)  
 {
     int i,  num;
@@ -1019,7 +1031,7 @@ static double moment_defuzzification(
     xmin = fv->whichDeftemplate->fuzzyTemplate->from;
     xmax = fv->whichDeftemplate->fuzzyTemplate->to;
     
-    is_last_defuzzify_valid = TRUE;
+    FuzzyData(theEnv)->is_last_defuzzify_valid = TRUE;
 
     fsx = fv->x;
     fsy = fv->y;
@@ -1033,7 +1045,7 @@ static double moment_defuzzification(
            then the area is zero -- invalid moment
         */
         if (num < 1 || fsy[0] == 0.0)
-           is_last_defuzzify_valid = FALSE;
+           FuzzyData(theEnv)->is_last_defuzzify_valid = FALSE;
       }
     else
       {
@@ -1077,7 +1089,7 @@ static double moment_defuzzification(
         if ( bottom == 0.0 )
             {  result = 0.5 * ( xmax - xmin ) + xmin;
                /* return a default but indicate that it was an invalid moment */
-               is_last_defuzzify_valid = FALSE;
+               FuzzyData(theEnv)->is_last_defuzzify_valid = FALSE;
             }
         else
             result = top/bottom;
@@ -1141,24 +1153,25 @@ double y2)
 /************************************************************/
 /* maximum-defuzzify function:                              */
 /************************************************************/
-globle double maximum_defuzzify()
+globle double maximum_defuzzify(
+  void *theEnv)
 {
    struct fuzzy_value *fvPtr;
    DATA_OBJECT theArgument;
 
-   if (ArgCountCheck("maximum-defuzzify",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"maximum-defuzzify",EXACTLY,1) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
-       fvPtr = getFuzzyValuePtr(&theArgument, "maximum-defuzzify", 1);
+       fvPtr = getFuzzyValuePtr(theEnv,&theArgument, "maximum-defuzzify", 1);
        
        if (fvPtr != NULL)
          {
-           return( maximum_defuzzification(fvPtr) );
+           return( maximum_defuzzification(theEnv,fvPtr) );
          }
       }
         
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
     return(0.0);
 }
   
@@ -1187,6 +1200,7 @@ globle double maximum_defuzzify()
  ********************************************************************/
  
 static double maximum_defuzzification(
+  void *theEnv,
   struct fuzzy_value *fv)  
 {
     int i,  num, count;
@@ -1197,7 +1211,7 @@ static double maximum_defuzzification(
     double *fsx, *fsy; /* ptrs to fuzzy set x and y arrays */
 
     /* always valid result for the maximun defuzzify */
-    is_last_defuzzify_valid = TRUE; 
+    FuzzyData(theEnv)->is_last_defuzzify_valid = TRUE; 
 
     /******************************************
         Find Mean of Maxima
@@ -1284,30 +1298,31 @@ static double maximum_defuzzification(
     adds a new fuzzy modifier to the list of modifiers
 
 ************************************************************/
-globle VOID add_fuzzy_modifier()
+globle VOID add_fuzzy_modifier(
+  void *theEnv)
   {
    char *modname, *modfuncname;
    struct FunctionDefinition *fun = NULL;
    DEFFUNCTION *deffun = NULL;
    
-   if (ArgCountCheck("add-fuzzy-modifier",EXACTLY,2) != -1)
+   if (EnvArgCountCheck(theEnv,"add-fuzzy-modifier",EXACTLY,2) != -1)
      {     
-       modname = RtnLexeme(1);     /* get name of the modifier */
-       modfuncname = RtnLexeme(2); /* get name of the modifier function */
+       modname = EnvRtnLexeme(theEnv,1);     /* get name of the modifier */
+       modfuncname = EnvRtnLexeme(theEnv,2); /* get name of the modifier function */
        if (modname == NULL || modfuncname == NULL)
           return;
 
 #if DEFFUNCTION_CONSTRUCT
-      deffun = (DEFFUNCTION *)LookupDeffunctionInScope(modfuncname);
+      deffun = (DEFFUNCTION *)LookupDeffunctionInScope(theEnv,modfuncname);
       
       if (deffun == NULL)
         {
 #endif
          /* should be name of a function of 1 arg of type float, returns float */
-         fun = FindFunction(modfuncname);
+         fun = FindFunction(theEnv,modfuncname);
           if (fun == NULL)
             {
-              PrintRouter(WERROR,"Function add-fuzzy-modifier (undefined modifier function)\n");
+              EnvPrintRouter(theEnv,WERROR,"Function add-fuzzy-modifier (undefined modifier function)\n");
               return;
             }
           if ((strcmp(fun->restrictions,"11f") != 0 &&
@@ -1316,7 +1331,7 @@ globle VOID add_fuzzy_modifier()
                ||
               (fun->returnValueType != 'f' && fun->returnValueType != 'd')) 
              {
-               PrintRouter(WERROR,"Function add-fuzzy-modifier (incorrect function type in arg 2)\n");
+               EnvPrintRouter(theEnv,WERROR,"Function add-fuzzy-modifier (incorrect function type in arg 2)\n");
                return;               
              }
         }
@@ -1324,37 +1339,37 @@ globle VOID add_fuzzy_modifier()
       else
         {    
           struct expr *top, *temp;
-          BOOLEAN res;
+          intBool res;
           DATA_OBJECT result;
           
           if (deffun->minNumberOfParameters != 1 || deffun->maxNumberOfParameters != 1)
              {
-               PrintRouter(WERROR,"Function add-fuzzy-modifier (modifier function requires exactly 1 arg)");
+               EnvPrintRouter(theEnv,WERROR,"Function add-fuzzy-modifier (modifier function requires exactly 1 arg)");
                return;               
              }
           /* try out the deffunction and make sure it accepts a float arg and returns a float */
-          top = GenConstant(PCALL, (VOID *)deffun);
-          top->argList = GenConstant(FLOAT, (VOID *)AddDouble(0.0));
-          temp = CurrentExpression;
-          CurrentExpression = top;
-          res = (*PrimitivesArray[PCALL]->evaluateFunction)(deffun,&result);
-          CurrentExpression = temp;
-          ReturnExpression(top);
+          top = GenConstant(theEnv,PCALL, (void *)deffun);
+          top->argList = GenConstant(theEnv,FLOAT, (void *)EnvAddDouble(theEnv,0.0));
+          temp = EvaluationData(theEnv)->CurrentExpression;
+          EvaluationData(theEnv)->CurrentExpression = top;
+          res = (*EvaluationData(theEnv)->PrimitivesArray[PCALL]->evaluateFunction)(theEnv,deffun,&result);
+          EvaluationData(theEnv)->CurrentExpression = temp;
+          ReturnExpression(theEnv,top);
           if (!res || (result.type != FLOAT))
              {
-               PrintRouter(WERROR,"Function add-fuzzy-modifier (modifier function must accept and return FLOAT)");
+               EnvPrintRouter(theEnv,WERROR,"Function add-fuzzy-modifier (modifier function must accept and return FLOAT)");
                return;               
              }
         }
 #endif
  
-       if (AddFuzzyModifier(modname, NULL, fun, deffun) == TRUE)
+       if (AddFuzzyModifier(theEnv,modname, NULL, fun, deffun) == TRUE)
 
 
            return;
      }
         
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
   }
 
 
@@ -1368,17 +1383,18 @@ globle VOID add_fuzzy_modifier()
     (note: cannot remove the system provided ones)
 
 ************************************************************/
-globle VOID remove_fuzzy_modifier()
+globle VOID remove_fuzzy_modifier(
+  void *theEnv)
   {
    char *modname;
    
    
-   if (ArgCountCheck("remove-fuzzy-modifier",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"remove-fuzzy-modifier",EXACTLY,1) != -1)
      {     
-       modname = RtnLexeme(1);     /* get name of the modifier */
+       modname = EnvRtnLexeme(theEnv,1);     /* get name of the modifier */
        
        if (modname != NULL)
-          RemoveFuzzyModifier(modname);
+          RemoveFuzzyModifier(theEnv,modname);
      }
  
   }
@@ -1400,28 +1416,29 @@ globle VOID remove_fuzzy_modifier()
        max-prod
 
 ************************************************************/
-globle VOID set_fuzzy_inference_type()
+globle VOID set_fuzzy_inference_type(
+  void *theEnv)
   {
    char *inference_type;
    
    
-   if (ArgCountCheck("set-fuzzy-inference-type",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"set-fuzzy-inference-type",EXACTLY,1) != -1)
      {     
-       inference_type = RtnLexeme(1);     /* get type of inferencing */
+       inference_type = EnvRtnLexeme(theEnv,1);     /* get type of inferencing */
        if (inference_type == NULL)
           return;
        
        if (strcmp(inference_type,"max-min") == 0 ||
            strcmp(inference_type,"MAX-MIN") == 0 
           )
-          FuzzyInferenceType = MAXMIN;
+          FuzzyData(theEnv)->FuzzyInferenceType = MAXMIN;
        else if  (strcmp(inference_type,"max-prod") == 0 ||
                  strcmp(inference_type,"MAX-PROD") == 0 
                 )
-          FuzzyInferenceType = MAXPROD;
+          FuzzyData(theEnv)->FuzzyInferenceType = MAXPROD;
        else
           {
-            PrintRouter(WERROR,"Function set-fuzzy-inference-type (argument must be max-min or max-prod)\n");
+            EnvPrintRouter(theEnv,WERROR,"Function set-fuzzy-inference-type (argument must be max-min or max-prod)\n");
           }
      }
  
@@ -1437,12 +1454,13 @@ globle VOID set_fuzzy_inference_type()
        "max-min"  OR   "max-prod"
 
 ************************************************************/
-globle VOID *get_fuzzy_inference_type()
+globle void *get_fuzzy_inference_type(
+  void *theEnv)
   {
-    if (FuzzyInferenceType == MAXMIN)
-      return( (VOID *) AddSymbol("max-min") );
+    if (FuzzyData(theEnv)->FuzzyInferenceType == MAXMIN)
+      return( (void *) EnvAddSymbol(theEnv,"max-min") );
     else 
-      return( (VOID *) AddSymbol("max-prod") );
+      return( (void *) EnvAddSymbol(theEnv,"max-prod") );
   
   }
 
@@ -1458,14 +1476,15 @@ globle VOID *get_fuzzy_inference_type()
     sets the precision used when displaying fuzzy set values
  
 ************************************************************/
-globle VOID set_fuzzy_display_precision()
+globle VOID set_fuzzy_display_precision(
+  void *theEnv)
   {
    DATA_OBJECT arg;
    long int precision;   
    
-   if (ArgCountCheck("set-fuzzy-display-precision",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"set-fuzzy-display-precision",EXACTLY,1) != -1)
      {     
-       if (ArgTypeCheck("set-fuzzy-display-precision",1,INTEGER,&arg) == FALSE) 
+       if (EnvArgTypeCheck(theEnv,"set-fuzzy-display-precision",1,INTEGER,&arg) == FALSE) 
           return;	    
       
        precision = DOToLong(arg);
@@ -1473,7 +1492,7 @@ globle VOID set_fuzzy_display_precision()
        if (precision > 16) precision = 16;
        else if (precision <= 1) precision = 2;
 
-       FuzzyFloatPrecision = precision;
+       FuzzyData(theEnv)->FuzzyFloatPrecision = precision;
      }
  
   }
@@ -1486,9 +1505,10 @@ globle VOID set_fuzzy_display_precision()
     gets the precision used when displaying fuzzy set values  
 
 ************************************************************/
-globle long  get_fuzzy_display_precision()
+globle long  get_fuzzy_display_precision(
+  void *theEnv)
   {
-    return( (long int)FuzzyFloatPrecision ); 
+    return( (long int)FuzzyData(theEnv)->FuzzyFloatPrecision ); 
   }
 
 
@@ -1535,7 +1555,8 @@ static int nint(
          more fuzzy values than plotchars the last is used over again.
  
 ************************************************************/
-globle VOID plot_fuzzy_value()
+globle VOID plot_fuzzy_value(
+  void *theEnv)
   {
    char *dummyid;
    int i, j, k, m, lastk, previousLastk, numArgs, n;
@@ -1556,15 +1577,15 @@ globle VOID plot_fuzzy_value()
    /* Get the logical name to which output is to be sent. */
    /*=====================================================*/
  
-   if ((numArgs = ArgCountCheck("plot-fuzzy-value",AT_LEAST,5)) == -1) return;
+   if ((numArgs = EnvArgCountCheck(theEnv,"plot-fuzzy-value",AT_LEAST,5)) == -1) return;
 
-   dummyid = GetLogicalName(1,"stdout");
+   dummyid = GetLogicalName(theEnv,1,"stdout");
    if (dummyid == NULL)
      {
-       PrintErrorID("IOFUN",1,FALSE);
-       PrintRouter(WERROR,"Illegal logical name used for plot-fuzzy-value function.\n");
-       SetHaltExecution(TRUE);
-       SetEvaluationError(TRUE);
+       PrintErrorID(theEnv,"IOFUN",1,FALSE);
+       EnvPrintRouter(theEnv,WERROR,"Illegal logical name used for plot-fuzzy-value function.\n");
+       SetHaltExecution(theEnv,TRUE);
+       SetEvaluationError(theEnv,TRUE);
        return;
      }
 
@@ -1572,9 +1593,9 @@ globle VOID plot_fuzzy_value()
    /* Determine if any router recognizes the output destination. */
    /*============================================================*/
 
-   if (QueryRouters(dummyid) == FALSE)
+   if (QueryRouters(theEnv,dummyid) == FALSE)
      {
-      UnrecognizedRouterMessage(dummyid);
+      UnrecognizedRouterMessage(theEnv,dummyid);
       return;
      }
 
@@ -1582,12 +1603,12 @@ globle VOID plot_fuzzy_value()
    /* Get the symbol(s) for plotting                             */
    /*============================================================*/
 
-   theString = RtnLexeme(2);
+   theString = EnvRtnLexeme(theEnv,2);
 
    if (theString == NULL) return;
    if ((unsigned int)strlen(theString) < 1)
      {
-       PrintRouter(WERROR,"ERROR: Function plot_fuzzy_value (argument 3 must be a character)\n");
+       EnvPrintRouter(theEnv,WERROR,"ERROR: Function plot_fuzzy_value (argument 3 must be a character)\n");
        return;
      }
 
@@ -1597,9 +1618,9 @@ globle VOID plot_fuzzy_value()
    /* Get the limit arguments                                    */
    /*============================================================*/
 
-   RtnUnknown(5, &theArgument); /* need deftemplate of 1st fuzzy value */
+   EnvRtnUnknown(theEnv,5, &theArgument); /* need deftemplate of 1st fuzzy value */
 
-   fv_ptr = getFuzzyValuePtr(&theArgument, "plot-fuzzy-value", 5);
+   fv_ptr = getFuzzyValuePtr(theEnv,&theArgument, "plot-fuzzy-value", 5);
    if (fv_ptr == NULL)  return;
 
    from = fv_ptr->whichDeftemplate->fuzzyTemplate->from;
@@ -1607,7 +1628,7 @@ globle VOID plot_fuzzy_value()
 
    fv_ptr_first = fv_ptr;
 
-   RtnUnknown(3, &theArgument);
+   EnvRtnUnknown(theEnv,3, &theArgument);
 
    if ((theArgument.type == INTEGER) || (theArgument.type == FLOAT))
      {
@@ -1616,7 +1637,7 @@ globle VOID plot_fuzzy_value()
        if (fromArg > from) from = fromArg;
      }
 
-   RtnUnknown(4, &theArgument);
+   EnvRtnUnknown(theEnv,4, &theArgument);
 
    if ((theArgument.type == INTEGER) || (theArgument.type == FLOAT))
      {
@@ -1627,7 +1648,7 @@ globle VOID plot_fuzzy_value()
 
    if (from >= to)
      {
-       PrintRouter(WERROR,"ERROR: Function plot_fuzzy_value (low limit for plot >= high limit)\n");
+       EnvPrintRouter(theEnv,WERROR,"ERROR: Function plot_fuzzy_value (low limit for plot >= high limit)\n");
        return;
      }
 
@@ -1645,9 +1666,9 @@ globle VOID plot_fuzzy_value()
    range = to - from;
    deltax = range/NCOLS;
 
-   PrintRouter(dummyid, "\nFuzzy Value: ");
-   PrintRouter(dummyid, ValueToString(fv_ptr->whichDeftemplate->header.name));
-   PrintRouter(dummyid, "\nLinguistic Value: ");
+   EnvPrintRouter(theEnv,dummyid, "\nFuzzy Value: ");
+   EnvPrintRouter(theEnv,dummyid, ValueToString(fv_ptr->whichDeftemplate->header.name));
+   EnvPrintRouter(theEnv,dummyid, "\nLinguistic Value: ");
 
    /*============================================================*/
    /* Get the fuzzy value(s)  and do the plotting                */
@@ -1660,9 +1681,9 @@ globle VOID plot_fuzzy_value()
         fv_ptr = fv_ptr_first;
       else
         {
-          RtnUnknown(5+fvNum, &theArgument);
+          EnvRtnUnknown(theEnv,5+fvNum, &theArgument);
 
-          fv_ptr = getFuzzyValuePtr(&theArgument, "plot-fuzzy-value", 5+fvNum);
+          fv_ptr = getFuzzyValuePtr(theEnv,&theArgument, "plot-fuzzy-value", 5+fvNum);
         }
        
       if (fv_ptr == NULL)  return;
@@ -1673,24 +1694,24 @@ globle VOID plot_fuzzy_value()
       /* MUST have same deftemplates for all fuzzy values to plot properly */
       if (fv_ptr->whichDeftemplate != fv_ptr_first->whichDeftemplate)
         {
-          PrintRouter(WERROR,"ERROR: Function plot_fuzzy_value (all fuzzy values must have same fuzzy deftemplate)\n");
+          EnvPrintRouter(theEnv,WERROR,"ERROR: Function plot_fuzzy_value (all fuzzy values must have same fuzzy deftemplate)\n");
           break;
         }
 
       { char tmpStr[10];
 
-        if (fvNum > 0) PrintRouter(dummyid, ",  ");
-        PrintRouter(dummyid, fv_ptr->name);
+        if (fvNum > 0) EnvPrintRouter(theEnv,dummyid, ",  ");
+        EnvPrintRouter(theEnv,dummyid, fv_ptr->name);
         sprintf(tmpStr, " (%c)", theSymbol);
-        PrintRouter(dummyid, tmpStr);
+        EnvPrintRouter(theEnv,dummyid, tmpStr);
       }
  
       /* make arrays with point added to beginning and end to 
          capture the extreme values of the universe of discourse
       */
       n = fv_ptr->n + 2;
-      fvx = FgetArray(n);
-      fvy = FgetArray(n);
+      fvx = FgetArray(theEnv,n);
+      fvy = FgetArray(theEnv,n);
       for (i=1; i<n-1; i++)
         {
          fvx[i] = fv_ptr->x[i-1];  fvy[i] = fv_ptr->y[i-1];
@@ -1804,42 +1825,42 @@ globle VOID plot_fuzzy_value()
 
        }  /* end of   while (thisx <= to && k <= NCOLS)   */
 
-      FrtnArray(fvx, n);
-      FrtnArray(fvy, n);
+      FrtnArray(theEnv,fvx, n);
+      FrtnArray(theEnv,fvy, n);
 
      }  /* end of  for (fvNum = 0 ...    */
   
-   PrintRouter(dummyid, "\n\n");
+   EnvPrintRouter(theEnv,dummyid, "\n\n");
 
    for (i=0; i<=NROWS; i++)
       { sprintf(str, "%5.2f", 1.0 - ((float)i /(float)NROWS));
-        PrintRouter(dummyid, str);
-        PrintRouter(dummyid, &PlotSpace[i][0]);
-        PrintRouter(dummyid, "\n");
+        EnvPrintRouter(theEnv,dummyid, str);
+        EnvPrintRouter(theEnv,dummyid, &PlotSpace[i][0]);
+        EnvPrintRouter(theEnv,dummyid, "\n");
       }
    
-   PrintRouter(dummyid, "     ");
+   EnvPrintRouter(theEnv,dummyid, "     ");
    for (i=0; i<NCOLS/NTICKS; i++)
       {
-        PrintRouter(dummyid, "|");
+        EnvPrintRouter(theEnv,dummyid, "|");
         for (j=1; j<NTICKS; j++)
-            PrintRouter(dummyid, "-");
+            EnvPrintRouter(theEnv,dummyid, "-");
       }
-   PrintRouter(dummyid, "|");
-   PrintRouter(dummyid, "\n ");
+   EnvPrintRouter(theEnv,dummyid, "|");
+   EnvPrintRouter(theEnv,dummyid, "\n ");
    for (i=0; i<=NCOLS; i=i+2*NTICKS)
       {
         sprintf(str, "%7.2f", from+i*deltax);
-        PrintRouter(dummyid, str);
+        EnvPrintRouter(theEnv,dummyid, str);
         for (j=0; j<NTICKS*2-7; j++) str[j] = ' ';
         str[j] = '\0';
-        PrintRouter(dummyid, str);
+        EnvPrintRouter(theEnv,dummyid, str);
       }
 
    sprintf(str, "\n\nUniverse of Discourse:  From %6.2f  to  %6.2f\n\n",
            fv_ptr->whichDeftemplate->fuzzyTemplate->from,
            fv_ptr->whichDeftemplate->fuzzyTemplate->to);
-   PrintRouter(dummyid, str);
+   EnvPrintRouter(theEnv,dummyid, str);
 
 }
 
@@ -1857,14 +1878,15 @@ globle VOID plot_fuzzy_value()
     match between a pattern and a fuzzy value that is required to
     consider it a match.
  *******************************************************************/
-globle VOID set_alpha_value()
+globle VOID set_alpha_value(
+  void *theEnv)
   {
     DATA_OBJECT theArgument;
     double theAlphaValue;
 
-    if (ArgCountCheck("set-alpha-value",EXACTLY,1) != -1)
+    if (EnvArgCountCheck(theEnv,"set-alpha-value",EXACTLY,1) != -1)
       {
-        if (ArgTypeCheck("set-alpha-value",1,INTEGER_OR_FLOAT,&theArgument) != 0)
+        if (EnvArgTypeCheck(theEnv,"set-alpha-value",1,INTEGER_OR_FLOAT,&theArgument) != 0)
           {
             if (GetType(theArgument) == INTEGER)
               {
@@ -1876,13 +1898,13 @@ globle VOID set_alpha_value()
               }
             if (theAlphaValue < 0.0 || theAlphaValue > 1.0)
               {
-                PrintErrorID("Alpha Value ",909,TRUE);
-                PrintRouter(WERROR,"Expected Value in Range 0.0 to 1.0");
-                PrintRouter(WERROR,".\n");
+                PrintErrorID(theEnv,"Alpha Value ",909,TRUE);
+                EnvPrintRouter(theEnv,WERROR,"Expected Value in Range 0.0 to 1.0");
+                EnvPrintRouter(theEnv,WERROR,".\n");
               }
             else
               {
-                FuzzyAlphaValue = theAlphaValue;
+                FuzzyData(theEnv)->FuzzyAlphaValue = theAlphaValue;
                 return;
               }
           }
@@ -1895,14 +1917,15 @@ globle VOID set_alpha_value()
 
     Returns the Alpha value.
  ********************************************************************/
-globle double get_alpha_value()
+globle double get_alpha_value(
+  void *theEnv)
 {
-    if (ArgCountCheck("get-alpha-value",EXACTLY,0) == -1)
+    if (EnvArgCountCheck(theEnv,"get-alpha-value",EXACTLY,0) == -1)
       {
-        SetEvaluationError(TRUE);
+        SetEvaluationError(theEnv,TRUE);
       }
 
-    return( FuzzyAlphaValue );
+    return( FuzzyData(theEnv)->FuzzyAlphaValue );
 }
 
 
@@ -1923,7 +1946,8 @@ globle double get_alpha_value()
                 arg 1 to be a fuzzy deftemplate fact and will
                 get the only slot (fuzzy value)
  *******************************************************************/
-globle struct fuzzy_value *get_fuzzy_slot()
+globle struct fuzzy_value *get_fuzzy_slot(
+  void *theEnv)
   {
     DATA_OBJECT theArgument;
     long int factIndex;
@@ -1935,9 +1959,9 @@ globle struct fuzzy_value *get_fuzzy_slot()
     char tempBuffer[30];
     int numArgs;
 
-   if ((numArgs = ArgCountCheck("get-fuzzy-slot",AT_LEAST,1)) != -1)
+   if ((numArgs = EnvArgCountCheck(theEnv,"get-fuzzy-slot",AT_LEAST,1)) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
        if (theArgument.type == INTEGER)
         { 
@@ -1945,7 +1969,7 @@ globle struct fuzzy_value *get_fuzzy_slot()
            if (factIndex >= 0)
              {
                found_fact = FALSE;
-               factPtr = (struct fact *) GetNextFact(NULL);
+               factPtr = (struct fact *) EnvGetNextFact(theEnv,NULL);
                while (factPtr != NULL)
                  {
                    if (factPtr->factIndex == factIndex)
@@ -1960,13 +1984,13 @@ globle struct fuzzy_value *get_fuzzy_slot()
                  {
                    error = TRUE;
                    sprintf(tempBuffer,"f-%ld",factIndex);
-                   CantFindItemErrorMessage("fact",tempBuffer);
+                   CantFindItemErrorMessage(theEnv,"fact",tempBuffer);
                  }
              }
             else
              {            
                error = TRUE;
-               ExpectedTypeError1("get-fuzzy-slot",1,"fact-index must be positive");
+               ExpectedTypeError1(theEnv,"get-fuzzy-slot",1,"fact-index must be positive");
              }
           }
         else if (theArgument.type == FACT_ADDRESS)
@@ -1975,7 +1999,7 @@ globle struct fuzzy_value *get_fuzzy_slot()
           }  
         else
           {
-            ExpectedTypeError1("get-fuzzy-slot",1,"fact-index/fact-address of fuzzy fact");
+            ExpectedTypeError1(theEnv,"get-fuzzy-slot",1,"fact-index/fact-address of fuzzy fact");
             error = TRUE;
           }
 
@@ -1984,22 +2008,22 @@ globle struct fuzzy_value *get_fuzzy_slot()
              if (numArgs == 1)
                 slotName = NULL; /* looking for Fuzzy Deftemplate fact slot */
 
-             if ((numArgs == 1) || ((slotName = RtnLexeme(2)) != NULL))
+             if ((numArgs == 1) || ((slotName = EnvRtnLexeme(theEnv,2)) != NULL))
               {
-               if (GetFactSlot((VOID *)factPtr, slotName, &theSlot))
+               if (EnvGetFactSlot(theEnv,(void *)factPtr, slotName, &theSlot))
                  {
                    if (theSlot.type == FUZZY_VALUE)
                      {
-                      return( CopyFuzzyValue(ValueToFuzzyValue(theSlot.value))  );
+                      return( CopyFuzzyValue(theEnv,ValueToFuzzyValue(theSlot.value))  );
                      }
                    else
                      {
                        if (slotName == NULL)
-                          CantFindItemErrorMessage("fuzzy slot (not Fuzzy Deftemplate fact)","");
+                          CantFindItemErrorMessage(theEnv,"fuzzy slot (not Fuzzy Deftemplate fact)","");
                        else
                          {
                           sprintf(tempBuffer,"'%s'",slotName);
-                          CantFindItemErrorMessage("fuzzy slot (not Fuzzy Value)",tempBuffer);
+                          CantFindItemErrorMessage(theEnv,"fuzzy slot (not Fuzzy Value)",tempBuffer);
                          }
                      }
                  }
@@ -2009,7 +2033,7 @@ globle struct fuzzy_value *get_fuzzy_slot()
                      sprintf(tempBuffer,"(no slot name specified)");
                    else
                      sprintf(tempBuffer,"'%s'",slotName);
-                   CantFindItemErrorMessage("fact slot",tempBuffer);
+                   CantFindItemErrorMessage(theEnv,"fact slot",tempBuffer);
                  }
               }
           }
@@ -2034,18 +2058,19 @@ globle struct fuzzy_value *get_fuzzy_slot()
     arg 1    - fuzzy value
     arg 2    - fuzzy value
  *******************************************************************/
-globle struct fuzzy_value *fuzzy_union()
+globle struct fuzzy_value *fuzzy_union(
+  void *theEnv)
   {  
     DATA_OBJECT theArgument;
     struct fuzzy_value *f1, *f2, *fresult;
 
-   if (ArgCountCheck("fuzzy-union",EXACTLY,2) != -1)
+   if (EnvArgCountCheck(theEnv,"fuzzy-union",EXACTLY,2) != -1)
      {     
-       if (ArgTypeCheck("fuzzy-union",1,FUZZY_VALUE,&theArgument) != 0)
+       if (EnvArgTypeCheck(theEnv,"fuzzy-union",1,FUZZY_VALUE,&theArgument) != 0)
         { 
           f1 = ValueToFuzzyValue(theArgument.value);
 
-          if (ArgTypeCheck("fuzzy-union",2,FUZZY_VALUE,&theArgument) != 0)
+          if (EnvArgTypeCheck(theEnv,"fuzzy-union",2,FUZZY_VALUE,&theArgument) != 0)
             { 
               int lenf1Name, lenf2Name;
               char *f1Name, *f2Name;
@@ -2054,28 +2079,28 @@ globle struct fuzzy_value *fuzzy_union()
               f2 = ValueToFuzzyValue(theArgument.value);
               if (f2->whichDeftemplate == f1->whichDeftemplate)
 		{
-                 fresult = funion(f1, f2);
+                 fresult = funion(theEnv,f1, f2);
                  f1Name = f1->name;
                  f2Name = f2->name;
                  lenf1Name = strlen(f1Name);
                  lenf2Name = strlen(f2Name);
-                 str = (char *) gm2(lenf1Name + lenf2Name + 13);
+                 str = (char *) gm2(theEnv,lenf1Name + lenf2Name + 13);
                  strcpy(str, "[ ");
                  strcpy(str+2, f1Name);
                  strcpy(str+2+lenf1Name," ] OR [ ");
                  strcpy(str+lenf1Name+10, f2Name);
                  strcpy(str+lenf1Name+lenf2Name+10, " ]");
-                 if (fresult->name != NULL) rm(fresult->name, strlen(fresult->name)+1);
+                 if (fresult->name != NULL) rm(theEnv,fresult->name, strlen(fresult->name)+1);
                  fresult->name = str;
                  return( fresult );
                 }
               else
-                ExpectedTypeError1("fuzzy-union",2,"fuzzy value (with same fuzzy template as arg #1)");
+                ExpectedTypeError1(theEnv,"fuzzy-union",2,"fuzzy value (with same fuzzy template as arg #1)");
             }
         }
      }    
 
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
     return( NULL );    
   }
 
@@ -2088,18 +2113,19 @@ globle struct fuzzy_value *fuzzy_union()
     arg 1    - fuzzy value
     arg 2    - fuzzy value
  *******************************************************************/
-globle struct fuzzy_value *fuzzy_intersection()
+globle struct fuzzy_value *fuzzy_intersection(
+  void *theEnv)
   {  
     DATA_OBJECT theArgument;
     struct fuzzy_value *f1, *f2, *fresult;
 
-   if (ArgCountCheck("fuzzy-intersection",EXACTLY,2) != -1)
+   if (EnvArgCountCheck(theEnv,"fuzzy-intersection",EXACTLY,2) != -1)
      {     
-       if (ArgTypeCheck("fuzzy-intersection",1,FUZZY_VALUE,&theArgument) != 0)
+       if (EnvArgTypeCheck(theEnv,"fuzzy-intersection",1,FUZZY_VALUE,&theArgument) != 0)
         { 
           f1 = ValueToFuzzyValue(theArgument.value);
 
-          if (ArgTypeCheck("fuzzy-intersection",2,FUZZY_VALUE,&theArgument) != 0)
+          if (EnvArgTypeCheck(theEnv,"fuzzy-intersection",2,FUZZY_VALUE,&theArgument) != 0)
             { 
               int lenf1Name, lenf2Name;
               char *f1Name, *f2Name;
@@ -2108,28 +2134,28 @@ globle struct fuzzy_value *fuzzy_intersection()
               f2 = ValueToFuzzyValue(theArgument.value);
               if (f2->whichDeftemplate == f1->whichDeftemplate)
 		{
-                 fresult = fintersect(f1, f2);
+                 fresult = fintersect(theEnv,f1, f2);
                  f1Name = f1->name;
                  f2Name = f2->name;
                  lenf1Name = strlen(f1Name);
                  lenf2Name = strlen(f2Name);
-                 str = (char *) gm2(lenf1Name + lenf2Name + 14);
+                 str = (char *) gm2(theEnv,lenf1Name + lenf2Name + 14);
                  strcpy(str, "[ ");
                  strcpy(str+2, f1Name);
                  strcpy(str+2+lenf1Name," ] AND [ ");
                  strcpy(str+lenf1Name+11, f2Name);
                  strcpy(str+lenf1Name+lenf2Name+11, " ]");
-                 if (fresult->name != NULL) rm(fresult->name, strlen(fresult->name)+1);
+                 if (fresult->name != NULL) rm(theEnv,fresult->name, strlen(fresult->name)+1);
                  fresult->name = str;
                  return( fresult );
                 }
               else
-                ExpectedTypeError1("fuzzy-intersection",2,"fuzzy value (with same fuzzy template as arg #1)");
+                ExpectedTypeError1(theEnv,"fuzzy-intersection",2,"fuzzy value (with same fuzzy template as arg #1)");
             }
         }
      }    
 
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
     return( NULL );    
   }
 
@@ -2143,38 +2169,39 @@ globle struct fuzzy_value *fuzzy_intersection()
     arg 1    - fuzzy value
     arg 2    - fuzzy modifier (eg. not, very, slightly, etc.
  *******************************************************************/
-globle struct fuzzy_value *fuzzy_modify()
+globle struct fuzzy_value *fuzzy_modify(
+  void *theEnv)
   {  
     DATA_OBJECT theArgument;
     struct fuzzy_value *f1, *fresult;
     char *modifier;
 
-   if (ArgCountCheck("fuzzy-modify",EXACTLY,2) != -1)
+   if (EnvArgCountCheck(theEnv,"fuzzy-modify",EXACTLY,2) != -1)
      {     
-       if (ArgTypeCheck("fuzzy-modify",1,FUZZY_VALUE,&theArgument) != 0)
+       if (EnvArgTypeCheck(theEnv,"fuzzy-modify",1,FUZZY_VALUE,&theArgument) != 0)
         { 
           f1 = ValueToFuzzyValue(theArgument.value);
-          modifier = RtnLexeme(2);
+          modifier = EnvRtnLexeme(theEnv,2);
 
           if (modifier != NULL)
             { 
               struct modifierListItem *mptr;
 
-              if ((mptr = FindModifier( modifier )) != NULL)
+              if ((mptr = FindModifier( theEnv,modifier )) != NULL)
 		{
-                 fresult = CopyFuzzyValue( f1 );
-                 ModifyFuzzyValue(mptr, fresult);
+                 fresult = CopyFuzzyValue( theEnv,f1 );
+                 ModifyFuzzyValue(theEnv,mptr, fresult);
                  return( fresult );
                 }
               else
-                ExpectedTypeError1("fuzzy-modify",2,"symbol AND a modifier name");
+                ExpectedTypeError1(theEnv,"fuzzy-modify",2,"symbol AND a modifier name");
             }
           else
-            ExpectedTypeError1("fuzzy-modify",2,"symbol");
+            ExpectedTypeError1(theEnv,"fuzzy-modify",2,"symbol");
         }
      }    
 
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
     return( NULL );    
   }
 
@@ -2190,23 +2217,24 @@ globle struct fuzzy_value *fuzzy_modify()
     arg 1    - fuzzy value -- parser creates it!
 
  *******************************************************************/
-globle struct fuzzy_value *create_fuzzy_value()
+globle struct fuzzy_value *create_fuzzy_value(
+  void *theEnv)
   {  
     DATA_OBJECT theArgument;
 
-   if (ArgCountCheck("create-fuzzy-value",EXACTLY,1) != -1)
+   if (EnvArgCountCheck(theEnv,"create-fuzzy-value",EXACTLY,1) != -1)
      {     
-       RtnUnknown(1, &theArgument);
+       EnvRtnUnknown(theEnv,1, &theArgument);
 
        if (theArgument.type == FUZZY_VALUE)
          { 
-           return( CopyFuzzyValue(ValueToFuzzyValue(theArgument.value)) );
+           return( CopyFuzzyValue(theEnv,ValueToFuzzyValue(theArgument.value)) );
          }
        else
-          ExpectedTypeError1("create-fuzzy-value",1,"fuzzy value");
+          ExpectedTypeError1(theEnv,"create-fuzzy-value",1,"fuzzy value");
      }    
 
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
     return( NULL );       
   }
 
@@ -2235,6 +2263,7 @@ globle struct fuzzy_value *create_fuzzy_value()
  *******************************************************************/
 
 static struct expr *CreateFuzzyValueParse( 
+  void *theEnv,
   struct expr *top,
   char *logName)
 {
@@ -2244,36 +2273,36 @@ static struct expr *CreateFuzzyValueParse(
   int count, error;
   struct expr *fvExpr;
   
-  SavePPBuffer(" ");  /* space after the function name */
+  SavePPBuffer(theEnv," ");  /* space after the function name */
 
   /* this is now just like parsing a fuzzy deftemplate fact assert ...
      the template name and then the fuzzy value expression
   */
 
   /* First we get the deftemplate name -- must be a fuzzy deftemplate */
-  GetToken(logName, &theToken);
+  GetToken(theEnv,logName, &theToken);
 
   if (theToken.type != SYMBOL)
     {
-      SyntaxErrorMessage("function create-fuzzy-value (1st argument must be a symbol)");
-      ReturnExpression(top);
+      SyntaxErrorMessage(theEnv,"function create-fuzzy-value (1st argument must be a symbol)");
+      ReturnExpression(theEnv,top);
       return( NULL );
     }
 
   theName = ValueToString(theToken.value);
   if (FindModuleSeparator(theName))
     {
-      theDeftemplate = (struct deftemplate *) FindDeftemplate(theName);
+      theDeftemplate = (struct deftemplate *) EnvFindDeftemplate(theEnv,theName);
     }
   else
     {
       theDeftemplate = (struct deftemplate *)
-            FindImportedConstruct("deftemplate",NULL,theName,
+            FindImportedConstruct(theEnv,"deftemplate",NULL,theName,
                                    &count,TRUE,NULL);
       if (count > 1)
         {
-          AmbiguousReferenceErrorMessage("deftemplate",theName);
-          ReturnExpression(top);
+          AmbiguousReferenceErrorMessage(theEnv,"deftemplate",theName);
+          ReturnExpression(theEnv,top);
           return(NULL);
         }
      }
@@ -2284,17 +2313,17 @@ static struct expr *CreateFuzzyValueParse(
       )
      )
     {
-          CantFindItemErrorMessage("fuzzy deftemplate", theName);
-          ReturnExpression(top);
+          CantFindItemErrorMessage(theEnv,"fuzzy deftemplate", theName);
+          ReturnExpression(theEnv,top);
           return( NULL );
     }
   
-   fvExpr = ParseAssertFuzzyFact(logName, &theToken, &error, RPAREN, 
+   fvExpr = ParseAssertFuzzyFact(theEnv,logName, &theToken, &error, RPAREN, 
                                  FALSE, theDeftemplate, FALSE);
 
    if (error == TRUE)
      {
-       ReturnExpression(top);
+       ReturnExpression(theEnv,top);
        return( NULL );
      }
 

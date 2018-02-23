@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /data/CVS/fzclips/src/memalloc.c,v 1.3 2001/08/11 21:06:43 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                    MEMORY MODULE                    */
    /*******************************************************/
@@ -19,6 +17,13 @@ static char rcsid[] = "$Header: /data/CVS/fzclips/src/memalloc.c,v 1.3 2001/08/1
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Removed HaltExecution check from the           */
+/*            EnvReleaseMem function. DR0863                 */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Corrected code to remove compiler warnings.    */
+/*                                                           */
 /*************************************************************/
 
 #define _MEMORY_SOURCE_
@@ -29,6 +34,7 @@ static char rcsid[] = "$Header: /data/CVS/fzclips/src/memalloc.c,v 1.3 2001/08/1
 #include "setup.h"
 
 #include "constant.h"
+#include "envrnmnt.h"
 #include "memalloc.h"
 #include "router.h"
 #include "utility.h"
@@ -55,102 +61,77 @@ static char rcsid[] = "$Header: /data/CVS/fzclips/src/memalloc.c,v 1.3 2001/08/1
 /***************************************/
 
 #if BLOCK_MEMORY
-
-   static int                     InitializeBlockMemory(unsigned int);
-   static int                     AllocateBlock(struct blockInfo *,unsigned int);
-   static void                    AllocateChunk(struct blockInfo *,struct chunkInfo *,unsigned int);
-   static void                    ReturnAllBlocks(void);
-   static int                     BlockMemoryExitFunction(int);
-
+   static int                     InitializeBlockMemory(void *,unsigned int);
+   static int                     AllocateBlock(void *,struct blockInfo *,unsigned int);
+   static void                    AllocateChunk(void *,struct blockInfo *,struct chunkInfo *,unsigned int);
 #endif
-
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-
-   static long int                MemoryAmount = 0;
-   static long int                MemoryCalls = 0;
-   static BOOLEAN                 ConserveMemory = FALSE;
-
-#if BLOCK_MEMORY
-   static struct longMemoryPtr   *TopLongMemoryPtr = NULL;
-   static struct blockInfo       *TopMemoryBlock;
-   static int                     BlockInfoSize;
-   static int                     ChunkInfoSize;
-   static int                     BlockMemoryInitialized = FALSE;
-#endif
-
-   static int                   (*OutOfMemoryFunction)(unsigned long)
-                                       = DefaultOutOfMemoryFunction;
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle struct memoryPtr       *TempMemoryPtr;
-   globle struct memoryPtr      **MemoryTable;
-   globle unsigned int            TempSize;
-   globle unsigned long           TempSize2;
 
 /********************************************/
 /* InitializeMemory: Sets up memory tables. */
 /********************************************/
-globle void InitializeMemory()
+globle void InitializeMemory(
+  void *theEnv)
   {
    int i;
 
-   MemoryTable = (struct memoryPtr **)
+   AllocateEnvironmentData(theEnv,MEMORY_DATA,sizeof(struct memoryData),NULL);
+
+   MemoryData(theEnv)->OutOfMemoryFunction = DefaultOutOfMemoryFunction;
+   
+   MemoryData(theEnv)->MemoryTable = (struct memoryPtr **)
                  malloc((STD_SIZE) (sizeof(struct memoryPtr *) * MEM_TABLE_SIZE));
 
-   if (MemoryTable == NULL)
+   if (MemoryData(theEnv)->MemoryTable == NULL)
      {
-      PrintErrorID("MEMORY",1,TRUE);
-      PrintRouter(WERROR,"Out of memory.\n");
-      ExitRouter(EXIT_FAILURE);
+      PrintErrorID(theEnv,"MEMORY",1,TRUE);
+      EnvPrintRouter(theEnv,WERROR,"Out of memory.\n");
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
-   for (i = 0; i < MEM_TABLE_SIZE; i++) MemoryTable[i] = NULL;
+   for (i = 0; i < MEM_TABLE_SIZE; i++) MemoryData(theEnv)->MemoryTable[i] = NULL;
   }
 
 /***************************************************/
 /* genalloc: A generic memory allocation function. */
 /***************************************************/
 globle void *genalloc(
+  void *theEnv,
   unsigned int size)
   {
    char *memPtr;
-
+               
 #if   BLOCK_MEMORY
-   memPtr = RequestChunk(size);
+   memPtr = (char *) RequestChunk(theEnv,size);
    if (memPtr == NULL)
      {
-      ReleaseMem((long) ((size * 5 > 4096) ? size * 5 : 4096),FALSE);
-      memPtr = RequestChunk(size);
+      EnvReleaseMem(theEnv,(long) ((size * 5 > 4096) ? size * 5 : 4096),FALSE);
+      memPtr = (char *) RequestChunk(theEnv,size);
       if (memPtr == NULL)
         {
-         ReleaseMem(-1L,TRUE);
-         memPtr = RequestChunk(size);
+         EnvReleaseMem(theEnv,-1L,TRUE);
+         memPtr = (char *) RequestChunk(theEnv,size);
          while (memPtr == NULL)
            {
-            if ((*OutOfMemoryFunction)((unsigned long) size))
+            if ((*MemoryData(theEnv)->OutOfMemoryFunction)(theEnv,(unsigned long) size))
               return(NULL);
-            memPtr = RequestChunk(size);
+            memPtr = (char *) RequestChunk(theEnv,size);
            }
         }
      }
 #else
    memPtr = (char *) malloc((STD_SIZE) size);
+        
    if (memPtr == NULL)
      {
-      ReleaseMem((long) ((size * 5 > 4096) ? size * 5 : 4096),FALSE);
+      EnvReleaseMem(theEnv,(long) ((size * 5 > 4096) ? size * 5 : 4096),FALSE);
       memPtr = (char *) malloc((STD_SIZE) size);
       if (memPtr == NULL)
         {
-         ReleaseMem(-1L,TRUE);
+         EnvReleaseMem(theEnv,-1L,TRUE);
          memPtr = (char *) malloc((STD_SIZE) size);
          while (memPtr == NULL)
            {
-            if ((*OutOfMemoryFunction)((unsigned long) size))
+            if ((*MemoryData(theEnv)->OutOfMemoryFunction)(theEnv,(unsigned long) size))
               return(NULL);
             memPtr = (char *) malloc((STD_SIZE) size);
            }
@@ -158,8 +139,8 @@ globle void *genalloc(
      }
 #endif
 
-   MemoryAmount += size;
-   MemoryCalls++;
+   MemoryData(theEnv)->MemoryAmount += (long) size;
+   MemoryData(theEnv)->MemoryCalls++;
 
    return((void *) memPtr);
   }
@@ -172,27 +153,29 @@ globle void *genalloc(
 #pragma argsused
 #endif
 globle int DefaultOutOfMemoryFunction(
+  void *theEnv,
   unsigned long size)
   {
-#if MAC_MPW || MAC_MCW || IBM_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(size)
 #endif
-   PrintErrorID("MEMORY",1,TRUE);
-   PrintRouter(WERROR,"Out of memory.\n");
-   ExitRouter(EXIT_FAILURE);
+
+   PrintErrorID(theEnv,"MEMORY",1,TRUE);
+   EnvPrintRouter(theEnv,WERROR,"Out of memory.\n");
+   EnvExitRouter(theEnv,EXIT_FAILURE);
    return(TRUE);
   }
 
-/**********************************************************/
-/* SetOutOfMemoryFunction: Allows the function which is   */
-/*   called when the KB runs out of memory to be changed. */
-/**********************************************************/
-globle int (*SetOutOfMemoryFunction(int (*functionPtr)(unsigned long)))(unsigned long)
+/***********************************************************/
+/* EnvSetOutOfMemoryFunction: Allows the function which is */
+/*   called when the KB runs out of memory to be changed.  */
+/***********************************************************/
+globle int (*EnvSetOutOfMemoryFunction(void *theEnv,int (*functionPtr)(void *,unsigned long)))(void *,unsigned long)
   {
-   int (*tmpPtr)(unsigned long);
+   int (*tmpPtr)(void *,unsigned long);
 
-   tmpPtr = OutOfMemoryFunction;
-   OutOfMemoryFunction = functionPtr;
+   tmpPtr = MemoryData(theEnv)->OutOfMemoryFunction;
+   MemoryData(theEnv)->OutOfMemoryFunction = functionPtr;
    return(tmpPtr);
   }
 
@@ -200,22 +183,23 @@ globle int (*SetOutOfMemoryFunction(int (*functionPtr)(unsigned long)))(unsigned
 /* genfree: A generic memory deallocation function. */
 /****************************************************/
 globle int genfree(
+  void *theEnv,
   void *waste,
   unsigned size)
-  {
+  {   
 #if BLOCK_MEMORY
-   if (ReturnChunk(waste,size) == FALSE)
+   if (ReturnChunk(theEnv,waste,size) == FALSE)
      {
-      PrintErrorID("MEMORY",2,TRUE);
-      PrintRouter(WERROR,"Release error in genfree.\n");
+      PrintErrorID(theEnv,"MEMORY",2,TRUE);
+      EnvPrintRouter(theEnv,WERROR,"Release error in genfree.\n");
       return(-1);
      }
 #else
    free(waste);
 #endif
 
-   MemoryAmount -= size;
-   MemoryCalls--;
+   MemoryData(theEnv)->MemoryAmount -= (long) size;
+   MemoryData(theEnv)->MemoryCalls--;
 
    return(0);
   }
@@ -224,14 +208,16 @@ globle int genfree(
 /* genrealloc: Simple (i.e. dumb) version of realloc. */
 /******************************************************/
 globle void *genrealloc(
+  void *theEnv,
   void *oldaddr,
   unsigned oldsz,
   unsigned newsz)
   {
    char *newaddr;
-   int i, limit;
+   unsigned i;
+   unsigned limit;
 
-   newaddr = ((newsz != 0) ? (char *) gm2((int) newsz) : NULL);
+   newaddr = ((newsz != 0) ? (char *) gm2(theEnv,newsz) : NULL);
 
    if (oldaddr != NULL)
      {
@@ -240,7 +226,7 @@ globle void *genrealloc(
         { newaddr[i] = ((char *) oldaddr)[i]; }
       for ( ; i < newsz; i++)
         { newaddr[i] = '\0'; }
-      rm((void *) oldaddr,(int) oldsz);
+      rm(theEnv,(void *) oldaddr,oldsz);
      }
 
    return((void *) newaddr);
@@ -255,6 +241,7 @@ globle void *genrealloc(
 #pragma warn -ccc
 #endif
 globle void *genlongalloc(
+  void *theEnv,
   unsigned long size)
   {
 #if (! MAC) && (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) && (! IBM_ZTC) && (! IBM_SC) && (! IBM_MCW)
@@ -267,17 +254,17 @@ globle void *genlongalloc(
 #endif
 
    if (sizeof(int) == sizeof(long))
-     { return(genalloc((unsigned) size)); }
+     { return(genalloc(theEnv,(unsigned) size)); }
 
 #if (! MAC) && (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) && (! IBM_ZTC) && (! IBM_SC) && (! IBM_MCW)
    test = (unsigned int) size;
    if (test != size)
      {
-      PrintErrorID("MEMORY",3,TRUE);
-      PrintRouter(WERROR,"Unable to allocate memory block > 32K.\n");
-      ExitRouter(EXIT_FAILURE);
+      PrintErrorID(theEnv,"MEMORY",3,TRUE);
+      EnvPrintRouter(theEnv,WERROR,"Unable to allocate memory block > 32K.\n");
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
-   return((void *) genalloc((unsigned) test));
+   return((void *) genalloc(theEnv,(unsigned) test));
 #else
 
 #if BLOCK_MEMORY
@@ -287,28 +274,28 @@ globle void *genlongalloc(
    memPtr = (void *) SpecialMalloc(size);
    if (memPtr == NULL)
      {
-      ReleaseMem((long) ((size * 5 > 4096) ? size * 5 : 4096),FALSE);
+      EnvReleaseMem(theEnv,(long) ((size * 5 > 4096) ? size * 5 : 4096),FALSE);
       memPtr = (void *) SpecialMalloc(size);
       if (memPtr == NULL)
         {
-         ReleaseMem(-1L,TRUE);
+         EnvReleaseMem(theEnv,-1L,TRUE);
          memPtr = (void *) SpecialMalloc(size);
          while (memPtr == NULL)
            {
-            if ((*OutOfMemoryFunction)(size))
+            if ((*MemoryData(theEnv)->OutOfMemoryFunction)(theEnv,size))
               return(NULL);
             memPtr = (void *) SpecialMalloc(size);
            }
         }
      }
-   MemoryAmount += size;
-   MemoryCalls++;
+   MemoryData(theEnv)->MemoryAmount += (long) size;
+   MemoryData(theEnv)->MemoryCalls++;
 
 #if BLOCK_MEMORY
    theLongMemory = (struct longMemoryPtr *) memPtr;
-   theLongMemory->next = TopLongMemoryPtr;
+   theLongMemory->next = MemoryData(theEnv)->TopLongMemoryPtr;
    theLongMemory->prev = NULL;
-   theLongMemory->size = size;
+   theLongMemory->size = (long) size;
    memPtr = (void *) (theLongMemory + 1);
 #endif
 
@@ -329,6 +316,7 @@ globle void *genlongalloc(
 #pragma warn -ccc
 #endif
 globle int genlongfree(
+  void *theEnv,
   void *ptr,
   unsigned long size)
   {
@@ -340,13 +328,13 @@ globle int genlongfree(
 #endif
 
    if (sizeof(unsigned int) == sizeof(unsigned long))
-     { return(genfree((void *) ptr,(unsigned) size)); }
+     { return(genfree(theEnv,(void *) ptr,(unsigned) size)); }
 
 #if (! MAC) && (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) && (! IBM_ZTC) && (! IBM_SC) && (! IBM_MCW)
    test = (unsigned int) size;
    if (test != size) return(-1);
 
-   return(genfree((void *) ptr,(unsigned) test));
+   return(genfree(theEnv,(void *) ptr,(unsigned) test));
 #endif
 
 #if BLOCK_MEMORY
@@ -354,8 +342,8 @@ globle int genlongfree(
    theLongMemory = ((struct longMemoryPtr *) ptr) - 1;
    if (theLongMemory->prev == NULL)
      {
-      TopLongMemoryPtr = TopLongMemoryPtr->next;
-      TopLongMemoryPtr->prev = NULL;
+      MemoryData(theEnv)->TopLongMemoryPtr = MemoryData(theEnv)->TopLongMemoryPtr->next;
+      MemoryData(theEnv)->TopLongMemoryPtr->prev = NULL;
      }
    else
      {
@@ -366,25 +354,24 @@ globle int genlongfree(
 #endif
 
 #if MAC || IBM_ICB || IBM_MCW
-   MemoryAmount -= size;
-   MemoryCalls--;
+   MemoryData(theEnv)->MemoryAmount -= (long) size;
+   MemoryData(theEnv)->MemoryCalls--;
    SpecialFree(ptr);
    return(0);
 #endif
 
 #if IBM_TBC || IBM_ZTC || IBM_SC
-   MemoryAmount -= size;
-   MemoryCalls--;
+   MemoryData(theEnv)->MemoryAmount -= size;
+   MemoryData(theEnv)->MemoryCalls--;
    SpecialFree(ptr);
    return(0);
 #endif
 
 #if IBM_MSC
-   MemoryAmount -= size;
-   MemoryCalls--;
+   MemoryData(theEnv)->MemoryAmount -= size;
+   MemoryData(theEnv)->MemoryCalls--;
    SpecialFree(ptr);
-   return 0;
-   //return (SpecialFree(ptr));
+   return(0);
 #endif
   }
 #if IBM_TBC
@@ -392,22 +379,24 @@ globle int genlongfree(
 #pragma warn +ccc
 #endif
 
-/*********************************/
-/* MemUsed: C access routine for */
-/*   the mem-requests command.   */
-/*********************************/
-globle long int MemUsed()
+/********************************/
+/* EnvMemUsed: C access routine */
+/*   for the mem-used command.  */
+/********************************/
+globle long int EnvMemUsed(
+  void *theEnv)
   {
-   return(MemoryAmount);
+   return(MemoryData(theEnv)->MemoryAmount);
   }
 
-/*************************************/
-/* MemRequests: C access routine for */
-/*   the mem-requests command.       */
-/*************************************/
-globle long int MemRequests()
+/************************************/
+/* EnvMemRequests: C access routine */
+/*   for the mem-requests command.  */
+/************************************/
+globle long int EnvMemRequests(
+  void *theEnv)
   {
-   return(MemoryCalls);
+   return(MemoryData(theEnv)->MemoryCalls);
   }
 
 /***************************************/
@@ -415,10 +404,11 @@ globle long int MemRequests()
 /*   of memory used to be updated.     */
 /***************************************/
 globle long int UpdateMemoryUsed(
+  void *theEnv,
   long int value)
   {
-   MemoryAmount += value;
-   return(MemoryAmount);
+   MemoryData(theEnv)->MemoryAmount += value;
+   return(MemoryData(theEnv)->MemoryAmount);
   }
 
 /*******************************************/
@@ -426,17 +416,19 @@ globle long int UpdateMemoryUsed(
 /*   of memory requests to be updated.     */
 /*******************************************/
 globle long int UpdateMemoryRequests(
+  void *theEnv,
   long int value)
   {
-   MemoryCalls += value;
-   return(MemoryCalls);
+   MemoryData(theEnv)->MemoryCalls += value;
+   return(MemoryData(theEnv)->MemoryCalls);
   }
 
-/************************************/
-/* ReleaseMem: C access routine for */
-/*   the release-mem command.       */
-/************************************/
-globle long int ReleaseMem(
+/***********************************/
+/* EnvReleaseMem: C access routine */
+/*   for the release-mem command.  */
+/***********************************/
+globle long int EnvReleaseMem(
+  void *theEnv,
   long int maximum,
   int printMessage)
   {
@@ -446,33 +438,33 @@ globle long int ReleaseMem(
    long int amount = 0;
 
    if (printMessage == TRUE)
-     { PrintRouter(WDIALOG,"\n*** DEALLOCATING MEMORY ***\n"); }
+     { EnvPrintRouter(theEnv,WDIALOG,"\n*** DEALLOCATING MEMORY ***\n"); }
 
-   for (i = (MEM_TABLE_SIZE - 1) ; i >= sizeof(char *) ; i--)
+   for (i = (MEM_TABLE_SIZE - 1) ; i >= (int) sizeof(char *) ; i--)
      {
-      YieldTime();
-      memPtr = MemoryTable[i];
+      YieldTime(theEnv);
+      memPtr = MemoryData(theEnv)->MemoryTable[i];
       while (memPtr != NULL)
         {
          tmpPtr = memPtr->next;
-         genfree((void *) memPtr,(unsigned) i);
+         genfree(theEnv,(void *) memPtr,(unsigned) i);
          memPtr = tmpPtr;
          amount += i;
          returns++;
          if ((returns % 100) == 0)
-           { YieldTime(); }
+           { YieldTime(theEnv); }
         }
-      MemoryTable[i] = NULL;
-      if (((amount > maximum) && (maximum > 0)) || HaltExecution)
+      MemoryData(theEnv)->MemoryTable[i] = NULL;
+      if ((amount > maximum) && (maximum > 0))
         {
          if (printMessage == TRUE)
-           { PrintRouter(WDIALOG,"*** MEMORY  DEALLOCATED ***\n"); }
+           { EnvPrintRouter(theEnv,WDIALOG,"*** MEMORY  DEALLOCATED ***\n"); }
          return(amount);
         }
      }
 
    if (printMessage == TRUE)
-     { PrintRouter(WDIALOG,"*** MEMORY  DEALLOCATED ***\n"); }
+     { EnvPrintRouter(theEnv,WDIALOG,"*** MEMORY  DEALLOCATED ***\n"); }
 
    return(amount);
   }
@@ -481,32 +473,33 @@ globle long int ReleaseMem(
 /* gm1: Allocates memory and sets all bytes to zero. */
 /*****************************************************/
 globle void *gm1(
+  void *theEnv,
   int size)
   {
    struct memoryPtr *memPtr;
    char *tmpPtr;
    int i;
 
-   if (size < sizeof(char *)) size = sizeof(char *);
+   if (size < (long) sizeof(char *)) size = sizeof(char *);
 
    if (size >= MEM_TABLE_SIZE)
      {
-      tmpPtr = (char *) genalloc((unsigned) size);
+      tmpPtr = (char *) genalloc(theEnv,(unsigned) size);
       for (i = 0 ; i < size ; i++)
         { tmpPtr[i] = '\0'; }
       return((void *) tmpPtr);
      }
 
-   memPtr = (struct memoryPtr *) MemoryTable[size];
+   memPtr = (struct memoryPtr *) MemoryData(theEnv)->MemoryTable[size];
    if (memPtr == NULL)
      {
-      tmpPtr = (char *) genalloc((unsigned) size);
+      tmpPtr = (char *) genalloc(theEnv,(unsigned) size);
       for (i = 0 ; i < size ; i++)
         { tmpPtr[i] = '\0'; }
       return((void *) tmpPtr);
      }
 
-   MemoryTable[size] = memPtr->next;
+   MemoryData(theEnv)->MemoryTable[size] = memPtr->next;
 
    tmpPtr = (char *) memPtr;
    for (i = 0 ; i < size ; i++)
@@ -519,21 +512,22 @@ globle void *gm1(
 /* gm2: Allocates memory and does not initialize it. */
 /*****************************************************/
 globle void *gm2(
-  int size)
+  void *theEnv,
+  unsigned int size)
   {
    struct memoryPtr *memPtr;
-
+   
    if (size < sizeof(char *)) size = sizeof(char *);
 
-   if (size >= MEM_TABLE_SIZE) return(genalloc((unsigned) size));
+   if (size >= MEM_TABLE_SIZE) return(genalloc(theEnv,(unsigned) size));
 
-   memPtr = (struct memoryPtr *) MemoryTable[size];
+   memPtr = (struct memoryPtr *) MemoryData(theEnv)->MemoryTable[size];
    if (memPtr == NULL)
      {
-      return(genalloc((unsigned) size));
+      return(genalloc(theEnv,(unsigned) size));
      }
 
-   MemoryTable[size] = memPtr->next;
+   MemoryData(theEnv)->MemoryTable[size] = memPtr->next;
 
    return ((void *) memPtr);
   }
@@ -542,21 +536,22 @@ globle void *gm2(
 /* gm3: Allocates memory and does not initialize it. */
 /*****************************************************/
 globle void *gm3(
+  void *theEnv,
   long size)
   {
    struct memoryPtr *memPtr;
 
-   if (size < sizeof(char *)) size = sizeof(char *);
+   if (size < (long) sizeof(char *)) size = sizeof(char *);
 
-   if (size >= MEM_TABLE_SIZE) return(genlongalloc((unsigned long) size));
+   if (size >= MEM_TABLE_SIZE) return(genlongalloc(theEnv,(unsigned long) size));
 
-   memPtr = (struct memoryPtr *) MemoryTable[(int) size];
+   memPtr = (struct memoryPtr *) MemoryData(theEnv)->MemoryTable[(int) size];
    if (memPtr == NULL)
      {
-      return(genalloc((unsigned int) size));
+      return(genalloc(theEnv,(unsigned int) size));
      }
 
-   MemoryTable[(int) size] = memPtr->next;
+   MemoryData(theEnv)->MemoryTable[(int) size] = memPtr->next;
 
    return ((void *) memPtr);
   }
@@ -566,24 +561,25 @@ globle void *gm3(
 /*   maintained pool of free memory.    */
 /****************************************/
 globle int rm(
+  void *theEnv,
   void *str,
-  int size)
+  unsigned size)
   {
    struct memoryPtr *memPtr;
 
    if (size == 0)
      {
-      SystemError("MEMORY",1);
-      ExitRouter(EXIT_FAILURE);
+      SystemError(theEnv,"MEMORY",1);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
    if (size < sizeof(char *)) size = sizeof(char *);
 
-   if (size >= MEM_TABLE_SIZE) return(genfree((void *) str,(unsigned) size));
+   if (size >= MEM_TABLE_SIZE) return(genfree(theEnv,(void *) str,(unsigned) size));
 
    memPtr = (struct memoryPtr *) str;
-   memPtr->next = MemoryTable[size];
-   MemoryTable[size] = memPtr;
+   memPtr->next = MemoryData(theEnv)->MemoryTable[size];
+   MemoryData(theEnv)->MemoryTable[size] = memPtr;
    return(1);
   }
 
@@ -593,6 +589,7 @@ globle int rm(
 /*   size is indicated with a long integer. */
 /********************************************/
 globle int rm3(
+  void *theEnv,
   void *str,
   long size)
   {
@@ -600,24 +597,25 @@ globle int rm3(
 
    if (size == 0)
      {
-      SystemError("MEMORY",1);
-      ExitRouter(EXIT_FAILURE);
+      SystemError(theEnv,"MEMORY",1);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
-   if (size < sizeof(char *)) size = sizeof(char *);
+   if (size < (long) sizeof(char *)) size = sizeof(char *);
 
-   if (size >= MEM_TABLE_SIZE) return(genlongfree((void *) str,(unsigned long) size));
+   if (size >= MEM_TABLE_SIZE) return(genlongfree(theEnv,(void *) str,(unsigned long) size));
 
    memPtr = (struct memoryPtr *) str;
-   memPtr->next = MemoryTable[(int) size];
-   MemoryTable[(int) size] = memPtr;
+   memPtr->next = MemoryData(theEnv)->MemoryTable[(int) size];
+   MemoryData(theEnv)->MemoryTable[(int) size] = memPtr;
    return(1);
   }
 
 /***************************************************/
 /* PoolSize: Returns number of bytes in free pool. */
 /***************************************************/
-globle unsigned long PoolSize()
+globle unsigned long PoolSize(
+  void *theEnv)
   {
    register int i;
    struct memoryPtr *memPtr;
@@ -625,7 +623,7 @@ globle unsigned long PoolSize()
 
    for (i = sizeof(char *) ; i < MEM_TABLE_SIZE ; i++)
      {
-      memPtr = MemoryTable[i];
+      memPtr = MemoryData(theEnv)->MemoryTable[i];
       while (memPtr != NULL)
         {
          cnt += (unsigned long) i;
@@ -640,7 +638,8 @@ globle unsigned long PoolSize()
 /*   store the free pool.  This routine is functionally        */
 /*   equivalent to pool_size on anything other than the IBM-PC */
 /***************************************************************/
-globle unsigned long ActualPoolSize()
+globle unsigned long ActualPoolSize(
+  void *theEnv)
   {
 #if IBM_TBC
    register int i;
@@ -649,7 +648,7 @@ globle unsigned long ActualPoolSize()
 
    for (i = sizeof(char *) ; i < MEM_TABLE_SIZE ; i++)
      {
-      memPtr = MemoryTable[i];
+      memPtr = MemoryData(theEnv)->MemoryTable[i];
       while (memPtr != NULL)
         {
          /*==============================================================*/
@@ -664,31 +663,33 @@ globle unsigned long ActualPoolSize()
      }
    return(cnt);
 #else
-   return(PoolSize());
+   return(PoolSize(theEnv));
 #endif
   }
 
 /********************************************/
-/* SetConserveMemory: Allows the setting of */
-/*    the memory conservation flag.         */
+/* EnvSetConserveMemory: Allows the setting */
+/*    of the memory conservation flag.      */
 /********************************************/
-globle BOOLEAN SetConserveMemory(
-  BOOLEAN value)
+globle intBool EnvSetConserveMemory(
+  void *theEnv,
+  intBool value)
   {
    int ov;
 
-   ov = ConserveMemory;
-   ConserveMemory = value;
+   ov = MemoryData(theEnv)->ConserveMemory;
+   MemoryData(theEnv)->ConserveMemory = value;
    return(ov);
   }
 
 /*******************************************/
-/* GetConserveMemory: Returns the value of */
-/*    the memory conservation flag.        */
+/* EnvGetConserveMemory: Returns the value */
+/*    of the memory conservation flag.     */
 /*******************************************/
-globle BOOLEAN GetConserveMemory()
+globle intBool EnvGetConserveMemory(
+  void *theEnv)
   {
-   return(ConserveMemory);
+   return(MemoryData(theEnv)->ConserveMemory);
   }
 
 /**************************/
@@ -716,6 +717,7 @@ globle void genmemcpy(
 /*   management and allocates the first block.     */
 /***************************************************/
 static int InitializeBlockMemory(
+  void *theEnv,
   unsigned int requestSize)
   {
    struct chunkInfo *chunkPtr;
@@ -733,52 +735,52 @@ static int InitializeBlockMemory(
       return(0);
      }
 
-   ChunkInfoSize = sizeof(struct chunkInfo);
-   ChunkInfoSize = (((ChunkInfoSize - 1) / STRICT_ALIGN_SIZE) + 1) * STRICT_ALIGN_SIZE;
+   MemoryData(theEnv)->ChunkInfoSize = sizeof(struct chunkInfo);
+   MemoryData(theEnv)->ChunkInfoSize = (int) ((((MemoryData(theEnv)->ChunkInfoSize - 1) / STRICT_ALIGN_SIZE) + 1) * STRICT_ALIGN_SIZE);
 
-   BlockInfoSize = sizeof(struct blockInfo);
-   BlockInfoSize = (((BlockInfoSize - 1) / STRICT_ALIGN_SIZE) + 1) * STRICT_ALIGN_SIZE;
+   MemoryData(theEnv)->BlockInfoSize = sizeof(struct blockInfo);
+   MemoryData(theEnv)->BlockInfoSize = (int) ((((MemoryData(theEnv)->BlockInfoSize - 1) / STRICT_ALIGN_SIZE) + 1) * STRICT_ALIGN_SIZE);
 
    initialBlockSize = (INITBLOCKSIZE > requestSize ? INITBLOCKSIZE : requestSize);
-   initialBlockSize += ChunkInfoSize * 2 + BlockInfoSize;
+   initialBlockSize += MemoryData(theEnv)->ChunkInfoSize * 2 + MemoryData(theEnv)->BlockInfoSize;
    initialBlockSize = (((initialBlockSize - 1) / STRICT_ALIGN_SIZE) + 1) * STRICT_ALIGN_SIZE;
 
-   usableBlockSize = initialBlockSize - (2 * ChunkInfoSize) - BlockInfoSize;
+   usableBlockSize = initialBlockSize - (2 * MemoryData(theEnv)->ChunkInfoSize) - MemoryData(theEnv)->BlockInfoSize;
 
    /* make sure we get a buffer big enough to be usable */
    if ((requestSize < INITBLOCKSIZE) &&
-       (usableBlockSize <= requestSize + ChunkInfoSize))
+       (usableBlockSize <= requestSize + MemoryData(theEnv)->ChunkInfoSize))
      {
-      initialBlockSize = requestSize + ChunkInfoSize * 2 + BlockInfoSize;
+      initialBlockSize = requestSize + MemoryData(theEnv)->ChunkInfoSize * 2 + MemoryData(theEnv)->BlockInfoSize;
       initialBlockSize = (((initialBlockSize - 1) / STRICT_ALIGN_SIZE) + 1) * STRICT_ALIGN_SIZE;
-      usableBlockSize = initialBlockSize - (2 * ChunkInfoSize) - BlockInfoSize;
+      usableBlockSize = initialBlockSize - (2 * MemoryData(theEnv)->ChunkInfoSize) - MemoryData(theEnv)->BlockInfoSize;
      }
 
-   TopMemoryBlock = (struct blockInfo *) malloc((STD_SIZE) initialBlockSize);
+   MemoryData(theEnv)->TopMemoryBlock = (struct blockInfo *) malloc((STD_SIZE) initialBlockSize);
 
-   if (TopMemoryBlock == NULL)
+   if (MemoryData(theEnv)->TopMemoryBlock == NULL)
      {
       fprintf(stdout, "Unable to allocate initial memory pool\n");
       return(0);
      }
 
-   TopMemoryBlock->nextBlock = NULL;
-   TopMemoryBlock->prevBlock = NULL;
-   TopMemoryBlock->nextFree = (struct chunkInfo *) (((char *) TopMemoryBlock) + BlockInfoSize);
-   TopMemoryBlock->size = usableBlockSize;
+   MemoryData(theEnv)->TopMemoryBlock->nextBlock = NULL;
+   MemoryData(theEnv)->TopMemoryBlock->prevBlock = NULL;
+   MemoryData(theEnv)->TopMemoryBlock->nextFree = (struct chunkInfo *) (((char *) MemoryData(theEnv)->TopMemoryBlock) + MemoryData(theEnv)->BlockInfoSize);
+   MemoryData(theEnv)->TopMemoryBlock->size = (long) usableBlockSize;
 
-   chunkPtr = (struct chunkInfo *) (((char *) TopMemoryBlock) + BlockInfoSize + ChunkInfoSize + usableBlockSize);
+   chunkPtr = (struct chunkInfo *) (((char *) MemoryData(theEnv)->TopMemoryBlock) + MemoryData(theEnv)->BlockInfoSize + MemoryData(theEnv)->ChunkInfoSize + usableBlockSize);
    chunkPtr->nextFree = NULL;
    chunkPtr->lastFree = NULL;
-   chunkPtr->prevChunk = TopMemoryBlock->nextFree;
+   chunkPtr->prevChunk = MemoryData(theEnv)->TopMemoryBlock->nextFree;
    chunkPtr->size = 0;
 
-   TopMemoryBlock->nextFree->nextFree = NULL;
-   TopMemoryBlock->nextFree->lastFree = NULL;
-   TopMemoryBlock->nextFree->prevChunk = NULL;
-   TopMemoryBlock->nextFree->size = usableBlockSize;
+   MemoryData(theEnv)->TopMemoryBlock->nextFree->nextFree = NULL;
+   MemoryData(theEnv)->TopMemoryBlock->nextFree->lastFree = NULL;
+   MemoryData(theEnv)->TopMemoryBlock->nextFree->prevChunk = NULL;
+   MemoryData(theEnv)->TopMemoryBlock->nextFree->size = (long) usableBlockSize;
 
-   BlockMemoryInitialized = TRUE;
+   MemoryData(theEnv)->BlockMemoryInitialized = TRUE;
    return(1);
   }
 
@@ -786,6 +788,7 @@ static int InitializeBlockMemory(
 /* AllocateBlock: Adds a new block of memory to the list of memory blocks. */
 /***************************************************************************/
 static int AllocateBlock(
+  void *theEnv,
   struct blockInfo *blockPtr,
   unsigned int requestSize)
   {
@@ -801,10 +804,10 @@ static int AllocateBlock(
    /*============================================================*/
 
    blockSize = (BLOCKSIZE > requestSize ? BLOCKSIZE : requestSize);
-   blockSize += BlockInfoSize + ChunkInfoSize * 2;
+   blockSize += MemoryData(theEnv)->BlockInfoSize + MemoryData(theEnv)->ChunkInfoSize * 2;
    blockSize = (((blockSize - 1) / STRICT_ALIGN_SIZE) + 1) * STRICT_ALIGN_SIZE;
 
-   usableBlockSize = blockSize - BlockInfoSize - (2 * ChunkInfoSize);
+   usableBlockSize = blockSize - MemoryData(theEnv)->BlockInfoSize - (2 * MemoryData(theEnv)->ChunkInfoSize);
 
    /*=========================*/
    /* Allocate the new block. */
@@ -819,11 +822,11 @@ static int AllocateBlock(
 
    newBlock->nextBlock = NULL;
    newBlock->prevBlock = blockPtr;
-   newBlock->nextFree = (struct chunkInfo *) (((char *) newBlock) + BlockInfoSize);
-   newBlock->size = usableBlockSize;
+   newBlock->nextFree = (struct chunkInfo *) (((char *) newBlock) + MemoryData(theEnv)->BlockInfoSize);
+   newBlock->size = (long) usableBlockSize;
    blockPtr->nextBlock = newBlock;
 
-   newTopChunk = (struct chunkInfo *) (((char *) newBlock) + BlockInfoSize + ChunkInfoSize + usableBlockSize);
+   newTopChunk = (struct chunkInfo *) (((char *) newBlock) + MemoryData(theEnv)->BlockInfoSize + MemoryData(theEnv)->ChunkInfoSize + usableBlockSize);
    newTopChunk->nextFree = NULL;
    newTopChunk->lastFree = NULL;
    newTopChunk->size = 0;
@@ -832,7 +835,7 @@ static int AllocateBlock(
    newBlock->nextFree->nextFree = NULL;
    newBlock->nextFree->lastFree = NULL;
    newBlock->nextFree->prevChunk = NULL;
-   newBlock->nextFree->size = usableBlockSize;
+   newBlock->nextFree->size = (long) usableBlockSize;
 
    return(1);
   }
@@ -842,6 +845,7 @@ static int AllocateBlock(
 /*   of memory from a larger block of memory.          */
 /*******************************************************/
 globle void *RequestChunk(
+  void *theEnv,
   unsigned int requestSize)
   {
    struct chunkInfo *chunkPtr;
@@ -852,10 +856,9 @@ globle void *RequestChunk(
    /* already been allocated.                          */
    /*==================================================*/
 
-   if (BlockMemoryInitialized == FALSE)
+   if (MemoryData(theEnv)->BlockMemoryInitialized == FALSE)
       {
-       if (InitializeBlockMemory(requestSize) == 0) return(NULL);
-       AddRouter("bmexit",-2000,NULL,NULL,NULL,NULL,BlockMemoryExitFunction);
+       if (InitializeBlockMemory(theEnv,requestSize) == 0) return(NULL);
       }
 
    /*====================================================*/
@@ -871,7 +874,7 @@ globle void *RequestChunk(
    /* allocate and return a pointer to it.                */
    /*=====================================================*/
 
-   blockPtr = TopMemoryBlock;
+   blockPtr = MemoryData(theEnv)->TopMemoryBlock;
 
    while (blockPtr != NULL)
      {
@@ -880,25 +883,25 @@ globle void *RequestChunk(
       while (chunkPtr != NULL)
         {
          if ((chunkPtr->size == requestSize) ||
-             (chunkPtr->size > (requestSize + ChunkInfoSize)))
+             (chunkPtr->size > (requestSize + MemoryData(theEnv)->ChunkInfoSize)))
            {
-            AllocateChunk(blockPtr,chunkPtr,requestSize);
+            AllocateChunk(theEnv,blockPtr,chunkPtr,requestSize);
 
-            return((void *) (((char *) chunkPtr) + ChunkInfoSize));
+            return((void *) (((char *) chunkPtr) + MemoryData(theEnv)->ChunkInfoSize));
            }
          chunkPtr = chunkPtr->nextFree;
         }
 
       if (blockPtr->nextBlock == NULL)
         {
-         if (AllocateBlock(blockPtr,requestSize) == 0)  /* get another block */
+         if (AllocateBlock(theEnv,blockPtr,requestSize) == 0)  /* get another block */
            { return(NULL); }
         }
       blockPtr = blockPtr->nextBlock;
      }
 
-   SystemError("MEMORY",2);
-   ExitRouter(EXIT_FAILURE);
+   SystemError(theEnv,"MEMORY",2);
+   EnvExitRouter(theEnv,EXIT_FAILURE);
    return(NULL); /* Unreachable, but prevents warning. */
   }
 
@@ -907,6 +910,7 @@ globle void *RequestChunk(
 /*   existing chunk in a block of memory.   */
 /********************************************/
 static void AllocateChunk(
+  void *theEnv,
   struct blockInfo *parentBlock,
   struct chunkInfo *chunkPtr,
   unsigned int requestSize)
@@ -946,12 +950,12 @@ static void AllocateChunk(
    /*===========================================================*/
 
    nextChunk = (struct chunkInfo *)
-              (((char *) chunkPtr) + ChunkInfoSize + chunkPtr->size);
+              (((char *) chunkPtr) + MemoryData(theEnv)->ChunkInfoSize + chunkPtr->size);
 
    splitChunk = (struct chunkInfo *)
-                  (((char *) chunkPtr) + (ChunkInfoSize + requestSize));
+                  (((char *) chunkPtr) + (MemoryData(theEnv)->ChunkInfoSize + requestSize));
 
-   splitChunk->size = chunkPtr->size - (requestSize + ChunkInfoSize);
+   splitChunk->size = (long) (chunkPtr->size - (requestSize + MemoryData(theEnv)->ChunkInfoSize));
    splitChunk->prevChunk = chunkPtr;
 
    splitChunk->nextFree = chunkPtr->nextFree;
@@ -978,6 +982,7 @@ static void AllocateChunk(
 /* ReturnChunk: Frees memory allocated using RequestChunk. */
 /***********************************************************/
 globle int ReturnChunk(
+  void *theEnv,
   void *memPtr,
   unsigned int size)
   {
@@ -991,7 +996,7 @@ globle int ReturnChunk(
 
    size = (((size - 1) / STRICT_ALIGN_SIZE) + 1) * STRICT_ALIGN_SIZE;
 
-   chunkPtr = (struct chunkInfo *) (((char *) memPtr) - ChunkInfoSize);
+   chunkPtr = (struct chunkInfo *) (((char *) memPtr) - MemoryData(theEnv)->ChunkInfoSize);
 
    if (chunkPtr == NULL)
      { return(FALSE); }
@@ -1011,7 +1016,7 @@ globle int ReturnChunk(
    topChunk = chunkPtr;
    while (topChunk->prevChunk != NULL)
      { topChunk = topChunk->prevChunk; }
-   blockPtr = (struct blockInfo *) (((char *) topChunk) - BlockInfoSize);
+   blockPtr = (struct blockInfo *) (((char *) topChunk) - MemoryData(theEnv)->BlockInfoSize);
 
    /*===========================================*/
    /* Determine the chunks physically preceding */
@@ -1041,7 +1046,7 @@ globle int ReturnChunk(
      {
       if (lastChunk->size > 0)
         {
-         lastChunk->size += (ChunkInfoSize + chunkPtr->size);
+         lastChunk->size += (MemoryData(theEnv)->ChunkInfoSize + chunkPtr->size);
 
          if (nextChunk != NULL)
            { nextChunk->prevChunk = lastChunk; }
@@ -1075,9 +1080,9 @@ globle int ReturnChunk(
 
    if (nextChunk->size > 0)
      {
-      chunkPtr->size += (ChunkInfoSize + nextChunk->size);
+      chunkPtr->size += (MemoryData(theEnv)->ChunkInfoSize + nextChunk->size);
 
-      topChunk = (struct chunkInfo *) (((char *) nextChunk) + nextChunk->size + ChunkInfoSize);
+      topChunk = (struct chunkInfo *) (((char *) nextChunk) + nextChunk->size + MemoryData(theEnv)->ChunkInfoSize);
       if (topChunk != NULL)
         { topChunk->prevChunk = chunkPtr; }
       else
@@ -1111,7 +1116,7 @@ globle int ReturnChunk(
          if (blockPtr->nextBlock != NULL)
            {
             blockPtr->nextBlock->prevBlock = NULL;
-            TopMemoryBlock = blockPtr->nextBlock;
+            MemoryData(theEnv)->TopMemoryBlock = blockPtr->nextBlock;
             free((char *) blockPtr);
            }
         }
@@ -1124,7 +1129,8 @@ globle int ReturnChunk(
 /* ReturnAllBlocks: Frees all allocated blocks */
 /*   back to the operating system.             */
 /***********************************************/
-static void ReturnAllBlocks()
+globle void ReturnAllBlocks(
+  void *theEnv)
   {
    struct blockInfo *theBlock, *nextBlock;
    struct longMemoryPtr *theLongMemory, *nextLongMemory;
@@ -1133,7 +1139,7 @@ static void ReturnAllBlocks()
    /* Free up int based memory allocation. */
    /*======================================*/
 
-   theBlock = TopMemoryBlock;
+   theBlock = MemoryData(theEnv)->TopMemoryBlock;
    while (theBlock != NULL)
      {
       nextBlock = theBlock->nextBlock;
@@ -1141,31 +1147,20 @@ static void ReturnAllBlocks()
       theBlock = nextBlock;
      }
 
-   TopMemoryBlock = NULL;
+   MemoryData(theEnv)->TopMemoryBlock = NULL;
 
    /*=======================================*/
    /* Free up long based memory allocation. */
    /*=======================================*/
 
-   theLongMemory = TopLongMemoryPtr;
+   theLongMemory = MemoryData(theEnv)->TopLongMemoryPtr;
    while (theLongMemory != NULL)
      {
       nextLongMemory = theLongMemory->next;
-      genlongfree(theLongMemory,theLongMemory->size);
+      genlongfree(theEnv,theLongMemory,(unsigned long) theLongMemory->size);
       theLongMemory = nextLongMemory;
      }
 
-   TopLongMemoryPtr = NULL;
-  }
-
-/***************************************/
-/* BlockMemoryExitFunction: Routine to */
-/*   free block memory when exiting.   */
-/***************************************/
-static int BlockMemoryExitFunction(
-  int num)
-  {
-   ReturnAllBlocks();
-   return(1);
+   MemoryData(theEnv)->TopLongMemoryPtr = NULL;
   }
 #endif

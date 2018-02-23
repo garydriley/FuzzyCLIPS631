@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/userdata.h,v 1.3 2001/08/11 21:08:21 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/28/98            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                USER DATA HEADER FILE                */
    /*******************************************************/
@@ -44,23 +42,31 @@ typedef struct userData * USER_DATA_PTR;
 struct userDataRecord
   {
    unsigned char dataID;
-   void *(*createUserData)(void);
-   void (*deleteUserData)(void *);
+   void *(*createUserData)(void *);
+   void (*deleteUserData)(void *,void *);
   };
   
 typedef struct userDataRecord USER_DATA_RECORD;
 typedef struct userDataRecord * USER_DATA_RECORD_PTR;
 
 #define MAXIMUM_USER_DATA_RECORDS 100
-  
-   LOCALE unsigned char                  InstallUserDataRecord(struct userDataRecord *);
-   LOCALE struct userData               *FetchUserData(unsigned char,struct userData **);
+
+#define USER_DATA_DATA 56
+
+struct userDataData
+  { 
+   struct userDataRecord *UserDataRecordArray[MAXIMUM_USER_DATA_RECORDS];
+   unsigned char UserDataRecordCount;
+  };
+
+#define UserDataData(theEnv) ((struct userDataData *) GetEnvironmentData(theEnv,USER_DATA_DATA))
+
+   LOCALE void                           InitializeUserDataData(void *);
+   LOCALE unsigned char                  InstallUserDataRecord(void *,struct userDataRecord *);
+   LOCALE struct userData               *FetchUserData(void *,unsigned char,struct userData **);
    LOCALE struct userData               *TestUserData(unsigned char,struct userData *);
-   LOCALE void                           ClearUserDataList(struct userData *);
-   LOCALE struct userData               *DeleteUserData(unsigned char,struct userData *);
+   LOCALE void                           ClearUserDataList(void *,struct userData *);
+   LOCALE struct userData               *DeleteUserData(void *,unsigned char,struct userData *);
 
 #endif
-
-
-
 

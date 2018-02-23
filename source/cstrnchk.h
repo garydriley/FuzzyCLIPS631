@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/cstrnchk.h,v 1.3 2001/08/11 21:04:40 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  07/01/05            */
    /*                                                     */
    /*            CONSTRAINT CHECKING HEADER FILE          */
    /*******************************************************/
@@ -18,6 +16,10 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Added allowed-classes slot facet.              */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -47,27 +49,28 @@
 #define ALLOWED_VALUES_VIOLATION        3
 #define FUNCTION_RETURN_TYPE_VIOLATION  4
 #define CARDINALITY_VIOLATION           5
+#define ALLOWED_CLASSES_VIOLATION       6
 
-   LOCALE BOOLEAN                        CheckCardinalityConstraint(long,CONSTRAINT_RECORD *);
-   LOCALE BOOLEAN                        CheckAllowedValuesConstraint(int,void *,CONSTRAINT_RECORD *);
-   LOCALE int                            ConstraintCheckExpressionChain(struct expr *,
+   LOCALE intBool                        CheckCardinalityConstraint(void *,long,CONSTRAINT_RECORD *);
+   LOCALE intBool                        CheckAllowedValuesConstraint(int,void *,CONSTRAINT_RECORD *);
+   LOCALE intBool                        CheckAllowedClassesConstraint(void *,int,void *,CONSTRAINT_RECORD *);
+   LOCALE int                            ConstraintCheckExpressionChain(void *,struct expr *,
                                                                      CONSTRAINT_RECORD *);
-   LOCALE void                           ConstraintViolationErrorMessage(char *,char *,int,int,
+   LOCALE void                           ConstraintViolationErrorMessage(void *,char *,char *,int,int,
                                                                       struct symbolHashNode *,
                                                                       int,int,CONSTRAINT_RECORD *,
                                                                       int);
-   LOCALE int                            ConstraintCheckValue(int,void *,CONSTRAINT_RECORD *);
-   LOCALE int                            ConstraintCheckDataObject(DATA_OBJECT *,CONSTRAINT_RECORD *);
+   LOCALE int                            ConstraintCheckValue(void *,int,void *,CONSTRAINT_RECORD *);
+   LOCALE int                            ConstraintCheckDataObject(void *,DATA_OBJECT *,CONSTRAINT_RECORD *);
 #if (! BLOAD_ONLY) && (! RUN_TIME)
-   LOCALE int                            ConstraintCheckExpression(struct expr *,
+   LOCALE int                            ConstraintCheckExpression(void *,struct expr *,
                                                                 CONSTRAINT_RECORD *);
 #endif
 #if (! RUN_TIME)
-   LOCALE BOOLEAN                        UnmatchableConstraint(struct constraintRecord *);
+   LOCALE intBool                        UnmatchableConstraint(struct constraintRecord *);
 #endif
 
 #endif
-
 
 
 

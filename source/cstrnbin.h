@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/cstrnbin.h,v 1.3 2001/08/11 21:04:38 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*    CONSTRAINT BLOAD/BSAVE/CONSTRUCTS-TO-C HEADER    */
    /*******************************************************/
@@ -49,23 +47,16 @@
 #if FUZZY_DEFTEMPLATES 
 #define ConstraintIndex(theConstraint) ((theConstraint == NULL) ? -1L : ((long) theConstraint->bsaveIndex))
 #else
-#define ConstraintIndex(theConstraint) (((! GetDynamicConstraintChecking()) || (theConstraint == NULL)) ? -1L : ((long) theConstraint->bsaveIndex))
+#define ConstraintIndex(theConstraint) (((! EnvGetDynamicConstraintChecking(theEnv)) || (theConstraint == NULL)) ? -1L : ((long) theConstraint->bsaveIndex))
 #endif
-
-#define ConstraintPointer(i) (((i) == -1L) ? NULL : (CONSTRAINT_RECORD *) &ConstraintArray[i])
+#define ConstraintPointer(i) (((i) == -1L) ? NULL : (CONSTRAINT_RECORD *) &ConstraintData(theEnv)->ConstraintArray[i])
 
 #if BLOAD_AND_BSAVE
-   LOCALE void                           WriteNeededConstraints(FILE *);
+   LOCALE void                           WriteNeededConstraints(void *,FILE *);
 #endif
-   LOCALE void                           ReadNeededConstraints(void);
-   LOCALE void                           ClearBloadedConstraints(void);
-
-#ifndef _CSTRNBIN_SOURCE_
-   extern CONSTRAINT_RECORD *   ConstraintArray;
-#endif
+   LOCALE void                           ReadNeededConstraints(void *);
+   LOCALE void                           ClearBloadedConstraints(void *);
 
 #endif
-
-
 
 

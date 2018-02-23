@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/clsltpsr.h,v 1.3 2001/08/11 21:04:21 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.10  04/13/98          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -49,8 +47,8 @@ typedef struct tempSlotLink
 #define LOCALE extern
 #endif
 
-LOCALE TEMP_SLOT_LINK *ParseSlot(char *,TEMP_SLOT_LINK *,PACKED_CLASS_LINKS *,int,int);
-LOCALE void DeleteSlots(TEMP_SLOT_LINK *);
+LOCALE TEMP_SLOT_LINK *ParseSlot(void *,char *,TEMP_SLOT_LINK *,PACKED_CLASS_LINKS *,int,int);
+LOCALE void DeleteSlots(void *,TEMP_SLOT_LINK *);
 
 #ifndef _CLSLTPSR_SOURCE_
 #endif

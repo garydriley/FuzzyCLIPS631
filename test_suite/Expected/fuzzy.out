@@ -1,0 +1,562 @@
+TRUE
+FuzzyCLIPS> (batch "fuzzy.bat")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (load fzbackward.clp)
+$$%*********
+TRUE
+FuzzyCLIPS> (bsave "Temp//fzbackward.bin")
+[CSTRNBIN1] WARNING: Constraints are not saved with a binary image
+  when dynamic constraint checking is disabled.
+  (except Fuzzy Value constraints are always saved)
+TRUE
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+which node are you interested in? (a-j or q to quit)
+i
+Please enter a value for node: a 
+2
+Enter Certainty Factor for node (0.0 to 1.0): a 
+0.5
+Please enter a value for node: b 
+4
+Enter Certainty Factor for node (0.0 to 1.0): b 
+0.4
+Please enter a value for node: c 
+6
+Enter Certainty Factor for node (0.0 to 1.0): c 
+1.0
+The output value at node i is 12 with certainty of 0.4
+which node are you interested in? (a-j or q to quit)
+q
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (bload "Temp//fzbackward.bin")
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+which node are you interested in? (a-j or q to quit)
+i
+Please enter a value for node: a 
+2
+Enter Certainty Factor for node (0.0 to 1.0): a 
+0.5
+Please enter a value for node: b 
+4
+Enter Certainty Factor for node (0.0 to 1.0): b 
+0.4
+Please enter a value for node: c 
+6
+Enter Certainty Factor for node (0.0 to 1.0): c 
+1.0
+The output value at node i is 12 with certainty of 0.4
+which node are you interested in? (a-j or q to quit)
+q
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (load fzshower.clp)
+::::::::::::%%%%!!!!!***********
+TRUE
+FuzzyCLIPS> (bsave "Temp//fzshower.bin")
+[CSTRNBIN1] WARNING: Constraints are not saved with a binary image
+  when dynamic constraint checking is disabled.
+  (except Fuzzy Value constraints are always saved)
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+Initial Cold Valve Position? [0.0 to 1.0]: 0.1
+Initial Hot Valve Position? [0.0 to 1.0]: 0.9
+Initial Temperature (Celcius) of cold water input? [5 to 65]: 10
+Initial Temperature (Celcius) of hot water input? [5 to 65]: 40
+Initial Pressure (kPa) of cold water input? [42 to 100]: 60
+Initial Pressure (kPa) of hot water input? [42 to 100]: 70
+Output Flow is 39.000 litres/sec
+Output Temp is 37.692 degrees C
+Cold Valve Position = 0.088, Hot  Valve Position = 0.698 
+Output Flow is 30.584 litres/sec
+Output Temp is 37.406 degrees C
+Cold Valve Position = 0.076, Hot  Valve Position = 0.594 
+Output Flow is 26.044 litres/sec
+Output Temp is 37.359 degrees C
+Cold Valve Position = 0.065, Hot  Valve Position = 0.511 
+Output Flow is 22.405 litres/sec
+Output Temp is 37.384 degrees C
+Cold Valve Position = 0.054, Hot  Valve Position = 0.442 
+Output Flow is 19.303 litres/sec
+Output Temp is 37.469 degrees C
+Cold Valve Position = 0.044, Hot  Valve Position = 0.380 
+Output Flow is 16.508 litres/sec
+Output Temp is 37.602 degrees C
+Cold Valve Position = 0.034, Hot  Valve Position = 0.317 
+Output Flow is 13.721 litres/sec
+Output Temp is 37.755 degrees C
+Cold Valve Position = 0.025, Hot  Valve Position = 0.238 
+Output Flow is 10.266 litres/sec
+Output Temp is 37.780 degrees C
+Cold Valve Position = 0.044, Hot  Valve Position = 0.259 
+Output Flow is 11.675 litres/sec
+Output Temp is 36.580 degrees C
+Shower is under control!
+Would you like to change some parameters? n
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (bload "Temp//fzshower.bin")
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+Initial Cold Valve Position? [0.0 to 1.0]: 0.1
+Initial Hot Valve Position? [0.0 to 1.0]: 0.9
+Initial Temperature (Celcius) of cold water input? [5 to 65]: 10
+Initial Temperature (Celcius) of hot water input? [5 to 65]: 40
+Initial Pressure (kPa) of cold water input? [42 to 100]: 60
+Initial Pressure (kPa) of hot water input? [42 to 100]: 70
+Output Flow is 39.000 litres/sec
+Output Temp is 37.692 degrees C
+Cold Valve Position = 0.088, Hot  Valve Position = 0.698 
+Output Flow is 30.584 litres/sec
+Output Temp is 37.406 degrees C
+Cold Valve Position = 0.076, Hot  Valve Position = 0.594 
+Output Flow is 26.044 litres/sec
+Output Temp is 37.359 degrees C
+Cold Valve Position = 0.065, Hot  Valve Position = 0.511 
+Output Flow is 22.405 litres/sec
+Output Temp is 37.384 degrees C
+Cold Valve Position = 0.054, Hot  Valve Position = 0.442 
+Output Flow is 19.303 litres/sec
+Output Temp is 37.469 degrees C
+Cold Valve Position = 0.044, Hot  Valve Position = 0.380 
+Output Flow is 16.508 litres/sec
+Output Temp is 37.602 degrees C
+Cold Valve Position = 0.034, Hot  Valve Position = 0.317 
+Output Flow is 13.721 litres/sec
+Output Temp is 37.755 degrees C
+Cold Valve Position = 0.025, Hot  Valve Position = 0.238 
+Output Flow is 10.266 litres/sec
+Output Temp is 37.780 degrees C
+Cold Valve Position = 0.044, Hot  Valve Position = 0.259 
+Output Flow is 11.675 litres/sec
+Output Temp is 36.580 degrees C
+Shower is under control!
+Would you like to change some parameters? n
+FuzzyCLIPS> (clear) ;; Turn Certainty Factor Calculations On and Off
+FuzzyCLIPS> (defglobal ?*count* = 4)
+FuzzyCLIPS> 
+(defrule init
+   =>
+   (assert (counter ?*count*)))
+FuzzyCLIPS> 
+(defrule big
+   (declare (CF 0.8))
+   (counter ?c&:(> ?c 2))
+   =>
+   (assert (value BIG)))
+FuzzyCLIPS> 
+(defrule small
+   (declare (CF 0.6))
+   (counter ?c&:(<= ?c 2))
+   =>
+   (assert (value SMALL)))
+FuzzyCLIPS> 
+(defrule print-and-repeat
+   (declare (salience -100))
+   ?cf <- (counter ?c)
+   ?vf <- (value ?v)
+   =>
+   (printout t "Count is " ?c " with certainty of " (get-cf ?cf) " and value is "
+             ?v " with certainty of " (get-cf ?vf) crlf)
+   (retract ?cf ?vf)
+   (bind ?*count* (- ?*count* 1))
+   (if (<= ?*count* 0)
+      then
+      (halt))
+   (disable-rule-cf-calculation) ;; turn off rule cf calculations
+   (assert (counter ?*count*))
+   (enable-rule-cf-calculation)) ;; turn back on again
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+Count is 4 with certainty of 1.0 and value is BIG with certainty of 0.8
+Count is 3 with certainty of 1.0 and value is BIG with certainty of 0.8
+Count is 2 with certainty of 1.0 and value is SMALL with certainty of 0.6
+Count is 1 with certainty of 1.0 and value is SMALL with certainty of 0.6
+FuzzyCLIPS> (clear) ;; Example 1
+FuzzyCLIPS> 
+(deftemplate age ;definition of fuzzy variable ‘age’
+   0 120 years
+   ((young (25 1) (50 0))))
+FuzzyCLIPS> 
+(deffacts fuzzy-fact
+   (age young)) ; a fuzzy fact
+FuzzyCLIPS> 
+(defrule one ; a rule that matches and asserts fuzzy facts
+   (Speed_error big)
+   =>
+   (assert (Throttle_change small)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-1     (age young) CF 1.00 
+	( (25.0 1.0) (50.0 0.0)  )
+
+For a total of 2 facts.
+FuzzyCLIPS> (clear) ;; Example 2
+FuzzyCLIPS> (defrule flight-rule
+   (declare (CF 0.95)) ;declares certainty factor of the rule
+   (animal type bird)
+   =>
+   (assert (animal can fly)))
+FuzzyCLIPS> (clear) ;; Example 3
+FuzzyCLIPS> 
+(deffacts FuzzyAndUncertainFact
+         (Speed_error more_or_less zero) CF 0.9)
+FuzzyCLIPS> 
+(defrule Uncertain_rule
+   (declare (CF 0.8) )
+   (Johns_age young)
+   =>
+   (assert (John goes to school)))
+FuzzyCLIPS> (clear) ;; Example 4
+FuzzyCLIPS> 
+(defrule crisp-simple-rule
+   (declare (CF 0.7)) ;crisp rule certainty factor of 0.7
+   (light_switch off) ;crisp antecedent
+   =>
+   (assert (illumination_level dark)))  ; fuzzy consequent
+FuzzyCLIPS> (assert (light_switch off) CF 0.8)
+<Fact-0>
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (facts)
+f-0     (light_switch off) CF 0.80 
+f-1     (illumination_level dark) CF 0.56 
+For a total of 2 facts.
+FuzzyCLIPS> (clear) ;; Example 10
+FuzzyCLIPS> 
+(defrule assert-cf-rule
+   (declare (CF 0.8));rule CF is 0.8
+   (fact 1)
+   =>
+   (assert (c1))
+   (assert (c2) CF 0.7) ; assert c2 with CF 0.7
+   (assert (c3))
+   (assert (c4)))
+FuzzyCLIPS> (assert (fact 1) CF 0.9)
+<Fact-0>
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (facts)
+f-0     (fact 1) CF 0.90 
+f-1     (c1) CF 0.72 
+f-2     (c2) CF 0.50 
+f-3     (c3) CF 0.72 
+f-4     (c4) CF 0.72 
+For a total of 5 facts.
+FuzzyCLIPS> (clear) ; Example 14
+FuzzyCLIPS> 
+(deftemplate group
+     0 9 ( )
+     (few (1 0) (2 0.3) (3 0.9) (4 1) (5 0.8) (6 0.5) (7 0)))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for Deftemplate (At least one primary term must be defined).
+
+ERROR:
+(deftemplate MAIN::group
+   0 9 
+     )
+FuzzyCLIPS> (clear) ; Example 17
+FuzzyCLIPS> 
+(deftemplate Tx "output water temperature"
+   5 65 Celsius
+    (  (cold (z 10 26))
+       (OK (PI 2 36))
+       (hot (s 37 60))
+    ) )
+FuzzyCLIPS> (clear) ; Example 20
+FuzzyCLIPS> 
+(deftemplate temperature
+   0 100 C
+   (  (cold (z 10 26))           
+      (hot (s 37 60))            
+      (warm not [ hot or cold ]) ) )
+FuzzyCLIPS> (clear) ; Example 22
+FuzzyCLIPS> 
+(deftemplate temp
+   0 100 C
+   ( (cold (Z 20 40))
+     (hot  (S 60 80))
+     (freezing extremely cold) ) )
+FuzzyCLIPS> 
+(defrule temp-rule
+   (temp not hot and not cold)
+   =>
+   (printout t "It’s such a pleasant day" crlf))
+FuzzyCLIPS> (assert (temp ( 50 1) ))
+<Fact-0>
+FuzzyCLIPS> (run)
+It’s such a pleasant day
+FuzzyCLIPS> (clear) ; Example 24 & 25
+FuzzyCLIPS> 
+(deftemplate group
+   0 20 members
+   ((few (3 1) (6 0))
+    (many (4 0) (6 1)) ) )
+FuzzyCLIPS> 
+(defrule simple-LHS
+   (group few)
+   =>)
+FuzzyCLIPS> (assert (group (3 0) (5 1) (6 0)))
+<Fact-0>
+FuzzyCLIPS> (agenda)
+0      simple-LHS: f-0
+For a total of 1 activation.
+FuzzyCLIPS> (defrule more-complex-lhs
+   ?f <- (group very few or very many)
+   =>
+   (printout t "We are at the extreme limits of the number of "
+               (get-u-units ?f) " in our club" crlf))
+FuzzyCLIPS> (agenda)
+0      more-complex-lhs: f-0
+0      simple-LHS: f-0
+For a total of 2 activations.
+FuzzyCLIPS> (run)
+We are at the extreme limits of the number of members in our club
+FuzzyCLIPS> (clear) ; Example 26
+FuzzyCLIPS> 
+(deftemplate height
+   0 8 feet
+   ((short (Z 3 4.5))
+    (medium (pi 0.8 5))
+    (tall (S 5.5 6)) ) )
+FuzzyCLIPS>   
+(deftemplate person
+   (slot name)
+   (slot ht (type FUZZY-VALUE height)))
+FuzzyCLIPS>    
+(defrule quite-complex-lhs
+   (person (name ?n) (ht ?h & very tall))
+   =>
+   (printout t ?n " is very tall, with a height of about "
+                      (maximum-defuzzify ?h) " "
+                      (get-u-units ?h) crlf ) )
+FuzzyCLIPS> (assert (person (name Fred) (ht (pi 0 3.6))))
+<Fact-0>
+FuzzyCLIPS> (assert (person (name Sally) (ht very tall)))
+<Fact-1>
+FuzzyCLIPS> (assert (person (name Frank) (ht medium)))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      quite-complex-lhs: f-2
+0      quite-complex-lhs: f-1
+For a total of 2 activations.
+FuzzyCLIPS> (run)
+Frank is very tall, with a height of about 5.0 feet
+Sally is very tall, with a height of about 7.0 feet
+FuzzyCLIPS> (facts)
+f-0     (person (name Fred) (ht ???)) CF 1.00 
+	( (3.6 0.0) (3.6 1.0) (3.6 0.0)  )
+f-1     (person (name Sally) (ht very tall)) CF 1.00 
+	( (5.5 0.0) (5.562 0.0009766) (5.625 0.01562) (5.656 0.04126) (5.688 0.0791) 
+	  (5.708 0.1254) (5.729 0.1824) (5.75 0.25) (5.771 0.3282) (5.792 0.4171) 
+	  (5.812 0.5166) (5.844 0.635) (5.875 0.7656) (5.938 0.9385) (6.0 1.0)  )
+f-2     (person (name Frank) (ht medium)) CF 1.00 
+	( (4.2 0.0) (4.4 0.125) (4.6 0.5) (4.8 0.875) (5.0 1.0) 
+	  (5.2 0.875) (5.4 0.5) (5.6 0.125) (5.8 0.0)  )
+For a total of 3 facts.
+FuzzyCLIPS> 
+(clear) ; Defuzzification
+FuzzyCLIPS> 
+(deftemplate temperature
+   0 100 C
+   ( (cold (z 10 26))
+     (hot (s 37 60))
+     (warm not [ hot or cold ]) ))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (temperature warm)) 
+<Fact-1>
+FuzzyCLIPS> 
+(defrule defuzzification-1
+   ?f <- (temperature ?)                                                                  
+   =>
+   (bind ?t (maximum-defuzzify ?f))
+   (printout t "Temperature is " ?t crlf))
+FuzzyCLIPS> 
+(defrule defuzzification-2
+   (temperature ?fv) 
+   =>
+   (printout t "Temperature is " (maximum-defuzzify ?fv) crlf))
+FuzzyCLIPS> (run)
+Temperature is 31.5
+Temperature is 31.5
+FuzzyCLIPS> (clear) ; FuzzyCLIPS Commands and Functions
+FuzzyCLIPS> 
+(deftemplate temp
+   0 100 C
+   ((cold (z 20 70))
+    (hot (s 30 80))))
+FuzzyCLIPS> (create-fuzzy-value temp cold)
+cold
+FuzzyCLIPS> (create-fuzzy-value temp very hot or very cold)
+very hot OR very cold
+FuzzyCLIPS> (create-fuzzy-value temp (pi 10 20))
+???
+FuzzyCLIPS> (create-fuzzy-value temp (s 10 20))
+???
+FuzzyCLIPS> (create-fuzzy-value temp (10 1) (20 0))
+???
+FuzzyCLIPS> 
+(defrule test
+   =>
+   (bind ?fv (create-fuzzy-value temp cold))
+   (assert (temp ?fv)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-1     (temp cold) CF 1.00 
+	( (20.0 1.0) (26.25 0.9688) (32.5 0.875) (38.75 0.7188) (45.0 0.5) 
+	  (51.25 0.2812) (57.5 0.125) (63.75 0.03125) (70.0 0.0)  )
+
+For a total of 2 facts.
+FuzzyCLIPS> (plot-fuzzy-value t * nil nil (create-fuzzy-value temp hot))
+
+Fuzzy Value: temp
+Linguistic Value: hot (*)
+
+ 1.00                                      *************
+ 0.95                                    **             
+ 0.90                                  **               
+ 0.85                                 *                 
+ 0.80                                *                  
+ 0.75                               *                   
+ 0.70                              *                    
+ 0.65                                                   
+ 0.60                             *                     
+ 0.55                            *                      
+ 0.50                                                   
+ 0.45                           *                       
+ 0.40                          *                        
+ 0.35                         *                         
+ 0.30                                                   
+ 0.25                        *                          
+ 0.20                       *                           
+ 0.15                      *                            
+ 0.10                    **                             
+ 0.05                  **                               
+ 0.00******************                                 
+     |----|----|----|----|----|----|----|----|----|----|
+    0.00     20.00     40.00     60.00     80.00    100.00   
+
+Universe of Discourse:  From   0.00  to  100.00
+
+FuzzyCLIPS> 
+(fuzzy-union (create-fuzzy-value temp cold)
+             (create-fuzzy-value temp hot))
+[ cold ] OR [ hot ]
+FuzzyCLIPS> 
+(plot-fuzzy-value t ".+*" nil nil
+               (create-fuzzy-value temp cold)
+               (create-fuzzy-value temp hot)
+               (fuzzy-union (create-fuzzy-value temp cold)
+                            (create-fuzzy-value temp hot)))
+
+Fuzzy Value: temp
+Linguistic Value: cold (.),  hot (+),  [ cold ] OR [ hot ] (*)
+
+ 1.00*************                         *************
+ 0.95             **                     **             
+ 0.90               **                 **               
+ 0.85                 *               *                 
+ 0.80                  *             *                  
+ 0.75                   *           *                   
+ 0.70                    *         *                    
+ 0.65                                                   
+ 0.60                     *       *                     
+ 0.55                      *     *                      
+ 0.50                                                   
+ 0.45                       *   *                       
+ 0.40                        * *                        
+ 0.35                         +                         
+ 0.30                         *                         
+ 0.25                        + .                        
+ 0.20                       +   .                       
+ 0.15                      +     .                      
+ 0.10                    ++       ..                    
+ 0.05                  ++           ..                  
+ 0.00++++++++++++++++++               ..................
+     |----|----|----|----|----|----|----|----|----|----|
+    0.00     20.00     40.00     60.00     80.00    100.00   
+
+Universe of Discourse:  From   0.00  to  100.00
+
+FuzzyCLIPS> 
+(fuzzy-intersection (create-fuzzy-value temp cold)
+                    (create-fuzzy-value temp hot))
+[ cold ] AND [ hot ]
+FuzzyCLIPS> 
+(plot-fuzzy-value t ".+*" nil nil
+               (create-fuzzy-value temp cold)
+               (create-fuzzy-value temp hot)
+               (fuzzy-intersection (create-fuzzy-value temp cold)
+                                   (create-fuzzy-value temp hot)))
+
+Fuzzy Value: temp
+Linguistic Value: cold (.),  hot (+),  [ cold ] AND [ hot ] (*)
+
+ 1.00.............                         +++++++++++++
+ 0.95             ..                     ++             
+ 0.90               ..                 ++               
+ 0.85                 .               +                 
+ 0.80                  .             +                  
+ 0.75                   .           +                   
+ 0.70                    .         +                    
+ 0.65                                                   
+ 0.60                     .       +                     
+ 0.55                      .     +                      
+ 0.50                                                   
+ 0.45                       .   +                       
+ 0.40                        . +                        
+ 0.35                         +                         
+ 0.30                         *                         
+ 0.25                        * *                        
+ 0.20                       *   *                       
+ 0.15                      *     *                      
+ 0.10                    **       **                    
+ 0.05                  **           **                  
+ 0.00******************               ******************
+     |----|----|----|----|----|----|----|----|----|----|
+    0.00     20.00     40.00     60.00     80.00    100.00   
+
+Universe of Discourse:  From   0.00  to  100.00
+
+FuzzyCLIPS> 
+(plot-fuzzy-value t "+*" nil nil
+         (create-fuzzy-value temp hot)
+         (fuzzy-modify (create-fuzzy-value temp hot) extremely))
+
+Fuzzy Value: temp
+Linguistic Value: hot (+),  extremely hot (*)
+
+ 1.00                                      ++***********
+ 0.95                                    ++**           
+ 0.90                                  ++ *             
+ 0.85                                 +  *              
+ 0.80                                +                  
+ 0.75                               +   *               
+ 0.70                              +   *                
+ 0.65                                                   
+ 0.60                             +   *                 
+ 0.55                            +                      
+ 0.50                                *                  
+ 0.45                           +                       
+ 0.40                          +    *                   
+ 0.35                         +                         
+ 0.30                              *                    
+ 0.25                        +                          
+ 0.20                       +     *                     
+ 0.15                      +     *                      
+ 0.10                    ++     *                       
+ 0.05                  ++     **                        
+ 0.00*************************                          
+     |----|----|----|----|----|----|----|----|----|----|
+    0.00     20.00     40.00     60.00     80.00    100.00   
+
+Universe of Discourse:  From   0.00  to  100.00
+
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (dribble-off)

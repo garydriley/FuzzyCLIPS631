@@ -1,0 +1,11 @@
+;;;************************************************************
+;;; DRs 793-... CHECKING
+;;;
+;;; The file drtest10.tst tests a number of the testable DRs
+;;; in the range 793-...
+;;;
+;;; To test, execute the command (batch "drtest10.tst").
+;;; When the test is complete, check the file drtest10.rsl
+;;; for the results (differences between expected and 
+;;; actual output are listed).
+;;;************************************************************

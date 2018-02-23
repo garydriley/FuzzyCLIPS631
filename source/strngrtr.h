@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/strngrtr.h,v 1.3 2001/08/11 21:08:00 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*            STRING I/O ROUTER HEADER FILE            */
    /*******************************************************/
@@ -29,6 +27,25 @@
 #include <stdio.h>
 #endif
 
+#define STRING_ROUTER_DATA 48
+
+struct stringRouter
+  {
+   char *name;
+   char *str;
+   int currentPosition;
+   unsigned maximumPosition;
+   int readWriteType;
+   struct stringRouter *next;
+  };
+
+struct stringRouterData
+  { 
+   struct stringRouter *ListOfStringRouters;
+  };
+
+#define StringRouterData(theEnv) ((struct stringRouterData *) GetEnvironmentData(theEnv,STRING_ROUTER_DATA))
+
 #ifdef LOCALE
 #undef LOCALE
 #endif
@@ -43,17 +60,13 @@
 /* I/O ROUTER DEFINITIONS */
 /**************************/
 
-   LOCALE void                           InitializeStringRouter(void);
-   LOCALE int                            OpenStringSource(char *,char *,int);
-   LOCALE int                            OpenTextSource(char *,char *,int,int);
-   LOCALE int                            CloseStringSource(char *);
-   LOCALE int                            OpenStringDestination(char *,char *,int);
-   LOCALE int                            CloseStringDestination(char *);
+   LOCALE void                           InitializeStringRouter(void *);
+   LOCALE int                            OpenStringSource(void *,char *,char *,int);
+   LOCALE int                            OpenTextSource(void *,char *,char *,int,unsigned);
+   LOCALE int                            CloseStringSource(void *,char *);
+   LOCALE int                            OpenStringDestination(void *,char *,char *,unsigned);
+   LOCALE int                            CloseStringDestination(void *,char *);
 
 #endif
-
-
-
-
 
 

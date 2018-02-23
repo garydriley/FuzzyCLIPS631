@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrcpsr.c,v 1.3 2001/08/11 21:04:36 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*              CONSTRUCT PARSER MODULE                */
    /*******************************************************/
@@ -19,6 +17,14 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrcpsr.c,v 1.3 2001/08/1
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Added environment parameter to GenClose.       */
+/*            Added environment parameter to GenOpen.        */
+/*                                                           */
+/*            Made the construct redefinition message more   */
+/*            prominent.                                     */
+/*                                                           */
+/*            Added pragmas to remove compilation warnings.  */
+/*                                                           */
 /*************************************************************/
 
 #define _CSTRCPSR_SOURCE_
@@ -31,6 +37,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrcpsr.c,v 1.3 2001/08/1
 #define _STDIO_INCLUDED_
 #include <stdlib.h>
 
+#include "envrnmnt.h"
 #include "router.h"
 #include "watch.h"
 #include "constrct.h"
@@ -38,30 +45,26 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrcpsr.c,v 1.3 2001/08/1
 #include "exprnpsr.h"
 #include "modulutl.h"
 #include "modulpsr.h"
+#include "sysdep.h"
 #include "utility.h"
 
 #include "cstrcpsr.h"
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle int                   CheckSyntaxMode = FALSE;
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     FindConstructBeginning(char *,struct token *,int,int *);
+   static int                     FindConstructBeginning(void *,char *,struct token *,int,int *);
 
-/********************************************************/
-/* Load: C access routine for the load command. Returns */
-/*   0 if the file couldn't be opened, -1 if the file   */
-/*   was opened but an error occurred while loading     */
-/*   constructs, and 1 if the file was opened and no    */
-/*   errors occured while loading.                      */
-/********************************************************/
-globle int Load(
+/************************************************************/
+/* EnvLoad: C access routine for the load command. Returns  */
+/*   0 if the file couldn't be opened, -1 if the file was   */
+/*   opened but an error occurred while loading constructs, */
+/*   and 1 if the file was opened and no errors occured     */
+/*   while loading.                                         */
+/************************************************************/
+globle int EnvLoad(
+  void *theEnv,
   char *fileName)
   {
    FILE *theFile;
@@ -71,7 +74,7 @@ globle int Load(
    /* Open the file specified by file name. */
    /*=======================================*/
 
-   if ((theFile = fopen(fileName,"r")) == NULL) return(0);
+   if ((theFile = GenOpen(theEnv,fileName,"r")) == NULL) return(0);
 
    /*===================================================*/
    /* Read in the constructs. Enabling fast load allows */
@@ -79,15 +82,15 @@ globle int Load(
    /* times.                                            */
    /*===================================================*/
 
-   SetFastLoad(theFile);
-   noErrorsDetected = LoadConstructsFromLogicalName((char *) theFile);
-   SetFastLoad(NULL);
+   SetFastLoad(theEnv,theFile);
+   noErrorsDetected = LoadConstructsFromLogicalName(theEnv,(char *) theFile);
+   SetFastLoad(theEnv,NULL);
 
    /*=================*/
    /* Close the file. */
    /*=================*/
 
-   fclose(theFile);
+   GenClose(theEnv,theFile);
 
    /*========================================*/
    /* If no errors occurred during the load, */
@@ -104,6 +107,7 @@ globle int Load(
 /*   the current environment from a specified logical name.      */
 /*****************************************************************/
 globle int LoadConstructsFromLogicalName(
+  void *theEnv,
   char *readSource)
   {
    int constructFlag;
@@ -116,33 +120,34 @@ globle int LoadConstructsFromLogicalName(
    /* error flags in preparation for parsing. */
    /*=========================================*/
 
-   if (CurrentEvaluationDepth == 0) SetHaltExecution(FALSE);
-   SetEvaluationError(FALSE);
+   if (EvaluationData(theEnv)->CurrentEvaluationDepth == 0) SetHaltExecution(theEnv,FALSE);
+   SetEvaluationError(theEnv,FALSE);
 
    /*========================================================*/
    /* Find the beginning of the first construct in the file. */
    /*========================================================*/
 
-   GetToken(readSource,&theToken);
-   foundConstruct = FindConstructBeginning(readSource,&theToken,FALSE,&noErrors);
+   EvaluationData(theEnv)->CurrentEvaluationDepth++;
+   GetToken(theEnv,readSource,&theToken);
+   foundConstruct = FindConstructBeginning(theEnv,readSource,&theToken,FALSE,&noErrors);
 
    /*==================================================*/
    /* Parse the file until the end of file is reached. */
    /*==================================================*/
 
-   while ((foundConstruct == TRUE) && (GetHaltExecution() == FALSE))
+   while ((foundConstruct == TRUE) && (GetHaltExecution(theEnv) == FALSE))
      {
       /*===========================================================*/
       /* Clear the pretty print buffer in preparation for parsing. */
       /*===========================================================*/
 
-      FlushPPBuffer();
+      FlushPPBuffer(theEnv);
 
       /*======================*/
       /* Parse the construct. */
       /*======================*/
 
-      constructFlag = ParseConstruct(ValueToString(theToken.value),readSource);
+      constructFlag = ParseConstruct(theEnv,ValueToString(theToken.value),readSource);
 
       /*==============================================================*/
       /* If an error occurred while parsing, then find the beginning  */
@@ -153,12 +158,12 @@ globle int LoadConstructsFromLogicalName(
 
       if (constructFlag == 1)
         {
-         PrintRouter(WERROR,"\nERROR:\n");
-         PrintInChunks(WERROR,GetPPBuffer());
-         PrintRouter(WERROR,"\n");
+         EnvPrintRouter(theEnv,WERROR,"\nERROR:\n");
+         PrintInChunks(theEnv,WERROR,GetPPBuffer(theEnv));
+         EnvPrintRouter(theEnv,WERROR,"\n");
          noErrors = FALSE;
-         GetToken(readSource,&theToken);
-         foundConstruct = FindConstructBeginning(readSource,&theToken,TRUE,&noErrors);
+         GetToken(theEnv,readSource,&theToken);
+         foundConstruct = FindConstructBeginning(theEnv,readSource,&theToken,TRUE,&noErrors);
         }
 
       /*======================================================*/
@@ -167,8 +172,8 @@ globle int LoadConstructsFromLogicalName(
 
       else
         {
-         GetToken(readSource,&theToken);
-         foundConstruct = FindConstructBeginning(readSource,&theToken,FALSE,&noErrors);
+         GetToken(theEnv,readSource,&theToken);
+         foundConstruct = FindConstructBeginning(theEnv,readSource,&theToken,FALSE,&noErrors);
         }
 
       /*=====================================================*/
@@ -177,13 +182,15 @@ globle int LoadConstructsFromLogicalName(
 
        if (foundConstruct)
          { IncrementSymbolCount(theToken.value); }
-       CurrentEvaluationDepth--;
-       PeriodicCleanup(FALSE,TRUE);
-       YieldTime();
-       CurrentEvaluationDepth++;
+       EvaluationData(theEnv)->CurrentEvaluationDepth--;
+       PeriodicCleanup(theEnv,FALSE,TRUE);
+       YieldTime(theEnv);
+       EvaluationData(theEnv)->CurrentEvaluationDepth++;
        if (foundConstruct)
-         { DecrementSymbolCount((SYMBOL_HN *) theToken.value); }
+         { DecrementSymbolCount(theEnv,(SYMBOL_HN *) theToken.value); }
      }
+
+   EvaluationData(theEnv)->CurrentEvaluationDepth--;
 
    /*========================================================*/
    /* Print a carriage return if a single character is being */
@@ -191,11 +198,11 @@ globle int LoadConstructsFromLogicalName(
    /*========================================================*/
 
 #if DEBUGGING_FUNCTIONS
-   if ((GetWatchItem("compilations") != TRUE) && GetPrintWhileLoading())
+   if ((EnvGetWatchItem(theEnv,"compilations") != TRUE) && GetPrintWhileLoading(theEnv))
 #else
-   if (GetPrintWhileLoading())
+   if (GetPrintWhileLoading(theEnv))
 #endif
-     { PrintRouter(WDIALOG,"\n"); }
+     { EnvPrintRouter(theEnv,WDIALOG,"\n"); }
 
    /*=============================================================*/
    /* Once the load is complete, destroy the pretty print buffer. */
@@ -205,7 +212,7 @@ globle int LoadConstructsFromLogicalName(
    /* memory being used after a load command.                     */
    /*=============================================================*/
 
-   DestroyPPBuffer();
+   DestroyPPBuffer(theEnv);
 
    /*==========================================================*/
    /* Return a boolean flag which indicates whether any errors */
@@ -222,6 +229,7 @@ globle int LoadConstructsFromLogicalName(
 /*   beginning of a construct was found, otherwise FALSE.           */
 /********************************************************************/
 static int FindConstructBeginning(
+  void *theEnv,
   char *readSource,
   struct token *theToken,
   int errorCorrection,
@@ -260,7 +268,7 @@ static int FindConstructBeginning(
          /* Is this a valid construct name (e.g., defrule, deffacts). */
          /*===========================================================*/
 
-         if (FindConstruct(ValueToString(theToken->value)) != NULL) return(TRUE);
+         if (FindConstruct(theEnv,ValueToString(theToken->value)) != NULL) return(TRUE);
 
          /*===============================================*/
          /* The construct name is invalid. Print an error */
@@ -271,8 +279,8 @@ static int FindConstructBeginning(
            {
             errorCorrection = TRUE;
             *noErrors = FALSE;
-            PrintErrorID("CSTRCPSR",1,TRUE);
-            PrintRouter(WERROR,"Expected the beginning of a construct.\n");
+            PrintErrorID(theEnv,"CSTRCPSR",1,TRUE);
+            EnvPrintRouter(theEnv,WERROR,"Expected the beginning of a construct.\n");
            }
 
          /*======================================================*/
@@ -297,8 +305,8 @@ static int FindConstructBeginning(
            {
             errorCorrection = TRUE;
             *noErrors = FALSE;
-            PrintErrorID("CSTRCPSR",1,TRUE);
-            PrintRouter(WERROR,"Expected the beginning of a construct.\n");
+            PrintErrorID(theEnv,"CSTRCPSR",1,TRUE);
+            EnvPrintRouter(theEnv,WERROR,"Expected the beginning of a construct.\n");
            }
 
          firstAttempt = FALSE;
@@ -309,7 +317,7 @@ static int FindConstructBeginning(
       /* Move on to the next token to be processed. */
       /*============================================*/
 
-      GetToken(readSource,theToken);
+      GetToken(theEnv,readSource,theToken);
      }
 
    /*===================================================================*/
@@ -326,6 +334,7 @@ static int FindConstructBeginning(
 /*   the construct was parsed unsuccessfully.              */
 /***********************************************************/
 globle int ParseConstruct(
+  void *theEnv,
   char *name,
   char *logicalName)
   {
@@ -337,38 +346,38 @@ globle int ParseConstruct(
    /* (e.g. defrule, deffacts).       */
    /*=================================*/
 
-   currentPtr = FindConstruct(name);
+   currentPtr = FindConstruct(theEnv,name);
    if (currentPtr == NULL) return(-1);
 
    /*==================================*/
    /* Prepare the parsing environment. */
    /*==================================*/
 
-   ov = GetHaltExecution();
-   SetEvaluationError(FALSE);
-   SetHaltExecution(FALSE);
-   ClearParsedBindNames();
-   PushRtnBrkContexts();
-   ReturnContext = FALSE;
-   BreakContext = FALSE;
-   CurrentEvaluationDepth++;
+   ov = GetHaltExecution(theEnv);
+   SetEvaluationError(theEnv,FALSE);
+   SetHaltExecution(theEnv,FALSE);
+   ClearParsedBindNames(theEnv);
+   PushRtnBrkContexts(theEnv);
+   ExpressionData(theEnv)->ReturnContext = FALSE;
+   ExpressionData(theEnv)->BreakContext = FALSE;
+   EvaluationData(theEnv)->CurrentEvaluationDepth++;
 
    /*=======================================*/
    /* Call the construct's parsing routine. */
    /*=======================================*/
 
-   rv = (*currentPtr->parseFunction)(logicalName);
+   rv = (*currentPtr->parseFunction)(theEnv,logicalName);
 
    /*===============================*/
    /* Restore environment settings. */
    /*===============================*/
 
-   CurrentEvaluationDepth--;
-   PopRtnBrkContexts();
+   EvaluationData(theEnv)->CurrentEvaluationDepth--;
+   PopRtnBrkContexts(theEnv);
 
-   ClearParsedBindNames();
-   SetPPBufferStatus(OFF);
-   SetHaltExecution(ov);
+   ClearParsedBindNames(theEnv);
+   SetPPBufferStatus(theEnv,OFF);
+   SetHaltExecution(theEnv,ov);
 
    /*==============================*/
    /* Return the status of parsing */
@@ -383,21 +392,28 @@ globle int ParseConstruct(
 /*   field of a construct. Returns name of the construct */
 /*   if no errors are detected, otherwise returns NULL.  */
 /*********************************************************/
+#if IBM_TBC && (! DEBUGGING_FUNCTIONS)
+#pragma argsused
+#endif
 globle SYMBOL_HN *GetConstructNameAndComment(
+  void *theEnv,
   char *readSource,
   struct token *inputToken,
   char *constructName,
-  void *(*findFunction)(char *),
-  int (*deleteFunction)(void *),
+  void *(*findFunction)(void *,char *),
+  int (*deleteFunction)(void *,void *),
   char *constructSymbol,
   int fullMessageCR,
   int getComment,
   int moduleNameAllowed)
   {
+#if (MAC_MCW || IBM_MCW || MAC_XCD) && (! DEBUGGING_FUNCTIONS)
+#pragma unused(fullMessageCR)
+#endif
    SYMBOL_HN *name, *moduleName;
    int redefining = FALSE;
    void *theConstruct;
-   int separatorPosition;
+   unsigned separatorPosition;
    struct defmodule *theModule;
 
    /*==========================*/
@@ -405,13 +421,13 @@ globle SYMBOL_HN *GetConstructNameAndComment(
    /* name of the construct.   */
    /*==========================*/
 
-   GetToken(readSource,inputToken);
+   GetToken(theEnv,readSource,inputToken);
    if (inputToken->type != SYMBOL)
      {
-      PrintErrorID("CSTRCPSR",2,TRUE);
-      PrintRouter(WERROR,"Missing name for ");
-      PrintRouter(WERROR,constructName);
-      PrintRouter(WERROR," construct\n");
+      PrintErrorID(theEnv,"CSTRCPSR",2,TRUE);
+      EnvPrintRouter(theEnv,WERROR,"Missing name for ");
+      EnvPrintRouter(theEnv,WERROR,constructName);
+      EnvPrintRouter(theEnv,WERROR," construct\n");
       return(NULL);
      }
 
@@ -426,29 +442,29 @@ globle SYMBOL_HN *GetConstructNameAndComment(
      {
       if (moduleNameAllowed == FALSE)
         {
-         SyntaxErrorMessage("module specifier");
+         SyntaxErrorMessage(theEnv,"module specifier");
          return(NULL);
         }
 
-      moduleName = ExtractModuleName(separatorPosition,ValueToString(name));
+      moduleName = ExtractModuleName(theEnv,separatorPosition,ValueToString(name));
       if (moduleName == NULL)
         {
-         SyntaxErrorMessage("construct name");
+         SyntaxErrorMessage(theEnv,"construct name");
          return(NULL);
         }
 
-      theModule = (struct defmodule *) FindDefmodule(ValueToString(moduleName));
+      theModule = (struct defmodule *) EnvFindDefmodule(theEnv,ValueToString(moduleName));
       if (theModule == NULL)
         {
-         CantFindItemErrorMessage("defmodule",ValueToString(moduleName));
+         CantFindItemErrorMessage(theEnv,"defmodule",ValueToString(moduleName));
          return(NULL);
         }
 
-      SetCurrentModule((void *) theModule);
-      name = ExtractConstructName(separatorPosition,ValueToString(name));
+      EnvSetCurrentModule(theEnv,(void *) theModule);
+      name = ExtractConstructName(theEnv,separatorPosition,ValueToString(name));
       if (name == NULL)
         {
-         SyntaxErrorMessage("construct name");
+         SyntaxErrorMessage(theEnv,"construct name");
          return(NULL);
         }
      }
@@ -460,13 +476,13 @@ globle SYMBOL_HN *GetConstructNameAndComment(
 
    else
      {
-      theModule = ((struct defmodule *) GetCurrentModule());
+      theModule = ((struct defmodule *) EnvGetCurrentModule(theEnv));
       if (moduleNameAllowed)
         {
-         PPBackup();
-         SavePPBuffer(GetDefmoduleName(theModule));
-         SavePPBuffer("::");
-         SavePPBuffer(ValueToString(name));
+         PPBackup(theEnv);
+         SavePPBuffer(theEnv,EnvGetDefmoduleName(theEnv,theModule));
+         SavePPBuffer(theEnv,"::");
+         SavePPBuffer(theEnv,ValueToString(name));
         }
      }
 
@@ -475,9 +491,9 @@ globle SYMBOL_HN *GetConstructNameAndComment(
    /*==================================================================*/
 
 #if DEFMODULE_CONSTRUCT
-   if (FindImportExportConflict(constructName,theModule,ValueToString(name)))
+   if (FindImportExportConflict(theEnv,constructName,theModule,ValueToString(name)))
      {
-      ImportExportConflictMessage(constructName,ValueToString(name),NULL,NULL);
+      ImportExportConflictMessage(theEnv,constructName,ValueToString(name),NULL,NULL);
       return(NULL);
      }
 #endif
@@ -487,22 +503,22 @@ globle SYMBOL_HN *GetConstructNameAndComment(
    /* base and we're not just checking syntax.               */
    /*========================================================*/
 
-   if ((findFunction != NULL) && (! CheckSyntaxMode))
+   if ((findFunction != NULL) && (! ConstructData(theEnv)->CheckSyntaxMode))
      {
-      theConstruct = (*findFunction)(ValueToString(name));
+      theConstruct = (*findFunction)(theEnv,ValueToString(name));
       if (theConstruct != NULL)
         {
          redefining = TRUE;
          if (deleteFunction != NULL)
            {
-            if ((*deleteFunction)(theConstruct) == FALSE)
+            if ((*deleteFunction)(theEnv,theConstruct) == FALSE)
               {
-               PrintErrorID("CSTRCPSR",4,TRUE);
-               PrintRouter(WERROR,"Cannot redefine ");
-               PrintRouter(WERROR,constructName);
-               PrintRouter(WERROR," ");
-               PrintRouter(WERROR,ValueToString(name));
-               PrintRouter(WERROR," while it is in use.\n");
+               PrintErrorID(theEnv,"CSTRCPSR",4,TRUE);
+               EnvPrintRouter(theEnv,WERROR,"Cannot redefine ");
+               EnvPrintRouter(theEnv,WERROR,constructName);
+               EnvPrintRouter(theEnv,WERROR," ");
+               EnvPrintRouter(theEnv,WERROR,ValueToString(name));
+               EnvPrintRouter(theEnv,WERROR," while it is in use.\n");
                return(NULL);
               }
            }
@@ -515,49 +531,53 @@ globle SYMBOL_HN *GetConstructNameAndComment(
    /*=============================================*/
 
 #if DEBUGGING_FUNCTIONS
-   if ((GetWatchItem("compilations") == TRUE) &&
-       GetPrintWhileLoading() && (! CheckSyntaxMode))
+   if ((EnvGetWatchItem(theEnv,"compilations") == TRUE) &&
+       GetPrintWhileLoading(theEnv) && (! ConstructData(theEnv)->CheckSyntaxMode))
      {
-      if (redefining) PrintRouter(WDIALOG,"Redefining ");
-      else PrintRouter(WDIALOG,"Defining ");
+      if (redefining) 
+        {
+         PrintWarningID(theEnv,"CSTRCPSR",1,TRUE);
+         EnvPrintRouter(theEnv,WDIALOG,"Redefining ");
+        }
+      else EnvPrintRouter(theEnv,WDIALOG,"Defining ");
 
-      PrintRouter(WDIALOG,constructName);
-      PrintRouter(WDIALOG,": ");
-      PrintRouter(WDIALOG,ValueToString(name));
+      EnvPrintRouter(theEnv,WDIALOG,constructName);
+      EnvPrintRouter(theEnv,WDIALOG,": ");
+      EnvPrintRouter(theEnv,WDIALOG,ValueToString(name));
 
-      if (fullMessageCR) PrintRouter(WDIALOG,"\n");
-      else PrintRouter(WDIALOG," ");
+      if (fullMessageCR) EnvPrintRouter(theEnv,WDIALOG,"\n");
+      else EnvPrintRouter(theEnv,WDIALOG," ");
      }
    else
 #endif
      {
-      if (GetPrintWhileLoading() && (! CheckSyntaxMode))
-        { PrintRouter(WDIALOG,constructSymbol); }
+      if (GetPrintWhileLoading(theEnv) && (! ConstructData(theEnv)->CheckSyntaxMode))
+        { EnvPrintRouter(theEnv,WDIALOG,constructSymbol); }
      }
 
    /*===============================*/
    /* Get the comment if it exists. */
    /*===============================*/
 
-   GetToken(readSource,inputToken);
+   GetToken(theEnv,readSource,inputToken);
    if ((inputToken->type == STRING) && getComment)
      {
-      PPBackup();
-      SavePPBuffer(" ");
-      SavePPBuffer(inputToken->printForm);
-      GetToken(readSource,inputToken);
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv," ");
+      SavePPBuffer(theEnv,inputToken->printForm);
+      GetToken(theEnv,readSource,inputToken);
       if (inputToken->type != RPAREN)
         {
-         PPBackup();
-         SavePPBuffer("\n   ");
-         SavePPBuffer(inputToken->printForm);
+         PPBackup(theEnv);
+         SavePPBuffer(theEnv,"\n   ");
+         SavePPBuffer(theEnv,inputToken->printForm);
         }
      }
    else if (inputToken->type != RPAREN)
      {
-      PPBackup();
-      SavePPBuffer("\n   ");
-      SavePPBuffer(inputToken->printForm);
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv,"\n   ");
+      SavePPBuffer(theEnv,inputToken->printForm);
      }
 
    /*===================================*/
@@ -572,6 +592,7 @@ globle SYMBOL_HN *GetConstructNameAndComment(
 /*   construct from its module's list   */
 /****************************************/
 globle void RemoveConstructFromModule(
+  void *theEnv,
   struct constructHeader *theConstruct)
   {
    struct constructHeader *lastConstruct,*currentConstruct;
@@ -595,8 +616,8 @@ globle void RemoveConstructFromModule(
 
    if (currentConstruct == NULL)
      {
-      SystemError("CSTRCPSR",1);
-      ExitRouter(EXIT_FAILURE);
+      SystemError(theEnv,"CSTRCPSR",1);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
    /*==========================*/
@@ -623,30 +644,30 @@ globle void RemoveConstructFromModule(
 /*   when a construct is being defined.               */
 /******************************************************/
 globle void ImportExportConflictMessage(
+  void *theEnv,
   char *constructName,
   char *itemName,
   char *causedByConstruct,
   char *causedByName)
   {
-   PrintErrorID("CSTRCPSR",3,TRUE);
-   PrintRouter(WERROR,"Cannot define ");
-   PrintRouter(WERROR,constructName);
-   PrintRouter(WERROR," ");
-   PrintRouter(WERROR,itemName);
-   PrintRouter(WERROR," because of an import/export conflict");
+   PrintErrorID(theEnv,"CSTRCPSR",3,TRUE);
+   EnvPrintRouter(theEnv,WERROR,"Cannot define ");
+   EnvPrintRouter(theEnv,WERROR,constructName);
+   EnvPrintRouter(theEnv,WERROR," ");
+   EnvPrintRouter(theEnv,WERROR,itemName);
+   EnvPrintRouter(theEnv,WERROR," because of an import/export conflict");
 
-   if (causedByConstruct == NULL) PrintRouter(WERROR,".\n");
+   if (causedByConstruct == NULL) EnvPrintRouter(theEnv,WERROR,".\n");
    else
      {
-      PrintRouter(WERROR," caused by the ");
-      PrintRouter(WERROR,causedByConstruct);
-      PrintRouter(WERROR," ");
-      PrintRouter(WERROR,causedByName);
-      PrintRouter(WERROR,".\n");
+      EnvPrintRouter(theEnv,WERROR," caused by the ");
+      EnvPrintRouter(theEnv,WERROR,causedByConstruct);
+      EnvPrintRouter(theEnv,WERROR," ");
+      EnvPrintRouter(theEnv,WERROR,causedByName);
+      EnvPrintRouter(theEnv,WERROR,".\n");
      }
   }
 
 #endif /* (! RUN_TIME) && (! BLOAD_ONLY) */
-
 
 

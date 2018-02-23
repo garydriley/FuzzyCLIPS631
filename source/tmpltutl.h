@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/tmpltutl.h,v 1.3 2001/08/11 21:08:20 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*          DEFTEMPLATE UTILITIES HEADER FILE          */
    /*******************************************************/
@@ -17,6 +15,14 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Added additional arguments to                  */
+/*            InvalidDeftemplateSlotMessage function.        */
+/*                                                           */
+/*            Added additional arguments to                  */
+/*            PrintTemplateFact function.                    */
 /*                                                           */
 /*************************************************************/
 
@@ -50,21 +56,19 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           InvalidDeftemplateSlotMessage(char *,char *);
-   LOCALE void                           SingleFieldSlotCardinalityError(char *);
-   LOCALE void                           MultiIntoSingleFieldSlotError(struct templateSlot *,struct deftemplate *);
-   LOCALE void                           CheckTemplateFact(struct fact *);
-   LOCALE BOOLEAN                        CheckRHSSlotTypes(struct expr *,struct templateSlot *,char *);
+   LOCALE void                           InvalidDeftemplateSlotMessage(void *,char *,char *,int);
+   LOCALE void                           SingleFieldSlotCardinalityError(void *,char *);
+   LOCALE void                           MultiIntoSingleFieldSlotError(void *,struct templateSlot *,struct deftemplate *);
+   LOCALE void                           CheckTemplateFact(void *,struct fact *);
+   LOCALE intBool                        CheckRHSSlotTypes(void *,struct expr *,struct templateSlot *,char *);
    LOCALE struct templateSlot           *GetNthSlot(struct deftemplate *,int);
    LOCALE int                            FindSlotPosition(struct deftemplate *,struct symbolHashNode *);
-   LOCALE void                           PrintTemplateFact(char *,struct fact *);
-   LOCALE void                           UpdateDeftemplateScope(void);
-   LOCALE struct templateSlot           *FindSlot(struct deftemplate *,struct symbolHashNode *,int *);
-   LOCALE struct deftemplate            *CreateImpliedDeftemplate(SYMBOL_HN *,int);
+   LOCALE void                           PrintTemplateFact(void *,char *,struct fact *,int,int);
+   LOCALE void                           UpdateDeftemplateScope(void *);
+   LOCALE struct templateSlot           *FindSlot(struct deftemplate *,struct symbolHashNode *,short *);
+   LOCALE struct deftemplate            *CreateImpliedDeftemplate(void *,SYMBOL_HN *,int);
 
 #endif
-
-
 
 
 

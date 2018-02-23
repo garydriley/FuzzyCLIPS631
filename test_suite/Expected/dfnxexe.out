@@ -1,0 +1,60 @@
+TRUE
+FuzzyCLIPS> (batch "dfnxexe.bat")
+TRUE
+FuzzyCLIPS> (deffunction print-args (?a ?b $?c)
+   (printout t ?a " " ?b " and " (length ?c) " extras: " ?c crlf))
+FuzzyCLIPS> (print-args 1 2)
+1 2 and 0 extras: ()
+FuzzyCLIPS> (print-args 1 2 3 4)
+1 2 and 2 extras: (3 4)
+FuzzyCLIPS> (print-args 1 2 (mv-append a b c) (mv-append d e f) 1 2 3 4)
+1 2 and 10 extras: (a b c d e f 1 2 3 4)
+FuzzyCLIPS> (deffunction test-return ()
+   (+ (eval "(gensym)") 2)
+   TRUE)
+FuzzyCLIPS> (test-return)
+[ARGACCES5] Function + expected argument #1 to be of type integer or float
+[PRCCODE4] Execution halted during the actions of deffunction test-return.
+FALSE
+FuzzyCLIPS> (deffunction test-return ()
+  1 2 3 4)
+FuzzyCLIPS> (test-return)
+4
+FuzzyCLIPS> (deffunction factorial (?a)
+   (if (or (not (integerp ?a)) (< ?a 0)) then
+      (printout t "Factorial error!" crlf)
+    else
+      (if (= ?a 0) then
+         1
+       else
+         (* ?a (factorial (- ?a 1))))))
+FuzzyCLIPS> (factorial 5)
+120
+FuzzyCLIPS> (* 5 4 3 2)
+120
+FuzzyCLIPS> (factorial 0)
+1
+FuzzyCLIPS> (factorial 1)
+1
+FuzzyCLIPS> (factorial abc)
+Factorial error!
+FuzzyCLIPS> 
+(defglobal ?*cnt* = 0)
+FuzzyCLIPS> 
+(deffunction foo ())
+FuzzyCLIPS> (deffunction bar ()
+   (if (< ?*cnt* 10) then
+      (bind ?*cnt* (+ ?*cnt* 1))
+      (foo)))
+FuzzyCLIPS> (deffunction foo ()
+  (bar))
+FuzzyCLIPS> (foo)
+FALSE
+FuzzyCLIPS> (deffunction wildcard-test (?a $?rest)
+  (printout t ?rest crlf)
+  (bind ?rest 34)
+  (printout t ?rest crlf))
+FuzzyCLIPS> (wildcard-test 1 2 3 4 5 6)
+(2 3 4 5 6)
+34
+FuzzyCLIPS> (dribble-off)

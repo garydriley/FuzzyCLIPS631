@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/dffnxexe.h,v 1.3 2001/08/11 21:05:00 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -43,11 +41,7 @@
 #define LOCALE extern
 #endif
 
-LOCALE void CallDeffunction(DEFFUNCTION *,EXPRESSION *,DATA_OBJECT *);
-
-#ifndef _DFFNXEXE_SOURCE_
-extern DEFFUNCTION *ExecutingDeffunction;
-#endif
+LOCALE void CallDeffunction(void *,DEFFUNCTION *,EXPRESSION *,DATA_OBJECT *);
 
 #endif
 

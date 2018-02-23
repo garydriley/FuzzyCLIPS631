@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/rulecom.h,v 1.3 2001/08/11 21:07:44 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*             DEFRULE COMMANDS HEADER FILE            */
    /*******************************************************/
@@ -21,6 +19,8 @@
 /*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -41,13 +41,18 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           DefruleConstructsToCSetup(void);
-   LOCALE BOOLEAN                        Matches(void *);
-   LOCALE void                           DefruleCommands(void);
-   LOCALE void                           MatchesCommand(void);
+#if ENVIRONMENT_API_ONLY
+#define Matches(theEnv,a) EnvMatches(theEnv,a)
+#else
+#define Matches(a) EnvMatches(GetCurrentEnvironment(),a)
+#endif
+
+   LOCALE intBool                        EnvMatches(void *,void *);
+   LOCALE void                           DefruleCommands(void *);
+   LOCALE void                           MatchesCommand(void *);
 #if DEVELOPER
-   LOCALE void                           ShowJoinsCommand(void);
-   LOCALE long                           RuleComplexityCommand(void);
+   LOCALE void                           ShowJoinsCommand(void *);
+   LOCALE long                           RuleComplexityCommand(void *);
 #endif
 
 #endif

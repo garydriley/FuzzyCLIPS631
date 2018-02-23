@@ -1,5 +1,3 @@
-/*  $Header: /dist/CVS/fzclips/src/fuzzymod.h,v 1.3 2001/08/11 21:05:56 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
@@ -69,7 +67,7 @@
 struct modifierListItem
   {
      char *name;   /* name of the modifier */
-     void (*modfunc)(struct fuzzy_value *fv);
+     void (*modfunc)(void *,struct fuzzy_value *fv);
      struct FunctionDefinition *modClipsfunc;
 #if DEFFUNCTION_CONSTRUCT
      DEFFUNCTION *modDeffunc;
@@ -81,16 +79,16 @@ struct modifierListItem
 
 /* routines globally accessible and defined in fuzzycom.c */
 
-     LOCALE void initFuzzyModifierList();
-     LOCALE void executeModifyFunction(struct fuzzy_value *, struct modifierListItem *);
-     LOCALE int  AddFuzzyModifier(char *, void (*)(struct fuzzy_value *),
+     LOCALE void initFuzzyModifierList(void *theEnv);
+     LOCALE void executeModifyFunction(void *theEnv,struct fuzzy_value *, struct modifierListItem *);
+     LOCALE int  AddFuzzyModifier(void *,char *, void (*)(void *,struct fuzzy_value *),
                                   struct FunctionDefinition *
 #if DEFFUNCTION_CONSTRUCT
                                   ,DEFFUNCTION *
 #endif
                                  );
-     LOCALE void RemoveFuzzyModifier(char *);
-     LOCALE struct modifierListItem *FindModifier(char *mod_name);
+     LOCALE void RemoveFuzzyModifier(void *theEnv,char *);
+     LOCALE struct modifierListItem *FindModifier(void *theEnv,char *mod_name);
 
 
 

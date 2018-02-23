@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/reteutil.c,v 1.3 2001/08/11 21:07:35 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*                 RETE UTILITY MODULE                 */
    /*******************************************************/
@@ -19,6 +17,11 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/reteutil.c,v 1.3 2001/08/1
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Removed INCREMENTAL_RESET compilation flag.    */
+/*                                                           */
+/*            Rule with exists CE has incorrect activation.  */
+/*            DR0867                                         */
+/*                                                           */
 /*************************************************************/
 
 #define _RETEUTIL_SOURCE_
@@ -30,29 +33,24 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/reteutil.c,v 1.3 2001/08/1
 
 #if DEFRULE_CONSTRUCT
 
-#include "memalloc.h"
-#include "router.h"
-#include "retract.h"
 #include "drive.h"
+#include "engine.h"
+#include "envrnmnt.h"
 #include "incrrset.h"
-#include "pattern.h"
 #include "match.h"
+#include "memalloc.h"
 #include "moduldef.h"
+#include "pattern.h"
+#include "retract.h"
+#include "router.h"
+
 #include "reteutil.h"
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static void                    TraceErrorToRuleDriver(struct joinNode *,char *);
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle struct partialMatch   *GlobalLHSBinds = NULL;
-   globle struct partialMatch   *GlobalRHSBinds = NULL;
-   globle struct joinNode       *GlobalJoin = NULL;
+   static void                    TraceErrorToRuleDriver(void *,struct joinNode *,char *);
 
 /***********************************************************/
 /* PrintPartialMatch: Prints out the list of fact indices  */
@@ -60,6 +58,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/reteutil.c,v 1.3 2001/08/1
 /*   or rule instantiation.                                */
 /***********************************************************/
 globle void PrintPartialMatch(
+  void *theEnv,
   char *logicalName,
   struct partialMatch *list)
   {
@@ -71,10 +70,10 @@ globle void PrintPartialMatch(
       if (get_nth_pm_match(list,i)->matchingItem != NULL)
         {
          matchingItem = get_nth_pm_match(list,i)->matchingItem;
-         if (matchingItem != NULL) (*matchingItem->theInfo->base.shortPrintFunction)(logicalName,matchingItem);
+         if (matchingItem != NULL) (*matchingItem->theInfo->base.shortPrintFunction)(theEnv,logicalName,matchingItem);
         }
       i++;
-      if (i < (int) list->bcount) PrintRouter(logicalName,",");
+      if (i < (int) list->bcount) EnvPrintRouter(theEnv,logicalName,",");
      }
   }
 
@@ -82,6 +81,7 @@ globle void PrintPartialMatch(
 /* CopyPartialMatch:  Copies a partial match. */
 /**********************************************/
 globle struct partialMatch *CopyPartialMatch(
+  void *theEnv,
   struct partialMatch *list,
   int addActivationSlot,
   int addDependencySlot)
@@ -89,7 +89,7 @@ globle struct partialMatch *CopyPartialMatch(
    struct partialMatch *linker;
    short int i;
 
-   linker = get_var_struct(partialMatch,sizeof(struct genericMatch) *
+   linker = get_var_struct(theEnv,partialMatch,sizeof(struct genericMatch) *
                                         (list->bcount + addActivationSlot + addDependencySlot - 1));
 
    linker->next = NULL;
@@ -113,6 +113,7 @@ globle struct partialMatch *CopyPartialMatch(
 /* MergePartialMatches: Merges two partial matches. */
 /****************************************************/
 globle struct partialMatch *MergePartialMatches(
+  void *theEnv,
   struct partialMatch *list1,
   struct partialMatch *list2,
   int addActivationSlot,
@@ -121,7 +122,7 @@ globle struct partialMatch *MergePartialMatches(
    struct partialMatch *linker;
    short int i, j;
 
-   linker = get_var_struct(partialMatch,
+   linker = get_var_struct(theEnv,partialMatch,
                            sizeof(struct genericMatch) *
                             (list1->bcount + list2->bcount + addActivationSlot + addDependencySlot - 1));
 
@@ -151,16 +152,20 @@ globle struct partialMatch *MergePartialMatches(
 /*   (used by the fact and instance pattern matchers).             */
 /*******************************************************************/
 globle void InitializePatternHeader(
+  void *theEnv,
   struct patternNodeHeader *theHeader)
   {
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
+#endif
    theHeader->entryJoin = NULL;
    theHeader->alphaMemory = NULL;
    theHeader->endOfQueue = NULL;
    theHeader->singlefieldNode = FALSE;
    theHeader->multifieldNode = FALSE;
    theHeader->stopNode = FALSE;
-#if INCREMENTAL_RESET && (! RUN_TIME)
-   theHeader->initialize = GetIncrementalReset();
+#if (! RUN_TIME)
+   theHeader->initialize = EnvGetIncrementalReset(theEnv);
 #else
    theHeader->initialize = FALSE;
 #endif
@@ -178,6 +183,7 @@ globle void InitializePatternHeader(
 /*   is still responsible for freeing these data structures).     */
 /******************************************************************/
 globle struct partialMatch *CreateAlphaMatch(
+  void *theEnv,
   void *theEntity,
   struct multifieldMarker *markers,
   struct patternNodeHeader *theHeader)
@@ -189,7 +195,7 @@ globle struct partialMatch *CreateAlphaMatch(
    /* Create the alpha match and intialize its values. */
    /*==================================================*/
 
-   theMatch = get_struct(partialMatch);
+   theMatch = get_struct(theEnv,partialMatch);
    theMatch->next = NULL;
    theMatch->betaMemory = FALSE;
    theMatch->busy = FALSE;
@@ -199,12 +205,12 @@ globle struct partialMatch *CreateAlphaMatch(
    theMatch->counterf = FALSE;
    theMatch->bcount = 1;
 
-   afbtemp = get_struct(alphaMatch);
+   afbtemp = get_struct(theEnv,alphaMatch);
    afbtemp->next = NULL;
    afbtemp->matchingItem = (struct patternEntity *) theEntity;
 
    if (markers != NULL)
-     { afbtemp->markers = CopyMultifieldMarkers(markers); }
+     { afbtemp->markers = CopyMultifieldMarkers(theEnv,markers); }
    else
      { afbtemp->markers = NULL; }
 
@@ -238,6 +244,7 @@ globle struct partialMatch *CreateAlphaMatch(
 /*   match into a new partial match.                     */
 /*********************************************************/
 globle struct partialMatch *AddSingleMatch(
+  void *theEnv,
   struct partialMatch *list,
   struct alphaMatch *afb,
   int addActivationSlot,
@@ -246,7 +253,7 @@ globle struct partialMatch *AddSingleMatch(
    struct partialMatch *linker;
    short int i;
 
-   linker = get_var_struct(partialMatch,sizeof(struct genericMatch) *
+   linker = get_var_struct(theEnv,partialMatch,sizeof(struct genericMatch) *
                                         (list->bcount + addActivationSlot +
                                         addDependencySlot));
 
@@ -275,13 +282,14 @@ globle struct partialMatch *AddSingleMatch(
 /*   multifieldMarker data structures.     */
 /*******************************************/
 struct multifieldMarker *CopyMultifieldMarkers(
+  void *theEnv,
   struct multifieldMarker *theMarkers)
   {
    struct multifieldMarker *head = NULL, *lastMark = NULL, *newMark;
 
    while (theMarkers != NULL)
      {
-      newMark = get_struct(multifieldMarker);
+      newMark = get_struct(theEnv,multifieldMarker);
       newMark->next = NULL;
       newMark->whichField = theMarkers->whichField;
       newMark->where = theMarkers->where;
@@ -308,12 +316,13 @@ struct multifieldMarker *CopyMultifieldMarkers(
 /*   (a unique negative integer). Note that a "pseudo" fact    */
 /*   can also be used as a "pseudo" instance.                  */
 /***************************************************************/
-globle struct partialMatch *NewPseudoFactPartialMatch()
+globle struct partialMatch *NewPseudoFactPartialMatch(
+  void *theEnv)
   {
    struct partialMatch *linker;
    struct alphaMatch *tempAlpha;
 
-   linker = get_struct(partialMatch);
+   linker = get_struct(theEnv,partialMatch);
    linker->next = NULL;
    linker->betaMemory = TRUE;
    linker->busy = FALSE;
@@ -322,7 +331,7 @@ globle struct partialMatch *NewPseudoFactPartialMatch()
    linker->notOriginf = TRUE;
    linker->counterf = FALSE;
    linker->bcount = 0;
-   tempAlpha = get_struct(alphaMatch);
+   tempAlpha = get_struct(theEnv,alphaMatch);
    tempAlpha->next = NULL;
    tempAlpha->matchingItem = NULL;
    tempAlpha->markers = NULL;
@@ -341,6 +350,7 @@ globle struct partialMatch *NewPseudoFactPartialMatch()
 /*   list of GarbagePartialMatches.                               */
 /******************************************************************/
 globle void FlushAlphaBetaMemory(
+  void *theEnv,
   struct partialMatch *pfl)
   {
    struct partialMatch *pfltemp;
@@ -352,14 +362,53 @@ globle void FlushAlphaBetaMemory(
       if (((pfl->notOriginf) && (pfl->counterf == FALSE)) ||
           (pfl->betaMemory == FALSE))
         {
-         pfl->next = GarbagePartialMatches;
-         GarbagePartialMatches = pfl;
+         pfl->next = EngineData(theEnv)->GarbagePartialMatches;
+         EngineData(theEnv)->GarbagePartialMatches = pfl;
         }
       else
-        { ReturnPartialMatch(pfl); }
+        { ReturnPartialMatch(theEnv,pfl); }
 
       pfl = pfltemp;
      }
+  }
+
+/*****************************************************************/
+/* DestroyAlphaBetaMemory: Returns all partial matches in a list */
+/*   of partial matches directly to the pool of free memory.     */
+/*****************************************************************/
+globle void DestroyAlphaBetaMemory(
+  void *theEnv,
+  struct partialMatch *pfl)
+  {
+   struct partialMatch *pfltemp;
+
+   while (pfl != NULL)
+     {
+      pfltemp = pfl->next;
+
+      DestroyPartialMatch(theEnv,pfl);
+
+      pfl = pfltemp;
+     }
+  }
+
+/******************************************************/
+/* FindEntityInPartialMatch: Searches for a specified */
+/*   data entity in a partial match.                  */
+/******************************************************/
+globle int FindEntityInPartialMatch(
+  struct patternEntity *theEntity,
+  struct partialMatch *thePartialMatch)
+  {
+   short int i;
+
+   for (i = 0 ; i < (int) thePartialMatch->bcount; i++)
+     {
+      if (thePartialMatch->binds[i].gm.theMatch->matchingItem == theEntity)
+        { return(TRUE); }
+     }
+
+   return(FALSE);
   }
 
 /***********************************************************************/
@@ -392,11 +441,12 @@ globle int GetPatternNumberFromJoin(
 /*   indicate which rule caused the problem.                            */
 /************************************************************************/
 globle void TraceErrorToRule(
+  void *theEnv,
   struct joinNode *joinPtr,
   char *indentSpaces)
   {
-   MarkRuleNetwork(0);
-   TraceErrorToRuleDriver(joinPtr,indentSpaces);
+   MarkRuleNetwork(theEnv,0);
+   TraceErrorToRuleDriver(theEnv,joinPtr,indentSpaces);
   }
 
 /**************************************************************/
@@ -404,6 +454,7 @@ globle void TraceErrorToRule(
 /*   rule caused a pattern or join network error.             */
 /**************************************************************/
 static void TraceErrorToRuleDriver(
+  void *theEnv,
   struct joinNode *joinPtr,
   char *indentSpaces)
   {
@@ -416,15 +467,15 @@ static void TraceErrorToRuleDriver(
       else if (joinPtr->ruleToActivate != NULL)
         {
          joinPtr->marked = 1;
-         name = GetDefruleName(joinPtr->ruleToActivate);
-         PrintRouter(WERROR,indentSpaces);
-         PrintRouter(WERROR,name);
-         PrintRouter(WERROR,"\n");
+         name = EnvGetDefruleName(theEnv,joinPtr->ruleToActivate);
+         EnvPrintRouter(theEnv,WERROR,indentSpaces);
+         EnvPrintRouter(theEnv,WERROR,name);
+         EnvPrintRouter(theEnv,WERROR,"\n");
         }
       else
         {
          joinPtr->marked = 1;
-         TraceErrorToRuleDriver(joinPtr->nextLevel,indentSpaces);
+         TraceErrorToRuleDriver(theEnv,joinPtr->nextLevel,indentSpaces);
         }
 
       joinPtr = joinPtr->rightDriveNode;
@@ -436,6 +487,7 @@ static void TraceErrorToRuleDriver(
 /*   joins in the join network to the specified value.  */
 /********************************************************/
 globle void MarkRuleNetwork(
+  void *theEnv,
   int value)
   {
    struct defrule *rulePtr;
@@ -446,18 +498,18 @@ globle void MarkRuleNetwork(
    /* Loop through each module. */
    /*===========================*/
 
-   SaveCurrentModule();
-   for (modulePtr = (struct defmodule *) GetNextDefmodule(NULL);
+   SaveCurrentModule(theEnv);
+   for (modulePtr = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
         modulePtr != NULL;
-        modulePtr = (struct defmodule *) GetNextDefmodule(modulePtr))
+        modulePtr = (struct defmodule *) EnvGetNextDefmodule(theEnv,modulePtr))
      {
-      SetCurrentModule((void *) modulePtr);
+      EnvSetCurrentModule(theEnv,(void *) modulePtr);
 
       /*=========================*/
       /* Loop through each rule. */
       /*=========================*/
 
-      rulePtr = (struct defrule *) GetNextDefrule(NULL);
+      rulePtr = (struct defrule *) EnvGetNextDefrule(theEnv,NULL);
       while (rulePtr != NULL)
         {
          /*=============================*/
@@ -478,12 +530,12 @@ globle void MarkRuleNetwork(
          /*=================================*/
 
          if (rulePtr->disjunct != NULL) rulePtr = rulePtr->disjunct;
-         else rulePtr = (struct defrule *) GetNextDefrule(rulePtr);
+         else rulePtr = (struct defrule *) EnvGetNextDefrule(theEnv,rulePtr);
         }
 
      }
 
-   RestoreCurrentModule();
+   RestoreCurrentModule(theEnv);
   }
 
 #if (CONSTRUCT_COMPILER || BLOAD_AND_BSAVE) && (! RUN_TIME)
@@ -495,6 +547,7 @@ globle void MarkRuleNetwork(
 /*   structures currently in use.                            */
 /*************************************************************/
 globle void TagRuleNetwork(
+  void *theEnv,
   long int *moduleCount,
   long int *ruleCount,
   long int *joinCount)
@@ -507,24 +560,24 @@ globle void TagRuleNetwork(
    *ruleCount = 0;
    *joinCount = 0;
 
-   MarkRuleNetwork(0);
+   MarkRuleNetwork(theEnv,0);
 
    /*===========================*/
    /* Loop through each module. */
    /*===========================*/
 
-   for (modulePtr = (struct defmodule *) GetNextDefmodule(NULL);
+   for (modulePtr = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
         modulePtr != NULL;
-        modulePtr = (struct defmodule *) GetNextDefmodule(modulePtr))
+        modulePtr = (struct defmodule *) EnvGetNextDefmodule(theEnv,modulePtr))
      {
       (*moduleCount)++;
-      SetCurrentModule((void *) modulePtr);
+      EnvSetCurrentModule(theEnv,(void *) modulePtr);
 
       /*=========================*/
       /* Loop through each rule. */
       /*=========================*/
 
-      rulePtr = (struct defrule *) GetNextDefrule(NULL);
+      rulePtr = (struct defrule *) EnvGetNextDefrule(theEnv,NULL);
 
       while (rulePtr != NULL)
         {
@@ -548,7 +601,7 @@ globle void TagRuleNetwork(
            }
 
          if (rulePtr->disjunct != NULL) rulePtr = rulePtr->disjunct;
-         else rulePtr = (struct defrule *) GetNextDefrule(rulePtr);
+         else rulePtr = (struct defrule *) EnvGetNextDefrule(theEnv,rulePtr);
         }
      }
   }

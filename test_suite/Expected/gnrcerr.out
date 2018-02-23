@@ -1,0 +1,482 @@
+TRUE
+FuzzyCLIPS> (batch "gnrcerr.bat")
+TRUE
+FuzzyCLIPS> (deffunction bogus ())
+FuzzyCLIPS> (defgeneric bogus)
+[GENRCPSR5] Defgenerics are not allowed to replace deffunctions.
+
+ERROR:
+(defgeneric MAIN::bogus)
+FuzzyCLIPS> (defmethod bogus ())
+[GENRCPSR5] Defgenerics are not allowed to replace deffunctions.
+
+ERROR:
+(defmethod MAIN::bogus
+   (
+FuzzyCLIPS> (defgeneric)
+
+[CSTRCPSR2] Missing name for defgeneric construct
+
+ERROR:
+(defgeneric )
+FuzzyCLIPS> (defgeneric bad bad-comment)
+[GENRCPSR1] Expected ')' to complete defgeneric.
+
+ERROR:
+(defgeneric MAIN::bad
+   bad-comment
+FuzzyCLIPS> (defgeneric bad ())
+[GENRCPSR1] Expected ')' to complete defgeneric.
+
+ERROR:
+(defgeneric MAIN::bad
+   (
+FuzzyCLIPS> (defgeneric bad "good-comment" extra-garbage)
+[GENRCPSR1] Expected ')' to complete defgeneric.
+
+ERROR:
+(defgeneric MAIN::bad "good-comment"
+   extra-garbage
+FuzzyCLIPS> (defmethod)
+
+[CSTRCPSR2] Missing name for defgeneric construct
+
+ERROR:
+(defmethod )
+FuzzyCLIPS> (defmethod ())
+
+[CSTRCPSR2] Missing name for defgeneric construct
+
+ERROR:
+(defmethod (
+FuzzyCLIPS> (defmethod 1)
+
+[CSTRCPSR2] Missing name for defgeneric construct
+
+ERROR:
+(defmethod 1
+FuzzyCLIPS> (defmethod 1 ())
+
+[CSTRCPSR2] Missing name for defgeneric construct
+
+ERROR:
+(defmethod 1
+FuzzyCLIPS> (defmethod good ((?a NUMBER (> ?a 0)) (?b LEXEME (neq ?b "ERROR"))))
+FuzzyCLIPS> (defmethod good 2 ((?a NUMBER (> ?a 0)) (?b LEXEME (neq ?b "ERROR"))))
+[GENRCPSR2] New method #2 would be indistinguishable from method #1.
+
+ERROR:
+(defmethod MAIN::good 2
+   ((?a NUMBER (> ?a 0))
+    (?b LEXEME (neq ?b "ERROR")))
+   
+FuzzyCLIPS> (defmethod bad 0 ())
+[GENRCPSR6] Method index out of range.
+
+ERROR:
+(defmethod MAIN::bad 0
+FuzzyCLIPS> (defmethod bad 1000000000000 ())
+[GENRCPSR6] Method index out of range.
+
+ERROR:
+(defmethod MAIN::bad 2147483647 ;; Different number OK
+FuzzyCLIPS> (defmethod bad (?a 34))
+[GENRCPSR9] Expected a variable or '(' for parameter specification.
+
+ERROR:
+(defmethod MAIN::bad
+   (?a
+    34
+FuzzyCLIPS> (defmethod bad ($?any ?any))
+[PRCCODE8] No parameters allowed after wildcard parameter.
+
+ERROR:
+(defmethod MAIN::bad
+   ($?any
+    ?any
+FuzzyCLIPS> (defmethod bad (?a ?a))
+[PRCCODE7] Duplicate parameter names not allowed.
+
+ERROR:
+(defmethod MAIN::bad
+   (?a
+    ?a
+FuzzyCLIPS> (defmethod bad ((?a)))
+[GENRCPSR13] Expected a valid class name or query.
+
+ERROR:
+(defmethod MAIN::bad
+   ((?a)
+FuzzyCLIPS> (defmethod bad ((?a INTEGER NUMBER)))
+[GENRCPSR15] INTEGER class is redundant.
+
+ERROR:
+(defmethod MAIN::bad
+   ((?a INTEGER NUMBER
+FuzzyCLIPS> (defmethod bad ((?a JUNK)))
+[GENRCPSR14] Unknown class in method.
+
+ERROR:
+(defmethod MAIN::bad
+   ((?a JUNK
+FuzzyCLIPS> (defmethod bad ((?a INTEGER 65)))
+[GENRCPSR13] Expected a valid class name or query.
+
+ERROR:
+(defmethod MAIN::bad
+   ((?a INTEGER 65
+FuzzyCLIPS> (defmethod bad)
+[GENRCPSR7] Expected a '(' to begin method parameter restrictions.
+
+ERROR:
+(defmethod MAIN::bad)
+FuzzyCLIPS> (defmethod bad (abc))
+[GENRCPSR9] Expected a variable or '(' for parameter specification.
+
+ERROR:
+(defmethod MAIN::bad
+   (abc
+FuzzyCLIPS> (defmethod bad ((abc)))
+[GENRCPSR8] Expected a variable for parameter specification.
+
+ERROR:
+(defmethod MAIN::bad
+   ((abc
+FuzzyCLIPS> (defmethod bad ((?a (< ?a 1) INTEGER)))
+[GENRCPSR10] Query must be last in parameter restriction.
+
+ERROR:
+(defmethod MAIN::bad
+   ((?a (< ?a 1) INTEGER
+FuzzyCLIPS> (defmethod bad ((?a INTEGER INTEGER)))
+[GENRCPSR11] Duplicate classes not allowed in parameter restriction.
+
+ERROR:
+(defmethod MAIN::bad
+   ((?a INTEGER INTEGER
+FuzzyCLIPS> (defmethod foo ((?a (bind ?b 1))))
+[GENRCPSR12] Binds are not allowed in query expressions.
+
+ERROR:
+(defmethod MAIN::foo
+   ((?a (bind ?b 1)
+FuzzyCLIPS> (defgeneric defrule)
+[GENRCPSR3] Defgenerics are not allowed to replace constructs.
+
+ERROR:
+(defgeneric MAIN::defrule)
+FuzzyCLIPS> (defmethod defrule ())
+[GENRCPSR3] Defgenerics are not allowed to replace constructs.
+
+ERROR:
+(defmethod MAIN::defrule
+   (
+FuzzyCLIPS> (list-defgenerics)
+good
+For a total of 1 defgeneric.
+FuzzyCLIPS> (list-defmethods)
+good #1  (NUMBER <qry>) (LEXEME <qry>)
+For a total of 1 method.
+FuzzyCLIPS> (defmethod foo (?a)
+  (+ ?b 2)
+  (bind ?b 1))
+FuzzyCLIPS> (foo (+ (eval "(gensym)") 2))
+[ARGACCES5] Function + expected argument #1 to be of type integer or float
+[PRCCODE6] This error occurred while evaluating arguments for the generic function foo.
+FALSE
+FuzzyCLIPS> (foo 1)
+[PRCCODE5] Variable b unbound in generic function foo method #1.
+[ARGACCES5] Function + expected argument #1 to be of type integer or float
+[PRCCODE4] Execution halted during the actions of generic function foo method #1.
+FALSE
+FuzzyCLIPS> (foo (instances))
+[PRCCODE2] Functions without a return value are illegal as generic function arguments.
+[PRCCODE6] This error occurred while evaluating arguments for the generic function foo.
+FALSE
+FuzzyCLIPS> (defmethod foo ()
+  (undefmethod foo *))
+FuzzyCLIPS> (foo)
+[GENRCFUN1] Defgeneric foo cannot be modified while one of its methods is executing.
+FuzzyCLIPS> (foo 1 2)
+[GENRCEXE1] No applicable methods for foo.
+FALSE
+FuzzyCLIPS> (call-next-method)
+[GENRCEXE2] Shadowed methods not applicable in current context.
+FALSE
+FuzzyCLIPS> (defmethod bar ((?a INTEGER)))
+FuzzyCLIPS> (bar [bogus-instance])
+[GENRCEXE3] Unable to determine class of [bogus-instance] in generic function bar.
+FALSE
+FuzzyCLIPS> (undefmethod * 1)
+[GENRCCOM3] Incomplete method specification for deletion.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defgeneric +)
+FuzzyCLIPS> (+ abc def)
+[GENRCEXE1] No applicable methods for +.
+FALSE
+FuzzyCLIPS> (defmethod foo (($?any INTEGER (> ?current-argument 10)))
+   ?current-argument)
+
+[PRCCODE3] Undefined variable current-argument referenced in method.
+
+ERROR:
+(defmethod MAIN::foo
+   (($?any INTEGER (> ?current-argument 10)))
+   ?current-argument
+   )
+FuzzyCLIPS> (defgeneric any-instancep)
+[GENRCPSR16] The system function any-instancep cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::any-instancep)
+FuzzyCLIPS> (defmethod any-instancep ())
+[GENRCPSR16] The system function any-instancep cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::any-instancep
+   (
+FuzzyCLIPS> (defgeneric assert)
+[GENRCPSR16] The system function assert cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::assert)
+FuzzyCLIPS> (defmethod assert ())
+[GENRCPSR16] The system function assert cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::assert
+   (
+FuzzyCLIPS> (defgeneric bind)
+[GENRCPSR16] The system function bind cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::bind)
+FuzzyCLIPS> (defmethod bind ())
+[GENRCPSR16] The system function bind cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::bind
+   (
+FuzzyCLIPS> (defgeneric break)
+[GENRCPSR16] The system function break cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::break)
+FuzzyCLIPS> (defmethod break ())
+[GENRCPSR16] The system function break cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::break
+   (
+FuzzyCLIPS> (defgeneric call-next-handler)
+[GENRCPSR16] The system function call-next-handler cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::call-next-handler)
+FuzzyCLIPS> (defmethod call-next-handler ())
+[GENRCPSR16] The system function call-next-handler cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::call-next-handler
+   (
+FuzzyCLIPS> (defgeneric call-next-method)
+[GENRCPSR16] The system function call-next-method cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::call-next-method)
+FuzzyCLIPS> (defmethod call-next-method ())
+[GENRCPSR16] The system function call-next-method cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::call-next-method
+   (
+FuzzyCLIPS> (defgeneric delayed-do-for-all-instances)
+[GENRCPSR16] The system function delayed-do-for-all-instances cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::delayed-do-for-all-instances)
+FuzzyCLIPS> (defmethod delayed-do-for-all-instances ())
+[GENRCPSR16] The system function delayed-do-for-all-instances cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::delayed-do-for-all-instances
+   (
+FuzzyCLIPS> (defgeneric do-for-all-instances)
+[GENRCPSR16] The system function do-for-all-instances cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::do-for-all-instances)
+FuzzyCLIPS> (defmethod do-for-all-instances ())
+[GENRCPSR16] The system function do-for-all-instances cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::do-for-all-instances
+   (
+FuzzyCLIPS> (defgeneric do-for-instance)
+[GENRCPSR16] The system function do-for-instance cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::do-for-instance)
+FuzzyCLIPS> (defmethod do-for-instance ())
+[GENRCPSR16] The system function do-for-instance cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::do-for-instance
+   (
+FuzzyCLIPS> (defgeneric duplicate)
+[GENRCPSR16] The system function duplicate cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::duplicate)
+FuzzyCLIPS> (defmethod duplicate ())
+[GENRCPSR16] The system function duplicate cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::duplicate
+   (
+FuzzyCLIPS> (defgeneric expand$)
+[GENRCPSR16] The system function expand$ cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::expand$)
+FuzzyCLIPS> (defmethod expand$ ())
+[GENRCPSR16] The system function expand$ cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::expand$
+   (
+FuzzyCLIPS> (defgeneric find-all-instances)
+[GENRCPSR16] The system function find-all-instances cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::find-all-instances)
+FuzzyCLIPS> (defmethod find-all-instances ())
+[GENRCPSR16] The system function find-all-instances cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::find-all-instances
+   (
+FuzzyCLIPS> (defgeneric find-instance)
+[GENRCPSR16] The system function find-instance cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::find-instance)
+FuzzyCLIPS> (defmethod find-instance ())
+[GENRCPSR16] The system function find-instance cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::find-instance
+   (
+FuzzyCLIPS> (defgeneric if)
+[GENRCPSR16] The system function if cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::if)
+FuzzyCLIPS> (defmethod if ())
+[GENRCPSR16] The system function if cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::if
+   (
+FuzzyCLIPS> (defgeneric initialize-instance)
+[GENRCPSR16] The system function initialize-instance cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::initialize-instance)
+FuzzyCLIPS> (defmethod initialize-instance ())
+[GENRCPSR16] The system function initialize-instance cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::initialize-instance
+   (
+FuzzyCLIPS> (defgeneric make-instance)
+[GENRCPSR16] The system function make-instance cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::make-instance)
+FuzzyCLIPS> (defmethod make-instance ())
+[GENRCPSR16] The system function make-instance cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::make-instance
+   (
+FuzzyCLIPS> (defgeneric modify)
+[GENRCPSR16] The system function modify cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::modify)
+FuzzyCLIPS> (defmethod modify ())
+[GENRCPSR16] The system function modify cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::modify
+   (
+FuzzyCLIPS> (defgeneric next-handlerp)
+[GENRCPSR16] The system function next-handlerp cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::next-handlerp)
+FuzzyCLIPS> (defmethod next-handlerp ())
+[GENRCPSR16] The system function next-handlerp cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::next-handlerp
+   (
+FuzzyCLIPS> (defgeneric next-methodp)
+[GENRCPSR16] The system function next-methodp cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::next-methodp)
+FuzzyCLIPS> (defmethod next-methodp ())
+[GENRCPSR16] The system function next-methodp cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::next-methodp
+   (
+FuzzyCLIPS> (defgeneric override-next-handler)
+[GENRCPSR16] The system function override-next-handler cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::override-next-handler)
+FuzzyCLIPS> (defmethod override-next-handler ())
+[GENRCPSR16] The system function override-next-handler cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::override-next-handler
+   (
+FuzzyCLIPS> (defgeneric progn)
+[GENRCPSR16] The system function progn cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::progn)
+FuzzyCLIPS> (defmethod progn ())
+[GENRCPSR16] The system function progn cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::progn
+   (
+FuzzyCLIPS> (defgeneric retract)
+FuzzyCLIPS> (defmethod retract ())
+FuzzyCLIPS> (defgeneric return)
+[GENRCPSR16] The system function return cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::return)
+FuzzyCLIPS> (defmethod return ())
+[GENRCPSR16] The system function return cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::return
+   (
+FuzzyCLIPS> (defgeneric while)
+[GENRCPSR16] The system function while cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::while)
+FuzzyCLIPS> (defmethod while ())
+[GENRCPSR16] The system function while cannot be overloaded.
+
+ERROR:
+(defmethod MAIN::while
+   (
+FuzzyCLIPS> (dribble-off)

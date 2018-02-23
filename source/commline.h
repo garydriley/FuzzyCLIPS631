@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/commline.h,v 1.3 2001/08/11 21:04:23 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*              COMMAND LINE HEADER FILE               */
    /*******************************************************/
@@ -19,11 +17,35 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Refactored several functions and added         */
+/*            additional functions for use by an interface   */
+/*            layered on top of CLIPS.                       */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_commline
 
 #define _H_commline
+
+#define COMMANDLINE_DATA 40
+
+struct commandLineData
+  { 
+   int EvaluatingTopLevelCommand;
+   int HaltCommandLoopBatch;
+#if ! RUN_TIME
+   char *CommandString;
+   unsigned MaximumCharacters;
+   int ParsingTopLevelCommand;
+   char *BannerString;
+   int (*EventFunction)(void *);
+   int (*AfterPromptFunction)(void *);
+#endif
+  };
+
+#define CommandLineData(theEnv) ((struct commandLineData *) GetEnvironmentData(theEnv,COMMANDLINE_DATA))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -35,25 +57,30 @@
 #define LOCALE extern
 #endif
 
-   LOCALE int                            ExpandCommandString(int);
-   LOCALE void                           FlushCommandString(void);
-   LOCALE void                           SetCommandString(char *);
-   LOCALE void                           AppendCommandString(char *);
-   LOCALE char                          *GetCommandString(void);
+   LOCALE void                           InitializeCommandLineData(void *);
+   LOCALE int                            ExpandCommandString(void *,int);
+   LOCALE void                           FlushCommandString(void *);
+   LOCALE void                           SetCommandString(void *,char *);
+   LOCALE void                           AppendCommandString(void *,char *);
+   LOCALE char                          *GetCommandString(void *);
    LOCALE int                            CompleteCommand(char *);
-   LOCALE void                           CommandLoop(void);
-   LOCALE void                           PrintPrompt(void);
-   LOCALE void                           SetAfterPromptFunction(int (*)(void));
-   LOCALE BOOLEAN                        RouteCommand(char *,int);
-   LOCALE int                          (*SetEventFunction(int (*)(void)))(void);
-   LOCALE BOOLEAN                        TopLevelCommand(void);
-   LOCALE void                           AppendNCommandString(char *,int);
-   LOCALE void                           SetNCommandString(char *,int);
-   LOCALE char                          *GetCommandCompletionString(char *,int);
-
-#ifndef _COMMLINE_SOURCE_
-   extern int                     EvaluatingTopLevelCommand;
-#endif
+   LOCALE void                           CommandLoop(void *);
+   LOCALE void                           CommandLoopBatch(void *);
+   LOCALE void                           CommandLoopBatchDriver(void *);
+   LOCALE void                           PrintPrompt(void *);
+   LOCALE void                           PrintBanner(void *);
+   LOCALE void                           SetAfterPromptFunction(void *,int (*)(void *));
+   LOCALE intBool                        RouteCommand(void *,char *,int);
+   LOCALE int                          (*SetEventFunction(void *,int (*)(void *)))(void *);
+   LOCALE intBool                        TopLevelCommand(void *);
+   LOCALE void                           AppendNCommandString(void *,char *,unsigned);
+   LOCALE void                           SetNCommandString(void *,char *,unsigned);
+   LOCALE char                          *GetCommandCompletionString(void *,char *,unsigned);
+   LOCALE intBool                        ExecuteIfCommandComplete(void *);
+   LOCALE void                           CommandLoopOnceThenBatch(void *);
+   LOCALE intBool                        CommandCompleteAndNotEmpty(void *);
+   LOCALE void                           SetHaltCommandLoopBatch(void *,int);
+   LOCALE int                            GetHaltCommandLoopBatch(void *);
 
 #endif
 

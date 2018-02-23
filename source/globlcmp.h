@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/globlcmp.h,v 1.3 2001/08/11 21:06:18 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*       DEFGLOBAL CONSTRUCT COMPILER HEADER FILE      */
    /*******************************************************/
@@ -34,8 +32,9 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           DefglobalCompilerSetup(void);
-   LOCALE void                           DefglobalCModuleReference(FILE *,int,int,int);
-   LOCALE void                           DefglobalCConstructReference(FILE *,void *,int,int);
+   LOCALE void                           DefglobalCompilerSetup(void *);
+   LOCALE void                           DefglobalCModuleReference(void *,FILE *,int,int,int);
+   LOCALE void                           DefglobalCConstructReference(void *,FILE *,void *,int,int);
 
 #endif
+

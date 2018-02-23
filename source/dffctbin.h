@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/dffctbin.h,v 1.3 2001/08/11 21:04:52 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*           DEFFACTS BSAVE/BLOAD HEADER FILE          */
    /*******************************************************/
@@ -42,6 +40,18 @@ struct bsaveDeffactsModule
   {
    struct bsaveDefmoduleItemHeader header;
   };
+  
+#define DFFCTBIN_DATA 26
+
+struct deffactsBinaryData
+  { 
+   struct deffacts *DeffactsArray;
+   long NumberOfDeffacts;
+   struct deffactsModule *ModuleArray;
+   long NumberOfDeffactsModules;
+  };
+  
+#define DeffactsBinaryData(theEnv) ((struct deffactsBinaryData *) GetEnvironmentData(theEnv,DFFCTBIN_DATA))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -53,14 +63,11 @@ struct bsaveDeffactsModule
 #define LOCALE extern
 #endif
 
-   LOCALE void                           DeffactsBinarySetup(void);
-   LOCALE void                          *BloadDeffactsModuleReference(int);
+   LOCALE void                           DeffactsBinarySetup(void *);
+   LOCALE void                          *BloadDeffactsModuleReference(void *,int);
 
 #endif
 #endif
-
-
-
 
 
 

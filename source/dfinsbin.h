@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/dfinsbin.h,v 1.3 2001/08/11 21:05:04 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -25,6 +23,22 @@
 
 #if DEFINSTANCES_CONSTRUCT && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE)
 
+#ifndef _H_defins
+#include "defins.h"
+#endif
+
+#define DFINSBIN_DATA 25
+
+struct definstancesBinaryData
+  { 
+   DEFINSTANCES *DefinstancesArray;
+   long DefinstancesCount;
+   long ModuleCount;
+   DEFINSTANCES_MODULE *ModuleArray;
+  };
+  
+#define DefinstancesBinaryData(theEnv) ((struct definstancesBinaryData *) GetEnvironmentData(theEnv,DFINSBIN_DATA))
+
 #ifdef LOCALE
 #undef LOCALE
 #endif
@@ -35,8 +49,8 @@
 #define LOCALE extern
 #endif
 
-LOCALE void SetupDefinstancesBload(void);
-LOCALE void *BloadDefinstancesModuleRef(int);
+LOCALE void SetupDefinstancesBload(void *);
+LOCALE void *BloadDefinstancesModuleRef(void *,int);
 
 #ifndef _DFINSBIN_SOURCE_
 #endif
@@ -44,7 +58,6 @@ LOCALE void *BloadDefinstancesModuleRef(int);
 #endif
 
 #endif
-
 
 
 

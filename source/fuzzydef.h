@@ -1,5 +1,3 @@
-/*  $Header: /dist/CVS/fzclips/src/fuzzydef.h,v 1.3 2001/08/11 21:05:53 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
@@ -34,7 +32,40 @@
 #ifndef _H_fuzzydef
 #define _H_fuzzydef
 
+#ifndef _H_fuzzymod
+#include "fuzzymod.h"
+#endif
 
+#define FUZZY_DATA USER_ENVIRONMENT_DATA + 1
+
+/* must be an odd number -- best not to be too big or too small
+   Keep in range 5 to 13 -- 9 has been used most of the time
+*/
+#define ArraySIZE 9
+
+struct fuzzyData
+  { 
+   int FuzzyInferenceType;
+   int FuzzyFloatPrecision;
+   double FuzzyAlphaValue;
+   /* ALL defuzzify functions must set this variable before exiting. 
+      They must set it to TRUE if the defuzzify is valid or
+      to FALSE if it is returning a default value when the
+      defuzzificztion is undefined (e.g. moment-defuzzify being done
+      for a fuzzy set that has zero area)
+   */
+   intBool is_last_defuzzify_valid;
+   /* saveFactsInProgress is TRUE temporarily during save-facts command */
+   int saveFactsInProgress;
+
+   struct modifierListItem *ListOfModifierFunctions;
+   double S_array[ArraySIZE];
+   double Z_array[ArraySIZE];
+   double PI_array[ArraySIZE];
+
+  };
+  
+#define FuzzyData(theEnv) ((struct fuzzyData *) GetEnvironmentData(theEnv,FUZZY_DATA))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -46,7 +77,7 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           InitializeFuzzy(void);
+   LOCALE void                           InitializeFuzzy(void *theEnv);
 
 
 #ifndef _FUZZYDEF_SOURCE_

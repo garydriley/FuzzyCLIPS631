@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/rulepsr.h,v 1.3 2001/08/11 21:07:51 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*               RULE PARSING HEADER FILE              */
    /*******************************************************/
@@ -33,12 +31,10 @@
 #define LOCALE extern
 #endif
 
-   LOCALE int                            ParseDefrule(char *);
+   LOCALE int                            ParseDefrule(void *,char *);
    LOCALE struct lhsParseNode           *FindVariable(struct symbolHashNode *,
                                                       struct lhsParseNode *);
 
 #endif
-
-
 
 

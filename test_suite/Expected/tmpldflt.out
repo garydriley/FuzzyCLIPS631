@@ -1,0 +1,396 @@
+TRUE
+FuzzyCLIPS> (batch "tmpldflt.bat")
+TRUE
+FuzzyCLIPS> (deftemplate error1 "Wrong Type"
+  (field x (type SYMBOL)
+           (default 7)))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not match the allowed types for slot x.
+
+ERROR:
+(deftemplate MAIN::error1 "Wrong Type"
+   (field x (type SYMBOL) (default 7))
+FuzzyCLIPS> (deftemplate error2 "Wrong Type"
+  (field x (type SYMBOL)
+           (default (+ 3 4))))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not match the allowed types for slot x.
+
+ERROR:
+(deftemplate MAIN::error2 "Wrong Type"
+   (field x (type SYMBOL) (default (+ 3 4)))
+FuzzyCLIPS> (deftemplate error3 "Wrong Type"
+  (field x (type SYMBOL)
+           (default-dynamic 7)))
+
+[CSTRNCHK1] An expression found in the default-dynamic attribute
+does not match the allowed types for slot x.
+
+ERROR:
+(deftemplate MAIN::error3 "Wrong Type"
+   (field x (type SYMBOL) (default-dynamic 7))
+FuzzyCLIPS> (deftemplate error4 "Wrong Type"
+  (field x (type SYMBOL)
+           (default-dynamic (+ 3 4))))
+
+[CSTRNCHK1] The function return value found in the default-dynamic attribute
+does not match the allowed types for slot x.
+
+ERROR:
+(deftemplate MAIN::error4 "Wrong Type"
+   (field x (type SYMBOL) (default-dynamic (+ 3 4)))
+FuzzyCLIPS> (deftemplate error5 "Wrong Value"
+  (field x (allowed-symbols a b c)
+           (default f)))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not match the allowed values for slot x.
+
+ERROR:
+(deftemplate MAIN::error5 "Wrong Value"
+   (field x (allowed-symbols a b c) (default f))
+FuzzyCLIPS> (deftemplate error6 "Wrong Cardinality"
+  (field x (default 1 2 3)))
+
+[DEFAULT1] The default value for a single field slot must be a single field value
+
+ERROR:
+(deftemplate MAIN::error6 "Wrong Cardinality"
+   (field x (default 1 2 3)
+FuzzyCLIPS> (deftemplate error7 "Wrong Cardinality"
+  (field x (default)))
+
+[DEFAULT1] The default value for a single field slot must be a single field value
+
+ERROR:
+(deftemplate MAIN::error7 "Wrong Cardinality"
+   (field x (default)
+FuzzyCLIPS> (deftemplate error8 "Wrong Cardinality"
+  (field x (default (create$ a b c))))
+
+[DEFAULT1] The default value for a single field slot must be a single field value
+
+ERROR:
+(deftemplate MAIN::error8 "Wrong Cardinality"
+   (field x (default (create$ a b c))
+FuzzyCLIPS> (deftemplate error9 "Wrong Cardinality"
+  (field x (default (create$))))
+
+[DEFAULT1] The default value for a single field slot must be a single field value
+
+ERROR:
+(deftemplate MAIN::error9 "Wrong Cardinality"
+   (field x (default (create$))
+FuzzyCLIPS> (deftemplate error11 "Wrong Cardinality"
+  (field x (default-dynamic 1 2 3)))
+
+[DEFAULT1] The default value for a single field slot must be a single field value
+
+ERROR:
+(deftemplate MAIN::error11 "Wrong Cardinality"
+   (field x (default-dynamic 1 2 3)
+FuzzyCLIPS> (deftemplate error12 "Wrong Cardinality"
+  (field x (default-dynamic)))
+
+[DEFAULT1] The default value for a single field slot must be a single field value
+
+ERROR:
+(deftemplate MAIN::error12 "Wrong Cardinality"
+   (field x (default-dynamic)
+FuzzyCLIPS> (deftemplate error13 "Wrong Cardinality"
+  (field x (default-dynamic (create$ a b c))))
+
+[DEFAULT1] The default value for a single field slot must be a single field value
+
+ERROR:
+(deftemplate MAIN::error13 "Wrong Cardinality"
+   (field x (default-dynamic (create$ a b c))
+FuzzyCLIPS> (deftemplate error14 "Wrong Cardinality"
+  (field x (default-dynamic (create$))))
+
+[DEFAULT1] The default value for a single field slot must be a single field value
+
+ERROR:
+(deftemplate MAIN::error14 "Wrong Cardinality"
+   (field x (default-dynamic (create$))
+FuzzyCLIPS> (deftemplate error16 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default a b c d e f)))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error16 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default a b c d e f))
+FuzzyCLIPS> (deftemplate error17 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default a)))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error17 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default a))
+FuzzyCLIPS> (deftemplate error18 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default (create$ a b c d e f))))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error18 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default (create$ a b c d e f)))
+FuzzyCLIPS> (deftemplate error19 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default (create$ a))))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error19 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default (create$ a)))
+FuzzyCLIPS> (deftemplate error20 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default (create$ a) (create$ a))))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error20 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default (create$ a) (create$ a)))
+FuzzyCLIPS> (deftemplate error21 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default (create$ a b c) (create$ a b c))))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error21 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default (create$ a b c) (create$ a b c)))
+FuzzyCLIPS> (deftemplate error22 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default a b c d e f)))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error22 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default a b c d e f))
+FuzzyCLIPS> (deftemplate error23 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default a)))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error23 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default a))
+FuzzyCLIPS> (deftemplate error24 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default (create$ a b c d e f))))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error24 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default (create$ a b c d e f)))
+FuzzyCLIPS> (deftemplate error25 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default (create$ a))))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error25 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default (create$ a)))
+FuzzyCLIPS> (deftemplate error26 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default (create$ a) (create$ a))))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error26 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default (create$ a) (create$ a)))
+FuzzyCLIPS> (deftemplate error27 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default (create$ a b c) (create$ a b c))))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error27 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default (create$ a b c) (create$ a b c)))
+FuzzyCLIPS> (deftemplate error28 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default)))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error28 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default))
+FuzzyCLIPS> (deftemplate error29 "Wrong Cardinality"
+  (multifield x (cardinality 3 5)
+                (default-dynamic)))
+
+[CSTRNCHK1] An expression found in the default-dynamic attribute
+does not satisfy the cardinality restrictions for slot x.
+
+ERROR:
+(deftemplate MAIN::error29 "Wrong Cardinality"
+   (multifield x (cardinality 3 5) (default-dynamic))
+FuzzyCLIPS> (deftemplate error30 "Syntax Error"
+  (field x (default ?NONE 10)))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for default attribute.
+
+ERROR:
+(deftemplate MAIN::error30 "Syntax Error"
+   (field x (default ?NONE 10
+FuzzyCLIPS> (deftemplate error31 "Syntax Error"
+  (field x (default ?DERIVE 10)))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for default attribute.
+
+ERROR:
+(deftemplate MAIN::error31 "Syntax Error"
+   (field x (default ?DERIVE 10
+FuzzyCLIPS> (deftemplate error32 "Syntax Error"
+  (field x (default 10 ?DERIVE)))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for default attribute.
+
+ERROR:
+(deftemplate MAIN::error32 "Syntax Error"
+   (field x (default 10 ?DERIVE
+FuzzyCLIPS> (deftemplate error33 "Wrong Type"
+  (multifield x (allowed-symbols a b c)
+                (default 8 7 a 9 d)))
+
+[CSTRNCHK1] An expression found in the default attribute
+does not match the allowed values for slot x.
+
+ERROR:
+(deftemplate MAIN::error33 "Wrong Type"
+   (multifield x (allowed-symbols a b c) (default 8 7 a 9 d))
+FuzzyCLIPS> (list-deftemplates)
+initial-fact
+For a total of 1 deftemplate.
+FuzzyCLIPS> (watch facts)                
+FuzzyCLIPS> (deftemplate foo1 (field x))
+FuzzyCLIPS> (assert (foo1))
+==> f-0     (foo1 (x nil)) CF 1.00 
+<Fact-0>
+FuzzyCLIPS> (deftemplate foo2 (field x (type LEXEME NUMBER INSTANCE FACT-ADDRESS EXTERNAL-ADDRESS)))
+FuzzyCLIPS> (assert (foo2))
+==> f-1     (foo2 (x nil)) CF 1.00 
+<Fact-1>
+FuzzyCLIPS> (deftemplate foo3 (field x (type STRING NUMBER INSTANCE FACT-ADDRESS EXTERNAL-ADDRESS)))
+FuzzyCLIPS> (assert (foo3))
+==> f-2     (foo3 (x "")) CF 1.00 
+<Fact-2>
+FuzzyCLIPS> (deftemplate foo4 (field x (type NUMBER INSTANCE FACT-ADDRESS EXTERNAL-ADDRESS)))
+FuzzyCLIPS> (assert (foo4))
+==> f-3     (foo4 (x 0)) CF 1.00 
+<Fact-3>
+FuzzyCLIPS> (deftemplate foo5 (field x (type INTEGER INSTANCE FACT-ADDRESS EXTERNAL-ADDRESS)))
+FuzzyCLIPS> (assert (foo5))
+==> f-4     (foo5 (x 0)) CF 1.00 
+<Fact-4>
+FuzzyCLIPS> (deftemplate foo6 (field x (type FLOAT INSTANCE FACT-ADDRESS EXTERNAL-ADDRESS)))
+FuzzyCLIPS> (assert (foo6))
+==> f-5     (foo6 (x 0.0)) CF 1.00 
+<Fact-5>
+FuzzyCLIPS> (deftemplate foo7 (field x (type INSTANCE FACT-ADDRESS EXTERNAL-ADDRESS)))
+FuzzyCLIPS> (assert (foo7))
+==> f-6     (foo7 (x [nil])) CF 1.00 
+<Fact-6>
+FuzzyCLIPS> (deftemplate foo8 (field x (type INSTANCE-ADDRESS FACT-ADDRESS EXTERNAL-ADDRESS)))
+FuzzyCLIPS> (assert (foo8))
+==> f-7     (foo8 (x <Dummy Instance>)) CF 1.00 
+<Fact-7>
+FuzzyCLIPS> (deftemplate foo9 (field x (type FACT-ADDRESS EXTERNAL-ADDRESS)))
+FuzzyCLIPS> (assert (foo9))
+==> f-8     (foo9 (x <Dummy Fact>)) CF 1.00 
+<Fact-8>
+FuzzyCLIPS> (deftemplate foo10 (field x (type EXTERNAL-ADDRESS)))
+FuzzyCLIPS> (assert (foo10))
+==> f-9     (foo10 (x <Pointer-0x0>)) CF 1.00 ;; Any NULL pointer is OK
+<Fact-9>
+FuzzyCLIPS> (deftemplate foo11 (field x (type INTEGER) (allowed-integers 3 4 5)))
+FuzzyCLIPS> (assert (foo11))
+==> f-10    (foo11 (x 3)) CF 1.00 
+<Fact-10>
+FuzzyCLIPS> (deftemplate foo12 (field x (type FLOAT) (range 9.8 20.1)))
+FuzzyCLIPS> (assert (foo12))
+==> f-11    (foo12 (x 9.8)) CF 1.00 ;; Any value close to 9.8 is OK
+<Fact-11>
+FuzzyCLIPS> (deftemplate foo13 (field x (type INTEGER) (range ?VARIABLE 43)))
+FuzzyCLIPS> (assert (foo13))
+==> f-12    (foo13 (x 43)) CF 1.00 
+<Fact-12>
+FuzzyCLIPS> (deftemplate foo14 (field x (type INTEGER) (range 28 ?VARIABLE)))
+FuzzyCLIPS> (assert (foo14))
+==> f-13    (foo14 (x 28)) CF 1.00 
+<Fact-13>
+FuzzyCLIPS> (deftemplate foo15 (multifield x))
+FuzzyCLIPS> (assert (foo15))
+==> f-14    (foo15 (x)) CF 1.00 
+<Fact-14>
+FuzzyCLIPS> (deftemplate foo16 (multifield x (cardinality ?VARIABLE 5)))
+FuzzyCLIPS> (assert (foo16))
+==> f-15    (foo16 (x)) CF 1.00 
+<Fact-15>
+FuzzyCLIPS> (deftemplate foo17 (multifield x (cardinality 3 5)))
+FuzzyCLIPS> (assert (foo17))
+==> f-16    (foo17 (x nil nil nil)) CF 1.00 
+<Fact-16>
+FuzzyCLIPS> (deftemplate foo18 (multifield x (cardinality 3 5) (type INTEGER)))
+FuzzyCLIPS> (assert (foo18))
+==> f-17    (foo18 (x 0 0 0)) CF 1.00 
+<Fact-17>
+FuzzyCLIPS> (deftemplate foo19 (multifield x (cardinality 3 5) (allowed-symbols a b c)))
+FuzzyCLIPS> (assert (foo19))
+==> f-18    (foo19 (x a a a)) CF 1.00 
+<Fact-18>
+FuzzyCLIPS> (deftemplate foo20 (multifield x (cardinality 3 5) (type INTEGER) (range 8 9)))
+FuzzyCLIPS> (assert (foo20))
+==> f-19    (foo20 (x 8 8 8)) CF 1.00 
+<Fact-19>
+FuzzyCLIPS> (deftemplate foo21 (field x (default ?NONE)))
+FuzzyCLIPS> (assert (foo21))
+
+[TMPLTRHS1] Slot x requires a value because of its (default ?NONE) attribute.
+FuzzyCLIPS> (setgen 1)
+1
+FuzzyCLIPS> (deftemplate foo22 (field x (default b)) (field y (default (gensym))))
+FuzzyCLIPS> (assert (foo22))
+==> f-20    (foo22 (x b) (y gen1)) CF 1.00 
+<Fact-20>
+FuzzyCLIPS> (assert (foo22))
+FALSE
+FuzzyCLIPS> (deftemplate foo23 (field x (default-dynamic b)) (field y (default-dynamic (gensym))))
+FuzzyCLIPS> (assert (foo23))
+==> f-21    (foo23 (x b) (y gen2)) CF 1.00 
+<Fact-21>
+FuzzyCLIPS> (assert (foo23))
+==> f-22    (foo23 (x b) (y gen3)) CF 1.00 
+<Fact-22>
+FuzzyCLIPS> (unwatch facts)
+FuzzyCLIPS> (dribble-off)

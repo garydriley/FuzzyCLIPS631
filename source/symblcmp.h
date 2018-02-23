@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/symblcmp.h,v 1.3 2001/08/11 21:08:03 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*        SYMBOL CONSTRUCT COMPILER HEADER FILE        */
    /*******************************************************/
@@ -45,20 +43,15 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                     PrintSymbolReference(FILE *,SYMBOL_HN *);
-   LOCALE void                     PrintFloatReference(FILE *,FLOAT_HN *);
-   LOCALE void                     PrintIntegerReference(FILE *,INTEGER_HN *);
-   LOCALE void                     PrintBitMapReference(FILE *,BITMAP_HN *);
+   LOCALE void                     PrintSymbolReference(void *,FILE *,SYMBOL_HN *);
+   LOCALE void                     PrintFloatReference(void *,FILE *,FLOAT_HN *);
+   LOCALE void                     PrintIntegerReference(void *,FILE *,INTEGER_HN *);
+   LOCALE void                     PrintBitMapReference(void *,FILE *,BITMAP_HN *);
 #if FUZZY_DEFTEMPLATES  
-   LOCALE void                     PrintFuzzyValueReference(FILE *,FUZZY_VALUE_HN *);
+   LOCALE void                     PrintFuzzyValueReference(void *,FILE *,FUZZY_VALUE_HN *);
 #endif
-   LOCALE void                     AtomicValuesToCode(char *);
+   LOCALE void                     AtomicValuesToCode(void *,char *);
 
 #endif
-
-
-
-
-
 
 

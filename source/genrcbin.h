@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/genrcbin.h,v 1.3 2001/08/11 21:06:04 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -25,7 +23,25 @@
 
 #include "genrcfun.h"
 
-#define GenericPointer(i) (((i) == -1L) ? NULL : (DEFGENERIC *) &defgenericArray[i])
+#define GENRCBIN_DATA 28
+
+struct defgenericBinaryData
+  { 
+   DEFGENERIC *DefgenericArray;
+   long ModuleCount;
+   long GenericCount;
+   long MethodCount;
+   long RestrictionCount;
+   long TypeCount;
+   DEFGENERIC_MODULE *ModuleArray;
+   DEFMETHOD *MethodArray;
+   RESTRICTION *RestrictionArray;
+   void **TypeArray;
+  };
+  
+#define DefgenericBinaryData(theEnv) ((struct defgenericBinaryData *) GetEnvironmentData(theEnv,GENRCBIN_DATA))
+
+#define GenericPointer(i) (((i) == -1L) ? NULL : (DEFGENERIC *) &DefgenericBinaryData(theEnv)->DefgenericArray[i])
 
 #ifdef LOCALE
 #undef LOCALE
@@ -37,15 +53,10 @@
 #define LOCALE extern
 #endif
 
-LOCALE void SetupGenericsBload(void);
-LOCALE void *BloadDefgenericModuleReference(int);
-
-#ifndef _GENRCBIN_SOURCE_
-extern DEFGENERIC *defgenericArray;
-#endif
+LOCALE void SetupGenericsBload(void *);
+LOCALE void *BloadDefgenericModuleReference(void *,int);
 
 #endif
-
 
 
 

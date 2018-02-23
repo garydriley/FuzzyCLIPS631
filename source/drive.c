@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/drive.c,v 1.3 2001/08/11 21:05:06 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*                    DRIVE MODULE                     */
    /*******************************************************/
@@ -19,6 +17,15 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/drive.c,v 1.3 2001/08/11 2
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
+/*      6.24: Removed INCREMENTAL_RESET and                  */
+/*            LOGICAL_DEPENDENCIES compilation flags.        */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Rule with exists CE has incorrect activation.  */
+/*            DR0867                                         */
 /*                                                           */
 /*************************************************************/
 
@@ -32,21 +39,17 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/drive.c,v 1.3 2001/08/11 2
 
 #if DEFRULE_CONSTRUCT
 
-#include "constant.h"
-#include "memalloc.h"
-#include "reteutil.h"
-#include "prntutil.h"
-#include "router.h"
 #include "agenda.h"
+#include "constant.h"
+#include "engine.h"
+#include "envrnmnt.h"
+#include "memalloc.h"
+#include "prntutil.h"
+#include "reteutil.h"
 #include "retract.h"
-
-#if LOGICAL_DEPENDENCIES
+#include "router.h"
 #include "lgcldpnd.h"
-#endif
-
-#if INCREMENTAL_RESET
 #include "incrrset.h"
-#endif
 
 #include "drive.h"
 
@@ -54,23 +57,18 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/drive.c,v 1.3 2001/08/11 2
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static void                    PPDrive(struct partialMatch *,struct partialMatch *,struct joinNode *);
-   static void                    PNRDrive(struct joinNode *,struct partialMatch *,
+   static void                    PPDrive(void *,struct partialMatch *,struct partialMatch *,struct joinNode *);
+   static void                    PNRDrive(void *,struct joinNode *,struct partialMatch *,
                                            struct partialMatch *);
-   static void                    EmptyDrive(struct joinNode *,struct partialMatch *);
-   static void                    JoinNetErrorMessage(struct joinNode *);
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle BOOLEAN              JoinOperationInProgress = FALSE;
+   static void                    EmptyDrive(void *,struct joinNode *,struct partialMatch *);
+   static void                    JoinNetErrorMessage(void *,struct joinNode *);
 
 /************************************************/
 /* NetworkAssert: Primary routine for filtering */
 /*   a partial match through the join network.  */
 /************************************************/
 globle void NetworkAssert(
+  void *theEnv,
   struct partialMatch *binds,
   struct joinNode *join,
   int enterDirection)
@@ -84,8 +82,8 @@ globle void NetworkAssert(
    /* is not part of the network to be reset, then return.    */
    /*=========================================================*/
 
-#if INCREMENTAL_RESET && (! BLOAD_ONLY) && (! RUN_TIME)
-   if (IncrementalResetInProgress && (join->initialize == FALSE)) return;
+#if (! BLOAD_ONLY) && (! RUN_TIME)
+   if (EngineData(theEnv)->IncrementalResetInProgress && (join->initialize == FALSE)) return;
 #endif
 
    /*=========================================================*/
@@ -102,7 +100,7 @@ globle void NetworkAssert(
    if ((enterDirection == LHS) &&
        ((join->patternIsNegated) || (join->joinFromTheRight)))
      {
-      newBinds = AddSingleMatch(binds,NULL,
+      newBinds = AddSingleMatch(theEnv,binds,NULL,
                                 (join->ruleToActivate == NULL) ? 0 : 1,
                                 (int) join->logicalJoin);
       newBinds->notOriginf = TRUE;
@@ -118,7 +116,7 @@ globle void NetworkAssert(
 
    if (join->firstJoin)
      {
-      EmptyDrive(join,binds);
+      EmptyDrive(theEnv,join,binds);
       return;
      }
 
@@ -145,8 +143,8 @@ globle void NetworkAssert(
      }
    else
      {
-      SystemError("DRIVE",1);
-      ExitRouter(EXIT_FAILURE);
+      SystemError(theEnv,"DRIVE",1);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
    /*===================================================*/
@@ -256,11 +254,11 @@ globle void NetworkAssert(
 
       else
         {
-         exprResult = EvaluateJoinExpression(join->networkTest,lhsBinds,rhsBinds,join);
-         if (EvaluationError)
+         exprResult = EvaluateJoinExpression(theEnv,join->networkTest,lhsBinds,rhsBinds,join);
+         if (EvaluationData(theEnv)->EvaluationError)
            {
             if (join->patternIsNegated) exprResult = TRUE;
-            SetEvaluationError(FALSE);
+            SetEvaluationError(theEnv,FALSE);
            }
         }
 
@@ -281,7 +279,7 @@ globle void NetworkAssert(
 
          if ((join->patternIsNegated == FALSE) &&
              (join->joinFromTheRight == FALSE))
-           { PPDrive(lhsBinds,rhsBinds,join); }
+           { PPDrive(theEnv,lhsBinds,rhsBinds,join); }
 
          /*=====================================================*/
          /* Use the PNRDrive routine when the new partial match */
@@ -291,7 +289,7 @@ globle void NetworkAssert(
          /*=====================================================*/
 
          else if (enterDirection == RHS)
-           { PNRDrive(join,comparePMs,rhsBinds); }
+           { PNRDrive(theEnv,join,comparePMs,rhsBinds); }
 
          /*===========================================================*/
          /* If the new partial match entered from the LHS of the join */
@@ -333,7 +331,7 @@ globle void NetworkAssert(
    if ((join->patternIsNegated || join->joinFromTheRight) &&
        (enterDirection == LHS) &&
        (binds->binds[binds->bcount - 1].gm.theValue == NULL))
-     { PNLDrive(join,binds); }
+     { PNLDrive(theEnv,join,binds); }
 
    return;
   }
@@ -343,7 +341,8 @@ globle void NetworkAssert(
 /*   Performs a faster evaluation for join expressions */
 /*   than if EvaluateExpression was used directly.     */
 /*******************************************************/
-globle BOOLEAN EvaluateJoinExpression(
+globle intBool EvaluateJoinExpression(
+  void *theEnv,
   struct expr *joinExpr,
   struct partialMatch *lbinds,
   struct partialMatch *rbinds,
@@ -366,12 +365,12 @@ globle BOOLEAN EvaluateJoinExpression(
    /* used when evaluating expressions.       */
    /*=========================================*/
 
-   oldLHSBinds = GlobalLHSBinds;
-   oldRHSBinds = GlobalRHSBinds;
-   oldJoin = GlobalJoin;
-   GlobalLHSBinds = lbinds;
-   GlobalRHSBinds = rbinds;
-   GlobalJoin = joinPtr;
+   oldLHSBinds = EngineData(theEnv)->GlobalLHSBinds;
+   oldRHSBinds = EngineData(theEnv)->GlobalRHSBinds;
+   oldJoin = EngineData(theEnv)->GlobalJoin;
+   EngineData(theEnv)->GlobalLHSBinds = lbinds;
+   EngineData(theEnv)->GlobalRHSBinds = rbinds;
+   EngineData(theEnv)->GlobalJoin = joinPtr;
 
    /*=====================================================*/
    /* Partial matches stored in joins that are associated */
@@ -393,12 +392,12 @@ globle BOOLEAN EvaluateJoinExpression(
    /* speeds up evaluation.                              */
    /*====================================================*/
 
-   if (joinExpr->value == PTR_AND)
+   if (joinExpr->value == ExpressionData(theEnv)->PTR_AND)
      {
       andLogic = TRUE;
       joinExpr = joinExpr->argList;
      }
-   else if (joinExpr->value == PTR_OR)
+   else if (joinExpr->value == ExpressionData(theEnv)->PTR_OR)
      {
       andLogic = FALSE;
       joinExpr = joinExpr->argList;
@@ -417,43 +416,43 @@ globle BOOLEAN EvaluateJoinExpression(
       /* Evaluate a primitive function. */
       /*================================*/
 
-      if ((PrimitivesArray[joinExpr->type] == NULL) ?
+      if ((EvaluationData(theEnv)->PrimitivesArray[joinExpr->type] == NULL) ?
           FALSE :
-          PrimitivesArray[joinExpr->type]->evaluateFunction != NULL)
+          EvaluationData(theEnv)->PrimitivesArray[joinExpr->type]->evaluateFunction != NULL)
         {
          struct expr *oldArgument;
 
-         oldArgument = CurrentExpression;
-         CurrentExpression = joinExpr;
-         result = (*PrimitivesArray[joinExpr->type]->evaluateFunction)(joinExpr->value,&theResult);
-         CurrentExpression = oldArgument;
+         oldArgument = EvaluationData(theEnv)->CurrentExpression;
+         EvaluationData(theEnv)->CurrentExpression = joinExpr;
+         result = (*EvaluationData(theEnv)->PrimitivesArray[joinExpr->type]->evaluateFunction)(theEnv,joinExpr->value,&theResult);
+         EvaluationData(theEnv)->CurrentExpression = oldArgument;
         }
 
       /*=============================*/
       /* Evaluate the "or" function. */
       /*=============================*/
 
-      else if (joinExpr->value == PTR_OR)
+      else if (joinExpr->value == ExpressionData(theEnv)->PTR_OR)
         {
          result = FALSE;
-         if (EvaluateJoinExpression(joinExpr,lbinds,rbinds,joinPtr) == TRUE)
+         if (EvaluateJoinExpression(theEnv,joinExpr,lbinds,rbinds,joinPtr) == TRUE)
            {
-            if (EvaluationError)
+            if (EvaluationData(theEnv)->EvaluationError)
               {
                if (joinPtr->patternIsNegated) lbinds->bcount++;
-               GlobalLHSBinds = oldLHSBinds;
-               GlobalRHSBinds = oldRHSBinds;
-               GlobalJoin = oldJoin;
+               EngineData(theEnv)->GlobalLHSBinds = oldLHSBinds;
+               EngineData(theEnv)->GlobalRHSBinds = oldRHSBinds;
+               EngineData(theEnv)->GlobalJoin = oldJoin;
                return(FALSE);
               }
             result = TRUE;
            }
-         else if (EvaluationError)
+         else if (EvaluationData(theEnv)->EvaluationError)
            {
             if (joinPtr->patternIsNegated) lbinds->bcount++;
-            GlobalLHSBinds = oldLHSBinds;
-            GlobalRHSBinds = oldRHSBinds;
-            GlobalJoin = oldJoin;
+            EngineData(theEnv)->GlobalLHSBinds = oldLHSBinds;
+            EngineData(theEnv)->GlobalRHSBinds = oldRHSBinds;
+            EngineData(theEnv)->GlobalJoin = oldJoin;
             return(FALSE);
            }
         }
@@ -462,27 +461,27 @@ globle BOOLEAN EvaluateJoinExpression(
       /* Evaluate the "and" function. */
       /*==============================*/
 
-      else if (joinExpr->value == PTR_AND)
+      else if (joinExpr->value == ExpressionData(theEnv)->PTR_AND)
         {
          result = TRUE;
-         if (EvaluateJoinExpression(joinExpr,lbinds,rbinds,joinPtr) == FALSE)
+         if (EvaluateJoinExpression(theEnv,joinExpr,lbinds,rbinds,joinPtr) == FALSE)
            {
-            if (EvaluationError)
+            if (EvaluationData(theEnv)->EvaluationError)
               {
                if (joinPtr->patternIsNegated) lbinds->bcount++;
-               GlobalLHSBinds = oldLHSBinds;
-               GlobalRHSBinds = oldRHSBinds;
-               GlobalJoin = oldJoin;
+               EngineData(theEnv)->GlobalLHSBinds = oldLHSBinds;
+               EngineData(theEnv)->GlobalRHSBinds = oldRHSBinds;
+               EngineData(theEnv)->GlobalJoin = oldJoin;
                return(FALSE);
               }
             result = FALSE;
            }
-         else if (EvaluationError)
+         else if (EvaluationData(theEnv)->EvaluationError)
            {
             if (joinPtr->patternIsNegated) lbinds->bcount++;
-            GlobalLHSBinds = oldLHSBinds;
-            GlobalRHSBinds = oldRHSBinds;
-            GlobalJoin = oldJoin;
+            EngineData(theEnv)->GlobalLHSBinds = oldLHSBinds;
+            EngineData(theEnv)->GlobalRHSBinds = oldRHSBinds;
+            EngineData(theEnv)->GlobalJoin = oldJoin;
             return(FALSE);
            }
         }
@@ -493,19 +492,19 @@ globle BOOLEAN EvaluateJoinExpression(
 
       else
         {
-         EvaluateExpression(joinExpr,&theResult);
+         EvaluateExpression(theEnv,joinExpr,&theResult);
 
-         if (EvaluationError)
+         if (EvaluationData(theEnv)->EvaluationError)
            {
-            JoinNetErrorMessage(joinPtr);
+            JoinNetErrorMessage(theEnv,joinPtr);
             if (joinPtr->patternIsNegated) lbinds->bcount++;
-            GlobalLHSBinds = oldLHSBinds;
-            GlobalRHSBinds = oldRHSBinds;
-            GlobalJoin = oldJoin;
+            EngineData(theEnv)->GlobalLHSBinds = oldLHSBinds;
+            EngineData(theEnv)->GlobalRHSBinds = oldRHSBinds;
+            EngineData(theEnv)->GlobalJoin = oldJoin;
             return(FALSE);
            }
 
-         if ((theResult.value == FalseSymbol) && (theResult.type == SYMBOL))
+         if ((theResult.value == EnvFalseSymbol(theEnv)) && (theResult.type == SYMBOL))
            { result = FALSE; }
          else
            { result = TRUE; }
@@ -519,17 +518,17 @@ globle BOOLEAN EvaluateJoinExpression(
       if ((andLogic == TRUE) && (result == FALSE))
         {
          if (joinPtr->patternIsNegated) lbinds->bcount++;
-         GlobalLHSBinds = oldLHSBinds;
-         GlobalRHSBinds = oldRHSBinds;
-         GlobalJoin = oldJoin;
+         EngineData(theEnv)->GlobalLHSBinds = oldLHSBinds;
+         EngineData(theEnv)->GlobalRHSBinds = oldRHSBinds;
+         EngineData(theEnv)->GlobalJoin = oldJoin;
          return(FALSE);
         }
       else if ((andLogic == FALSE) && (result == TRUE))
         {
          if (joinPtr->patternIsNegated) lbinds->bcount++;
-         GlobalLHSBinds = oldLHSBinds;
-         GlobalRHSBinds = oldRHSBinds;
-         GlobalJoin = oldJoin;
+         EngineData(theEnv)->GlobalLHSBinds = oldLHSBinds;
+         EngineData(theEnv)->GlobalRHSBinds = oldRHSBinds;
+         EngineData(theEnv)->GlobalJoin = oldJoin;
          return(TRUE);
         }
 
@@ -544,9 +543,9 @@ globle BOOLEAN EvaluateJoinExpression(
    /* Restore some of the global variables. */
    /*=======================================*/
 
-   GlobalLHSBinds = oldLHSBinds;
-   GlobalRHSBinds = oldRHSBinds;
-   GlobalJoin = oldJoin;
+   EngineData(theEnv)->GlobalLHSBinds = oldLHSBinds;
+   EngineData(theEnv)->GlobalRHSBinds = oldRHSBinds;
+   EngineData(theEnv)->GlobalJoin = oldJoin;
 
    /*=====================================*/
    /* Restore the count value for the LHS */
@@ -572,18 +571,19 @@ globle BOOLEAN EvaluateJoinExpression(
 /*   which the merge took place.                                   */
 /*******************************************************************/
 static void PPDrive(
+  void *theEnv,
   struct partialMatch *lhsBinds,
   struct partialMatch *rhsBinds,
   struct joinNode *join)
   {
    struct partialMatch *linker;
    struct joinNode *listOfJoins;
-
+   
    /*==================================================*/
    /* Merge the alpha and beta memory partial matches. */
    /*==================================================*/
 
-   linker = MergePartialMatches(lhsBinds,rhsBinds,
+   linker = MergePartialMatches(theEnv,lhsBinds,rhsBinds,
                                 (join->ruleToActivate == NULL) ? 0 : 1,
                                 (int) join->logicalJoin);
 
@@ -598,7 +598,7 @@ static void PPDrive(
    /* Activate the rule satisfied by this partial match. */
    /*====================================================*/
 
-   if (join->ruleToActivate != NULL) AddActivation(join->ruleToActivate,linker);
+   if (join->ruleToActivate != NULL) AddActivation(theEnv,join->ruleToActivate,linker);
 
    /*================================================*/
    /* Send the new partial match to all child joins. */
@@ -608,10 +608,10 @@ static void PPDrive(
    if (listOfJoins != NULL)
      {
       if (((struct joinNode *) (listOfJoins->rightSideEntryStructure)) == join)
-        { NetworkAssert(linker,listOfJoins,RHS); }
+        { NetworkAssert(theEnv,linker,listOfJoins,RHS); }
       else while (listOfJoins != NULL)
         {
-         NetworkAssert(linker,listOfJoins,LHS);
+         NetworkAssert(theEnv,linker,listOfJoins,LHS);
          listOfJoins = listOfJoins->rightDriveNode;
         }
      }
@@ -630,6 +630,7 @@ static void PPDrive(
 /*   the network.                                                     */
 /**********************************************************************/
 static void PNRDrive(
+  void *theEnv,
   struct joinNode *join,
   struct partialMatch *lhsBinds,
   struct partialMatch *rhsBinds)
@@ -658,7 +659,7 @@ static void PNRDrive(
 
    if ((lhsBinds->activationf) ?
        (lhsBinds->binds[lhsBinds->bcount].gm.theValue != NULL) : FALSE)
-     { RemoveActivation((struct activation *) lhsBinds->binds[lhsBinds->bcount].gm.theValue,TRUE,TRUE); }
+     { RemoveActivation(theEnv,(struct activation *) lhsBinds->binds[lhsBinds->bcount].gm.theValue,TRUE,TRUE); }
 
    /*===========================================================*/
    /* The counterf flag was FALSE. This means that a pointer to */
@@ -668,23 +669,23 @@ static void PNRDrive(
    /* contain the ID.                                           */
    /*===========================================================*/
 
-   if (join->joinFromTheRight) /* DR0834 */
+   if (join->joinFromTheRight) /* GDR 111599 #834 Begin */
      {
-      RetractCheckDriveRetractions(lhsBinds->binds[lhsBinds->bcount - 1].gm.theMatch,
+      RetractCheckDriveRetractions(theEnv,lhsBinds->binds[lhsBinds->bcount - 1].gm.theMatch,
                                    (int) join->depth-1);
-     }
-
+     }                         /* GDR 111599 #834 End */
+     
    listOfJoins = join->nextLevel;
    if (listOfJoins != NULL)
      {
       if (((struct joinNode *) (listOfJoins->rightSideEntryStructure)) == join)
-        { NegEntryRetract(listOfJoins,lhsBinds,FALSE); }
+        { NegEntryRetract(theEnv,listOfJoins,lhsBinds,NULL); }
       else while (listOfJoins != NULL)
         {
 
-         PosEntryRetract(listOfJoins,
+         PosEntryRetract(theEnv,listOfJoins,
                          lhsBinds->binds[lhsBinds->bcount - 1].gm.theMatch,
-                         lhsBinds,(int) join->depth-1,FALSE);
+                         lhsBinds,(int) join->depth-1,NULL);
          listOfJoins = listOfJoins->rightDriveNode;
         }
      }
@@ -693,16 +694,14 @@ static void PNRDrive(
    /* Remove any logical dependency links associated with this partial match. */
    /*=========================================================================*/
 
-#if LOGICAL_DEPENDENCIES
-   if (lhsBinds->dependentsf) RemoveLogicalSupport(lhsBinds);
-#endif
+   if (lhsBinds->dependentsf) RemoveLogicalSupport(theEnv,lhsBinds);
 
    /*========================================*/
    /* Put the pseudo-fact on a garbage list. */
    /*========================================*/
 
-   lhsBinds->binds[lhsBinds->bcount - 1].gm.theMatch->next = GarbageAlphaMatches;
-   GarbageAlphaMatches = lhsBinds->binds[lhsBinds->bcount - 1].gm.theMatch;
+   lhsBinds->binds[lhsBinds->bcount - 1].gm.theMatch->next = EngineData(theEnv)->GarbageAlphaMatches;
+   EngineData(theEnv)->GarbageAlphaMatches = lhsBinds->binds[lhsBinds->bcount - 1].gm.theMatch;
 
    /*========================================================*/
    /* Store the partial match from the alpha memory that is  */
@@ -723,6 +722,7 @@ static void PNRDrive(
 /*   child join of the join from which the merge took place.        */
 /********************************************************************/
 globle void PNLDrive(
+  void *theEnv,
   struct joinNode *join,
   struct partialMatch *binds)
   {
@@ -734,7 +734,7 @@ globle void PNLDrive(
     /* not match the not CE associated with this join.       */
     /*=======================================================*/
 
-    tempAlpha = get_struct(alphaMatch);
+    tempAlpha = get_struct(theEnv,alphaMatch);
     tempAlpha->next = NULL;
     tempAlpha->matchingItem = NULL;
     tempAlpha->markers = NULL;
@@ -751,7 +751,7 @@ globle void PNLDrive(
    /* Activate the rule satisfied by this partial match. */
    /*====================================================*/
 
-   if (join->ruleToActivate != NULL) AddActivation(join->ruleToActivate,binds);
+   if (join->ruleToActivate != NULL) AddActivation(theEnv,join->ruleToActivate,binds);
 
     /*========================================================*/
     /* Send the merged partial match to all descendent joins. */
@@ -761,10 +761,10 @@ globle void PNLDrive(
     if (listOfJoins != NULL)
       {
        if (((struct joinNode *) (listOfJoins->rightSideEntryStructure)) == join)
-         { NetworkAssert(binds,listOfJoins,RHS); }
+         { NetworkAssert(theEnv,binds,listOfJoins,RHS); }
        else while (listOfJoins != NULL)
          {
-          NetworkAssert(binds,listOfJoins,LHS);
+          NetworkAssert(theEnv,binds,listOfJoins,LHS);
           listOfJoins = listOfJoins->rightDriveNode;
          }
       }
@@ -776,6 +776,7 @@ globle void PNLDrive(
 /*   a rule (i.e. a join that cannot be entered from the LHS). */
 /***************************************************************/
 static void EmptyDrive(
+  void *theEnv,
   struct joinNode *join,
   struct partialMatch *rhsBinds)
   {
@@ -791,8 +792,8 @@ static void EmptyDrive(
 
    if (join->networkTest != NULL)
      {
-      joinExpr = EvaluateJoinExpression(join->networkTest,NULL,rhsBinds,join);
-      EvaluationError = FALSE;
+      joinExpr = EvaluateJoinExpression(theEnv,join->networkTest,NULL,rhsBinds,join);
+      EvaluationData(theEnv)->EvaluationError = FALSE;
       if (joinExpr == FALSE) return;
      }
 
@@ -802,8 +803,8 @@ static void EmptyDrive(
 
    if (join->patternIsNegated == TRUE)
      {
-      SystemError("DRIVE",2);
-      ExitRouter(EXIT_FAILURE);
+      SystemError(theEnv,"DRIVE",2);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
    /*=========================================================*/
@@ -812,7 +813,7 @@ static void EmptyDrive(
    /* match and send it to all child joins.                   */
    /*=========================================================*/
 
-   linker = CopyPartialMatch(rhsBinds,
+   linker = CopyPartialMatch(theEnv,rhsBinds,
                              (join->ruleToActivate == NULL) ? 0 : 1,
                              (int) join->logicalJoin);
 
@@ -827,7 +828,7 @@ static void EmptyDrive(
    /* Activate the rule satisfied by this partial match. */
    /*====================================================*/
 
-   if (join->ruleToActivate != NULL) AddActivation(join->ruleToActivate,linker);
+   if (join->ruleToActivate != NULL) AddActivation(theEnv,join->ruleToActivate,linker);
 
    /*============================================*/
    /* Send the partial match to all child joins. */
@@ -836,7 +837,7 @@ static void EmptyDrive(
    listOfJoins = join->nextLevel;
    while (listOfJoins != NULL)
      {
-      NetworkAssert(linker,listOfJoins,LHS);
+      NetworkAssert(theEnv,linker,listOfJoins,LHS);
       listOfJoins = listOfJoins->rightDriveNode;
      }
   }
@@ -847,18 +848,19 @@ static void EmptyDrive(
 /*   was being evaluated.                                           */
 /********************************************************************/
 static void JoinNetErrorMessage(
+  void *theEnv,
   struct joinNode *joinPtr)
   {
    char buffer[60];
 
-   PrintErrorID("DRIVE",1,TRUE);
-   PrintRouter(WERROR,"This error occurred in the join network\n");
+   PrintErrorID(theEnv,"DRIVE",1,TRUE);
+   EnvPrintRouter(theEnv,WERROR,"This error occurred in the join network\n");
 
    sprintf(buffer,"   Problem resides in join #%d in rule(s):\n",joinPtr->depth);
-   PrintRouter(WERROR,buffer);
+   EnvPrintRouter(theEnv,WERROR,buffer);
 
-   TraceErrorToRule(joinPtr,"      ");
-   PrintRouter(WERROR,"\n");
+   TraceErrorToRule(theEnv,joinPtr,"      ");
+   EnvPrintRouter(theEnv,WERROR,"\n");
   }
 
 #endif /* DEFRULE_CONSTRUCT */

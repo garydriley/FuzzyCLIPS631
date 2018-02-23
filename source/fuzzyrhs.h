@@ -1,5 +1,3 @@
-/*  $Header: /dist/CVS/fzclips/src/fuzzyrhs.h,v 1.3 2001/08/11 21:05:59 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
@@ -43,6 +41,10 @@
 #include "fuzzymod.h"
 #endif
 
+#ifndef _H_fuzzylv
+#include "fuzzylv.h"
+#endif
+
 
 #ifdef LOCALE
 #undef LOCALE
@@ -55,24 +57,24 @@
 #endif
 
 
-   LOCALE struct expr        *ParseAssertFuzzyFact(char *readSource, struct token *tempToken,
+   LOCALE struct expr        *ParseAssertFuzzyFact(void *theEnv,char *readSource, struct token *tempToken,
                                               int *error, int endType, int constantsOnly,
                                               struct deftemplate *theDeftemplate,
                                               int variablesAllowed);
-   LOCALE struct fuzzy_value *ParseLinguisticExpr(char *readSource,
+   LOCALE struct fuzzy_value *ParseLinguisticExpr(void *theEnv,char *readSource,
                                               struct token *tempToken,
                                               struct fuzzyLv *lvp,
                                               int *error);
-   LOCALE struct fuzzy_value *CopyFuzzyValue(struct fuzzy_value *fv);
-   LOCALE void                CompactFuzzyValue(struct fuzzy_value *fv);
-   LOCALE struct fuzzy_value *getConstantFuzzyValue(struct expr *top, int *error);
-   LOCALE void                ModifyFuzzyValue(struct modifierListItem *mptr,
+   LOCALE struct fuzzy_value *CopyFuzzyValue(void *theEnv,struct fuzzy_value *fv);
+   LOCALE void                CompactFuzzyValue(void *theEnv,struct fuzzy_value *fv);
+   LOCALE struct fuzzy_value *getConstantFuzzyValue(void *theEnv,struct expr *top, int *error);
+   LOCALE void                ModifyFuzzyValue(void *theEnv,struct modifierListItem *mptr,
                                                struct fuzzy_value *elem);
-   LOCALE double             *FgetArray ( int length );
-   LOCALE void                FrtnArray ( double *p, int length );
-   LOCALE int                *IgetArray ( int length );
-   LOCALE void                IrtnArray ( int *p, int length );
-   LOCALE struct expr        *tokenToFloatExpression(char *readSource,
+   LOCALE double             *FgetArray ( void *theEnv, int length );
+   LOCALE void                FrtnArray ( void *theEnv, double *p, int length );
+   LOCALE int                *IgetArray ( void *theEnv, int length );
+   LOCALE void                IrtnArray ( void *theEnv, int *p, int length );
+   LOCALE struct expr        *tokenToFloatExpression(void *theEnv,char *readSource,
                                                 struct token *tempToken,
                                                 int  *error,
                                                 int constantsOnly);

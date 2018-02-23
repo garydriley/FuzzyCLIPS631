@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/object.h,v 1.3 2001/08/11 21:07:09 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                OBJECT SYSTEM DEFINITIONS            */
    /*******************************************************/
@@ -37,8 +35,8 @@ typedef struct instanceSlot INSTANCE_SLOT;
 /* Maximum # of simultaneous class hierarchy traversals
    should be a multiple of BITS_PER_BYTE and less than MAX_INT      */
 
-#define MAX_TRAVERSALS  128
-#define TRAVERSAL_BYTES 16       /* (MAX_TRAVERSALS / BITS_PER_BYTE) */
+#define MAX_TRAVERSALS  256
+#define TRAVERSAL_BYTES 32       /* (MAX_TRAVERSALS / BITS_PER_BYTE) */
 
 #define VALUE_REQUIRED     0
 #define VALUE_PROHIBITED   1
@@ -210,7 +208,6 @@ struct messageHandler
   };
 
 #endif
-
 
 
 

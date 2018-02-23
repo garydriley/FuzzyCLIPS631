@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/ruledlt.c,v 1.3 2001/08/11 21:07:47 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*                 RULE DELETION MODULE                */
    /*******************************************************/
@@ -24,6 +22,10 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/ruledlt.c,v 1.3 2001/08/11
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Removed DYNAMIC_SALIENCE compilation flag.     */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
 /*************************************************************/
 
 #define _RULEDLT_SOURCE_
@@ -38,6 +40,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/ruledlt.c,v 1.3 2001/08/11
 
 #include "memalloc.h"
 #include "engine.h"
+#include "envrnmnt.h"
 #include "reteutil.h"
 #include "pattern.h"
 #include "agenda.h"
@@ -51,28 +54,14 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/ruledlt.c,v 1.3 2001/08/11
 
 #include "ruledlt.h"
 
-#if FUZZY_DEFTEMPLATES 
-#include "symbol.h"
-#endif
-
-
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   static void                    RemoveIntranetworkLink(struct joinNode *);
-   static void                    DetachJoins(struct defrule *);
+   static void                    RemoveIntranetworkLink(void *,struct joinNode *);
 #endif
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-#if DEBUGGING_FUNCTIONS
-   globle int                     DeletedRuleDebugFlags = FALSE;
-#endif
-
+   static void                    DetachJoins(void *,struct defrule *,intBool);
 
 /**********************************************************************/
 /* ReturnDefrule: Returns a defrule data structure and its associated */
@@ -82,10 +71,11 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/ruledlt.c,v 1.3 2001/08/11
 /*   are only deallocated for the first disjunct).                    */
 /**********************************************************************/
 globle void ReturnDefrule(
+  void *theEnv,
   void *vWaste)
   {
-#if (MAC_MPW || MAC_MCW) && (RUN_TIME || BLOAD_ONLY)
-#pragma unused(vWaste)
+#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
+#pragma unused(theEnv,vWaste)
 #endif
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
@@ -101,10 +91,10 @@ globle void ReturnDefrule(
    /*======================================*/
 
 #if DEBUGGING_FUNCTIONS
-   DeletedRuleDebugFlags = 0;
-   if (waste->afterBreakpoint) BitwiseSet(DeletedRuleDebugFlags,0);
-   if (waste->watchActivation) BitwiseSet(DeletedRuleDebugFlags,1);
-   if (waste->watchFiring) BitwiseSet(DeletedRuleDebugFlags,2);
+   DefruleData(theEnv)->DeletedRuleDebugFlags = 0;
+   if (waste->afterBreakpoint) BitwiseSet(DefruleData(theEnv)->DeletedRuleDebugFlags,0);
+   if (waste->watchActivation) BitwiseSet(DefruleData(theEnv)->DeletedRuleDebugFlags,1);
+   if (waste->watchFiring) BitwiseSet(DefruleData(theEnv)->DeletedRuleDebugFlags,2);
 #endif
 
    /*================================*/
@@ -112,7 +102,7 @@ globle void ReturnDefrule(
    /* activations added by the rule. */
    /*================================*/
 
-   ClearRuleFromAgenda(waste);
+   ClearRuleFromAgenda(theEnv,waste);
 
    /*======================*/
    /* Get rid of the rule. */
@@ -124,7 +114,7 @@ globle void ReturnDefrule(
       /* Remove the rule's joins from the join network. */
       /*================================================*/
 
-      DetachJoins(waste);
+      DetachJoins(theEnv,waste,FALSE);
 
       /*=============================================*/
       /* If this is the first disjunct, get rid of   */
@@ -133,25 +123,23 @@ globle void ReturnDefrule(
 
       if (first)
         {
-#if DYNAMIC_SALIENCE
          if (waste->dynamicSalience != NULL)
           {
-           ExpressionDeinstall(waste->dynamicSalience);
-           ReturnPackedExpression(waste->dynamicSalience);
+           ExpressionDeinstall(theEnv,waste->dynamicSalience);
+           ReturnPackedExpression(theEnv,waste->dynamicSalience);
            waste->dynamicSalience = NULL;
           }
-#endif
 #if CERTAINTY_FACTORS     /* changed 03-12-96 */
          if (waste->dynamicCF != NULL)
           {
-           ExpressionDeinstall(waste->dynamicCF);
-           ReturnPackedExpression(waste->dynamicCF);
+           ExpressionDeinstall(theEnv,waste->dynamicCF);
+           ReturnPackedExpression(theEnv,waste->dynamicCF);
            waste->dynamicCF = NULL;
           }
 #endif
          if (waste->header.ppForm != NULL)
            {
-            rm(waste->header.ppForm,(int) strlen(waste->header.ppForm) + 1);
+            rm(theEnv,waste->header.ppForm,strlen(waste->header.ppForm) + 1);
             waste->header.ppForm = NULL;
            }
 
@@ -163,13 +151,13 @@ globle void ReturnDefrule(
       /*===========================*/
       
       if (waste->header.usrData != NULL)
-        { ClearUserDataList(waste->header.usrData); }
+        { ClearUserDataList(theEnv,waste->header.usrData); }
         
       /*===========================================*/
       /* Decrement the count for the defrule name. */
       /*===========================================*/
 
-      DecrementSymbolCount(waste->header.name);
+      DecrementSymbolCount(theEnv,waste->header.name);
 
       /*========================================*/
       /* Get rid of the the rule's RHS actions. */
@@ -177,8 +165,8 @@ globle void ReturnDefrule(
 
       if (waste->actions != NULL)
         {
-         ExpressionDeinstall(waste->actions);
-         ReturnPackedExpression(waste->actions);
+         ExpressionDeinstall(theEnv,waste->actions);
+         ReturnPackedExpression(theEnv,waste->actions);
         }
 
       /*===============================*/
@@ -187,13 +175,13 @@ globle void ReturnDefrule(
 
       nextPtr = waste->disjunct;
 #if FUZZY_DEFTEMPLATES 
-      if (waste != ExecutingRule)
+      if (waste != EngineData(theEnv)->ExecutingRule)
         {
          if (waste->numberOfFuzzySlots > 0)
-         rm(waste->pattern_fv_arrayPtr, sizeof(struct fzSlotLocator) * waste->numberOfFuzzySlots);
+         rm(theEnv,waste->pattern_fv_arrayPtr, sizeof(struct fzSlotLocator) * waste->numberOfFuzzySlots);
         }
 #endif
-      rtn_struct(defrule,waste);
+      rtn_struct(theEnv,defrule,waste);
       waste = nextPtr;
      }
 
@@ -201,11 +189,67 @@ globle void ReturnDefrule(
    /* Free up partial matches. */
    /*==========================*/
 
-   if (ExecutingRule == NULL) FlushGarbagePartialMatches();
+   if (EngineData(theEnv)->ExecutingRule == NULL) FlushGarbagePartialMatches(theEnv);
 #endif
   }
 
-#if (! RUN_TIME) && (! BLOAD_ONLY)
+/********************************************************/
+/* DestroyDefrule: Action used to remove defrules       */
+/*   as a result of DestroyEnvironment.                 */
+/********************************************************/
+globle void DestroyDefrule(
+  void *theEnv,
+  void *vTheDefrule)
+  {
+   struct defrule *theDefrule = (struct defrule *) vTheDefrule;
+   struct defrule *nextDisjunct;
+   int first = TRUE;
+   
+   if (theDefrule == NULL) return;
+   
+   while (theDefrule != NULL)
+     {
+      DetachJoins(theEnv,theDefrule,TRUE);
+
+      if (first)
+        {
+#if (! BLOAD_ONLY) && (! RUN_TIME)
+         if (theDefrule->dynamicSalience != NULL)
+           { ReturnPackedExpression(theEnv,theDefrule->dynamicSalience); }
+
+         if (theDefrule->header.ppForm != NULL)
+           { rm(theEnv,theDefrule->header.ppForm,strlen(theDefrule->header.ppForm) + 1); }
+           
+#if CERTAINTY_FACTORS
+         if (theDefrule->dynamicCF != NULL)
+           { ReturnPackedExpression(theEnv,theDefrule->dynamicCF); }
+#endif
+
+#endif
+         first = FALSE;
+        }
+     
+      if (theDefrule->header.usrData != NULL)
+        { ClearUserDataList(theEnv,theDefrule->header.usrData); }
+        
+#if (! BLOAD_ONLY) && (! RUN_TIME)
+      if (theDefrule->actions != NULL)
+        { ReturnPackedExpression(theEnv,theDefrule->actions); }
+#if FUZZY_DEFTEMPLATES
+      if (theDefrule->numberOfFuzzySlots > 0)
+        { rm(theEnv,theDefrule->pattern_fv_arrayPtr, sizeof(struct fzSlotLocator) * theDefrule->numberOfFuzzySlots); }
+#endif
+#endif
+     
+      nextDisjunct = theDefrule->disjunct;
+      
+#if (! BLOAD_ONLY) && (! RUN_TIME)
+      rtn_struct(theEnv,defrule,theDefrule);
+#endif
+
+      theDefrule = nextDisjunct;
+     }
+  }
 
 /**********************************************************************/
 /* DetachJoins: Removes a join node and all of its parent nodes from  */
@@ -217,7 +261,9 @@ globle void ReturnDefrule(
 /*   are not shared by other rules.                                   */
 /**********************************************************************/
 static void DetachJoins(
-  struct defrule *theRule)
+  void *theEnv,
+  struct defrule *theRule,
+  intBool destroy)
   {
    struct joinNode *join;
    struct joinNode *prevJoin;
@@ -264,24 +310,35 @@ static void DetachJoins(
       /* any structures associated with the pattern that */
       /* are no longer needed.                           */
       /*=================================================*/
-
-      if ((join->rightSideEntryStructure != NULL) && (join->joinFromTheRight == FALSE))
-        { RemoveIntranetworkLink(join); }
-
+      
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+      if (! destroy)
+        {
+         if ((join->rightSideEntryStructure != NULL) && (join->joinFromTheRight == FALSE))
+           { RemoveIntranetworkLink(theEnv,join); }
+        }
+#endif
+        
       /*======================================*/
       /* Remove any partial matches contained */
       /* in the beta memory of the join.      */
       /*======================================*/
-
-      FlushAlphaBetaMemory(join->beta);
+      
+      if (destroy)
+        { DestroyAlphaBetaMemory(theEnv,join->beta); }
+      else
+        { FlushAlphaBetaMemory(theEnv,join->beta); }
       join->beta = NULL;
 
       /*===================================*/
       /* Remove the expressions associated */
       /* with the join.                    */
       /*===================================*/
-
-      RemoveHashedExpression(join->networkTest);
+      
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+      if (! destroy)
+        { RemoveHashedExpression(theEnv,join->networkTest); }
+#endif
 
       /*==================================================*/
       /* Remove the link to the join from the join above. */
@@ -289,7 +346,9 @@ static void DetachJoins(
 
       if (prevJoin == NULL)
         {
-         rtn_struct(joinNode,join);
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+         rtn_struct(theEnv,joinNode,join);
+#endif
          return;
         }
 
@@ -317,7 +376,9 @@ static void DetachJoins(
       /* Delete the join. */
       /*==================*/
 
-      rtn_struct(joinNode,join);
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+      rtn_struct(theEnv,joinNode,join);
+#endif
 
       /*==========================================*/
       /* Remove the right join link if it exists. */
@@ -347,6 +408,8 @@ static void DetachJoins(
      }
   }
 
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+
 /***********************************************************************/
 /* RemoveIntranetworkLink: Removes the link between a join node in the */
 /*   join network and its corresponding pattern node in the pattern    */
@@ -354,6 +417,7 @@ static void DetachJoins(
 /*   any other joins, it is removed using the function DetachPattern.  */
 /***********************************************************************/
 static void RemoveIntranetworkLink(
+  void *theEnv,
   struct joinNode *join)
   {
    struct patternNodeHeader *patternPtr;
@@ -399,7 +463,7 @@ static void RemoveIntranetworkLink(
    /*===================================================*/
 
    if (patternPtr->entryJoin == NULL)
-     { DetachPattern((int) join->rhsType,patternPtr); }
+     { DetachPattern(theEnv,(int) join->rhsType,patternPtr); }
   }
 
 #endif /* (! RUN_TIME) && (! BLOAD_ONLY) */

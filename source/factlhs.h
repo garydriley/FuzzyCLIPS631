@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/factlhs.h,v 1.3 2001/08/11 21:05:37 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                FACT BUILD HEADER FILE               */
    /*******************************************************/
@@ -42,8 +40,8 @@
 #endif
 
    LOCALE int                            FactPatternParserFind(SYMBOL_HN *);
-   LOCALE struct lhsParseNode           *FactPatternParse(char *,struct token *);
-   LOCALE struct lhsParseNode           *SequenceRestrictionParse(char *,struct token *);
-   LOCALE struct lhsParseNode           *CreateInitialFactPattern(void);
+   LOCALE struct lhsParseNode           *FactPatternParse(void *,char *,struct token *);
+   LOCALE struct lhsParseNode           *SequenceRestrictionParse(void *,char *,struct token *);
+   LOCALE struct lhsParseNode           *CreateInitialFactPattern(void *);
 
 #endif

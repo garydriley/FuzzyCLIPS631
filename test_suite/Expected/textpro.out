@@ -1,0 +1,87 @@
+TRUE
+FuzzyCLIPS> (batch "textpro.bat")
+TRUE
+FuzzyCLIPS> (fetch "textpro.dat")
+7
+FuzzyCLIPS> (print-region t "textpro.dat" root)
+
+ROOT3 TEXT
+TRUE
+FuzzyCLIPS> (print-region t "textpro.dat" ^ root1 sub)
+
+SUBTOPIC1 TEXT
+TRUE
+FuzzyCLIPS> (print-region t "textpro.dat" sub)
+
+SUBTOPIC4 TEXT
+TRUE
+FuzzyCLIPS> (print-region t "textpro.dat")
+
+ROOT1 TEXT
+TRUE
+FuzzyCLIPS> (print-region t "textpro.dat" subtopic2)
+
+SUBTOPIC2 TEXT
+  1I BEGIN-ENTRY-SUBTOPIC2
+  END-ENTRY
+TRUE
+FuzzyCLIPS> (print-region t "textpro.dat" ^ root2)
+
+ROOT2 TEXT
+TRUE
+FuzzyCLIPS> (print-region t "textpro.dat" ^ r s)
+
+SUBTOPIC3 TEXT
+TRUE
+FuzzyCLIPS> (print-region 1 2 3)
+[ARGACCES5] Function print-region expected argument #1 to be of type symbol
+FuzzyCLIPS> (print-region t 2 3)
+[ARGACCES5] Function print-region expected argument #2 to be of type symbol or string
+FuzzyCLIPS> (defglobal ?*cnt* = 0)
+FuzzyCLIPS> (while (< ?*cnt* 100) do
+  (print-region t "textpro.dat" junk)
+  (bind ?*cnt* (+ ?*cnt* 1)))
+FALSE
+FuzzyCLIPS> (toss "textpro.dat")
+TRUE
+FuzzyCLIPS> (toss "textpro.dat")
+FALSE
+FuzzyCLIPS> (fetch "textpro.doc")
+[TEXTPRO3] No entries found.
+FALSE
+FuzzyCLIPS> (fetch "textpro.dat")
+7
+FuzzyCLIPS> (get-region "textpro.dat" root)
+"ROOT3 TEXT
+"
+FuzzyCLIPS> (get-region "textpro.dat" ^ root1 sub)
+"SUBTOPIC1 TEXT
+"
+FuzzyCLIPS> (get-region "textpro.dat" sub)
+"SUBTOPIC4 TEXT
+"
+FuzzyCLIPS> (get-region "textpro.dat")
+"ROOT1 TEXT
+"
+FuzzyCLIPS> (get-region "textpro.dat" subtopic2)
+"SUBTOPIC2 TEXT
+  1I BEGIN-ENTRY-SUBTOPIC2
+  END-ENTRY
+"
+FuzzyCLIPS> (get-region "textpro.dat" ^ root2)
+"ROOT2 TEXT
+"
+FuzzyCLIPS> (get-region "textpro.dat" ^ r s)
+"SUBTOPIC3 TEXT
+"
+FuzzyCLIPS> (get-region 2 3)
+[ARGACCES5] Function get-region expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (bind ?*cnt* 0)
+0
+FuzzyCLIPS> (while (< ?*cnt* 100) do
+  (get-region "textpro.dat" junk)
+  (bind ?*cnt* (+ ?*cnt* 1)))
+FALSE
+FuzzyCLIPS> (toss "textpro.dat")
+TRUE
+FuzzyCLIPS> (dribble-off)

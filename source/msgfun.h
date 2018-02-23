@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/msgfun.h,v 1.3 2001/08/11 21:06:59 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.24  06/05/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -17,6 +15,8 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -59,46 +59,36 @@ typedef struct handlerSlotReference
 #define LOCALE extern
 #endif
 
-LOCALE void UnboundHandlerErr(void);
-LOCALE void PrintNoHandlerError(char *);
-LOCALE int CheckHandlerArgCount(void);
-LOCALE void SlotAccessViolationError(char *,BOOLEAN,void *);
-LOCALE void SlotVisibilityViolationError(SLOT_DESC *,DEFCLASS *);
+   LOCALE void             UnboundHandlerErr(void *);
+   LOCALE void             PrintNoHandlerError(void *,char *);
+   LOCALE int              CheckHandlerArgCount(void *);
+   LOCALE void             SlotAccessViolationError(void *,char *,intBool,void *);
+   LOCALE void             SlotVisibilityViolationError(void *,SLOT_DESC *,DEFCLASS *);
 
 #if ! RUN_TIME
-LOCALE void NewSystemHandler(char *,char *,char *,int);
-LOCALE HANDLER *InsertHandlerHeader(DEFCLASS *,SYMBOL_HN *,int);
+   LOCALE void             NewSystemHandler(void *,char *,char *,char *,int);
+   LOCALE HANDLER         *InsertHandlerHeader(void *,DEFCLASS *,SYMBOL_HN *,int);
 #endif
 
 #if (! BLOAD_ONLY) && (! RUN_TIME)
-LOCALE HANDLER *NewHandler(void);
-LOCALE int HandlersExecuting(DEFCLASS *);
-LOCALE int DeleteHandler(DEFCLASS *,SYMBOL_HN *,int,int);
-LOCALE void DeallocateMarkedHandlers(DEFCLASS *);
+   LOCALE HANDLER         *NewHandler(void);
+   LOCALE int              HandlersExecuting(DEFCLASS *);
+   LOCALE int              DeleteHandler(void *,DEFCLASS *,SYMBOL_HN *,int,int);
+   LOCALE void             DeallocateMarkedHandlers(void *,DEFCLASS *);
 #endif
-LOCALE int HandlerType(char *,char *);
-LOCALE int CheckCurrentMessage(char *,int);
-LOCALE void PrintHandler(char *,HANDLER *,int);
-LOCALE HANDLER *FindHandlerByAddress(DEFCLASS *,SYMBOL_HN *,unsigned);
-LOCALE int FindHandlerByIndex(DEFCLASS *,SYMBOL_HN *,unsigned);
-LOCALE int FindHandlerNameGroup(DEFCLASS *,SYMBOL_HN *);
-LOCALE void HandlerDeleteError(char *);
+   LOCALE unsigned         HandlerType(void *,char *,char *);
+   LOCALE int              CheckCurrentMessage(void *,char *,int);
+   LOCALE void             PrintHandler(void *,char *,HANDLER *,int);
+   LOCALE HANDLER         *FindHandlerByAddress(DEFCLASS *,SYMBOL_HN *,unsigned);
+   LOCALE int              FindHandlerByIndex(DEFCLASS *,SYMBOL_HN *,unsigned);
+   LOCALE int              FindHandlerNameGroup(DEFCLASS *,SYMBOL_HN *);
+   LOCALE void             HandlerDeleteError(void *,char *);
 
 #if DEBUGGING_FUNCTIONS
-LOCALE void DisplayCore(char *,HANDLER_LINK *,int);
-LOCALE HANDLER_LINK *FindPreviewApplicableHandlers(DEFCLASS *,SYMBOL_HN *);
-LOCALE void WatchMessage(char *,char *);
-LOCALE void WatchHandler(char *,HANDLER_LINK *,char *);
-#endif
-
-
-#ifndef _MSGFUN_SOURCE_
-extern SYMBOL_HN *INIT_SYMBOL,*DELETE_SYMBOL;
-extern char *hndquals[];
-
-#if DEBUGGING_FUNCTIONS
-extern int WatchHandlers,WatchMessages;
-#endif
+   LOCALE void             DisplayCore(void *,char *,HANDLER_LINK *,int);
+   LOCALE HANDLER_LINK    *FindPreviewApplicableHandlers(void *,DEFCLASS *,SYMBOL_HN *);
+   LOCALE void             WatchMessage(void *,char *,char *);
+   LOCALE void             WatchHandler(void *,char *,HANDLER_LINK *,char *);
 #endif
 
 #endif

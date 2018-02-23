@@ -1,0 +1,796 @@
+TRUE
+FuzzyCLIPS> (batch "dfrulcmd.bat")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defrule r1 =>))
+FuzzyCLIPS> (defrule r2 (a) => (assert (b)))
+FuzzyCLIPS> (defrule r3 ?f <- (y) ?g <- (a2) => (retract ?f) (if (> 3 4) then (retract ?g)))
+FuzzyCLIPS> (defrule r4 ?f <- (x) => (retract ?f) (assert (x)))
+FuzzyCLIPS> (defrule r5 (or (x) (y) (and (a) (b))) => (assert (a3)))
+FuzzyCLIPS> (defrule r6 (and (a) (b)) (c) => (assert (a2)))
+FuzzyCLIPS> (defrule * (not (x)) (not (y)) => (assert (x)) (assert (y)))
+FuzzyCLIPS> (list-defrules d6)
+[ARGACCES5] Function list-defrules expected argument #1 to be of type defmodule name
+FuzzyCLIPS> (rules)
+r1
+r2
+r3
+r4
+r5
+r6
+*
+For a total of 7 defrules.
+FuzzyCLIPS> (ppdefrule r1)
+(defrule MAIN::r1
+   =>)
+FuzzyCLIPS> (ppdefrule r2)
+(defrule MAIN::r2
+   (a)
+   =>
+   (assert (b)))
+FuzzyCLIPS> (ppdefrule r3)
+(defrule MAIN::r3
+   ?f <- (y)
+   ?g <- (a2)
+   =>
+   (retract ?f)
+   (if (> 3 4)
+      then
+      (retract ?g)))
+FuzzyCLIPS> (ppdefrule r4)
+(defrule MAIN::r4
+   ?f <- (x)
+   =>
+   (retract ?f)
+   (assert (x)))
+FuzzyCLIPS> (ppdefrule r5)
+(defrule MAIN::r5
+   (or  (x)
+        (y)
+        (and (a)
+             (b)))
+   =>
+   (assert (a3)))
+FuzzyCLIPS> (ppdefrule r6)
+(defrule MAIN::r6
+   (and (a)
+        (b))
+   (c)
+   =>
+   (assert (a2)))
+FuzzyCLIPS> (ppdefrule *)
+(defrule MAIN::*
+   (not (x))
+   (not (y))
+   =>
+   (assert (x))
+   (assert (y)))
+FuzzyCLIPS> (undefrule)
+[ARGACCES4] Function undefrule expected exactly 1 argument(s)
+FuzzyCLIPS> (undefrule 10)
+[ARGACCES5] Function undefrule expected argument #1 to be of type symbol
+FuzzyCLIPS> (undefrule bad-name)
+[PRNTUTIL1] Unable to find defrule bad-name.
+FuzzyCLIPS> (undefrule r6 10)
+[ARGACCES4] Function undefrule expected exactly 1 argument(s)
+FuzzyCLIPS> (list-defrules)
+r1
+r2
+r3
+r4
+r5
+r6
+*
+For a total of 7 defrules.
+FuzzyCLIPS> (undefrule r1)
+FuzzyCLIPS> (undefrule r2)
+FuzzyCLIPS> (undefrule r3)
+FuzzyCLIPS> (list-defrules)
+r4
+r5
+r6
+*
+For a total of 4 defrules.
+FuzzyCLIPS> (undefrule *)
+FuzzyCLIPS> (list-defrules)
+r4
+r5
+r6
+For a total of 3 defrules.
+FuzzyCLIPS> (undefrule *)
+FuzzyCLIPS> (list-defrules)
+FuzzyCLIPS> (clear) ; Test deleting a rule by itself
+FuzzyCLIPS> (defrule foo => (undefrule foo))
+FuzzyCLIPS> (rules)
+foo
+For a total of 1 defrule.
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+[PRNTUTIL4] Unable to delete defrule foo.
+FuzzyCLIPS> (rules)
+foo
+For a total of 1 defrule.
+FuzzyCLIPS> (clear) ; Test loading another KB
+FuzzyCLIPS> (defrule foo1 (a) => (assert (f)))
+FuzzyCLIPS> (defrule foo2 (b) (f) => (assert (g)))
+FuzzyCLIPS> (defrule foo3 (c) (g) =>)
+FuzzyCLIPS> (save "Temp//foo.tmp")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defrule bar1 => (assert (a)))
+FuzzyCLIPS> (defrule bar2 (a) => (assert (b)))
+FuzzyCLIPS> (defrule bar3 (b) 
+   => 
+   (assert (c)) 
+   (rules)
+   (printout t "-------" crlf)
+   (undefrule *)
+   (rules)
+   (printout t "-------" crlf)
+   (load "Temp//foo.tmp")
+   (rules)
+   (printout t "-------" crlf))
+FuzzyCLIPS> (defrule bar4 (a) (b) (c) =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (watch rules)
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (run)
+FIRE    1 bar1: f-0
+==> f-1     (a) CF 1.00 
+==> Activation 0      bar2: f-1
+FIRE    2 bar2: f-1
+==> f-2     (b) CF 1.00 
+==> Activation 0      bar3: f-2
+FIRE    3 bar3: f-2
+==> f-3     (c) CF 1.00 
+==> Activation 0      bar4: f-1,f-2,f-3
+bar1
+bar2
+bar3
+bar4
+For a total of 4 defrules.
+-------
+[PRNTUTIL4] Unable to delete defrule bar3.
+<== Activation 0      bar4: f-1,f-2,f-3
+bar3
+For a total of 1 defrule.
+-------
+*==> Activation 0      foo1: f-1
+**
+bar3
+foo1
+foo2
+foo3
+For a total of 4 defrules.
+-------
+FIRE    4 foo1: f-1
+==> f-4     (f) CF 1.00 
+==> Activation 0      foo2: f-2,f-4
+FIRE    5 foo2: f-2,f-4
+==> f-5     (g) CF 1.00 
+==> Activation 0      foo3: f-3,f-5
+FIRE    6 foo3: f-3,f-5
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear) ; Test agenda command
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (agenda 20)
+[ARGACCES5] Function agenda expected argument #1 to be of type symbol
+FuzzyCLIPS> (defrule foo1 (declare (salience 2)) =>)
+FuzzyCLIPS> (defrule foo2 (declare (salience 1)) =>)
+FuzzyCLIPS> (defrule foo3 (declare (salience 0)) =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+2      foo1: f-0
+1      foo2: f-0
+0      foo3: f-0
+For a total of 3 activations.
+FuzzyCLIPS> (run 1)
+FuzzyCLIPS> (agenda)
+1      foo2: f-0
+0      foo3: f-0
+For a total of 2 activations.
+FuzzyCLIPS> (run 1)
+FuzzyCLIPS> (agenda)
+0      foo3: f-0
+For a total of 1 activation.
+FuzzyCLIPS> (run 1)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Test matches command
+FuzzyCLIPS> (matches)
+[ARGACCES4] Function matches expected exactly 1 argument(s)
+FuzzyCLIPS> (matches 10)
+[ARGACCES5] Function matches expected argument #1 to be of type symbol
+FuzzyCLIPS> (matches bad-rule)
+[PRNTUTIL1] Unable to find defrule bad-rule.
+FuzzyCLIPS> (defrule foo (or (a ?x) (b ?x)) (c ?) =>)
+FuzzyCLIPS> (defrule bar (b ?x) (c ?x) (a ?) =>)
+FuzzyCLIPS> (defrule yaz (q) (r) =>)
+FuzzyCLIPS> (defrule flx (b ?x) (not (c ?x)) (a ?x) =>)
+FuzzyCLIPS> (assert (a 1) (a 2) (a 3) (b 1) (b 2) (c 1))
+<Fact-5>
+FuzzyCLIPS> (matches foo)
+Matches for Pattern 1
+f-0
+f-1
+f-2
+Matches for Pattern 2
+f-5
+Partial matches for CEs 1 - 2
+f-0,f-5
+f-1,f-5
+f-2,f-5
+Matches for Pattern 1
+f-3
+f-4
+Matches for Pattern 2
+f-5
+Partial matches for CEs 1 - 2
+f-3,f-5
+f-4,f-5
+Activations
+f-0,f-5
+f-1,f-5
+f-2,f-5
+f-3,f-5
+f-4,f-5
+FuzzyCLIPS> (matches bar)
+Matches for Pattern 1
+f-3
+f-4
+Matches for Pattern 2
+f-5
+Matches for Pattern 3
+f-0
+f-1
+f-2
+Partial matches for CEs 1 - 2
+f-3,f-5
+Partial matches for CEs 1 - 3
+f-3,f-5,f-2
+f-3,f-5,f-1
+f-3,f-5,f-0
+Activations
+f-3,f-5,f-2
+f-3,f-5,f-1
+f-3,f-5,f-0
+FuzzyCLIPS> (matches yaz)
+Matches for Pattern 1
+ None
+Matches for Pattern 2
+ None
+Partial matches for CEs 1 - 2
+ None
+Activations
+ None
+FuzzyCLIPS> (matches flx)
+Matches for Pattern 1
+f-3
+f-4
+Matches for Pattern 2
+f-5
+Matches for Pattern 3
+f-0
+f-1
+f-2
+Partial matches for CEs 1 - 2
+f-4,
+Partial matches for CEs 1 - 3
+f-4,,f-1
+Activations
+f-4,,f-1
+FuzzyCLIPS> (clear) ; Test breakpoint stuff
+FuzzyCLIPS> (set-break)
+[ARGACCES4] Function set-break expected exactly 1 argument(s)
+FuzzyCLIPS> (set-break 10)
+[ARGACCES5] Function set-break expected argument #1 to be of type symbol
+FuzzyCLIPS> (set-break bad-rule)
+[PRNTUTIL1] Unable to find defrule bad-rule.
+FuzzyCLIPS> (show-breaks)
+FuzzyCLIPS> (show-breaks 10)
+[ARGACCES5] Function show-breaks expected argument #1 to be of type symbol
+FuzzyCLIPS> (remove-break)
+FuzzyCLIPS> (remove-break 10)
+[ARGACCES5] Function remove-break expected argument #1 to be of type symbol
+FuzzyCLIPS> (remove-break bad-rule)
+[PRNTUTIL1] Unable to find defrule bad-rule.
+FuzzyCLIPS> (defrule foo1 (declare (salience 4)) =>)
+FuzzyCLIPS> (defrule foo2 (declare (salience 3)) =>)
+FuzzyCLIPS> (defrule foo3 (declare (salience 2)) =>)
+FuzzyCLIPS> (defrule foo4 (declare (salience 1)) => (assert (a)))
+FuzzyCLIPS> (defrule foo5 (declare (salience 0)) => (assert (b)))
+FuzzyCLIPS> (defrule foo6 (declare (salience 5)) (or (a) (b)) =>)
+FuzzyCLIPS> (set-break foo5 10)
+[ARGACCES4] Function set-break expected exactly 1 argument(s)
+FuzzyCLIPS> (remove-break foo5 10)
+[ARGACCES4] Function remove-break expected no more than 1 argument(s)
+FuzzyCLIPS> (show-breaks)
+FuzzyCLIPS> (set-break foo2)
+FuzzyCLIPS> (set-break foo4)
+FuzzyCLIPS> (set-break foo6)
+FuzzyCLIPS> (show-breaks)
+foo2
+foo4
+foo6
+FuzzyCLIPS> (watch rules)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FIRE    1 foo1: f-0
+Breaking on rule foo2.
+FuzzyCLIPS> (run)
+FIRE    1 foo2: f-0
+FIRE    2 foo3: f-0
+Breaking on rule foo4.
+FuzzyCLIPS> (run)
+FIRE    1 foo4: f-0
+Breaking on rule foo6.
+FuzzyCLIPS> (run)
+FIRE    1 foo6: f-1
+FIRE    2 foo5: f-0
+Breaking on rule foo6.
+FuzzyCLIPS> (remove-break foo4)
+FuzzyCLIPS> (show-breaks)
+foo2
+foo6
+FuzzyCLIPS> (remove-break foo6)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FIRE    1 foo1: f-0
+Breaking on rule foo2.
+FuzzyCLIPS> (run)
+FIRE    1 foo2: f-0
+FIRE    2 foo3: f-0
+FIRE    3 foo4: f-0
+FIRE    4 foo6: f-1
+FIRE    5 foo5: f-0
+FIRE    6 foo6: f-2
+FuzzyCLIPS> (set-break foo3)
+FuzzyCLIPS> (remove-break)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FIRE    1 foo1: f-0
+FIRE    2 foo2: f-0
+FIRE    3 foo3: f-0
+FIRE    4 foo4: f-0
+FIRE    5 foo6: f-1
+FIRE    6 foo5: f-0
+FIRE    7 foo6: f-2
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear) ; Test refresh command
+FuzzyCLIPS> (refresh)
+[ARGACCES4] Function refresh expected exactly 1 argument(s)
+FuzzyCLIPS> (refresh 10)
+[ARGACCES5] Function refresh expected argument #1 to be of type symbol
+FuzzyCLIPS> (refresh bad-rule)
+[PRNTUTIL1] Unable to find defrule bad-rule.
+FuzzyCLIPS> (defrule foo (a ?) (b ?) =>)
+FuzzyCLIPS> (assert (a 1) (a 2) (a 3) (b 1) (b 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      foo: f-0,f-4
+0      foo: f-1,f-4
+0      foo: f-2,f-4
+0      foo: f-0,f-3
+0      foo: f-1,f-3
+0      foo: f-2,f-3
+For a total of 6 activations.
+FuzzyCLIPS> (run 3)
+FuzzyCLIPS> (refresh foo)
+FuzzyCLIPS> (agenda)
+0      foo: f-2,f-4
+0      foo: f-1,f-4
+0      foo: f-0,f-4
+0      foo: f-0,f-3
+0      foo: f-1,f-3
+0      foo: f-2,f-3
+For a total of 6 activations.
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (refresh foo)
+FuzzyCLIPS> (agenda)
+0      foo: f-2,f-3
+0      foo: f-1,f-3
+0      foo: f-0,f-3
+0      foo: f-2,f-4
+0      foo: f-1,f-4
+0      foo: f-0,f-4
+For a total of 6 activations.
+FuzzyCLIPS> (refresh foo)
+FuzzyCLIPS> (agenda)
+0      foo: f-2,f-3
+0      foo: f-1,f-3
+0      foo: f-0,f-3
+0      foo: f-2,f-4
+0      foo: f-1,f-4
+0      foo: f-0,f-4
+For a total of 6 activations.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defrule bar (or (a ?) (b ?)) =>)
+FuzzyCLIPS> (assert (a 1) (b 1) (a 2) (b 2) (a 3) (b 3))
+<Fact-5>
+FuzzyCLIPS> (run 3)
+FuzzyCLIPS> (agenda)
+0      bar: f-2
+0      bar: f-1
+0      bar: f-0
+For a total of 3 activations.
+FuzzyCLIPS> (refresh bar)
+FuzzyCLIPS> (agenda)
+0      bar: f-3
+0      bar: f-5
+0      bar: f-4
+0      bar: f-2
+0      bar: f-1
+0      bar: f-0
+For a total of 6 activations.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defrule yak (a ?) (b ?) =>)
+FuzzyCLIPS> (defrule flx (declare (salience 1)) (a ?) (b ?) =>)
+FuzzyCLIPS> (assert (a 1) (b 1) (a 2) (b 2))
+<Fact-3>
+FuzzyCLIPS> (agenda)
+1      flx: f-0,f-3
+1      flx: f-2,f-3
+1      flx: f-2,f-1
+1      flx: f-0,f-1
+0      yak: f-0,f-3
+0      yak: f-2,f-3
+0      yak: f-2,f-1
+0      yak: f-0,f-1
+For a total of 8 activations.
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (refresh yak)
+FuzzyCLIPS> (agenda)
+0      yak: f-0,f-1
+0      yak: f-2,f-1
+0      yak: f-2,f-3
+0      yak: f-0,f-3
+For a total of 4 activations.
+FuzzyCLIPS> (clear) ; strategy commands
+FuzzyCLIPS> (set-strategy depth)
+depth
+FuzzyCLIPS> (get-strategy)
+depth
+FuzzyCLIPS> (set-strategy)
+[ARGACCES4] Function set-strategy expected exactly 1 argument(s)
+FuzzyCLIPS> (set-strategy depth 20)
+[ARGACCES4] Function set-strategy expected exactly 1 argument(s)
+FuzzyCLIPS> (get-strategy 10)
+[ARGACCES4] Function get-strategy expected exactly 0 argument(s)
+FuzzyCLIPS> (set-strategy breadth)
+depth
+FuzzyCLIPS> (get-strategy)
+breadth
+FuzzyCLIPS> (set-strategy lex)
+breadth
+FuzzyCLIPS> (get-strategy)
+lex
+FuzzyCLIPS> (set-strategy mea)
+lex
+FuzzyCLIPS> (get-strategy)
+mea
+FuzzyCLIPS> (set-strategy simplicity)
+mea
+FuzzyCLIPS> (get-strategy)
+simplicity
+FuzzyCLIPS> (set-strategy complexity)
+simplicity
+FuzzyCLIPS> (get-strategy)
+complexity
+FuzzyCLIPS> (set-strategy random)
+complexity
+FuzzyCLIPS> (get-strategy)
+random
+FuzzyCLIPS> (set-strategy bogus)
+[ARGACCES5] Function set-strategy expected argument #1 to be of type symbol with value depth, breadth, lex, mea, complexity, simplicity, or random
+random
+FuzzyCLIPS> (get-strategy)
+random
+FuzzyCLIPS> (set-strategy depth)
+random
+FuzzyCLIPS> (clear) ; salience-evaluation commands
+FuzzyCLIPS> (set-salience-evaluation when-defined)
+when-defined
+FuzzyCLIPS> (get-salience-evaluation)
+when-defined
+FuzzyCLIPS> (set-salience-evaluation)
+[ARGACCES4] Function set-salience-evaluation expected exactly 1 argument(s)
+FuzzyCLIPS> (set-salience-evaluation when-defined 20)
+[ARGACCES4] Function set-salience-evaluation expected exactly 1 argument(s)
+FuzzyCLIPS> (get-salience-evaluation 10)
+[ARGACCES4] Function get-salience-evaluation expected exactly 0 argument(s)
+FuzzyCLIPS> (set-salience-evaluation when-activated)
+when-defined
+FuzzyCLIPS> (get-salience-evaluation)
+when-activated
+FuzzyCLIPS> (set-salience-evaluation every-cycle)
+when-activated
+FuzzyCLIPS> (get-salience-evaluation)
+every-cycle
+FuzzyCLIPS> (set-salience-evaluation bogus)
+[ARGACCES5] Function set-salience-evaluation expected argument #1 to be of type symbol with value when-defined, when-activated, or every-cycle
+every-cycle
+FuzzyCLIPS> (get-salience-evaluation)
+every-cycle
+FuzzyCLIPS> (set-salience-evaluation when-defined)
+every-cycle
+FuzzyCLIPS> (clear) ; refresh-agenda command
+FuzzyCLIPS> (refresh-agenda 10)
+[ARGACCES5] Function refresh-agenda expected argument #1 to be of type symbol
+FuzzyCLIPS> (clear) ; incremental-reset command
+FuzzyCLIPS> (set-incremental-reset TRUE)
+TRUE
+FuzzyCLIPS> (get-incremental-reset)
+TRUE
+FuzzyCLIPS> (set-incremental-reset)
+[ARGACCES4] Function set-incremental-reset expected exactly 1 argument(s)
+FuzzyCLIPS> (get-incremental-reset)
+TRUE
+FuzzyCLIPS> (get-incremental-reset 20)
+[ARGACCES4] Function get-incremental-reset expected exactly 0 argument(s)
+FuzzyCLIPS> (set-incremental-reset 10)
+TRUE
+FuzzyCLIPS> (get-incremental-reset)
+TRUE
+FuzzyCLIPS> (set-incremental-reset FALSE)
+TRUE
+FuzzyCLIPS> (get-incremental-reset)
+FALSE
+FuzzyCLIPS> (set-incremental-reset TRUE)
+FALSE
+FuzzyCLIPS> (get-incremental-reset)
+TRUE
+FuzzyCLIPS> (clear) ; Some new 6.0 features
+FuzzyCLIPS> (defrule BOGUS::d5 =>)
+[PRNTUTIL1] Unable to find defmodule BOGUS.
+
+ERROR:
+(defrule BOGUS::d5
+FuzzyCLIPS> (defmodule FOO)
+FuzzyCLIPS> (defrule FOO::d1 =>)
+[FACTLHS1] WARNING: Creating implied initial-fact deftemplate in module FOO.
+  You probably want to import this deftemplate from the MAIN module.
+FuzzyCLIPS> (defrule FOO::d2 =>)
+FuzzyCLIPS> (defmodule BAR)
+FuzzyCLIPS> (defrule BAR::d2 =>)
+[FACTLHS1] WARNING: Creating implied initial-fact deftemplate in module BAR.
+  You probably want to import this deftemplate from the MAIN module.
+FuzzyCLIPS> (defrule BAR::d3 =>)
+FuzzyCLIPS> (list-defrules BOGUS)
+[ARGACCES5] Function list-defrules expected argument #1 to be of type defmodule name
+FuzzyCLIPS> (list-defrules FOO 7)
+[ARGACCES4] Function list-defrules expected no more than 1 argument(s)
+FuzzyCLIPS> (list-defrules FOO)
+d1
+d2
+For a total of 2 defrules.
+FuzzyCLIPS> (list-defrules BAR)
+d2
+d3
+For a total of 2 defrules.
+FuzzyCLIPS> (list-defrules)
+d2
+d3
+For a total of 2 defrules.
+FuzzyCLIPS> (list-defrules *)
+MAIN:
+FOO:
+   d1
+   d2
+BAR:
+   d2
+   d3
+For a total of 4 defrules.
+FuzzyCLIPS> (get-defrule-list 7)
+[ARGACCES5] Function get-defrule-list expected argument #1 to be of type symbol
+FuzzyCLIPS> (get-defrule-list BOGUS 7)
+[ARGACCES4] Function get-defrule-list expected no more than 1 argument(s)
+FuzzyCLIPS> (get-defrule-list)
+(d2 d3)
+FuzzyCLIPS> (get-defrule-list BOGUS)
+[ARGACCES5] Function get-defrule-list expected argument #1 to be of type defmodule name
+()
+FuzzyCLIPS> (get-defrule-list FOO)
+(d1 d2)
+FuzzyCLIPS> (get-defrule-list BAR)
+(d2 d3)
+FuzzyCLIPS> (get-defrule-list *)
+(FOO::d1 FOO::d2 BAR::d2 BAR::d3)
+FuzzyCLIPS> (ppdefrule d1)
+[PRNTUTIL1] Unable to find defrule d1.
+FuzzyCLIPS> (ppdefrule d2)
+(defrule BAR::d2
+   =>)
+FuzzyCLIPS> (ppdefrule d3)
+(defrule BAR::d3
+   =>)
+FuzzyCLIPS> (ppdefrule BOGUS::d2)
+[PRNTUTIL1] Unable to find defrule BOGUS::d2.
+FuzzyCLIPS> (ppdefrule FOO::d1)
+(defrule FOO::d1
+   =>)
+FuzzyCLIPS> (ppdefrule FOO::d2)
+(defrule FOO::d2
+   =>)
+FuzzyCLIPS> (ppdefrule FOO::d3)
+[PRNTUTIL1] Unable to find defrule FOO::d3.
+FuzzyCLIPS> (ppdefrule BAR::d1)
+[PRNTUTIL1] Unable to find defrule BAR::d1.
+FuzzyCLIPS> (ppdefrule BAR::d2)
+(defrule BAR::d2
+   =>)
+FuzzyCLIPS> (ppdefrule BAR::d3)
+(defrule BAR::d3
+   =>)
+FuzzyCLIPS> (defrule-module)
+[ARGACCES4] Function defrule-module expected exactly 1 argument(s)
+FuzzyCLIPS> (defrule-module bogus)
+[PRNTUTIL1] Unable to find defrule bogus.
+FALSE
+FuzzyCLIPS> (defrule-module d3 7)
+[ARGACCES4] Function defrule-module expected exactly 1 argument(s)
+FuzzyCLIPS> (defrule-module d2)
+BAR
+FuzzyCLIPS> (defrule-module d3)
+BAR
+FuzzyCLIPS> (defrule-module FOO::d1)
+FOO
+FuzzyCLIPS> (defrule-module FOO::d2)
+FOO
+FuzzyCLIPS> (defrule-module BAR::d2)
+BAR
+FuzzyCLIPS> (defrule-module BAR::d3)
+BAR
+FuzzyCLIPS> (undefrule BOGUS::d2)
+[PRNTUTIL1] Unable to find defrule BOGUS::d2.
+FuzzyCLIPS> (undefrule FOO::d2)
+FuzzyCLIPS> (list-defrules *)
+MAIN:
+FOO:
+   d1
+BAR:
+   d2
+   d3
+For a total of 3 defrules.
+FuzzyCLIPS> (undefrule BAR::d2)
+FuzzyCLIPS> (list-defrules *)
+MAIN:
+FOO:
+   d1
+BAR:
+   d3
+For a total of 2 defrules.
+FuzzyCLIPS> (undefrule *)
+FuzzyCLIPS> (list-defrules *)
+MAIN:
+FOO:
+   d1
+BAR:
+For a total of 1 defrule.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (set-salience-evaluation when-activated)
+when-defined
+FuzzyCLIPS> (defglobal ?*x* = 0)
+FuzzyCLIPS> (defmodule MAIN (export ?ALL))
+FuzzyCLIPS> (defrule MAIN::d0 (declare (salience ?*x*)) => (focus FOO BAR))
+FuzzyCLIPS> (defmodule FOO (import MAIN ?ALL))
+FuzzyCLIPS> (defrule FOO::d1 (declare (salience ?*x*)) =>)
+FuzzyCLIPS> (defrule FOO::d2 (declare (salience ?*x*)) =>)
+FuzzyCLIPS> (defmodule BAR (import MAIN ?ALL))
+FuzzyCLIPS> (defrule BAR::d2 (declare (salience ?*x*)) =>)
+FuzzyCLIPS> (defrule BAR::d3 (declare (salience ?*x*)) =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda BOGUS)
+[ARGACCES5] Function agenda expected argument #1 to be of type defmodule name
+FuzzyCLIPS> (agenda 7)
+[ARGACCES5] Function agenda expected argument #1 to be of type symbol
+FuzzyCLIPS> (agenda FOO 7)
+[ARGACCES4] Function agenda expected no more than 1 argument(s)
+FuzzyCLIPS> (agenda)
+0      d0: f-0
+For a total of 1 activation.
+FuzzyCLIPS> (agenda MAIN)
+0      d0: f-0
+For a total of 1 activation.
+FuzzyCLIPS> (agenda FOO)
+0      d1: f-0
+0      d2: f-0
+For a total of 2 activations.
+FuzzyCLIPS> (agenda BAR)
+0      d2: f-0
+0      d3: f-0
+For a total of 2 activations.
+FuzzyCLIPS> (agenda *)
+MAIN:
+   0      d0: f-0
+FOO:
+   0      d1: f-0
+   0      d2: f-0
+BAR:
+   0      d2: f-0
+   0      d3: f-0
+For a total of 5 activations.
+FuzzyCLIPS> (bind ?*x* 1)
+1
+FuzzyCLIPS> (refresh-agenda BOGUS)
+[ARGACCES5] Function refresh-agenda expected argument #1 to be of type defmodule name
+FuzzyCLIPS> (refresh-agenda 7)
+[ARGACCES5] Function refresh-agenda expected argument #1 to be of type symbol
+FuzzyCLIPS> (refresh-agenda FOO 7)
+[ARGACCES4] Function refresh-agenda expected no more than 1 argument(s)
+FuzzyCLIPS> (refresh-agenda)
+FuzzyCLIPS> (agenda *)
+MAIN:
+   1      d0: f-0
+FOO:
+   0      d1: f-0
+   0      d2: f-0
+BAR:
+   0      d2: f-0
+   0      d3: f-0
+For a total of 5 activations.
+FuzzyCLIPS> (refresh-agenda FOO)
+FuzzyCLIPS> (agenda *)
+MAIN:
+   1      d0: f-0
+FOO:
+   1      d1: f-0
+   1      d2: f-0
+BAR:
+   0      d2: f-0
+   0      d3: f-0
+For a total of 5 activations.
+FuzzyCLIPS> (refresh-agenda BAR)
+FuzzyCLIPS> (agenda *)
+MAIN:
+   1      d0: f-0
+FOO:
+   1      d1: f-0
+   1      d2: f-0
+BAR:
+   1      d2: f-0
+   1      d3: f-0
+For a total of 5 activations.
+FuzzyCLIPS> (bind ?*x* 2)
+2
+FuzzyCLIPS> (agenda *)
+MAIN:
+   1      d0: f-0
+FOO:
+   1      d1: f-0
+   1      d2: f-0
+BAR:
+   1      d2: f-0
+   1      d3: f-0
+For a total of 5 activations.
+FuzzyCLIPS> (refresh-agenda *)
+FuzzyCLIPS> (agenda *)
+MAIN:
+   2      d0: f-0
+FOO:
+   2      d1: f-0
+   2      d2: f-0
+BAR:
+   2      d2: f-0
+   2      d3: f-0
+For a total of 5 activations.
+FuzzyCLIPS> (set-break FOO::d1)
+FuzzyCLIPS> (set-break BAR::d3)
+FuzzyCLIPS> (show-breaks BOGUS)
+[ARGACCES5] Function show-breaks expected argument #1 to be of type defmodule name
+FuzzyCLIPS> (show-breaks 7)
+[ARGACCES5] Function show-breaks expected argument #1 to be of type symbol
+FuzzyCLIPS> (show-breaks FOO 7)
+[ARGACCES4] Function show-breaks expected no more than 1 argument(s)
+FuzzyCLIPS> (show-breaks)
+FuzzyCLIPS> (show-breaks MAIN)
+FuzzyCLIPS> (show-breaks FOO)
+d1
+FuzzyCLIPS> (show-breaks BAR)
+d3
+FuzzyCLIPS> (show-breaks *)
+MAIN:
+FOO:
+   d1
+BAR:
+   d3
+FuzzyCLIPS> (dribble-off)

@@ -1,0 +1,427 @@
+TRUE
+FuzzyCLIPS> (batch "coolfnx.bat")
+TRUE
+FuzzyCLIPS> (superclassp)
+[ARGACCES4] Function superclassp expected exactly 2 argument(s)
+FuzzyCLIPS> (superclassp BOGUS)
+[ARGACCES4] Function superclassp expected exactly 2 argument(s)
+FuzzyCLIPS> (superclassp USER)
+[ARGACCES4] Function superclassp expected exactly 2 argument(s)
+FuzzyCLIPS> (superclassp USER BOGUS)
+[CLASSFUN1] Unable to find class BOGUS in function superclassp.
+FALSE
+FuzzyCLIPS> (superclassp USER OBJECT)
+FALSE
+FuzzyCLIPS> (superclassp OBJECT USER)
+TRUE
+FuzzyCLIPS> (superclassp 1 2 3)
+[ARGACCES4] Function superclassp expected exactly 2 argument(s)
+FuzzyCLIPS> (subclassp)
+[ARGACCES4] Function subclassp expected exactly 2 argument(s)
+FuzzyCLIPS> (subclassp BOGUS)
+[ARGACCES4] Function subclassp expected exactly 2 argument(s)
+FuzzyCLIPS> (subclassp USER)
+[ARGACCES4] Function subclassp expected exactly 2 argument(s)
+FuzzyCLIPS> (subclassp USER BOGUS)
+[CLASSFUN1] Unable to find class BOGUS in function subclassp.
+FALSE
+FuzzyCLIPS> (subclassp USER OBJECT)
+TRUE
+FuzzyCLIPS> (subclassp OBJECT USER)
+FALSE
+FuzzyCLIPS> (subclassp 1 2 3)
+[ARGACCES4] Function subclassp expected exactly 2 argument(s)
+FuzzyCLIPS> (slot-existp)
+[ARGACCES4] Function slot-existp expected at least 2 argument(s)
+FuzzyCLIPS> (slot-existp BOGUS)
+[ARGACCES4] Function slot-existp expected at least 2 argument(s)
+FuzzyCLIPS> (slot-existp BOGUS bogus)
+[CLASSFUN1] Unable to find class BOGUS in function slot-existp.
+FALSE
+FuzzyCLIPS> (slot-existp USER bogus)
+FALSE
+FuzzyCLIPS> (slot-existp TEST bogus)
+FALSE
+FuzzyCLIPS> (slot-existp TEST x)
+TRUE
+FuzzyCLIPS> (slot-existp SUBTEST x)
+FALSE
+FuzzyCLIPS> (slot-existp 1 2 3)
+[ARGACCES5] Function slot-existp expected argument #1 to be of type symbol
+FuzzyCLIPS> (message-handler-existp)
+[ARGACCES4] Function message-handler-existp expected at least 2 argument(s)
+FuzzyCLIPS> (message-handler-existp BOGUS)
+[ARGACCES4] Function message-handler-existp expected at least 2 argument(s)
+FuzzyCLIPS> (message-handler-existp BOGUS bogus)
+[CLASSFUN1] Unable to find class BOGUS in function message-handler-existp.
+FALSE
+FuzzyCLIPS> (message-handler-existp BOGUS bogus bogus)
+[CLASSFUN1] Unable to find class BOGUS in function message-handler-existp.
+FALSE
+FuzzyCLIPS> (message-handler-existp USER init)
+TRUE
+FuzzyCLIPS> (message-handler-existp USER init primary)
+TRUE
+FuzzyCLIPS> (message-handler-existp USER init around)
+FALSE
+FuzzyCLIPS> (message-handler-existp USER init after)
+FALSE
+FuzzyCLIPS> (message-handler-existp USER init before)
+FALSE
+FuzzyCLIPS> (message-handler-existp A delete primary)
+FALSE
+FuzzyCLIPS> (message-handler-existp TEST get-x)
+TRUE
+FuzzyCLIPS> (message-handler-existp TEST put-x)
+TRUE
+FuzzyCLIPS> (next-handlerp)
+FALSE
+FuzzyCLIPS> (call-next-handler)
+[MSGPASS1] Shadowed message-handlers not applicable in current context.
+FALSE
+FuzzyCLIPS> (override-next-handler 1 2 3)
+[MSGPASS1] Shadowed message-handlers not applicable in current context.
+FALSE
+FuzzyCLIPS> (make-instance a1 of A1 (x 0))
+[a1]
+FuzzyCLIPS> (send [a1] print-args 1 2 3 4)
+A1: (1 2 3 4)
+USER: (1 2 3 4)
+FuzzyCLIPS> (make-instance [a2] of A2)
+[a2]
+FuzzyCLIPS> (send [a2] print-args 1 2 3 4)
+A2: (1 2 3 4)
+USER: (2 3 4)
+FuzzyCLIPS> (init-slots)
+[MSGFUN4] init-slots may only be called from within message-handlers.
+FALSE
+FuzzyCLIPS> (make-instance [mea] of MY-EXTERNAL-ADDRESS (blah 0))
+[mea]
+FuzzyCLIPS> (send [mea] put-blah 12a5H)
+12a5H
+FuzzyCLIPS> (send [mea] get-blah)
+12a5H
+FuzzyCLIPS> (watch instances)
+FuzzyCLIPS> (unmake-instance mea)
+<== instance [mea] of MY-EXTERNAL-ADDRESS
+TRUE
+FuzzyCLIPS> (unmake-instance *)
+<== instance [a1] of A1
+<== instance [a2] of A2
+TRUE
+FuzzyCLIPS> (unmake-instance)
+[ARGACCES4] Function unmake-instance expected at least 1 argument(s)
+FuzzyCLIPS> (make-instance * of A1 (x 0))
+==> instance [*] of A1
+[*]
+FuzzyCLIPS> (make-instance a2 of A2)
+==> instance [a2] of A2
+[a2]
+FuzzyCLIPS> (unmake-instance *)
+<== instance [*] of A1
+TRUE
+FuzzyCLIPS> (unmake-instance *)
+<== instance [a2] of A2
+TRUE
+FuzzyCLIPS> (unwatch instances)
+FuzzyCLIPS> (make-instance a1 of A1 (x 0))
+[a1]
+FuzzyCLIPS> (class)
+[ARGACCES4] Function class expected exactly 1 argument(s)
+FuzzyCLIPS> (class a1)
+SYMBOL
+FuzzyCLIPS> (class [a1])
+A1
+FuzzyCLIPS> (class (sym-cat [ a1 ]))
+SYMBOL
+FuzzyCLIPS> (class (symbol-to-instance-name (sym-cat a "1")))
+A1
+FuzzyCLIPS> (class 34)
+INTEGER
+FuzzyCLIPS> (instance-name)
+[ARGACCES4] Function instance-name expected exactly 1 argument(s)
+FuzzyCLIPS> (instance-address)
+[ARGACCES4] Function instance-address expected at least 1 argument(s)
+FuzzyCLIPS> (instance-address a1)
+<Instance-a1>
+FuzzyCLIPS> (instance-address [a1])
+<Instance-a1>
+FuzzyCLIPS> (instance-name (instance-address a1))
+[a1]
+FuzzyCLIPS> (instance-name bogus)
+[INSFUN2] No such instance bogus in function instance-name.
+FALSE
+FuzzyCLIPS> (instance-address bogus)
+[INSFUN2] No such instance bogus in function instance-address.
+FALSE
+FuzzyCLIPS> (symbol-to-instance-name)
+[ARGACCES4] Function symbol-to-instance-name expected exactly 1 argument(s)
+FuzzyCLIPS> (symbol-to-instance-name bogus)
+[bogus]
+FuzzyCLIPS> (symbol-to-instance-name [bogus])
+[ARGACCES5] Function symbol-to-instance-name expected argument #1 to be of type symbol
+FuzzyCLIPS> (symbol-to-instance-name 42)
+[ARGACCES5] Function symbol-to-instance-name expected argument #1 to be of type symbol
+FuzzyCLIPS> (instance-name-to-symbol)
+[ARGACCES4] Function instance-name-to-symbol expected exactly 1 argument(s)
+FuzzyCLIPS> (instance-name-to-symbol [bogus])
+bogus
+FuzzyCLIPS> (instance-name-to-symbol bogus)
+bogus
+FuzzyCLIPS> (instance-name-to-symbol 42)
+[ARGACCES5] Function instance-name-to-symbol expected argument #1 to be of type instance name or symbol
+FuzzyCLIPS> (instancep)
+[ARGACCES4] Function instancep expected exactly 1 argument(s)
+FuzzyCLIPS> (instancep 42)
+FALSE
+FuzzyCLIPS> (instancep (instance-address [a1]))
+TRUE
+FuzzyCLIPS> (instancep a1)
+FALSE
+FuzzyCLIPS> (instancep [junk])
+TRUE
+FuzzyCLIPS> (instance-namep (instance-address [a1]))
+FALSE
+FuzzyCLIPS> (instance-addressp (instance-address [a1]))
+TRUE
+FuzzyCLIPS> (instance-namep [a1])
+TRUE
+FuzzyCLIPS> (instance-addressp [a1])
+FALSE
+FuzzyCLIPS> (instance-namep bogus)
+FALSE
+FuzzyCLIPS> (instance-addressp bogus)
+FALSE
+FuzzyCLIPS> (instance-namep)
+[ARGACCES4] Function instance-namep expected exactly 1 argument(s)
+FuzzyCLIPS> (instance-addressp)
+[ARGACCES4] Function instance-addressp expected exactly 1 argument(s)
+FuzzyCLIPS> (instance-existp)
+[ARGACCES4] Function instance-existp expected exactly 1 argument(s)
+FuzzyCLIPS> (instance-existp a1)
+TRUE
+FuzzyCLIPS> (instance-existp [a1])
+TRUE
+FuzzyCLIPS> (instance-existp [junk])
+FALSE
+FuzzyCLIPS> (instance-existp (instance-address a1))
+TRUE
+FuzzyCLIPS> (bind ?*x* (instance-address [a1]))
+<Instance-a1>
+FuzzyCLIPS> (unmake-instance *)
+TRUE
+FuzzyCLIPS> (instance-addressp ?*x*)
+TRUE
+FuzzyCLIPS> (instance-name ?*x*)
+[INSFUN4] Invalid instance-address in function instance-name.
+FALSE
+FuzzyCLIPS> (send ?*x* print)
+[INSFUN4] Invalid instance-address in function send.
+FALSE
+FuzzyCLIPS> (make-instance b1 of B1 (x 0))
+[b1]
+FuzzyCLIPS> (slot-existp)
+[ARGACCES4] Function slot-existp expected at least 2 argument(s)
+FuzzyCLIPS> (slot-existp (class [b1]))
+[ARGACCES4] Function slot-existp expected at least 2 argument(s)
+FuzzyCLIPS> (slot-existp (class [b1]) x inherit)
+TRUE
+FuzzyCLIPS> (slot-existp (class [b1]) y inherit)
+TRUE
+FuzzyCLIPS> (slot-existp bogus x inherit)
+[CLASSFUN1] Unable to find class bogus in function slot-existp.
+FALSE
+FuzzyCLIPS> (slot-existp (class [b1]) bogus inherit)
+FALSE
+FuzzyCLIPS> (slot-writablep (class [b1]) x)
+TRUE
+FuzzyCLIPS> (slot-writablep (class [b1]) y)
+FALSE
+FuzzyCLIPS> (slot-initablep (class [b1]) x)
+TRUE
+FuzzyCLIPS> (slot-initablep (class [b1]) y)
+FALSE
+FuzzyCLIPS> (slot-writablep)
+[ARGACCES4] Function slot-writablep expected exactly 2 argument(s)
+FuzzyCLIPS> (slot-writablep (class [b1]))
+[ARGACCES4] Function slot-writablep expected exactly 2 argument(s)
+FuzzyCLIPS> (slot-writablep (class [b1]) bogus)
+[INSFUN3] No such slot bogus in function slot-writablep.
+FALSE
+FuzzyCLIPS> (slot-writablep bogus x)
+[CLASSFUN1] Unable to find class bogus in function slot-writablep.
+FALSE
+FuzzyCLIPS> (slot-initablep)
+[ARGACCES4] Function slot-initablep expected exactly 2 argument(s)
+FuzzyCLIPS> (slot-initablep (class [b1]))
+[ARGACCES4] Function slot-initablep expected exactly 2 argument(s)
+FuzzyCLIPS> (slot-initablep (class [b1]) bogus)
+[INSFUN3] No such slot bogus in function slot-initablep.
+FALSE
+FuzzyCLIPS> (slot-writablep bogus x)
+[CLASSFUN1] Unable to find class bogus in function slot-writablep.
+FALSE
+FuzzyCLIPS> (get x)
+[MSGFUN4] dynamic-get may only be called from within message-handlers.
+FALSE
+FuzzyCLIPS> (put x)
+[MSGFUN4] dynamic-put may only be called from within message-handlers.
+FALSE
+FuzzyCLIPS> (make-instance [junk] of JUNK (x 0) (y 0))
+[junk]
+FuzzyCLIPS> (send [junk] my-put x a b c d e)
+(a b c d e)
+FuzzyCLIPS> (send [junk] my-get x)
+(a b c d e)
+FuzzyCLIPS> (send [junk] my-get y)
+0
+FuzzyCLIPS> (mv-slot-replace junk x 2 4 2 3 4)
+(a 2 3 4 e)
+FuzzyCLIPS> (send [junk] get-x)
+(a 2 3 4 e)
+FuzzyCLIPS> (mv-slot-insert junk x 2 4 2 3 4)
+(a 4 2 3 4 2 3 4 e)
+FuzzyCLIPS> (send [junk] get-x)
+(a 4 2 3 4 2 3 4 e)
+FuzzyCLIPS> (mv-slot-delete junk x 2 4)
+(a 4 2 3 4 e)
+FuzzyCLIPS> (send [junk] get-x)
+(a 4 2 3 4 e)
+FuzzyCLIPS> (send [junk] put-x a b c d e)
+(a b c d e)
+FuzzyCLIPS> (send [junk] my-replace x 2 4 2 3 4)
+TRUE
+FuzzyCLIPS> (send [junk] get-x)
+(a 2 3 4 e)
+FuzzyCLIPS> (send [junk] my-insert x 2 4 2 3 4)
+TRUE
+FuzzyCLIPS> (send [junk] get-x)
+(a 4 2 3 4 2 3 4 e)
+FuzzyCLIPS> (send [junk] my-delete x 2 4)
+TRUE
+FuzzyCLIPS> (send [junk] get-x)
+(a 4 2 3 4 e)
+FuzzyCLIPS> (send [junk] put-x)
+()
+FuzzyCLIPS> (mv-slot-insert junk x 1 abc)
+(abc)
+FuzzyCLIPS> (mv-slot-insert)
+[ARGACCES4] Function mv-slot-insert expected at least 4 argument(s)
+FuzzyCLIPS> (mv-slot-delete)
+[ARGACCES4] Function mv-slot-delete expected exactly 4 argument(s)
+FuzzyCLIPS> (mv-slot-replace)
+[ARGACCES4] Function mv-slot-replace expected at least 5 argument(s)
+FuzzyCLIPS> (mv-slot-replace bogus x 1 2 abc)
+[INSFUN2] No such instance bogus in function slot-replace$.
+FALSE
+FuzzyCLIPS> (mv-slot-replace junk bogus 1 2 abc)
+[INSFUN3] No such slot bogus in function slot-replace$.
+FALSE
+FuzzyCLIPS> (mv-slot-replace junk x 1 100 abc)
+[MULTIFUN1] Multifield index range 1..100 out of range 1..1 in function slot-replace$.
+FALSE
+FuzzyCLIPS> (send [junk] my-replace x 1 100 abc)
+[MULTIFUN1] Multifield index range 1..100 out of range 1..1 in function direct-slot-replace$.
+FALSE
+FuzzyCLIPS> (mv-slot-replace junk y 1 2 def)
+[INSMULT1] Function slot-replace$ cannot be used on single-field slot y in instance junk.
+FALSE
+FuzzyCLIPS> (class-existp)
+[ARGACCES4] Function class-existp expected exactly 1 argument(s)
+FuzzyCLIPS> (class-existp 34)
+[ARGACCES5] Function class-existp expected argument #1 to be of type symbol
+FuzzyCLIPS> (class-existp abc def)
+[ARGACCES4] Function class-existp expected exactly 1 argument(s)
+FuzzyCLIPS> (class-existp USER)
+TRUE
+FuzzyCLIPS> (class-existp user)
+FALSE
+FuzzyCLIPS> (class-abstractp)
+[ARGACCES4] Function class-abstractp expected exactly 1 argument(s)
+FuzzyCLIPS> (class-abstractp 1)
+[ARGACCES5] Function class-abstractp expected argument #1 to be of type symbol
+FuzzyCLIPS> (class-abstractp USER 1)
+[ARGACCES4] Function class-abstractp expected exactly 1 argument(s)
+FuzzyCLIPS> (class-abstractp USER)
+TRUE
+FuzzyCLIPS> (class-abstractp TEST)
+FALSE
+FuzzyCLIPS> (class-superclasses)
+[ARGACCES4] Function class-superclasses expected at least 1 argument(s)
+FuzzyCLIPS> (class-superclasses 1)
+[ARGACCES5] Function class-superclasses expected argument #1 to be of type symbol
+FuzzyCLIPS> (class-superclasses WOZBANG)
+(INTEGER FLOAT)
+FuzzyCLIPS> (class-superclasses WOZBANG 1)
+[ARGACCES5] Function class-superclasses expected argument #2 to be of type symbol
+FuzzyCLIPS> (class-superclasses WOZBANG junk)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for class-superclasses.
+()
+FuzzyCLIPS> (class-superclasses WOZBANG inherit)
+(INTEGER FLOAT NUMBER PRIMITIVE OBJECT)
+FuzzyCLIPS> (class-subclasses)
+[ARGACCES4] Function class-subclasses expected at least 1 argument(s)
+FuzzyCLIPS> (class-subclasses 1)
+[ARGACCES5] Function class-subclasses expected argument #1 to be of type symbol
+FuzzyCLIPS> (class-subclasses NUMBER)
+(INTEGER FLOAT)
+FuzzyCLIPS> (class-subclasses NUMBER 1)
+[ARGACCES5] Function class-subclasses expected argument #2 to be of type symbol
+FuzzyCLIPS> (class-subclasses NUMBER junk)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for class-subclasses.
+()
+FuzzyCLIPS> (class-subclasses NUMBER inherit)
+(INTEGER WOZBANG BOOGLE COOGLE DOOGLE FLOAT)
+FuzzyCLIPS> (class-subclasses OBJECT inherit)
+(PRIMITIVE NUMBER INTEGER WOZBANG BOOGLE COOGLE DOOGLE FLOAT LEXEME SYMBOL STRING MULTIFIELD ADDRESS EXTERNAL-ADDRESS MY-EXTERNAL-ADDRESS FACT-ADDRESS INSTANCE-ADDRESS INSTANCE INSTANCE-NAME FUZZY-VALUE USER INITIAL-OBJECT TEST SUBTEST A A1 B1 A2 JUNK)
+FuzzyCLIPS> (get-defmessage-handler-list)
+(USER init primary USER delete primary USER create primary USER print primary USER direct-modify primary USER message-modify primary USER direct-duplicate primary USER message-duplicate primary USER print-args primary TEST get-x primary TEST put-x primary A1 get-x primary A1 put-x primary A1 print-args primary A2 print-args primary MY-EXTERNAL-ADDRESS get-blah primary MY-EXTERNAL-ADDRESS put-blah primary MY-EXTERNAL-ADDRESS create primary MY-EXTERNAL-ADDRESS init primary MY-EXTERNAL-ADDRESS delete primary JUNK get-x primary JUNK put-x primary JUNK put-y primary JUNK my-put primary JUNK my-get primary JUNK my-replace primary JUNK my-insert primary JUNK my-delete primary BOOGLE put-z primary)
+FuzzyCLIPS> (get-defmessage-handler-list 1)
+[ARGACCES5] Function get-defmessage-handler-list expected argument #1 to be of type symbol
+FuzzyCLIPS> (get-defmessage-handler-list JUNK)
+(JUNK get-x primary JUNK put-x primary JUNK put-y primary JUNK my-put primary JUNK my-get primary JUNK my-replace primary JUNK my-insert primary JUNK my-delete primary)
+FuzzyCLIPS> (get-defmessage-handler-list JUNK 1)
+[ARGACCES5] Function get-defmessage-handler-list expected argument #2 to be of type symbol
+FuzzyCLIPS> (get-defmessage-handler-list JUNK junk)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for get-defmessage-handler-list.
+()
+FuzzyCLIPS> (get-defmessage-handler-list JUNK inherit)
+(USER init primary USER delete primary USER create primary USER print primary USER direct-modify primary USER message-modify primary USER direct-duplicate primary USER message-duplicate primary USER print-args primary JUNK get-x primary JUNK put-x primary JUNK put-y primary JUNK my-put primary JUNK my-get primary JUNK my-replace primary JUNK my-insert primary JUNK my-delete primary)
+FuzzyCLIPS> (slot-facets)
+[ARGACCES4] Function slot-facets expected exactly 2 argument(s)
+FuzzyCLIPS> (slot-facets 1)
+[ARGACCES4] Function slot-facets expected exactly 2 argument(s)
+FuzzyCLIPS> (slot-facets bad-class foo)
+[CLASSFUN1] Unable to find class bad-class in function slot-facets.
+()
+FuzzyCLIPS> (slot-facets TEST 1)
+[ARGACCES5] Function slot-facets expected argument #2 to be of type symbol
+FuzzyCLIPS> (slot-facets TEST ziggy)
+[INSFUN3] No such slot ziggy in function slot-facets.
+()
+FuzzyCLIPS> (slot-facets TEST x)
+(SGL NIL INH RW LCL RCT EXC PRV RW put-x)
+FuzzyCLIPS> (slot-facets SUBTEST x)
+(SGL NIL INH RW LCL RCT EXC PRV RW put-x)
+FuzzyCLIPS> (slot-sources)
+[ARGACCES4] Function slot-sources expected exactly 2 argument(s)
+FuzzyCLIPS> (slot-sources 1)
+[ARGACCES4] Function slot-sources expected exactly 2 argument(s)
+FuzzyCLIPS> (slot-sources bad-class foo)
+[CLASSFUN1] Unable to find class bad-class in function slot-sources.
+()
+FuzzyCLIPS> (slot-sources TEST 1)
+[ARGACCES5] Function slot-sources expected argument #2 to be of type symbol
+FuzzyCLIPS> (slot-sources TEST ziggy)
+[INSFUN3] No such slot ziggy in function slot-sources.
+()
+FuzzyCLIPS> (slot-sources TEST x)
+(TEST)
+FuzzyCLIPS> (slot-sources SUBTEST x)
+(TEST)
+FuzzyCLIPS> (slot-sources DOOGLE z)
+(WOZBANG COOGLE)
+FuzzyCLIPS> (dribble-off)

@@ -1,0 +1,126 @@
+TRUE
+FuzzyCLIPS> (batch "dfnxerr.bat")
+TRUE
+FuzzyCLIPS> (deffunction test-args (?a ?b))
+FuzzyCLIPS> (test-args)
+[ARGACCES4] Function test-args expected exactly 2 argument(s)
+FuzzyCLIPS> (test-args 1 2 3)
+[ARGACCES4] Function test-args expected exactly 2 argument(s)
+FuzzyCLIPS> (deffunction test-args (?a ?b $?c))
+FuzzyCLIPS> (test-args 1)
+[ARGACCES4] Function test-args expected at least 2 argument(s)
+FuzzyCLIPS> (deffunction bad (?a $?b ?c))
+[PRCCODE8] No parameters allowed after wildcard parameter.
+
+ERROR:
+(deffunction MAIN::bad
+   (?a $?b ?c
+FuzzyCLIPS> (deffunction bad ()
+   (+ ?a 1))
+
+[PRCCODE3] Undefined variable a referenced in deffunction.
+
+ERROR:
+(deffunction MAIN::bad
+   ()
+   (+ ?a 1)
+   )
+FuzzyCLIPS> (deffunction bad (?a ?a))
+[PRCCODE7] Duplicate parameter names not allowed.
+
+ERROR:
+(deffunction MAIN::bad
+   (?a ?a
+FuzzyCLIPS> (deffunction defgeneric ())
+[DFFNXPSR1] Deffunctions are not allowed to replace constructs.
+
+ERROR:
+(deffunction MAIN::defgeneric
+   (
+FuzzyCLIPS> (deffunction + ())
+[DFFNXPSR2] Deffunctions are not allowed to replace external functions.
+
+ERROR:
+(deffunction MAIN::+
+   (
+FuzzyCLIPS> (defgeneric blah)
+FuzzyCLIPS> (deffunction blah ())
+[DFFNXPSR3] Deffunctions are not allowed to replace generic functions.
+
+ERROR:
+(deffunction MAIN::blah
+   (
+FuzzyCLIPS> (deffunction bad)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for parameter list.
+
+ERROR:
+(deffunction MAIN::bad)
+FuzzyCLIPS> (deffunction bad (?a abc))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for parameter list.
+
+ERROR:
+(deffunction MAIN::bad
+   (?a abc
+FuzzyCLIPS> (deffunction weird ()
+  (build "(deffunction weird ())"))
+FuzzyCLIPS> (weird)
+[DFNXPSR4] Deffunction weird may not be redefined while it is executing.
+
+ERROR:
+(deffunction MAIN::weird
+   (
+FALSE
+FuzzyCLIPS> (deffunction)
+
+[CSTRCPSR2] Missing name for deffunction construct
+
+ERROR:
+(deffunction )
+FuzzyCLIPS> (deffunction foo (?a))
+FuzzyCLIPS> (deffunction globble () (foo))
+[ARGACCES4] Function foo expected exactly 1 argument(s)
+
+ERROR:
+(deffunction MAIN::globble
+   ()
+   (foo)
+FuzzyCLIPS> (globble)
+
+[EXPRNPSR3] Missing function declaration for globble.
+FuzzyCLIPS> (deffunction globble ($?any) (foo $?any))
+FuzzyCLIPS> (globble)
+[ARGACCES4] Function foo expected exactly 1 argument(s)
+[PRCCODE4] Execution halted during the actions of deffunction globble.
+FALSE
+FuzzyCLIPS> (foo (+ (eval "(gensym)") 2))
+[ARGACCES5] Function + expected argument #1 to be of type integer or float
+[PRCCODE6] This error occurred while evaluating arguments for the deffunction foo.
+FALSE
+FuzzyCLIPS> (foo (instances))
+[PRCCODE2] Functions without a return value are illegal as deffunction arguments.
+[PRCCODE6] This error occurred while evaluating arguments for the deffunction foo.
+FALSE
+FuzzyCLIPS> (deffunction foo ()
+  (+ ?a 2)
+  (bind ?a 1))
+FuzzyCLIPS> (foo)
+[PRCCODE5] Variable a unbound in deffunction foo.
+[ARGACCES5] Function + expected argument #1 to be of type integer or float
+[PRCCODE4] Execution halted during the actions of deffunction foo.
+FALSE
+FuzzyCLIPS> (deffunction foo ()
+  (printout t "Hello world!" crlf))
+FuzzyCLIPS> (deffunction bar ()
+  (foo)
+  (undeffunction *))
+FuzzyCLIPS> (bar)
+Hello world!
+[PRNTUTIL4] Unable to delete deffunction bar.
+[DFFNXFUN1] WARNING: Deffunction foo only partially deleted due to usage by other constructs.
+FuzzyCLIPS> (list-deffunctions)
+foo
+bar
+For a total of 2 deffunctions.
+FuzzyCLIPS> (dribble-off)

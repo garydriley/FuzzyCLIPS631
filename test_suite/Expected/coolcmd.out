@@ -1,0 +1,519 @@
+TRUE
+FuzzyCLIPS> (batch "coolcmd.bat")
+TRUE
+FuzzyCLIPS> (defclass PP-TEST (is-a USER)
+   (multislot x)
+   (slot y))
+FuzzyCLIPS> (ppdefclass)
+[ARGACCES4] Function ppdefclass expected exactly 1 argument(s)
+FuzzyCLIPS> (ppdefclass USER)
+FuzzyCLIPS> (ppdefclass BOGUS)
+[PRNTUTIL1] Unable to find defclass BOGUS.
+FuzzyCLIPS> (ppdefclass PP-TEST)
+(defclass MAIN::PP-TEST
+   (is-a USER)
+   (multislot x)
+   (slot y))
+FuzzyCLIPS> (list-defclasses)
+FLOAT
+INTEGER
+SYMBOL
+STRING
+MULTIFIELD
+EXTERNAL-ADDRESS
+FACT-ADDRESS
+INSTANCE-ADDRESS
+INSTANCE-NAME
+FUZZY-VALUE
+OBJECT
+PRIMITIVE
+NUMBER
+LEXEME
+ADDRESS
+INSTANCE
+USER
+INITIAL-OBJECT
+PP-TEST
+For a total of 19 defclasses.
+FuzzyCLIPS> (defclass TEST (is-a USER) (role concrete))
+FuzzyCLIPS> (defclass ANOTHER-TEST (is-a TEST))
+FuzzyCLIPS> (defclass * (is-a OBJECT))
+FuzzyCLIPS> (undefclass BOGUS)
+[PRNTUTIL1] Unable to find defclass BOGUS.
+FuzzyCLIPS> (undefclass *)
+FuzzyCLIPS> (undefclass OBJECT)
+[PRNTUTIL4] Unable to delete defclass OBJECT.
+FuzzyCLIPS> (undefclass USER)
+[PRNTUTIL4] Unable to delete defclass USER.
+FuzzyCLIPS> (undefclass PRIMITIVE)
+[PRNTUTIL4] Unable to delete defclass PRIMITIVE.
+FuzzyCLIPS> (undefclass MULTIFIELD)
+[PRNTUTIL4] Unable to delete defclass MULTIFIELD.
+FuzzyCLIPS> (undefclass EXTERNAL-ADDRESS)
+[PRNTUTIL4] Unable to delete defclass EXTERNAL-ADDRESS.
+FuzzyCLIPS> (undefclass NUMBER)
+[PRNTUTIL4] Unable to delete defclass NUMBER.
+FuzzyCLIPS> (undefclass LEXEME)
+[PRNTUTIL4] Unable to delete defclass LEXEME.
+FuzzyCLIPS> (undefclass INTEGER)
+[PRNTUTIL4] Unable to delete defclass INTEGER.
+FuzzyCLIPS> (undefclass FLOAT)
+[PRNTUTIL4] Unable to delete defclass FLOAT.
+FuzzyCLIPS> (undefclass SYMBOL)
+[PRNTUTIL4] Unable to delete defclass SYMBOL.
+FuzzyCLIPS> (undefclass STRING)
+[PRNTUTIL4] Unable to delete defclass STRING.
+FuzzyCLIPS> (make-instance t of TEST)
+[t]
+FuzzyCLIPS> (undefclass TEST)
+[PRNTUTIL4] Unable to delete defclass TEST.
+FuzzyCLIPS> (unmake-instance *)
+TRUE
+FuzzyCLIPS> (defmethod foo ((?a TEST)))
+FuzzyCLIPS> (undefclass TEST)
+[PRNTUTIL4] Unable to delete defclass TEST.
+FuzzyCLIPS> (undefgeneric foo)
+FuzzyCLIPS> (undefclass TEST)
+FuzzyCLIPS> (list-defclasses)
+FLOAT
+INTEGER
+SYMBOL
+STRING
+MULTIFIELD
+EXTERNAL-ADDRESS
+FACT-ADDRESS
+INSTANCE-ADDRESS
+INSTANCE-NAME
+FUZZY-VALUE
+OBJECT
+PRIMITIVE
+NUMBER
+LEXEME
+ADDRESS
+INSTANCE
+USER
+INITIAL-OBJECT
+PP-TEST
+For a total of 19 defclasses.
+FuzzyCLIPS> (undefclass *)
+FuzzyCLIPS> (list-defclasses)
+FLOAT
+INTEGER
+SYMBOL
+STRING
+MULTIFIELD
+EXTERNAL-ADDRESS
+FACT-ADDRESS
+INSTANCE-ADDRESS
+INSTANCE-NAME
+FUZZY-VALUE
+OBJECT
+PRIMITIVE
+NUMBER
+LEXEME
+ADDRESS
+INSTANCE
+USER
+INITIAL-OBJECT
+For a total of 18 defclasses.
+FuzzyCLIPS> (defclass CHILD (is-a USER) (role abstract)
+  (slot age (create-accessor ?NONE))
+  (slot sex (access read-only)
+            (storage shared)
+            (create-accessor ?NONE)))
+FuzzyCLIPS> (defclass BOY (is-a CHILD)
+   (role concrete)
+   (slot sex (source composite)
+             (default male)
+             (create-accessor ?NONE)))
+FuzzyCLIPS> (defmessage-handler BOY play ()
+   (printout t "The boy is now playing..." crlf))
+FuzzyCLIPS> (describe-class CHILD)
+================================================================================
+********************************************************************************
+Abstract: direct instances of this class cannot be created.
+
+Direct Superclasses: USER
+Inheritance Precedence: CHILD USER OBJECT
+Direct Subclasses: BOY
+--------------------------------------------------------------------------------
+SLOTS : FLD DEF PRP ACC STO MCH SRC VIS CRT OVRD-MSG SOURCE(S)
+age   : SGL STC INH RW  LCL RCT EXC PRV NIL put-age  CHILD
+sex   : SGL STC INH  R  SHR RCT EXC PRV NIL NIL      CHILD
+
+Constraint information for slots:
+
+SLOTS : SYM STR INN INA EXA FTA INT FLT
+age   :  +   +   +   +   +   +   +   +  RNG:[-oo..+oo] 
+sex   :  +   +   +   +   +   +   +   +  RNG:[-oo..+oo] 
+--------------------------------------------------------------------------------
+Recognized message-handlers:
+init primary in class USER
+delete primary in class USER
+create primary in class USER
+print primary in class USER
+direct-modify primary in class USER
+message-modify primary in class USER
+direct-duplicate primary in class USER
+message-duplicate primary in class USER
+********************************************************************************
+================================================================================
+FuzzyCLIPS> (describe-class BOY)
+================================================================================
+********************************************************************************
+Concrete: direct instances of this class can be created.
+Non-reactive: direct instances of this class cannot match defrule patterns.
+
+Direct Superclasses: CHILD
+Inheritance Precedence: BOY CHILD USER OBJECT
+Direct Subclasses:
+--------------------------------------------------------------------------------
+SLOTS : FLD DEF PRP ACC STO MCH SRC VIS CRT OVRD-MSG SOURCE(S)
+age   : SGL STC INH RW  LCL RCT EXC PRV NIL put-age  CHILD
+sex   : SGL STC INH  R  SHR RCT CMP PRV NIL NIL      CHILD BOY
+
+Constraint information for slots:
+
+SLOTS : SYM STR INN INA EXA FTA INT FLT
+age   :  +   +   +   +   +   +   +   +  RNG:[-oo..+oo] 
+sex   :  +   +   +   +   +   +   +   +  RNG:[-oo..+oo] 
+--------------------------------------------------------------------------------
+Recognized message-handlers:
+init primary in class USER
+delete primary in class USER
+create primary in class USER
+print primary in class USER
+direct-modify primary in class USER
+message-modify primary in class USER
+direct-duplicate primary in class USER
+message-duplicate primary in class USER
+play primary in class BOY
+********************************************************************************
+================================================================================
+FuzzyCLIPS> (defclass a (is-a USER))
+FuzzyCLIPS> (defclass b (is-a USER))
+FuzzyCLIPS> (defclass c (is-a a b))
+FuzzyCLIPS> (defclass d (is-a USER))
+FuzzyCLIPS> (defclass e (is-a c d))
+FuzzyCLIPS> (defclass f (is-a e))
+FuzzyCLIPS> (browse-classes)
+OBJECT
+  PRIMITIVE
+    NUMBER
+      INTEGER
+      FLOAT
+    LEXEME
+      SYMBOL
+      STRING
+    MULTIFIELD
+    ADDRESS
+      EXTERNAL-ADDRESS
+      FACT-ADDRESS
+      INSTANCE-ADDRESS *
+    INSTANCE
+      INSTANCE-ADDRESS *
+      INSTANCE-NAME
+    FUZZY-VALUE
+  USER
+    INITIAL-OBJECT
+    CHILD
+      BOY
+    a
+      c *
+        e *
+          f
+    b
+      c *
+        e *
+          f
+    d
+      e *
+        f
+FuzzyCLIPS> (browse-classes a)
+a
+  c *
+    e *
+      f
+FuzzyCLIPS> (browse-classes BOGUS)
+[CLASSFUN1] Unable to find class BOGUS in function browse-classes.
+FuzzyCLIPS> (browse-classes 34)
+[ARGACCES5] Function browse-classes expected argument #1 to be of type symbol
+FuzzyCLIPS> (ppdefmessage-handler)
+[ARGACCES4] Function ppdefmessage-handler expected at least 2 argument(s)
+FuzzyCLIPS> (ppdefmessage-handler bogus)
+[ARGACCES4] Function ppdefmessage-handler expected at least 2 argument(s)
+FuzzyCLIPS> (ppdefmessage-handler bogus bogus)
+[MSGCOM2] Unable to find message-handler bogus primary for class bogus in function ppdefmessage-handler.
+FuzzyCLIPS> (ppdefmessage-handler USER bogus)
+[MSGCOM2] Unable to find message-handler bogus primary for class USER in function ppdefmessage-handler.
+FuzzyCLIPS> (ppdefmessage-handler bogus init)
+[MSGCOM2] Unable to find message-handler init primary for class bogus in function ppdefmessage-handler.
+FuzzyCLIPS> (ppdefmessage-handler USER init)
+FuzzyCLIPS> (ppdefmessage-handler BOY play)
+(defmessage-handler MAIN::BOY play
+   ()
+   (printout t "The boy is now playing..." crlf))
+FuzzyCLIPS> (ppdefmessage-handler BOY play primary)
+(defmessage-handler MAIN::BOY play
+   ()
+   (printout t "The boy is now playing..." crlf))
+FuzzyCLIPS> (ppdefmessage-handler USER init around)
+[MSGCOM2] Unable to find message-handler init around for class USER in function ppdefmessage-handler.
+FuzzyCLIPS> (ppdefmessage-handler USER init before)
+[MSGCOM2] Unable to find message-handler init before for class USER in function ppdefmessage-handler.
+FuzzyCLIPS> (ppdefmessage-handler USER init after)
+[MSGCOM2] Unable to find message-handler init after for class USER in function ppdefmessage-handler.
+FuzzyCLIPS> (defmessage-handler BOY init after ())
+FuzzyCLIPS> (list-defmessage-handlers)
+init primary in class USER
+delete primary in class USER
+create primary in class USER
+print primary in class USER
+direct-modify primary in class USER
+message-modify primary in class USER
+direct-duplicate primary in class USER
+message-duplicate primary in class USER
+play primary in class BOY
+init after in class BOY
+For a total of 10 message-handlers.
+FuzzyCLIPS> (list-defmessage-handlers *)
+[CLASSFUN1] Unable to find class * in function list-defmessage-handlers.
+FuzzyCLIPS> (defclass * (is-a USER))
+FuzzyCLIPS> (list-defmessage-handlers)
+init primary in class USER
+delete primary in class USER
+create primary in class USER
+print primary in class USER
+direct-modify primary in class USER
+message-modify primary in class USER
+direct-duplicate primary in class USER
+message-duplicate primary in class USER
+play primary in class BOY
+init after in class BOY
+For a total of 10 message-handlers.
+FuzzyCLIPS> (undefclass *)
+FuzzyCLIPS> (list-defmessage-handlers USER)
+init primary in class USER
+delete primary in class USER
+create primary in class USER
+print primary in class USER
+direct-modify primary in class USER
+message-modify primary in class USER
+direct-duplicate primary in class USER
+message-duplicate primary in class USER
+For a total of 8 message-handlers.
+FuzzyCLIPS> (defmessage-handler USER * ())
+FuzzyCLIPS> (defmessage-handler USER bogus ())
+FuzzyCLIPS> (list-defmessage-handlers USER)
+init primary in class USER
+delete primary in class USER
+create primary in class USER
+print primary in class USER
+direct-modify primary in class USER
+message-modify primary in class USER
+direct-duplicate primary in class USER
+message-duplicate primary in class USER
+* primary in class USER
+bogus primary in class USER
+For a total of 10 message-handlers.
+FuzzyCLIPS> (undefmessage-handler USER *)
+FuzzyCLIPS> (list-defmessage-handlers USER)
+init primary in class USER
+delete primary in class USER
+create primary in class USER
+print primary in class USER
+direct-modify primary in class USER
+message-modify primary in class USER
+direct-duplicate primary in class USER
+message-duplicate primary in class USER
+bogus primary in class USER
+For a total of 9 message-handlers.
+FuzzyCLIPS> (undefmessage-handler)
+[ARGACCES4] Function undefmessage-handler expected at least 2 argument(s)
+FuzzyCLIPS> (undefmessage-handler * *)
+FuzzyCLIPS> (list-defmessage-handlers)
+init primary in class USER
+delete primary in class USER
+create primary in class USER
+print primary in class USER
+direct-modify primary in class USER
+message-modify primary in class USER
+direct-duplicate primary in class USER
+message-duplicate primary in class USER
+init after in class BOY
+For a total of 9 message-handlers.
+FuzzyCLIPS> (undefmessage-handler * * *)
+FuzzyCLIPS> (list-defmessage-handlers)
+init primary in class USER
+delete primary in class USER
+create primary in class USER
+print primary in class USER
+direct-modify primary in class USER
+message-modify primary in class USER
+direct-duplicate primary in class USER
+message-duplicate primary in class USER
+For a total of 8 message-handlers.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defmessage-handler USER my-message around ())
+FuzzyCLIPS> (defmessage-handler USER my-message before ())
+FuzzyCLIPS> (defmessage-handler USER my-message ())
+FuzzyCLIPS> (defmessage-handler USER my-message after ())
+FuzzyCLIPS> (defmessage-handler OBJECT my-message around ())
+FuzzyCLIPS> (defmessage-handler OBJECT my-message before ())
+FuzzyCLIPS> (defmessage-handler OBJECT my-message primary ())
+FuzzyCLIPS> (defmessage-handler OBJECT my-message after ())
+FuzzyCLIPS> (preview-send)
+[ARGACCES4] Function preview-send expected exactly 2 argument(s)
+FuzzyCLIPS> (preview-send BOGUS blah)
+[CLASSFUN1] Unable to find class BOGUS in function preview-send.
+FuzzyCLIPS> (preview-send USER blah)
+[MSGFUN1] No applicable primary message-handlers found for blah.
+FuzzyCLIPS> (preview-send USER my-message)
+>> my-message around in class USER
+| >> my-message around in class OBJECT
+| | >> my-message before in class USER
+| | << my-message before in class USER
+| | >> my-message before in class OBJECT
+| | << my-message before in class OBJECT
+| | >> my-message primary in class USER
+| | | >> my-message primary in class OBJECT
+| | | << my-message primary in class OBJECT
+| | << my-message primary in class USER
+| | >> my-message after in class OBJECT
+| | << my-message after in class OBJECT
+| | >> my-message after in class USER
+| | << my-message after in class USER
+| << my-message around in class OBJECT
+<< my-message around in class USER
+FuzzyCLIPS> (preview-send OBJECT my-message)
+>> my-message around in class OBJECT
+| >> my-message before in class OBJECT
+| << my-message before in class OBJECT
+| >> my-message primary in class OBJECT
+| << my-message primary in class OBJECT
+| >> my-message after in class OBJECT
+| << my-message after in class OBJECT
+<< my-message around in class OBJECT
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defclass TEST (is-a USER) (role concrete)
+   (slot x (create-accessor write)) 
+   (multislot y (default ?NONE) (create-accessor write))
+   (slot z (create-accessor write)))
+FuzzyCLIPS> (definstances TEST-CASES "Random comment..."
+   (t1 of TEST (x 100) (y a b c d e f))
+   (t2 of TEST (y blah)))
+FuzzyCLIPS> (ppdefinstances)
+[ARGACCES4] Function ppdefinstances expected exactly 1 argument(s)
+FuzzyCLIPS> (ppdefinstances BOGUS)
+[PRNTUTIL1] Unable to find definstances BOGUS.
+FuzzyCLIPS> (ppdefinstances 34)
+[ARGACCES5] Function ppdefinstances expected argument #1 to be of type symbol
+FuzzyCLIPS> (ppdefinstances TEST-CASES)
+(definstances MAIN::TEST-CASES "Random comment..."
+   (t1 of TEST
+      (x 100)
+      (y a b c d e f))
+   (t2 of TEST
+      (y blah)))
+FuzzyCLIPS> (list-definstances)
+initial-object
+TEST-CASES
+For a total of 2 definstances.
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (instances)
+[initial-object] of INITIAL-OBJECT
+[t1] of TEST
+[t2] of TEST
+For a total of 3 instances.
+FuzzyCLIPS> (instances MAIN TEST)
+[t1] of TEST
+[t2] of TEST
+For a total of 2 instances.
+FuzzyCLIPS> (instances MAIN USER)
+FuzzyCLIPS> (instances MAIN USER inherit)
+[initial-object] of INITIAL-OBJECT
+[t1] of TEST
+[t2] of TEST
+For a total of 3 instances.
+FuzzyCLIPS> (instances MAIN BOGUS)
+[CLASSFUN1] Unable to find class BOGUS in function instances.
+FuzzyCLIPS> (instances MAIN USER junk)
+[ARGACCES5] Function instances expected argument #3 to be of type keyword "inherit"
+FuzzyCLIPS> (send [t1] print)
+[t1] of TEST
+(x 100)
+(y a b c d e f)
+(z nil)
+FuzzyCLIPS> (defmessage-handler TEST print ()
+   (printout t "Printing twice..." crlf)
+   (ppinstance)
+   (call-next-handler)
+   (printout t "Done!" crlf))
+FuzzyCLIPS> (send [t2] print)
+Printing twice...
+[t2] of TEST
+(x nil)
+(y blah)
+(z nil)
+[t2] of TEST
+(x nil)
+(y blah)
+(z nil)
+Done!
+FuzzyCLIPS> (undefinstances)
+[ARGACCES4] Function undefinstances expected exactly 1 argument(s)
+FuzzyCLIPS> (definstances * (t3 of TEST))
+FuzzyCLIPS> (undefinstances *)
+FuzzyCLIPS> (list-definstances)
+initial-object
+TEST-CASES
+For a total of 2 definstances.
+FuzzyCLIPS> (undefinstances *)
+FuzzyCLIPS> (list-definstances)
+FuzzyCLIPS> (load-instances)
+[ARGACCES4] Function load-instances expected exactly 1 argument(s)
+FuzzyCLIPS> (load-instances 34)
+[ARGACCES5] Function load-instances expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (load-instances "coolcmd.bat")
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for make-instance.
+[INSFILE1] Function load-instances could not completely process file coolcmd.bat.
+0
+FuzzyCLIPS> (save-instances)
+[ARGACCES4] Function save-instances expected at least 1 argument(s)
+FuzzyCLIPS> (save-instances 34)
+[ARGACCES5] Function save-instances expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (send [t2] put-z (instance-address t1))
+<Instance-t1>
+FuzzyCLIPS> (mv-slot-replace t1 y 2 2 (instance-address t2))
+(a <Instance-t2> c d e f)
+FuzzyCLIPS> (save-instances "Actual//coolcmd2.out")
+3
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (load-instances "Actual//coolcmd2.out")
+3
+FuzzyCLIPS> (restore-instances "Actual//coolcmd2.out")
+3
+FuzzyCLIPS> (do-for-all-instances ((?a OBJECT)) TRUE (send ?a print))
+[initial-object] of INITIAL-OBJECT
+Printing twice...
+[t1] of TEST
+(x 100)
+(y a [t2] c d e f)
+(z nil)
+[t1] of TEST
+(x 100)
+(y a [t2] c d e f)
+(z nil)
+Done!
+Printing twice...
+[t2] of TEST
+(x nil)
+(y blah)
+(z [t1])
+[t2] of TEST
+(x nil)
+(y blah)
+(z [t1])
+Done!
+FuzzyCLIPS> (dribble-off)

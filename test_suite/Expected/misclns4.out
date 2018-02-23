@@ -1,0 +1,465 @@
+TRUE
+FuzzyCLIPS> (batch "misclns4.bat")
+TRUE
+FuzzyCLIPS> (clear) ;; Case 1
+FuzzyCLIPS> (defmodule A (export ?ALL))
+FuzzyCLIPS> (deftemplate A::foo)
+FuzzyCLIPS> (defmodule MAIN (import A ?ALL) (export ?ALL))
+FuzzyCLIPS> (defmodule B (import MAIN ?ALL))
+FuzzyCLIPS> (deftemplate B::foo)
+
+[CSTRCPSR3] Cannot define deftemplate foo because of an import/export conflict.
+
+ERROR:
+(deftemplate B::foo
+FuzzyCLIPS> (clear) ;; Case 2
+FuzzyCLIPS> (defmodule B)
+FuzzyCLIPS> (defmodule B::foo)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(defmodule B::foo
+FuzzyCLIPS> (clear) ;; Case 3
+FuzzyCLIPS> (defmodule ROOT (export ?ALL))
+FuzzyCLIPS> (deftemplate A)
+FuzzyCLIPS> (defmodule CHILD-1 (import ROOT ?ALL) (export ?ALL))
+FuzzyCLIPS> (defmodule CHILD-2 (import ROOT ?ALL) (export ?ALL))
+FuzzyCLIPS> (defmodule CHILD-3 (import CHILD-1 ?ALL) (import CHILD-2 ?ALL))
+FuzzyCLIPS> (clear) ;; Case 4
+FuzzyCLIPS> (defmodule d3 (export ?ALL))
+FuzzyCLIPS> (deftemplate t1)
+FuzzyCLIPS> (deftemplate t2)
+FuzzyCLIPS> (defmodule d4 (export deftemplate t3 t4) (import d3 deftemplate t1))
+FuzzyCLIPS> (clear) ;; Case 5
+FuzzyCLIPS> (deftemplate foo (slot x) (slot y))
+FuzzyCLIPS> (defrule bar (foo (x 3) (x 4) (y 3)) =>)
+
+[PRNTUTIL5] The slot x has already been parsed.
+
+ERROR:
+(defrule MAIN::bar
+   (foo (x 3) (x
+FuzzyCLIPS> (clear) ;; Case 6
+FuzzyCLIPS> (deftemplate foo (slot x (type SYMBOL)))
+FuzzyCLIPS> (defrule bar (foo (x ?x)) => (+ ?x 1))
+
+[RULECSTR3] Previous variable bindings of ?x caused the type restrictions
+for argument #1 of the expression (+ ?x 1)
+found in the rule's RHS to be violated.
+
+ERROR:
+(defrule MAIN::bar
+   (foo (x ?x))
+   =>
+   (+ ?x 1))
+FuzzyCLIPS> (defrule bar (foo (x ?x)) => (assert (yak (+ ?x 1))))
+
+[RULECSTR3] Previous variable bindings of ?x caused the type restrictions
+for argument #1 of the expression (+ ?x 1)
+found in the rule's RHS to be violated.
+
+ERROR:
+(defrule MAIN::bar
+   (foo (x ?x))
+   =>
+   (assert (yak (+ ?x 1))))
+FuzzyCLIPS> (clear) ;; Case 7
+FuzzyCLIPS> (defmodule a)
+FuzzyCLIPS> (assert (start))
+<Fact-0>
+FuzzyCLIPS> (defrule foo (start) =>)
+FuzzyCLIPS> (defmodule b)
+FuzzyCLIPS> (assert (begin))
+<Fact-1>
+FuzzyCLIPS> (defrule bar (begin) =>)
+FuzzyCLIPS> (agenda)
+0      bar: f-1
+For a total of 1 activation.
+FuzzyCLIPS> (agenda a)
+0      foo: f-0
+For a total of 1 activation.
+FuzzyCLIPS> (agenda b)
+0      bar: f-1
+For a total of 1 activation.
+FuzzyCLIPS> (agenda *)
+MAIN:
+a:
+   0      foo: f-0
+b:
+   0      bar: f-1
+For a total of 2 activations.
+FuzzyCLIPS> (clear) ;; Case 8
+FuzzyCLIPS> (defglobal ?*x* = 0)
+FuzzyCLIPS> (defrule foo ?f <- (foo) => (bind ?*x* ?f))
+FuzzyCLIPS> (assert (foo))
+<Fact-0>
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (fact-index ?*x*)
+0
+FuzzyCLIPS> (retract ?*x*)
+FuzzyCLIPS> (fact-index ?*x*)
+-1
+FuzzyCLIPS> (retract ?*x*)
+FuzzyCLIPS> (clear) ;; Case 9
+FuzzyCLIPS> (defmodule FOO (export ?ALL))
+FuzzyCLIPS> (deftemplate FOO::foo)
+FuzzyCLIPS> (defmodule BAR (export ?ALL) (import FOO ?ALL))
+FuzzyCLIPS> (deftemplate BAR::foo)
+
+[CSTRCPSR3] Cannot define deftemplate foo because of an import/export conflict.
+
+ERROR:
+(deftemplate BAR::foo
+FuzzyCLIPS> (clear) ;; Case 10
+FuzzyCLIPS> (defmodule FOO (export ?ALL))
+FuzzyCLIPS> (deftemplate FOO::foo)
+FuzzyCLIPS> (defmodule BAR (export ?ALL))
+FuzzyCLIPS> (deftemplate BAR::foo)
+FuzzyCLIPS> (defmodule YAK (import FOO ?ALL) (import BAR ?ALL))
+
+[CSTRCPSR3] Cannot define defmodule YAK because of an import/export conflict caused by the deftemplate foo.
+
+ERROR:
+(defmodule YAK
+   (import FOO ?ALL)
+   (import BAR ?ALL))
+FuzzyCLIPS> (clear) ;; Case 11
+FuzzyCLIPS> 
+(deftemplate set 
+  (multislot members))
+FuzzyCLIPS> 
+(deffacts stuff
+  (set (members Q R S D T A B D)))
+FuzzyCLIPS> 
+(defrule remove-duplicates
+   ?f <- (set (members $?b ?element $?m ?element $?e))
+   =>
+   (printout t ?b " " ?element " " ?m " " ?e crlf)
+   (modify ?f (members ?b ?element ?m ?e)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+(Q R S) D (T A B) ()
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-2     (set (members Q R S D T A B)) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (clear) ;; Case 12
+FuzzyCLIPS> 
+(deftemplate set 
+  (multislot m1)
+  (multislot m2))
+FuzzyCLIPS> 
+(deffacts stuff
+  (set (m1 Q R S D T A B D X) (m2 Q R D A B D S X)))
+FuzzyCLIPS> 
+(defrule remove-duplicates
+   ?f <- (set (m1 $?b1 ?element1 $?m1 ?element1 $?e1 X)
+              (m2 $?b2 ?element2 $?m2 ?element2 $?e2 X))
+   =>
+   (printout t ?b1 " " ?element1 " " ?m1 " " ?e1 crlf)
+   (printout t ?b2 " " ?element2 " " ?m2 " " ?e2 crlf)
+   (modify ?f (m1 ?b1 ?element1 ?m1 ?e1)
+              (m2 ?b2 ?element2 ?m2 ?e2)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+(Q R S) D (T A B) ()
+(Q R) D (A B) (S)
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-2     (set (m1 Q R S D T A B) (m2 Q R D A B S)) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (clear) ;; Case 13
+FuzzyCLIPS> 
+(deftemplate set 
+  (multislot m2))
+FuzzyCLIPS> 
+(deffacts stuff
+  (set (m2 D D S X)))
+FuzzyCLIPS> 
+(defrule remove-duplicates
+   ?f <- (set (m2 ?l2 $?m2 ?l2 $?e2 X))
+   =>
+   (printout t ?l2 " " ?m2 " " ?e2 crlf)
+   (modify ?f (m2 ?l2 ?m2 ?e2)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+D () (S)
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-2     (set (m2 D S)) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (clear) ;; Case 14
+FuzzyCLIPS> (defglobal ?*x* = 0)
+FuzzyCLIPS> (defmodule  MAIN (export ?ALL))
+FuzzyCLIPS> (defmodule FOO (import MAIN defglobal ?ALL))
+FuzzyCLIPS> (bind ?*x* 1)
+1
+FuzzyCLIPS> ?*x*
+1
+FuzzyCLIPS> (clear) ;; Case 15
+FuzzyCLIPS> 
+(defrule blah (m2 ?l2 $?m2 ?l2 $?e2 X) 
+   => 
+   (printout t ?l2 " " ?m2 " " ?e2 crlf))
+FuzzyCLIPS> (assert (m2 D D S X))
+<Fact-0>
+FuzzyCLIPS> (run)
+D () (S)
+FuzzyCLIPS> (clear) ;; Case 16
+FuzzyCLIPS> 
+(deftemplate adder
+  (multislot #-1)
+  (multislot #-2))
+FuzzyCLIPS> 
+(deffacts adder-info
+  (adder (#-1 1 0 1) (#-2 1 1))
+  (adder (#-1 1) (#-2 0)))
+FuzzyCLIPS> 
+(defrule another-bug
+  (adder (#-1 $?n1 ?v)
+         (#-2 $?n2 ~?v))
+  =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+0      another-bug: f-2
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ;; Case 17
+FuzzyCLIPS> (defmodule MAIN (export ?ALL))
+FuzzyCLIPS> (defmodule A (import MAIN ?ALL) (export ?ALL))
+FuzzyCLIPS> (deftemplate A::a (slot x))
+FuzzyCLIPS> (defmodule B (import MAIN ?ALL) (import A ?ALL) (export ?ALL))
+FuzzyCLIPS> (deftemplate B::b (slot y))
+FuzzyCLIPS> (clear) ;; Case 18
+FuzzyCLIPS> 
+(defrule foo
+  (declare (salience 4))
+  (x)
+  (not (and (a) (b)))
+  (y)
+  =>)
+FuzzyCLIPS>   
+(defrule bar
+  (declare (salience 3))
+  (x)
+  (not (and (a) (b)))
+  (test (< 5 3))
+  (y)
+  =>)
+FuzzyCLIPS>   
+(defrule dog
+  (declare (salience 2))
+  (x)
+  (z)
+  (not (and (a) (b)))
+  (test (< 5 3))
+  (y)
+  =>)
+FuzzyCLIPS>   
+(defrule yak
+  (declare (salience 1))
+  (x)
+  (z)
+  (not (and (a) (b)))
+  (y)
+  =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (y))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+4      foo: f-1,,f-2
+For a total of 1 activation.
+FuzzyCLIPS> (assert (z))
+<Fact-3>
+FuzzyCLIPS> (agenda)
+4      foo: f-1,,f-2
+1      yak: f-1,f-3,,f-2
+For a total of 2 activations.
+FuzzyCLIPS> (assert (a))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+4      foo: f-1,,f-2
+1      yak: f-1,f-3,,f-2
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ;; Case 19
+FuzzyCLIPS> (assert (foo))
+<Fact-0>
+FuzzyCLIPS> (defmodule BAR)
+FuzzyCLIPS> (assert (bar))
+<Fact-1>
+FuzzyCLIPS> (save-facts "Temp//bug.tmp")
+TRUE
+FuzzyCLIPS> (bsave "Temp//bug.bin")
+TRUE
+FuzzyCLIPS> (bload "Temp//bug.bin")
+TRUE
+FuzzyCLIPS> (load-facts "Temp//bug.tmp") 
+[FACTRHS1] Template bar does not exist for assert.
+Function load-facts encountered an error
+FALSE
+FuzzyCLIPS> (facts)
+FuzzyCLIPS> (clear) ;; Case 20
+FuzzyCLIPS> 
+(defrule foo1
+  (declare (salience 10))
+  =>)
+FuzzyCLIPS> 
+(defrule foo2
+  (declare (auto-focus TRUE))
+  =>)
+FuzzyCLIPS> 
+(defrule foo3
+  (declare (auto-focus TRUE) (salience 10))
+  =>)
+FuzzyCLIPS> 
+(defrule foo4
+  (declare (salience 10) (auto-focus TRUE))
+  =>)
+FuzzyCLIPS> (ppdefrule foo1)
+(defrule MAIN::foo1
+   (declare (salience 10))
+   =>)
+FuzzyCLIPS> (ppdefrule foo2)
+(defrule MAIN::foo2
+   (declare (auto-focus TRUE))
+   =>)
+FuzzyCLIPS> (ppdefrule foo3)
+(defrule MAIN::foo3
+   (declare (auto-focus TRUE) (salience 10))
+   =>)
+FuzzyCLIPS> (ppdefrule foo4)
+(defrule MAIN::foo4
+   (declare (salience 10) (auto-focus TRUE))
+   =>)
+FuzzyCLIPS> (clear) ; watching specific items
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (defglobal ?*foo* = 1)
+FuzzyCLIPS> (defglobal ?*bar* = 2)
+FuzzyCLIPS> (deftemplate foo)
+FuzzyCLIPS> (deftemplate bar)
+FuzzyCLIPS> (defrule foo (foo) => (assert (bar)))
+FuzzyCLIPS> (defrule bar (bar) =>)
+FuzzyCLIPS> (watch rules foo)
+FuzzyCLIPS> (watch globals foo)
+FuzzyCLIPS> (watch facts foo)
+FuzzyCLIPS> (watch activations foo)
+FuzzyCLIPS> (watch rules yak)
+[ARGACCES5] Function watch expected argument #2 to be of type defrule
+FuzzyCLIPS> (watch globals yak)
+[ARGACCES5] Function watch expected argument #2 to be of type defglobal
+FuzzyCLIPS> (watch facts yak)
+[ARGACCES5] Function watch expected argument #2 to be of type deftemplate
+FuzzyCLIPS> (watch activations yak)
+[ARGACCES5] Function watch expected argument #2 to be of type defrule
+FuzzyCLIPS> (watch compilations foo)
+[ARGACCES4] Function watch expected exactly 1 argument(s)
+FuzzyCLIPS> (watch statistics foo)
+[ARGACCES4] Function watch expected exactly 1 argument(s)
+FuzzyCLIPS> (watch focus foo)
+[ARGACCES4] Function watch expected exactly 1 argument(s)
+FuzzyCLIPS> (reset)
+:== ?*foo* ==> 1 <== 1
+FuzzyCLIPS> (bind ?*foo* 3)
+:== ?*foo* ==> 3 <== 1
+3
+FuzzyCLIPS> (bind ?*bar* 4)
+4
+FuzzyCLIPS> (assert (foo))
+==> f-1     (foo) CF 1.00 
+==> Activation 0      foo: f-1
+<Fact-1>
+FuzzyCLIPS> (run)
+FIRE    1 foo: f-1
+FuzzyCLIPS> (list-watch-items)
+facts = off
+instances = off
+slots = off
+rules = off
+activations = off
+messages = off
+message-handlers = off
+generic-functions = off
+methods = off
+deffunctions = off
+compilations = off
+statistics = off
+globals = off
+focus = off
+FuzzyCLIPS> (list-watch-items globals)
+globals = off
+MAIN:
+   foo = on
+   bar = off
+FuzzyCLIPS> (list-watch-items facts)
+facts = off
+MAIN:
+   initial-fact = off
+   foo = on
+   bar = off
+FuzzyCLIPS> (list-watch-items rules)
+rules = off
+MAIN:
+   foo = on
+   bar = off
+FuzzyCLIPS> (list-watch-items activations)
+activations = off
+MAIN:
+   foo = on
+   bar = off
+FuzzyCLIPS> (list-watch-items compilations)
+compilations = off
+FuzzyCLIPS> (list-watch-items statistics)
+statistics = off
+FuzzyCLIPS> (list-watch-items focus)
+focus = off
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (list-watch-items)
+facts = off
+instances = off
+slots = off
+rules = off
+activations = off
+messages = off
+message-handlers = off
+generic-functions = off
+methods = off
+deffunctions = off
+compilations = off
+statistics = off
+globals = off
+focus = off
+FuzzyCLIPS> (list-watch-items globals)
+globals = off
+MAIN:
+   foo = off
+   bar = off
+FuzzyCLIPS> (list-watch-items facts)
+facts = off
+MAIN:
+   initial-fact = off
+   foo = off
+   bar = off
+FuzzyCLIPS> (list-watch-items rules)
+rules = off
+MAIN:
+   foo = off
+   bar = off
+FuzzyCLIPS> (list-watch-items activations)
+activations = off
+MAIN:
+   foo = off
+   bar = off
+FuzzyCLIPS> (list-watch-items compilations)
+compilations = off
+FuzzyCLIPS> (list-watch-items statistics)
+statistics = off
+FuzzyCLIPS> (list-watch-items focus)
+focus = off
+FuzzyCLIPS> (dribble-off)

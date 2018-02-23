@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/tmpltlhs.c,v 1.3 2001/08/11 21:08:15 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                DEFTEMPLATE LHS MODULE               */
    /*******************************************************/
@@ -22,6 +20,8 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/tmpltlhs.c,v 1.3 2001/08/1
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
 /*************************************************************/
 
 #define _TMPLTLHS_SOURCE_
@@ -35,6 +35,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/tmpltlhs.c,v 1.3 2001/08/1
 #include <string.h>
 
 #include "constant.h"
+#include "envrnmnt.h"
 #include "memalloc.h"
 #include "symbol.h"
 #include "scanner.h"
@@ -49,60 +50,47 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/tmpltlhs.c,v 1.3 2001/08/1
 #include "tmpltutl.h"
 #include "tmpltdef.h"
 
-#include "tmpltlhs.h"
-
 #if FUZZY_DEFTEMPLATES 
 #include "fuzzylhs.h"
 #include "fuzzypsr.h"
 #endif
 
+#include "tmpltlhs.h"
+
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static struct lhsParseNode    *GetLHSSlots(char *,struct token *,struct deftemplate *,int *);
-   static struct lhsParseNode    *GetSingleLHSSlot(char *,struct token *,
-                                                   struct templateSlot *,int *,int);
+   static struct lhsParseNode    *GetLHSSlots(void *,char *,struct token *,struct deftemplate *,int *);
+   static struct lhsParseNode    *GetSingleLHSSlot(void *,char *,struct token *,
+                                                   struct templateSlot *,int *,short);
 #if FUZZY_DEFTEMPLATES     /* added 03-11-96 */
-   static struct lhsParseNode    *GetFuzzySingleLHSSlot(char *,struct token *,
+   static struct lhsParseNode    *GetFuzzySingleLHSSlot(void *,char *,struct token *,
                                                    struct deftemplate *,int *,int);
 #endif
-  
-   static BOOLEAN                 MultiplyDefinedLHSSlots(struct lhsParseNode *,SYMBOL_HN *);
-
-/**************************************************/
-/* Locally defined global variables               */
-/**************************************************/
-
-#if FUZZY_DEFTEMPLATES       /* added 03-11-96 */
-
-/* this is only used in this file and pattern.c (routine
-   LiteralRestrictionParse)
-*/
-globle struct deftemplate *FuzzyDeftemplate;
-
-#endif
+   static intBool                 MultiplyDefinedLHSSlots(void *,struct lhsParseNode *,SYMBOL_HN *);
 
 /*********************************************/
 /* DeftemplateLHSParse: Parses a LHS pattern */
 /*   that uses the deftemplate format.       */
 /*********************************************/
 globle struct lhsParseNode *DeftemplateLHSParse(
+  void *theEnv,
   char *readSource,
   struct deftemplate *theDeftemplate)
   {
    struct lhsParseNode *head, *firstSlot;
    struct token theToken;
    int error;
-
+   
    /*===============================================================*/
    /* Make sure the deftemplate name is not connected to subfields. */
    /*===============================================================*/
 
-   GetToken(readSource,&theToken);
+   GetToken(theEnv,readSource,&theToken);
    if ((theToken.type == OR_CONSTRAINT) || (theToken.type == AND_CONSTRAINT))
      {
-      SyntaxErrorMessage("deftemplate patterns");
+      SyntaxErrorMessage(theEnv,"deftemplate patterns");
       return(NULL);
      }
 
@@ -110,12 +98,12 @@ globle struct lhsParseNode *DeftemplateLHSParse(
    /* Create the pattern node for the deftemplate name. */
    /*===================================================*/
 
-   head = GetLHSParseNode();
+   head = GetLHSParseNode(theEnv);
    head->type = SF_WILDCARD;
    head->negated = FALSE;
    head->index = 0;
    head->slotNumber = 1;
-   head->bottom = GetLHSParseNode();
+   head->bottom = GetLHSParseNode(theEnv);
    head->bottom->type = SYMBOL;
    head->bottom->negated = FALSE;
    head->bottom->value = (void *) theDeftemplate->header.name;
@@ -125,7 +113,7 @@ globle struct lhsParseNode *DeftemplateLHSParse(
    /*==========================================*/
 
    error = FALSE;
-
+   
 #if FUZZY_DEFTEMPLATES    /* added 03-11-96 */
    /*======================================*/
    /* May be a Fuzzy deftemplate.          */
@@ -136,37 +124,38 @@ globle struct lhsParseNode *DeftemplateLHSParse(
       routines than to add this global BUT ...
    */
 
-   FuzzyDeftemplate = NULL;
+   DeftemplateData(theEnv)->FuzzyDeftemplate = NULL;
 
    if (theDeftemplate->fuzzyTemplate != NULL)
      {
-       FuzzyDeftemplate = theDeftemplate;
+       DeftemplateData(theEnv)->FuzzyDeftemplate = theDeftemplate;
 
        /*=======================================*/
        /* Put a space between the template name */
        /* and the fuzzy set definition.         */
        /*=======================================*/
 
-       PPBackup();
-       SavePPBuffer(" ");
-       SavePPBuffer(theToken.printForm);
+       PPBackup(theEnv);
+       SavePPBuffer(theEnv," ");
+       SavePPBuffer(theEnv,theToken.printForm);
 
-       firstSlot = GetFuzzySingleLHSSlot(readSource,&theToken,theDeftemplate,&error,2);
+       firstSlot = GetFuzzySingleLHSSlot(theEnv,readSource,&theToken,theDeftemplate,&error,2);
      }
    else
      {
 
 #endif /* FUZZY_DEFTEMPLATES */
 
-   firstSlot = GetLHSSlots(readSource,&theToken,theDeftemplate,&error);
-
+   firstSlot = GetLHSSlots(theEnv,readSource,&theToken,theDeftemplate,&error);
+   
 #if FUZZY_DEFTEMPLATES    /* added 03-11-96 */
      }
 #endif /* FUZZY_DEFTEMPLATES */
+
    if (error)
      {
-      ReturnLHSParseNodes(firstSlot);
-      ReturnLHSParseNodes(head);
+      ReturnLHSParseNodes(theEnv,firstSlot);
+      ReturnLHSParseNodes(theEnv,head);
       return(NULL);
      }
 
@@ -183,6 +172,7 @@ globle struct lhsParseNode *DeftemplateLHSParse(
 /*   values used in a LHS pattern.        */
 /******************************************/
 static struct lhsParseNode *GetLHSSlots(
+  void *theEnv,
   char *readSource,
   struct token *tempToken,
   struct deftemplate *theDeftemplate,
@@ -190,7 +180,7 @@ static struct lhsParseNode *GetLHSSlots(
   {
    struct lhsParseNode *firstSlot = NULL, *nextSlot, *lastSlot = NULL;
    struct templateSlot *slotPtr;
-   int position;
+   short position;
 
    /*=======================================================*/
    /* Continue parsing slot definitions until the pattern's */
@@ -199,9 +189,9 @@ static struct lhsParseNode *GetLHSSlots(
 
    while (tempToken->type != RPAREN)
      {
-      PPBackup();
-      SavePPBuffer(" ");
-      SavePPBuffer(tempToken->printForm);
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv," ");
+      SavePPBuffer(theEnv,tempToken->printForm);
 
       /*=================================================*/
       /* Slot definitions begin with a left parenthesis. */
@@ -210,8 +200,8 @@ static struct lhsParseNode *GetLHSSlots(
       if (tempToken->type != LPAREN)
         {
          *error = TRUE;
-         SyntaxErrorMessage("deftemplate patterns");
-         ReturnLHSParseNodes(firstSlot);
+         SyntaxErrorMessage(theEnv,"deftemplate patterns");
+         ReturnLHSParseNodes(theEnv,firstSlot);
          return(NULL);
         }
 
@@ -219,12 +209,12 @@ static struct lhsParseNode *GetLHSSlots(
       /* Get the slot name. */
       /*====================*/
 
-      GetToken(readSource,tempToken);
+      GetToken(theEnv,readSource,tempToken);
       if (tempToken->type != SYMBOL)
         {
          *error = TRUE;
-         SyntaxErrorMessage("deftemplate patterns");
-         ReturnLHSParseNodes(firstSlot);
+         SyntaxErrorMessage(theEnv,"deftemplate patterns");
+         ReturnLHSParseNodes(theEnv,firstSlot);
          return(NULL);
         }
 
@@ -235,9 +225,9 @@ static struct lhsParseNode *GetLHSSlots(
       if ((slotPtr = FindSlot(theDeftemplate,(SYMBOL_HN *) tempToken->value,&position)) == NULL)
         {
          *error = TRUE;
-         InvalidDeftemplateSlotMessage(ValueToString(tempToken->value),
-                                       ValueToString(theDeftemplate->header.name));
-         ReturnLHSParseNodes(firstSlot);
+         InvalidDeftemplateSlotMessage(theEnv,ValueToString(tempToken->value),
+                                       ValueToString(theDeftemplate->header.name),TRUE);
+         ReturnLHSParseNodes(theEnv,firstSlot);
          return(NULL);
         }
 
@@ -245,10 +235,10 @@ static struct lhsParseNode *GetLHSSlots(
       /* Determine if the slot is multiply defined. */
       /*============================================*/
 
-      if (MultiplyDefinedLHSSlots(firstSlot,(SYMBOL_HN *) tempToken->value) == TRUE)
+      if (MultiplyDefinedLHSSlots(theEnv,firstSlot,(SYMBOL_HN *) tempToken->value) == TRUE)
         {
          *error = TRUE;
-         ReturnLHSParseNodes(firstSlot);
+         ReturnLHSParseNodes(theEnv,firstSlot);
          return(NULL);
         }
 
@@ -256,11 +246,11 @@ static struct lhsParseNode *GetLHSSlots(
       /* Get the pattern matching values used in the slot definition. */
       /*==============================================================*/
 
-      nextSlot = GetSingleLHSSlot(readSource,tempToken,slotPtr,error,position+1);
+      nextSlot = GetSingleLHSSlot(theEnv,readSource,tempToken,slotPtr,error,(short) (position+1));
       if (*error)
         {
-         ReturnLHSParseNodes(firstSlot);
-         ReturnLHSParseNodes(nextSlot);
+         ReturnLHSParseNodes(theEnv,firstSlot);
+         ReturnLHSParseNodes(theEnv,nextSlot);
          return(NULL);
         }
 
@@ -281,7 +271,7 @@ static struct lhsParseNode *GetLHSSlots(
       /* Begin parsing the next slot. */
       /*==============================*/
 
-      GetToken(readSource,tempToken);
+      GetToken(theEnv,readSource,tempToken);
      }
 
    /*===========================================================*/
@@ -296,11 +286,12 @@ static struct lhsParseNode *GetLHSSlots(
 /*   to be associated with a slot name.              */
 /*****************************************************/
 static struct lhsParseNode *GetSingleLHSSlot(
+  void *theEnv,
   char *readSource,
   struct token *tempToken,
   struct templateSlot *slotPtr,
   int *error,
-  int position)
+  short position)
   {
    struct lhsParseNode *nextSlot;
    SYMBOL_HN *slotName;
@@ -310,8 +301,8 @@ static struct lhsParseNode *GetSingleLHSSlot(
    /*================================================*/
 
    slotName = (SYMBOL_HN *) tempToken->value;
-   SavePPBuffer(" ");
-   GetToken(readSource,tempToken);
+   SavePPBuffer(theEnv," ");
+   GetToken(theEnv,readSource,tempToken);
 
    /*====================================*/
    /* Get value for a single field slot. */
@@ -323,8 +314,9 @@ static struct lhsParseNode *GetSingleLHSSlot(
       /* Get the single value. */
       /*=======================*/
 
-      nextSlot = RestrictionParse(readSource,tempToken,FALSE,
-                                  slotPtr->slotName,position - 1,slotPtr->constraints,0);
+      nextSlot = RestrictionParse(theEnv,readSource,tempToken,FALSE,
+                                  slotPtr->slotName,(short) (position - 1),
+                                  slotPtr->constraints,0);
       if (nextSlot == NULL)
         {
          *error = TRUE;
@@ -339,9 +331,9 @@ static struct lhsParseNode *GetSingleLHSSlot(
       if ((nextSlot->type == MF_VARIABLE) ||
           (nextSlot->type == MULTIFIELD))
         {
-         SingleFieldSlotCardinalityError(slotPtr->slotName->contents);
+         SingleFieldSlotCardinalityError(theEnv,slotPtr->slotName->contents);
          *error = TRUE;
-         ReturnLHSParseNodes(nextSlot);
+         ReturnLHSParseNodes(theEnv,nextSlot);
          return(NULL);
         }
      }
@@ -352,7 +344,7 @@ static struct lhsParseNode *GetSingleLHSSlot(
 
    else
      {
-      nextSlot = RestrictionParse(readSource,tempToken,TRUE,slotName,position - 1,
+      nextSlot = RestrictionParse(theEnv,readSource,tempToken,TRUE,slotName,(short) (position - 1),
                                   slotPtr->constraints,1);
       if (nextSlot == NULL)
         {
@@ -367,12 +359,12 @@ static struct lhsParseNode *GetSingleLHSSlot(
 
    if (tempToken->type != RPAREN)
      {
-      PPBackup();
-      SavePPBuffer(" ");
-      SavePPBuffer(tempToken->printForm);
-      SyntaxErrorMessage("deftemplate patterns");
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv," ");
+      SavePPBuffer(theEnv,tempToken->printForm);
+      SyntaxErrorMessage(theEnv,"deftemplate patterns");
       *error = TRUE;
-      ReturnLHSParseNodes(nextSlot);
+      ReturnLHSParseNodes(theEnv,nextSlot);
       return(NULL);
      }
 
@@ -383,9 +375,9 @@ static struct lhsParseNode *GetSingleLHSSlot(
 
    if ((nextSlot->bottom == NULL) && slotPtr->multislot)
      {
-      PPBackup();
-      PPBackup();
-      SavePPBuffer(")");
+      PPBackup(theEnv);
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv,")");
      }
 
    /*=================================*/
@@ -395,7 +387,7 @@ static struct lhsParseNode *GetSingleLHSSlot(
 
    return(nextSlot);
   }
-
+  
 #if FUZZY_DEFTEMPLATES      /* added 03-11-96 */
 
 /*****************************************************/
@@ -406,6 +398,7 @@ static struct lhsParseNode *GetSingleLHSSlot(
 /*         (temp ?x&very cold)                       */
 /*****************************************************/
 static struct lhsParseNode *GetFuzzySingleLHSSlot(
+  void *theEnv,
   char *readSource,
   struct token *tempToken,
   struct deftemplate *theDeftemplate,
@@ -423,7 +416,7 @@ static struct lhsParseNode *GetFuzzySingleLHSSlot(
    /* Get the single value. */
    /*=======================*/
 
-   nextSlot = RestrictionParse(readSource,tempToken,FALSE,
+   nextSlot = RestrictionParse(theEnv,readSource,tempToken,FALSE,
                                slotPtr->slotName,position - 1,
                                slotPtr->constraints,0);
 
@@ -441,9 +434,9 @@ static struct lhsParseNode *GetFuzzySingleLHSSlot(
    if ((nextSlot->type == MF_VARIABLE) ||
        (nextSlot->type == MULTIFIELD))
      {
-      SingleFieldSlotCardinalityError(slotPtr->slotName->contents);
+      SingleFieldSlotCardinalityError(theEnv,slotPtr->slotName->contents);
       *error = TRUE;
-      ReturnLHSParseNodes(nextSlot);
+      ReturnLHSParseNodes(theEnv,nextSlot);
       return(NULL);
      }
 
@@ -453,12 +446,12 @@ static struct lhsParseNode *GetFuzzySingleLHSSlot(
 
    if (tempToken->type != RPAREN)
      {
-      PPBackup();
-      SavePPBuffer(" ");
-      SavePPBuffer(tempToken->printForm);
-      SyntaxErrorMessage("deftemplate patterns");
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv," ");
+      SavePPBuffer(theEnv,tempToken->printForm);
+      SyntaxErrorMessage(theEnv,"deftemplate patterns");
       *error = TRUE;
-      ReturnLHSParseNodes(nextSlot);
+      ReturnLHSParseNodes(theEnv,nextSlot);
       return(NULL);
      }
 
@@ -472,12 +465,12 @@ static struct lhsParseNode *GetFuzzySingleLHSSlot(
 
 #endif   /* FUZZY_DEFTEMPLATES */
 
-
 /******************************************************/
 /* MultiplyDefinedLHSSlots: Determines if a slot name */
 /*   was used more than once in a LHS pattern.        */
 /******************************************************/
-static BOOLEAN MultiplyDefinedLHSSlots(
+static intBool MultiplyDefinedLHSSlots(
+  void *theEnv,
   struct lhsParseNode *theSlots,
   SYMBOL_HN *slotName)
   {
@@ -487,7 +480,7 @@ static BOOLEAN MultiplyDefinedLHSSlots(
      {
       if (theSlots->slot == slotName)
         {
-         AlreadyParsedErrorMessage("slot ",ValueToString(slotName));
+         AlreadyParsedErrorMessage(theEnv,"slot ",ValueToString(slotName));
          return(TRUE);
         }
      }

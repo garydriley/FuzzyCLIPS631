@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/rulebin.h,v 1.3 2001/08/11 21:07:39 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*           DEFRULE BSAVE/BLOAD HEADER FILE           */
    /*******************************************************/
@@ -47,7 +45,6 @@ struct bsaveFzSlotLocator
     long     fvhnPtr;
   };
 #endif
-
 
 struct bsaveDefrule
   {
@@ -107,10 +104,28 @@ struct bsaveJoinNode
    long rightMatchNode;
    long ruleToActivate;
   };
+  
+#define RULEBIN_DATA 20
+
+struct defruleBinaryData
+  { 
+   long NumberOfDefruleModules;
+   long NumberOfDefrules;
+   long NumberOfJoins;
+   struct defruleModule *ModuleArray;
+   struct defrule *DefruleArray;
+   struct joinNode *JoinArray;
+#if FUZZY_DEFTEMPLATES 
+   long NumberOfPatternFuzzyValues;
+   struct fzSlotLocator *PatternFuzzyValueArray;
+#endif
+  };
+
+#define DefruleBinaryData(theEnv) ((struct defruleBinaryData *) GetEnvironmentData(theEnv,RULEBIN_DATA))
 
 #define BloadDefrulePointer(x,i) ((struct defrule *) (( i == -1L) ? NULL : &x[i]))
 #define BsaveJoinIndex(joinPtr) ((joinPtr == NULL) ? -1L :  ((struct joinNode *) joinPtr)->bsaveID)
-#define BloadJoinPointer(i) ((struct joinNode *) ((i == -1L) ? NULL : &JoinArray[i]))
+#define BloadJoinPointer(i) ((struct joinNode *) ((i == -1L) ? NULL : &DefruleBinaryData(theEnv)->JoinArray[i]))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -122,17 +137,15 @@ struct bsaveJoinNode
 #define LOCALE extern
 #endif
 
-   LOCALE void                           DefruleBinarySetup(void);
-   LOCALE void                           UpdatePatternNodeHeader(struct patternNodeHeader *,
+   LOCALE void                           DefruleBinarySetup(void *);
+   LOCALE void                           UpdatePatternNodeHeader(void *,struct patternNodeHeader *,
                                                                  struct bsavePatternNodeHeader *);
    LOCALE void                           AssignBsavePatternHeaderValues(struct bsavePatternNodeHeader *,
                                                                  struct patternNodeHeader *);
-   LOCALE void                          *BloadDefruleModuleReference(int);
+   LOCALE void                          *BloadDefruleModuleReference(void *,int);
 
 #endif
 #endif
-
-
 
 
 

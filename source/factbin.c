@@ -1,10 +1,8 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factbin.c,v 1.3 2001/08/11 21:05:27 dave Exp $" ;
-
 
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                FACT BSAVE/BLOAD MODULE              */
    /*******************************************************/
@@ -36,8 +34,10 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factbin.c,v 1.3 2001/08/11
 #include "tmpltdef.h"
 #include "bload.h"
 #include "bsave.h"
+#include "reteutil.h"
 #include "rulebin.h"
 #include "moduldef.h"
+#include "envrnmnt.h"
 
 #include "factbin.h"
 
@@ -48,9 +48,9 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factbin.c,v 1.3 2001/08/11
 struct bsaveFactPatternNode
   {
    struct bsavePatternNodeHeader header;
-   unsigned int whichSlot : 8;
-   unsigned int whichField : 8;
-   unsigned int leaveFields : 8;
+   unsigned short whichSlot;
+   unsigned short whichField;
+   unsigned short leaveFields;
    long networkTest;
    long nextLevel;
    long lastLevel;
@@ -61,51 +61,60 @@ struct bsaveFactPatternNode
 #define BSAVE_FIND         0
 #define BSAVE_PATTERNS     1
 
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle struct factPatternNode            *FactPatternArray;
-
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-
-   static long                               NumberOfPatterns;
-
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
 #if BLOAD_AND_BSAVE
-   static void                    BsaveDriver(int,FILE *,struct factPatternNode *);
-   static void                    BsaveFind(void);
-   static void                    BsaveStorage(FILE *);
-   static void                    BsaveFactPatterns(FILE *);
-   static void                    BsavePatternNode(struct factPatternNode *,FILE *);
+   static void                    BsaveDriver(void *,int,FILE *,struct factPatternNode *);
+   static void                    BsaveFind(void *);
+   static void                    BsaveStorage(void *,FILE *);
+   static void                    BsaveFactPatterns(void *,FILE *);
+   static void                    BsavePatternNode(void *,struct factPatternNode *,FILE *);
 #endif
-   static void                    BloadStorage(void);
-   static void                    BloadBinaryItem(void);
-   static void                    UpdateFactPatterns(void *,long);
-   static void                    ClearBload(void);
+   static void                    BloadStorage(void *);
+   static void                    BloadBinaryItem(void *);
+   static void                    UpdateFactPatterns(void *,void *,long);
+   static void                    ClearBload(void *);
+   static void                    DeallocateFactBloadData(void *);
 
 /*****************************************************/
 /* FactBinarySetup: Initializes the binary load/save */
 /*   feature for the fact pattern network.           */
 /*****************************************************/
-globle void FactBinarySetup()
+globle void FactBinarySetup(
+  void *theEnv)
   {
+   AllocateEnvironmentData(theEnv,FACTBIN_DATA,sizeof(struct factBinaryData),DeallocateFactBloadData);
+   
 #if BLOAD_AND_BSAVE
-   AddBinaryItem("facts",0,BsaveFind,NULL,
+   AddBinaryItem(theEnv,"facts",0,BsaveFind,NULL,
                             BsaveStorage,BsaveFactPatterns,
                             BloadStorage,BloadBinaryItem,
                             ClearBload);
 #endif
 #if BLOAD || BLOAD_ONLY
-   AddBinaryItem("facts",0,NULL,NULL,NULL,NULL,
+   AddBinaryItem(theEnv,"facts",0,NULL,NULL,NULL,NULL,
                             BloadStorage,BloadBinaryItem,
                             ClearBload);
 #endif
+  }
+  
+/****************************************************/
+/* DeallocateFactBloadData: Deallocates environment */
+/*    data for the fact bsave functionality.        */
+/****************************************************/
+static void DeallocateFactBloadData(
+  void *theEnv)
+  {
+   unsigned long space;
+   int i;
+   
+   for (i = 0; i < FactBinaryData(theEnv)->NumberOfPatterns; i++)
+     { DestroyAlphaBetaMemory(theEnv,FactBinaryData(theEnv)->FactPatternArray[i].header.alphaMemory); }
+
+   space = FactBinaryData(theEnv)->NumberOfPatterns * sizeof(struct factPatternNode);
+   if (space != 0) genlongfree(theEnv,(void *) FactBinaryData(theEnv)->FactPatternArray,space);
   }
 
 #if BLOAD_AND_BSAVE
@@ -115,7 +124,8 @@ globle void FactBinarySetup()
 /*   must be saved in the binary image for the fact      */
 /*   pattern network in the current environment.         */
 /*********************************************************/
-static void BsaveFind()
+static void BsaveFind(
+  void *theEnv)
   {
    struct deftemplate *theDeftemplate;
    struct defmodule *theModule;
@@ -126,29 +136,29 @@ static void BsaveFind()
    /* in the process of saving the binary image.            */
    /*=======================================================*/
 
-   if (Bloaded()) SaveBloadCount(NumberOfPatterns);
+   SaveBloadCount(theEnv,FactBinaryData(theEnv)->NumberOfPatterns);
 
    /*=======================================*/
    /* Set the count of fact pattern network */
    /* data structures to zero.              */
    /*=======================================*/
 
-   NumberOfPatterns = 0L;
+   FactBinaryData(theEnv)->NumberOfPatterns = 0L;
 
    /*===========================*/
    /* Loop through each module. */
    /*===========================*/
 
-   for (theModule = (struct defmodule *) GetNextDefmodule(NULL);
+   for (theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
         theModule != NULL;
-        theModule = (struct defmodule *) GetNextDefmodule(theModule))
+        theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule))
      {
       /*===============================*/
       /* Set the current module to the */
       /* module being examined.        */
       /*===============================*/
 
-      SetCurrentModule((void *) theModule);
+      EnvSetCurrentModule(theEnv,(void *) theModule);
 
       /*=====================================================*/
       /* Loop through each deftemplate in the current module */
@@ -156,10 +166,10 @@ static void BsaveFind()
       /* be saved for its pattern network.                   */
       /*=====================================================*/
 
-      for (theDeftemplate = (struct deftemplate *) GetNextDeftemplate(NULL);
+      for (theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,NULL);
            theDeftemplate != NULL;
-           theDeftemplate = (struct deftemplate *) GetNextDeftemplate(theDeftemplate))
-        { BsaveDriver(BSAVE_FIND,NULL,theDeftemplate->patternNetwork); }
+           theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,theDeftemplate))
+        { BsaveDriver(theEnv,BSAVE_FIND,NULL,theDeftemplate->patternNetwork); }
      }
   }
 
@@ -169,6 +179,7 @@ static void BsaveFind()
 /*   and saving the data structures to a file.            */
 /**********************************************************/
 static void BsaveDriver(
+  void *theEnv,
   int action,
   FILE *fp,
   struct factPatternNode *thePattern)
@@ -178,11 +189,11 @@ static void BsaveDriver(
       switch(action)
         {
          case BSAVE_FIND:
-           thePattern->bsaveID = NumberOfPatterns++;
+           thePattern->bsaveID = FactBinaryData(theEnv)->NumberOfPatterns++;
            break;
 
          case BSAVE_PATTERNS:
-           BsavePatternNode(thePattern,fp);
+           BsavePatternNode(theEnv,thePattern,fp);
            break;
 
          default:
@@ -208,13 +219,14 @@ static void BsaveDriver(
 /*   factPatternNode data structures to the binary file  */
 /*********************************************************/
 static void BsaveStorage(
+  void *theEnv,
   FILE *fp)
   {
    unsigned long space;
 
    space = sizeof(long);
    GenWrite(&space,(unsigned long) sizeof(unsigned long int),fp);
-   GenWrite(&NumberOfPatterns,(unsigned long) sizeof(long int),fp);
+   GenWrite(&FactBinaryData(theEnv)->NumberOfPatterns,(unsigned long) sizeof(long int),fp);
   }
 
 /*****************************************************/
@@ -222,6 +234,7 @@ static void BsaveStorage(
 /*    data structures to the binary file.            */
 /*****************************************************/
 static void BsaveFactPatterns(
+  void *theEnv,
   FILE *fp)
   {
    unsigned long int space;
@@ -234,27 +247,27 @@ static void BsaveFactPatterns(
    /* in the binary image.                   */
    /*========================================*/
 
-   space = NumberOfPatterns * sizeof(struct bsaveFactPatternNode);
+   space = FactBinaryData(theEnv)->NumberOfPatterns * sizeof(struct bsaveFactPatternNode);
    GenWrite(&space,(unsigned long) sizeof(unsigned long int),fp);
 
    /*===========================*/
    /* Loop through each module. */
    /*===========================*/
 
-   for (theModule = (struct defmodule *) GetNextDefmodule(NULL);
+   for (theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
         theModule != NULL;
-        theModule = (struct defmodule *) GetNextDefmodule(theModule))
+        theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule))
      {
       /*=====================================================*/
       /* Loop through each deftemplate in the current module */
       /* and save its fact pattern network to the file.      */
       /*=====================================================*/
 
-      SetCurrentModule((void *) theModule);
-      for (theDeftemplate = (struct deftemplate *) GetNextDeftemplate(NULL);
+      EnvSetCurrentModule(theEnv,(void *) theModule);
+      for (theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,NULL);
            theDeftemplate != NULL;
-           theDeftemplate = (struct deftemplate *) GetNextDeftemplate(theDeftemplate))
-        { BsaveDriver(BSAVE_PATTERNS,fp,theDeftemplate->patternNetwork); }
+           theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,theDeftemplate))
+        { BsaveDriver(theEnv,BSAVE_PATTERNS,fp,theDeftemplate->patternNetwork); }
     }
 
    /*=============================================================*/
@@ -264,7 +277,7 @@ static void BsaveFactPatterns(
    /* (these were overwritten by the binary save).                */
    /*=============================================================*/
 
-   if (Bloaded()) RestoreBloadCount(&NumberOfPatterns);
+   RestoreBloadCount(theEnv,&FactBinaryData(theEnv)->NumberOfPatterns);
   }
 
 /******************************************************/
@@ -272,6 +285,7 @@ static void BsaveFactPatterns(
 /*   node to the binary image save file.              */
 /******************************************************/
 static void BsavePatternNode(
+  void *theEnv,
   struct factPatternNode *thePattern,
   FILE *fp)
   {
@@ -282,7 +296,7 @@ static void BsavePatternNode(
    tempNode.whichField = thePattern->whichField;
    tempNode.leaveFields = thePattern->leaveFields;
    tempNode.whichSlot = thePattern->whichSlot;
-   tempNode.networkTest = HashedExpressionIndex(thePattern->networkTest);
+   tempNode.networkTest = HashedExpressionIndex(theEnv,thePattern->networkTest);
    tempNode.nextLevel =  BsaveFactPatternIndex(thePattern->nextLevel);
    tempNode.lastLevel =  BsaveFactPatternIndex(thePattern->lastLevel);
    tempNode.leftNode =  BsaveFactPatternIndex(thePattern->leftNode);
@@ -297,7 +311,8 @@ static void BsavePatternNode(
 /* BloadStorage: Allocates storage requirements for  */
 /*   the factPatternNodes used by this binary image. */
 /*****************************************************/
-static void BloadStorage()
+static void BloadStorage(
+  void *theEnv)
   {
    unsigned long space;
 
@@ -306,29 +321,30 @@ static void BloadStorage()
    /* data structures to be read.             */
    /*=========================================*/
 
-   GenRead(&space,(unsigned long) sizeof(unsigned long int));
-   GenRead(&NumberOfPatterns,(unsigned long) sizeof(long int));
+   GenReadBinary(theEnv,&space,(unsigned long) sizeof(unsigned long int));
+   GenReadBinary(theEnv,&FactBinaryData(theEnv)->NumberOfPatterns,(unsigned long) sizeof(long int));
 
    /*===================================*/
    /* Allocate the space needed for the */
    /* factPatternNode data structures.  */
    /*===================================*/
 
-   if (NumberOfPatterns == 0)
+   if (FactBinaryData(theEnv)->NumberOfPatterns == 0)
      {
-      FactPatternArray = NULL;
+      FactBinaryData(theEnv)->FactPatternArray = NULL;
       return;
      }
 
-   space = NumberOfPatterns * sizeof(struct factPatternNode);
-   FactPatternArray = (struct factPatternNode *) genlongalloc(space);
+   space = FactBinaryData(theEnv)->NumberOfPatterns * sizeof(struct factPatternNode);
+   FactBinaryData(theEnv)->FactPatternArray = (struct factPatternNode *) genlongalloc(theEnv,space);
   }
 
 /************************************************************/
 /* BloadBinaryItem: Loads and refreshes the factPatternNode */
 /*   data structures used by this binary image.             */
 /************************************************************/
-static void BloadBinaryItem()
+static void BloadBinaryItem(
+  void *theEnv)
   {
    unsigned long space;
 
@@ -338,14 +354,14 @@ static void BloadBinaryItem()
    /* is not available in the version being run).          */
    /*======================================================*/
 
-   GenRead(&space,(unsigned long) sizeof(unsigned long int));
+   GenReadBinary(theEnv,&space,(unsigned long) sizeof(unsigned long int));
 
    /*=============================================*/
    /* Read in the factPatternNode data structures */
    /* and refresh the pointers.                   */
    /*=============================================*/
 
-   BloadandRefresh(NumberOfPatterns,(unsigned) sizeof(struct bsaveFactPatternNode),
+   BloadandRefresh(theEnv,FactBinaryData(theEnv)->NumberOfPatterns,(unsigned) sizeof(struct bsaveFactPatternNode),
                    UpdateFactPatterns);
   }
 
@@ -354,6 +370,7 @@ static void BloadBinaryItem()
 /*   the factPatternNode structure.              */
 /*************************************************/
 static void UpdateFactPatterns(
+  void *theEnv,
   void *buf,
   long obji)
   {
@@ -361,30 +378,32 @@ static void UpdateFactPatterns(
 
    bp = (struct bsaveFactPatternNode *) buf;
 
-   UpdatePatternNodeHeader(&FactPatternArray[obji].header,&bp->header);
+   UpdatePatternNodeHeader(theEnv,&FactBinaryData(theEnv)->FactPatternArray[obji].header,&bp->header);
 
-   FactPatternArray[obji].bsaveID = 0L;
-   FactPatternArray[obji].whichField = bp->whichField;
-   FactPatternArray[obji].leaveFields = bp->leaveFields;
-   FactPatternArray[obji].whichSlot = bp->whichSlot;
+   FactBinaryData(theEnv)->FactPatternArray[obji].bsaveID = 0L;
+   FactBinaryData(theEnv)->FactPatternArray[obji].whichField = bp->whichField;
+   FactBinaryData(theEnv)->FactPatternArray[obji].leaveFields = bp->leaveFields;
+   FactBinaryData(theEnv)->FactPatternArray[obji].whichSlot = bp->whichSlot;
 
-   FactPatternArray[obji].networkTest = HashedExpressionPointer(bp->networkTest);
-   FactPatternArray[obji].rightNode = BloadFactPatternPointer(bp->rightNode);
-   FactPatternArray[obji].nextLevel = BloadFactPatternPointer(bp->nextLevel);
-   FactPatternArray[obji].lastLevel = BloadFactPatternPointer(bp->lastLevel);
-   FactPatternArray[obji].leftNode  = BloadFactPatternPointer(bp->leftNode);
+   FactBinaryData(theEnv)->FactPatternArray[obji].networkTest = HashedExpressionPointer(bp->networkTest);
+   FactBinaryData(theEnv)->FactPatternArray[obji].rightNode = BloadFactPatternPointer(bp->rightNode);
+   FactBinaryData(theEnv)->FactPatternArray[obji].nextLevel = BloadFactPatternPointer(bp->nextLevel);
+   FactBinaryData(theEnv)->FactPatternArray[obji].lastLevel = BloadFactPatternPointer(bp->lastLevel);
+   FactBinaryData(theEnv)->FactPatternArray[obji].leftNode  = BloadFactPatternPointer(bp->leftNode);
   }
 
 /***************************************************/
 /* ClearBload:  Fact pattern network clear routine */
 /*   when a binary load is in effect.              */
 /***************************************************/
-static void ClearBload()
+static void ClearBload(
+  void *theEnv)
   {
    unsigned long int space;
 
-   space = NumberOfPatterns * sizeof(struct factPatternNode);
-   if (space != 0) genlongfree((void *) FactPatternArray,space);
+   space = FactBinaryData(theEnv)->NumberOfPatterns * sizeof(struct factPatternNode);
+   if (space != 0) genlongfree(theEnv,(void *) FactBinaryData(theEnv)->FactPatternArray,space);
+   FactBinaryData(theEnv)->NumberOfPatterns = 0;
   }
 
 #endif /* DEFTEMPLATE_CONSTRUCT && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) && (! RUN_TIME) */

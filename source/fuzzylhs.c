@@ -1,5 +1,3 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/fuzzylhs.c,v 1.3 2001/08/11 21:05:54 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
@@ -102,6 +100,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/fuzzylhs.c,v 1.3 2001/08/1
 /********************************************************************/
 
 globle struct fuzzy_value *GetFuzzyLHSPattern(
+  void *theEnv,
   char *readSource,
   struct token *theToken,
   struct  fuzzyLv *fzTemplate,
@@ -111,7 +110,7 @@ globle struct fuzzy_value *GetFuzzyLHSPattern(
      /* ParseLinguisticExpr is in FUZZYRHS.C 
         -- same syntax in pattern as in assert
     */
-    return( ParseLinguisticExpr(readSource,theToken,fzTemplate,error) );
+    return( ParseLinguisticExpr(theEnv,readSource,theToken,fzTemplate,error) );
       
 }
 

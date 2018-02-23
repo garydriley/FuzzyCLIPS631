@@ -1,0 +1,91 @@
+TRUE
+FuzzyCLIPS> (batch "basicfnx.bat")
+TRUE
+FuzzyCLIPS> (clear)                            ; 10.1.1
+FuzzyCLIPS> (watch facts)                      ; 10.1.1
+FuzzyCLIPS> (assert)                           ; 10.1.1
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for assert command.
+FuzzyCLIPS> (assert ())                        ; 10.1.1
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for first field of a RHS pattern.
+FuzzyCLIPS> (assert (a) ())                    ; 10.1.1
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for first field of a RHS pattern.
+FuzzyCLIPS> (assert () (b))                    ; 10.1.1
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for first field of a RHS pattern.
+FuzzyCLIPS> (assert (c) () (d))                ; 10.1.1
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for first field of a RHS pattern.
+FuzzyCLIPS> (assert (a ~b))                    ; 10.1.1
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for RHS patterns.
+FuzzyCLIPS> (assert (a &c))                    ; 10.1.1
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for RHS patterns.
+FuzzyCLIPS> (assert (a |d))                    ; 10.1.1
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for RHS patterns.
+FuzzyCLIPS> (assert (a ?x))                    ; 10.1.1
+[EVALUATN1] Variable x is unbound
+==> f-0     (a) CF 1.00 
+<Fact-0>
+FuzzyCLIPS> (assert (e))                       ; 10.1.1
+==> f-1     (e) CF 1.00 
+<Fact-1>
+FuzzyCLIPS> (assert (f) (g) (h))               ; 10.1.1 
+==> f-2     (f) CF 1.00 
+==> f-3     (g) CF 1.00 
+==> f-4     (h) CF 1.00 
+<Fact-4>
+FuzzyCLIPS> (assert (i =(+ 3 4)))              ; 10.1.1
+==> f-5     (i 7) CF 1.00 
+<Fact-5>
+FuzzyCLIPS> (retract)                          ; 10.1.2
+[ARGACCES4] Function retract expected at least 1 argument(s)
+FuzzyCLIPS> (retract 0)                        ; 10.1.2
+<== f-0     (a) CF 1.00 
+FuzzyCLIPS> (retract 1 3)                      ; 10.1.2
+<== f-1     (e) CF 1.00 
+<== f-3     (g) CF 1.00 
+FuzzyCLIPS> (retract 7 8)                      ; 10.1.2
+[PRNTUTIL1] Unable to find fact f-7.
+[PRNTUTIL1] Unable to find fact f-8.
+FuzzyCLIPS> (retract *)                        ; 10.1.2
+<== f-2     (f) CF 1.00 
+<== f-4     (h) CF 1.00 
+<== f-5     (i 7) CF 1.00 
+FuzzyCLIPS> (unwatch facts)                    ; 10.1.2
+FuzzyCLIPS> (clear)                            ; 10.1.5
+FuzzyCLIPS> (deftemplate foo (slot x) (slot y))
+FuzzyCLIPS> (assert-string)                    ; 10.1.5
+[ARGACCES4] Function assert-string expected exactly 1 argument(s)
+FuzzyCLIPS> (assert-string "a b c" "d e f")    ; 10.1.5
+[ARGACCES4] Function assert-string expected exactly 1 argument(s)
+FuzzyCLIPS> (assert-string 7)                  ; 10.1.5
+[ARGACCES5] Function assert-string expected argument #1 to be of type string
+FuzzyCLIPS> (assert-string hello)              ; 10.1.5
+[ARGACCES5] Function assert-string expected argument #1 to be of type string
+FuzzyCLIPS> (assert-string "(x y z)")          ; 10.1.5
+<Fact-0>
+FuzzyCLIPS> (assert-string "(foo (y 3))")      ; 10.1.5
+<Fact-1>
+FuzzyCLIPS> (facts)                            ; 10.1.5
+f-0     (x y z) CF 1.00 
+f-1     (foo (x nil) (y 3)) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (clear)                            ; 10.1.5
+FuzzyCLIPS> (bind)                             ; 10.1.6
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for bind function.
+FuzzyCLIPS> (bind ?x)                          ; 10.1.6
+FALSE
+FuzzyCLIPS> (bind ?x 3)                        ; 10.1.6
+3
+FuzzyCLIPS> (bind ?x 3 4)                      ; 10.1.6
+(3 4)
+FuzzyCLIPS> (halt)                             ; 10.1.7
+FuzzyCLIPS> (halt 3)                           ; 10.1.7
+[ARGACCES4] Function halt expected exactly 0 argument(s)
+FuzzyCLIPS> (dribble-off)

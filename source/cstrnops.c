@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrnops.c,v 1.3 2001/08/11 21:04:42 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  07/01/05            */
    /*                                                     */
    /*            CONSTRAINT OPERATIONS MODULE             */
    /*******************************************************/
@@ -20,6 +18,8 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrnops.c,v 1.3 2001/08/1
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Added allowed-classes slot facet.              */
+/*                                                           */
 /*************************************************************/
 
 #define _CSTRNOPS_SOURCE_
@@ -33,6 +33,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrnops.c,v 1.3 2001/08/1
 #if (! RUN_TIME)
 
 #include "constant.h"
+#include "envrnmnt.h"
 #include "memalloc.h"
 #include "router.h"
 #include "extnfunc.h"
@@ -48,25 +49,39 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrnops.c,v 1.3 2001/08/1
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static void                     IntersectNumericExpressions(CONSTRAINT_RECORD *,
-                                                             CONSTRAINT_RECORD *,
-                                                             CONSTRAINT_RECORD *,int);
-   static void                     IntersectAllowedValueExpressions(CONSTRAINT_RECORD *,
+   static void                     IntersectNumericExpressions(void *,
+                                                               CONSTRAINT_RECORD *,
+                                                               CONSTRAINT_RECORD *,
+                                                               CONSTRAINT_RECORD *,int);
+   static void                     IntersectAllowedValueExpressions(void *,
+                                                                    CONSTRAINT_RECORD *,
+                                                                    CONSTRAINT_RECORD *,
+                                                                    CONSTRAINT_RECORD *);
+   static void                     IntersectAllowedClassExpressions(void *,
+                                                                    CONSTRAINT_RECORD *,
                                                                     CONSTRAINT_RECORD *,
                                                                     CONSTRAINT_RECORD *);
    static int                      FindItemInExpression(int,void *,int,struct expr *);
    static void                     UpdateRestrictionFlags(CONSTRAINT_RECORD *);
 #if (! BLOAD_ONLY)
-   static void                     UnionRangeMinMaxValueWithList(struct expr *,
+   static void                     UnionRangeMinMaxValueWithList(void *,
+                                                                 struct expr *,
                                                                  struct expr *,
                                                                  struct expr **,
                                                                  struct expr **);
-   static void                     UnionNumericExpressions(CONSTRAINT_RECORD *,
+   static void                     UnionNumericExpressions(void *,
+                                                         CONSTRAINT_RECORD *,
                                                          CONSTRAINT_RECORD *,
                                                          CONSTRAINT_RECORD *,int);
-   static struct expr             *AddToUnionList(struct expr *,struct expr *,
+   static struct expr             *AddToUnionList(void *,
+                                                  struct expr *,struct expr *,
                                                   CONSTRAINT_RECORD *);
-   static void                     UnionAllowedValueExpressions(CONSTRAINT_RECORD *,
+   static void                     UnionAllowedValueExpressions(void *,
+                                                                CONSTRAINT_RECORD *,
+                                                                CONSTRAINT_RECORD *,
+                                                                CONSTRAINT_RECORD *);
+   static void                     UnionAllowedClassExpressions(void *,
+                                                                CONSTRAINT_RECORD *,
                                                                 CONSTRAINT_RECORD *,
                                                                 CONSTRAINT_RECORD *);
    static int                      RestrictionOnType(int,CONSTRAINT_RECORD *);
@@ -77,6 +92,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrnops.c,v 1.3 2001/08/1
 /*   is the intersection of two other constraint records.     */
 /**************************************************************/
 globle struct constraintRecord *IntersectConstraints(
+  void *theEnv,
   CONSTRAINT_RECORD *c1,
   CONSTRAINT_RECORD *c2)
   {
@@ -90,7 +106,7 @@ globle struct constraintRecord *IntersectConstraints(
 
    if ((c1 == NULL) && (c2 == NULL))
      {
-      rv = GetConstraintRecord();
+      rv = GetConstraintRecord(theEnv);
       rv->multifieldsAllowed = TRUE;
       return(rv);
      }
@@ -101,15 +117,15 @@ globle struct constraintRecord *IntersectConstraints(
    /* (a NULL value means no constraints).            */
    /*=================================================*/
 
-   if (c1 == NULL) return(CopyConstraintRecord(c2));
+   if (c1 == NULL) return(CopyConstraintRecord(theEnv,c2));
 
-   if (c2 == NULL) return(CopyConstraintRecord(c1));
+   if (c2 == NULL) return(CopyConstraintRecord(theEnv,c1));
 
    /*=================================*/
    /* Create a new constraint record. */
    /*=================================*/
 
-   rv = GetConstraintRecord();
+   rv = GetConstraintRecord(theEnv);
 
    /*==============================*/
    /* Intersect the allowed types. */
@@ -177,20 +193,22 @@ globle struct constraintRecord *IntersectConstraints(
       rv->stringRestriction = (c1->stringRestriction || c2->stringRestriction);
       rv->floatRestriction = (c1->floatRestriction || c2->floatRestriction);
       rv->integerRestriction = (c1->integerRestriction || c2->integerRestriction);
+      rv->classRestriction = (c1->classRestriction || c2->classRestriction);
       rv->instanceNameRestriction = (c1->instanceNameRestriction || c2->instanceNameRestriction);
 #if FUZZY_DEFTEMPLATES
       rv->fuzzyValueRestriction = (c1->fuzzyValueRestriction || c2->fuzzyValueRestriction);
 #endif
      }
 
-   /*============================================*/
-   /* Intersect the allowed values list, the min */
-   /* and max values, and the range values.      */
-   /*============================================*/
+   /*==================================================*/
+   /* Intersect the allowed values list, allowed class */
+   /* list, min and max values, and the range values.  */
+   /*==================================================*/
 
-   IntersectAllowedValueExpressions(c1,c2,rv);
-   IntersectNumericExpressions(c1,c2,rv,TRUE);
-   IntersectNumericExpressions(c1,c2,rv,FALSE);
+   IntersectAllowedValueExpressions(theEnv,c1,c2,rv);
+   IntersectAllowedClassExpressions(theEnv,c1,c2,rv);
+   IntersectNumericExpressions(theEnv,c1,c2,rv,TRUE);
+   IntersectNumericExpressions(theEnv,c1,c2,rv,FALSE);
 
    /*==========================================*/
    /* Update the allowed-values flags based on */
@@ -207,7 +225,7 @@ globle struct constraintRecord *IntersectConstraints(
 
    if (rv->multifieldsAllowed)
      {
-      rv->multifield = IntersectConstraints(c1->multifield,c2->multifield);
+      rv->multifield = IntersectConstraints(theEnv,c1->multifield,c2->multifield);
       if (UnmatchableConstraint(rv->multifield))
         { rv->multifieldsAllowed = FALSE; }
      }
@@ -225,6 +243,7 @@ globle struct constraintRecord *IntersectConstraints(
 /*   intersection of two allowed-values lists.   */
 /*************************************************/
 static void IntersectAllowedValueExpressions(
+  void *theEnv,
   CONSTRAINT_RECORD *constraint1,
   CONSTRAINT_RECORD *constraint2,
   CONSTRAINT_RECORD *newConstraint)
@@ -246,7 +265,7 @@ static void IntersectAllowedValueExpressions(
       if (CheckAllowedValuesConstraint(theList1->type,theList1->value,constraint1) &&
           CheckAllowedValuesConstraint(theList1->type,theList1->value,constraint2))
         {
-         tmpExpr = GenConstant(theList1->type,theList1->value);
+         tmpExpr = GenConstant(theEnv,theList1->type,theList1->value);
          tmpExpr->nextArg = theHead;
          theHead = tmpExpr;
         }
@@ -268,7 +287,7 @@ static void IntersectAllowedValueExpressions(
       else if (CheckAllowedValuesConstraint(theList2->type,theList2->value,constraint1) &&
                CheckAllowedValuesConstraint(theList2->type,theList2->value,constraint2))
         {
-         tmpExpr = GenConstant(theList2->type,theList2->value);
+         tmpExpr = GenConstant(theEnv,theList2->type,theList2->value);
          tmpExpr->nextArg = theHead;
          theHead = tmpExpr;
         }
@@ -282,12 +301,77 @@ static void IntersectAllowedValueExpressions(
 
    newConstraint->restrictionList = theHead;
   }
+  
+/*************************************************/
+/* IntersectAllowedClassExpressions: Creates the */
+/*   intersection of two allowed-classes lists.  */
+/*************************************************/
+static void IntersectAllowedClassExpressions(
+  void *theEnv,
+  CONSTRAINT_RECORD *constraint1,
+  CONSTRAINT_RECORD *constraint2,
+  CONSTRAINT_RECORD *newConstraint)
+  {
+   struct expr *theList1, *theList2;
+   struct expr *theHead = NULL, *tmpExpr;
 
+   /*============================================*/
+   /* Loop through each value in allowed-classes */
+   /* list of the first constraint record. Add   */
+   /* each value to a list if it satisfies the   */
+   /* restrictions for both constraint records.  */
+   /*============================================*/
+   
+   for (theList1 = constraint1->classList;
+        theList1 != NULL;
+        theList1 = theList1->nextArg)
+     {
+      if (CheckAllowedClassesConstraint(theEnv,theList1->type,theList1->value,constraint1) &&
+          CheckAllowedClassesConstraint(theEnv,theList1->type,theList1->value,constraint2))
+        {
+         tmpExpr = GenConstant(theEnv,theList1->type,theList1->value);
+         tmpExpr->nextArg = theHead;
+         theHead = tmpExpr;
+        }
+     }
+
+   /*============================================*/
+   /* Loop through each value in allowed-classes */
+   /* list of the second constraint record. Add  */
+   /* each value to a list if it satisfies the   */
+   /* restrictions for both constraint records.  */
+   /*============================================*/
+
+   for (theList2 = constraint2->classList;
+        theList2 != NULL;
+        theList2 = theList2->nextArg)
+     {
+      if (FindItemInExpression(theList2->type,theList2->value,TRUE,theHead))
+        { /* The value is already in the list--Do nothing */ }
+      else if (CheckAllowedClassesConstraint(theEnv,theList2->type,theList2->value,constraint1) &&
+               CheckAllowedClassesConstraint(theEnv,theList2->type,theList2->value,constraint2))
+        {
+         tmpExpr = GenConstant(theEnv,theList2->type,theList2->value);
+         tmpExpr->nextArg = theHead;
+         theHead = tmpExpr;
+        }
+     }
+
+   /*=================================================*/
+   /* Set the allowed classes list for the constraint */
+   /* record to the intersected values of the two     */
+   /* other constraint records.                       */
+   /*=================================================*/
+
+   newConstraint->classList = theHead;
+  }
+  
 /*********************************************************/
 /* IntersectNumericExpressions: Creates the intersection */
 /*   of two range or two min/max-fields constraints.     */
 /*********************************************************/
 static void IntersectNumericExpressions(
+  void *theEnv,
   CONSTRAINT_RECORD *constraint1,
   CONSTRAINT_RECORD *constraint2,
   CONSTRAINT_RECORD *newConstraint,
@@ -361,16 +445,16 @@ static void IntersectNumericExpressions(
          /* combinations of min/max values (>, <, or =). */
          /*==============================================*/
 
-         cmaxmax = CompareNumbers(tmpmax1->type,tmpmax1->value,
+         cmaxmax = CompareNumbers(theEnv,tmpmax1->type,tmpmax1->value,
                                   tmpmax2->type,tmpmax2->value);
 
-         cminmin = CompareNumbers(tmpmin1->type,tmpmin1->value,
+         cminmin = CompareNumbers(theEnv,tmpmin1->type,tmpmin1->value,
                                   tmpmin2->type,tmpmin2->value);
 
-         cmaxmin = CompareNumbers(tmpmax1->type,tmpmax1->value,
+         cmaxmin = CompareNumbers(theEnv,tmpmax1->type,tmpmax1->value,
                                   tmpmin2->type,tmpmin2->value);
 
-         cminmax = CompareNumbers(tmpmin1->type,tmpmin1->value,
+         cminmax = CompareNumbers(theEnv,tmpmin1->type,tmpmin1->value,
                                   tmpmax2->type,tmpmax2->value);
 
          /*============================================*/
@@ -388,9 +472,9 @@ static void IntersectNumericExpressions(
          /*=======================================*/
 
          if (cminmin == GREATER_THAN)
-           { theMin = GenConstant(tmpmin1->type,tmpmin1->value); }
+           { theMin = GenConstant(theEnv,tmpmin1->type,tmpmin1->value); }
          else
-           { theMin = GenConstant(tmpmin2->type,tmpmin2->value); }
+           { theMin = GenConstant(theEnv,tmpmin2->type,tmpmin2->value); }
 
          /*=======================================*/
          /* Compute the new maximum value for the */
@@ -398,9 +482,9 @@ static void IntersectNumericExpressions(
          /*=======================================*/
 
          if (cmaxmax == LESS_THAN)
-           { theMax = GenConstant(tmpmax1->type,tmpmax1->value); }
+           { theMax = GenConstant(theEnv,tmpmax1->type,tmpmax1->value); }
          else
-           { theMax = GenConstant(tmpmax2->type,tmpmax2->value); }
+           { theMax = GenConstant(theEnv,tmpmax2->type,tmpmax2->value); }
 
          /*==================================*/
          /* Add the new range/min/max values */
@@ -433,15 +517,15 @@ static void IntersectNumericExpressions(
      {
       if (range)
         {
-         ReturnExpression(newConstraint->minValue);
-         ReturnExpression(newConstraint->maxValue);
+         ReturnExpression(theEnv,newConstraint->minValue);
+         ReturnExpression(theEnv,newConstraint->maxValue);
          newConstraint->minValue = theMinList;
          newConstraint->maxValue = theMaxList;
         }
       else
         {
-         ReturnExpression(newConstraint->minFields);
-         ReturnExpression(newConstraint->maxFields);
+         ReturnExpression(theEnv,newConstraint->minFields);
+         ReturnExpression(theEnv,newConstraint->maxFields);
          newConstraint->minFields = theMinList;
          newConstraint->maxFields = theMaxList;
         }
@@ -554,6 +638,8 @@ static int RestrictionOnType(
        (theConstraint->stringRestriction && (theType == STRING)) ||
        (theConstraint->floatRestriction && (theType == FLOAT)) ||
        (theConstraint->integerRestriction && (theType == INTEGER)) ||
+       (theConstraint->classRestriction && ((theType == INSTANCE_ADDRESS) ||
+                                            (theType == INSTANCE_NAME))) ||
 #if FUZZY_DEFTEMPLATES
        (theConstraint->fuzzyValueRestriction && (theType == FUZZY_VALUE)) ||
 #endif
@@ -568,6 +654,7 @@ static int RestrictionOnType(
 /*   is the union of two other constraint records.        */
 /**********************************************************/
 globle struct constraintRecord *UnionConstraints(
+  void *theEnv,
   CONSTRAINT_RECORD *c1,
   CONSTRAINT_RECORD *c2)
   {
@@ -579,7 +666,7 @@ globle struct constraintRecord *UnionConstraints(
    /* a constraint record that allows any value.      */
    /*=================================================*/
 
-   if ((c1 == NULL) && (c2 == NULL)) return(GetConstraintRecord());
+   if ((c1 == NULL) && (c2 == NULL)) return(GetConstraintRecord(theEnv));
 
    /*=====================================================*/
    /* If one of the constraint records is NULL, then the  */
@@ -590,15 +677,15 @@ globle struct constraintRecord *UnionConstraints(
    /* the union would allow any value as well).           */
    /*=====================================================*/
 
-   if (c1 == NULL) return(CopyConstraintRecord(c2));
+   if (c1 == NULL) return(CopyConstraintRecord(theEnv,c2));
 
-   if (c2 == NULL) return(CopyConstraintRecord(c1));
+   if (c2 == NULL) return(CopyConstraintRecord(theEnv,c1));
 
    /*=================================*/
    /* Create a new constraint record. */
    /*=================================*/
 
-   rv = GetConstraintRecord();
+   rv = GetConstraintRecord(theEnv);
 
    /*==========================*/
    /* Union the allowed types. */
@@ -651,6 +738,7 @@ globle struct constraintRecord *UnionConstraints(
       rv->stringRestriction = (c1->stringRestriction && c2->stringRestriction);
       rv->floatRestriction = (c1->floatRestriction && c2->floatRestriction);
       rv->integerRestriction = (c1->integerRestriction && c2->integerRestriction);
+      rv->classRestriction = (c1->classRestriction && c2->classRestriction);
       rv->instanceNameRestriction = (c1->instanceNameRestriction && c2->instanceNameRestriction);
 #if FUZZY_DEFTEMPLATES
       rv->fuzzyValueRestriction = (c1->fuzzyValueRestriction && c2->fuzzyValueRestriction);
@@ -665,9 +753,10 @@ globle struct constraintRecord *UnionConstraints(
    /* and max values, and the range values.  */
    /*========================================*/
 
-   UnionAllowedValueExpressions(c1,c2,rv);
-   UnionNumericExpressions(c1,c2,rv,TRUE);
-   UnionNumericExpressions(c1,c2,rv,FALSE);
+   UnionAllowedValueExpressions(theEnv,c1,c2,rv);
+   UnionAllowedClassExpressions(theEnv,c1,c2,rv);
+   UnionNumericExpressions(theEnv,c1,c2,rv,TRUE);
+   UnionNumericExpressions(theEnv,c1,c2,rv,FALSE);
 
    /*========================================*/
    /* If multifields are allowed, then union */
@@ -675,7 +764,7 @@ globle struct constraintRecord *UnionConstraints(
    /*========================================*/
 
    if (rv->multifieldsAllowed)
-     { rv->multifield = UnionConstraints(c1->multifield,c2->multifield); }
+     { rv->multifield = UnionConstraints(theEnv,c1->multifield,c2->multifield); }
 
    /*====================*/
    /* Return the unioned */
@@ -690,6 +779,7 @@ globle struct constraintRecord *UnionConstraints(
 /*   two range or two min/max-fields constraints. */
 /**************************************************/
 static void UnionNumericExpressions(
+  void *theEnv,
   CONSTRAINT_RECORD *constraint1,
   CONSTRAINT_RECORD *constraint2,
   CONSTRAINT_RECORD *newConstraint,
@@ -730,7 +820,7 @@ static void UnionNumericExpressions(
    for (;
         tmpmin != NULL;
         tmpmin = tmpmin->nextArg,tmpmax = tmpmax->nextArg)
-     { UnionRangeMinMaxValueWithList(tmpmin,tmpmax,&theMinList,&theMaxList); }
+     { UnionRangeMinMaxValueWithList(theEnv,tmpmin,tmpmax,&theMinList,&theMaxList); }
 
    /*=================================*/
    /* Determine the min/max values of */
@@ -756,7 +846,7 @@ static void UnionNumericExpressions(
    for (;
         tmpmin != NULL;
         tmpmin = tmpmin->nextArg,tmpmax = tmpmax->nextArg)
-     { UnionRangeMinMaxValueWithList(tmpmin,tmpmax,&theMinList,&theMaxList); }
+     { UnionRangeMinMaxValueWithList(theEnv,tmpmin,tmpmax,&theMinList,&theMaxList); }
 
    /*=====================================================*/
    /* If the union produced a pair of valid range/min/max */
@@ -768,15 +858,15 @@ static void UnionNumericExpressions(
      {
       if (range)
         {
-         ReturnExpression(newConstraint->minValue);
-         ReturnExpression(newConstraint->maxValue);
+         ReturnExpression(theEnv,newConstraint->minValue);
+         ReturnExpression(theEnv,newConstraint->maxValue);
          newConstraint->minValue = theMinList;
          newConstraint->maxValue = theMaxList;
         }
       else
         {
-         ReturnExpression(newConstraint->minFields);
-         ReturnExpression(newConstraint->maxFields);
+         ReturnExpression(theEnv,newConstraint->minFields);
+         ReturnExpression(theEnv,newConstraint->maxFields);
          newConstraint->minFields = theMinList;
          newConstraint->maxFields = theMaxList;
         }
@@ -810,6 +900,7 @@ static void UnionNumericExpressions(
 /*   pair of values with a list of such values.          */
 /*********************************************************/
 static void UnionRangeMinMaxValueWithList(
+  void *theEnv,
   struct expr *addmin,
   struct expr *addmax,
   struct expr **theMinList,
@@ -825,8 +916,8 @@ static void UnionRangeMinMaxValueWithList(
 
    if (*theMinList == NULL)
      {
-      *theMinList = GenConstant(addmin->type,addmin->value);
-      *theMaxList = GenConstant(addmax->type,addmax->value);
+      *theMinList = GenConstant(theEnv,addmin->type,addmin->value);
+      *theMaxList = GenConstant(theEnv,addmax->type,addmax->value);
       return;
      }
 
@@ -837,16 +928,16 @@ static void UnionRangeMinMaxValueWithList(
 
    while (tmpmin != NULL)
      {
-      cmaxmax = CompareNumbers(addmax->type,addmax->value,
+      cmaxmax = CompareNumbers(theEnv,addmax->type,addmax->value,
                                tmpmax->type,tmpmax->value);
 
-      cminmin = CompareNumbers(addmin->type,addmin->value,
+      cminmin = CompareNumbers(theEnv,addmin->type,addmin->value,
                                tmpmin->type,tmpmin->value);
 
-      cmaxmin = CompareNumbers(addmax->type,addmax->value,
+      cmaxmin = CompareNumbers(theEnv,addmax->type,addmax->value,
                                tmpmin->type,tmpmin->value);
 
-      cminmax = CompareNumbers(addmin->type,addmin->value,
+      cminmax = CompareNumbers(theEnv,addmin->type,addmin->value,
                                tmpmax->type,tmpmax->value);
 
       /*=================================*/
@@ -888,8 +979,8 @@ static void UnionRangeMinMaxValueWithList(
         {
          if (lastmax == NULL)
            {
-            themin = GenConstant(addmin->type,addmin->value);
-            themax = GenConstant(addmax->type,addmax->value);
+            themin = GenConstant(theEnv,addmin->type,addmin->value);
+            themax = GenConstant(theEnv,addmax->type,addmax->value);
             themin->nextArg = *theMinList;
             themax->nextArg = *theMaxList;
             *theMinList = themin;
@@ -897,11 +988,11 @@ static void UnionRangeMinMaxValueWithList(
             return;
            }
 
-         if (CompareNumbers(addmin->type,addmin->value,
+         if (CompareNumbers(theEnv,addmin->type,addmin->value,
                             lastmax->type,lastmax->value) == GREATER_THAN)
            {
-            themin = GenConstant(addmin->type,addmin->value);
-            themax = GenConstant(addmax->type,addmax->value);
+            themin = GenConstant(theEnv,addmin->type,addmin->value);
+            themax = GenConstant(theEnv,addmax->type,addmax->value);
 
             themin->nextArg = lastmin->nextArg;
             themax->nextArg = lastmax->nextArg;
@@ -933,7 +1024,7 @@ static void UnionRangeMinMaxValueWithList(
       nextmax = tmpmax->nextArg;
       if (nextmin != NULL)
         {
-         cmaxmin = CompareNumbers(tmpmax->type,tmpmax->value,
+         cmaxmin = CompareNumbers(theEnv,tmpmax->type,tmpmax->value,
                                   nextmin->type,nextmin->value);
          if ((cmaxmin == GREATER_THAN) || (cmaxmin == EQUAL))
            {
@@ -942,8 +1033,8 @@ static void UnionRangeMinMaxValueWithList(
             tmpmax->nextArg = nextmax->nextArg;
             tmpmin->nextArg = nextmin->nextArg;
 
-            rtn_struct(expr,nextmin);
-            rtn_struct(expr,nextmax);
+            rtn_struct(theEnv,expr,nextmin);
+            rtn_struct(theEnv,expr,nextmax);
            }
          else
            {
@@ -960,18 +1051,37 @@ static void UnionRangeMinMaxValueWithList(
   }
 
 /***************************************************/
-/* UnionAllowedValueExpressions: Creates the union */
-/*   of two sets of allowed value expressions.     */
+/* UnionAllowedClassExpressions: Creates the union */
+/*   of two sets of allowed-classes expressions.   */
 /***************************************************/
-static void UnionAllowedValueExpressions(
+static void UnionAllowedClassExpressions(
+  void *theEnv,
   CONSTRAINT_RECORD *constraint1,
   CONSTRAINT_RECORD *constraint2,
   CONSTRAINT_RECORD *newConstraint)
   {
    struct expr *theHead = NULL;
 
-   theHead = AddToUnionList(constraint1->restrictionList,theHead,newConstraint);
-   theHead = AddToUnionList(constraint2->restrictionList,theHead,newConstraint);
+   theHead = AddToUnionList(theEnv,constraint1->classList,theHead,newConstraint);
+   theHead = AddToUnionList(theEnv,constraint2->classList,theHead,newConstraint);
+
+   newConstraint->classList = theHead;
+  }
+
+/***************************************************/
+/* UnionAllowedValueExpressions: Creates the union */
+/*   of two sets of allowed value expressions.     */
+/***************************************************/
+static void UnionAllowedValueExpressions(
+  void *theEnv,
+  CONSTRAINT_RECORD *constraint1,
+  CONSTRAINT_RECORD *constraint2,
+  CONSTRAINT_RECORD *newConstraint)
+  {
+   struct expr *theHead = NULL;
+
+   theHead = AddToUnionList(theEnv,constraint1->restrictionList,theHead,newConstraint);
+   theHead = AddToUnionList(theEnv,constraint2->restrictionList,theHead,newConstraint);
 
    newConstraint->restrictionList = theHead;
   }
@@ -982,6 +1092,7 @@ static void UnionAllowedValueExpressions(
 /*   value added satisfies the constraints for the list.    */
 /************************************************************/
 static struct expr *AddToUnionList(
+  void *theEnv,
   struct expr *theList1,
   struct expr *theHead,
   CONSTRAINT_RECORD *theConstraint)
@@ -1024,7 +1135,7 @@ static struct expr *AddToUnionList(
         {
          if (RestrictionOnType(theList1->type,theConstraint))
            {
-            theList2 = GenConstant(theList1->type,theList1->value);
+            theList2 = GenConstant(theEnv,theList1->type,theList1->value);
             theList2->nextArg = theHead;
             theHead = theList2;
            }
@@ -1044,6 +1155,7 @@ static struct expr *AddToUnionList(
 /*   restriction list of a constraint record.       */
 /****************************************************/
 globle void RemoveConstantFromConstraint(
+  void *theEnv,
   int theType,
   void *theValue,
   CONSTRAINT_RECORD *theConstraint)
@@ -1072,7 +1184,7 @@ globle void RemoveConstantFromConstraint(
          tmpList = theList;
          theList = theList->nextArg;
          tmpList->nextArg = NULL;
-         ReturnExpression(tmpList);
+         ReturnExpression(theEnv,tmpList);
         }
      }
 

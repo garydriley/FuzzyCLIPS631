@@ -1,0 +1,88 @@
+TRUE
+FuzzyCLIPS> (batch "modulcmd.bat")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defmodule d1 (export ?ALL))
+FuzzyCLIPS> (defmodule d2 (import d1 ?ALL))
+FuzzyCLIPS> (defmodule d3 (export ?ALL))
+FuzzyCLIPS> (deftemplate t1)
+FuzzyCLIPS> (deftemplate t2)
+FuzzyCLIPS> (defmodule d4 (export deftemplate t3 t4) (import d3 deftemplate t1))
+FuzzyCLIPS> (deftemplate t3)
+FuzzyCLIPS> (deftemplate t4)
+FuzzyCLIPS> (defmodule d5 (import d3 deftemplate t1 t2) (import d4 deftemplate ?ALL))
+FuzzyCLIPS> (defmodule d6 (import d1 ?NONE) (import d3 deftemplate ?NONE))
+FuzzyCLIPS> (defmodule *)
+FuzzyCLIPS> (list-defmodules d6)
+[ARGACCES4] Function list-defmodules expected exactly 0 argument(s)
+FuzzyCLIPS> (list-defmodules *)
+[ARGACCES4] Function list-defmodules expected exactly 0 argument(s)
+FuzzyCLIPS> (list-defmodules)
+MAIN
+d1
+d2
+d3
+d4
+d5
+d6
+*
+For a total of 8 defmodules.
+FuzzyCLIPS> (ppdefmodule MAIN::d6)
+[PRNTUTIL1] Unable to find defmodule MAIN::d6.
+FuzzyCLIPS> (ppdefmodule d6 d5)
+[ARGACCES4] Function ppdefmodule expected exactly 1 argument(s)
+FuzzyCLIPS> (ppdefmodule *)
+(defmodule *)
+FuzzyCLIPS> (ppdefmodule d1)
+(defmodule d1
+   (export ?ALL))
+FuzzyCLIPS> (ppdefmodule d2)
+(defmodule d2
+   (import d1 ?ALL))
+FuzzyCLIPS> (ppdefmodule d3)
+(defmodule d3
+   (export ?ALL))
+FuzzyCLIPS> (ppdefmodule d4)
+(defmodule d4
+   (export deftemplate t3 t4)
+   (import d3 deftemplate t1))
+FuzzyCLIPS> (ppdefmodule d5)
+(defmodule d5
+   (import d3 deftemplate t1 t2)
+   (import d4 deftemplate ?ALL))
+FuzzyCLIPS> (ppdefmodule d6)
+(defmodule d6
+   (import d1 ?NONE)
+   (import d3 deftemplate ?NONE))
+FuzzyCLIPS> (get-defmodule-list MAIN)
+[ARGACCES4] Function get-defmodule-list expected exactly 0 argument(s)
+FuzzyCLIPS> (get-defmodule-list)
+(MAIN d1 d2 d3 d4 d5 d6 *)
+FuzzyCLIPS> (get-current-module A)
+[ARGACCES4] Function get-current-module expected exactly 0 argument(s)
+FuzzyCLIPS> (get-current-module)
+*
+FuzzyCLIPS> (set-current-module)
+[ARGACCES4] Function set-current-module expected exactly 1 argument(s)
+FuzzyCLIPS> (set-current-module d1 d2)
+[ARGACCES4] Function set-current-module expected exactly 1 argument(s)
+FuzzyCLIPS> (set-current-module A)
+[PRNTUTIL1] Unable to find defmodule A.
+*
+FuzzyCLIPS> (set-current-module d3)
+*
+FuzzyCLIPS> (get-current-module)
+d3
+FuzzyCLIPS> (set-current-module d3)
+d3
+FuzzyCLIPS> (get-current-module)
+d3
+FuzzyCLIPS> (set-current-module d6)
+d3
+FuzzyCLIPS> (get-current-module)
+d6
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (list-defmodules)
+MAIN
+For a total of 1 defmodule.
+FuzzyCLIPS> (dribble-off)

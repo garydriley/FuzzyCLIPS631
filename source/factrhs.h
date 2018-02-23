@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/factrhs.h,v 1.3 2001/08/11 21:05:47 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*        FACT RHS PATTERN PARSER HEADER MODULE        */
    /*******************************************************/
@@ -46,13 +44,11 @@
 #define LOCALE extern
 #endif
 
-   LOCALE struct expr                   *BuildRHSAssert(char *,struct token *,int *,int,int,char *);
-   LOCALE struct expr                   *GetAssertArgument(char *,struct token *,int *,int,int,int *);
-   LOCALE struct expr                   *GetRHSPattern(char *,struct token *,int *,int,
+   LOCALE struct expr                   *BuildRHSAssert(void *,char *,struct token *,int *,int,int,char *);
+   LOCALE struct expr                   *GetAssertArgument(void *,char *,struct token *,int *,int,int,int *);
+   LOCALE struct expr                   *GetRHSPattern(void *,char *,struct token *,int *,int,
                                                        int,int,int);
-   LOCALE struct fact                   *StringToFact(char *);
+   LOCALE struct fact                   *StringToFact(void *,char *);
 
 #endif
-
-
 

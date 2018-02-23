@@ -1,0 +1,537 @@
+TRUE
+FuzzyCLIPS> (batch "multifnx.bat")
+TRUE
+FuzzyCLIPS> (clear)                            ; 10.3.1
+FuzzyCLIPS> (create$)                        ; 10.3.1
+()
+FuzzyCLIPS> (create$ a "a" 3 5.1 [x])          ; 10.3.1
+(a "a" 3 5.1 [x])
+FuzzyCLIPS> (create$ (create$) (create$))  ; 10.3.1
+()
+FuzzyCLIPS> (create$ (create$ a b) (create$ c)); 10.3.1
+(a b c)
+FuzzyCLIPS> (create$ a (create$ e f))          ; 10.3.1
+(a e f)
+FuzzyCLIPS> (create$ (create$ d x y) a 2)      ; 10.3.1
+(d x y a 2)
+FuzzyCLIPS> (create$ hammer drill saw screw pliers wrench)
+(hammer drill saw screw pliers wrench)
+FuzzyCLIPS> (create$ (+ 3 4) (* 2 3) (/ 8 4))
+(7 6 2.0)
+FuzzyCLIPS> (nth$)                              ; 10.3.2
+[ARGACCES4] Function nth$ expected exactly 2 argument(s)
+FuzzyCLIPS> (nth$ 1)                           ; 10.3.2
+[ARGACCES4] Function nth$ expected exactly 2 argument(s)
+FuzzyCLIPS> (nth$ 2 (create$ a b c) 5)          ; 10.3.2
+[ARGACCES4] Function nth$ expected exactly 2 argument(s)
+FuzzyCLIPS> (nth$ a (create$ x y z))           ; 10.3.2
+[ARGACCES5] Function nth$ expected argument #1 to be of type integer
+FuzzyCLIPS> (nth$ 1 x)                         ; 10.3.2
+[ARGACCES5] Function nth$ expected argument #2 to be of type multifield
+FuzzyCLIPS> (nth$ 2 (create$ d e f))         ; 10.3.2
+e
+FuzzyCLIPS> (nth$ -1 (create$ x y z))          ; 10.3.2
+nil
+FuzzyCLIPS> (nth$ 0 (create$ x y z))           ; 10.3.2
+nil
+FuzzyCLIPS> (nth$ 4 (create$ x y z))            ; 10.3.2
+nil
+FuzzyCLIPS> (nth$ 2 (create$ x y z))            ; 10.3.2
+y
+FuzzyCLIPS> (nth$ -1 (create$))                ; 10.3.2
+nil
+FuzzyCLIPS> (nth$ 0 (create$))                 ; 10.3.2
+nil
+FuzzyCLIPS> (nth$ 1 (create$))                 ; 10.3.2
+nil
+FuzzyCLIPS> (nth$ 2 (create$))                 ; 10.3.2
+nil
+FuzzyCLIPS> (nth$ 3 (create$ a b c d e f g))  ; 10.3.2
+c
+FuzzyCLIPS> (member$)                           ; 10.3.3
+[ARGACCES4] Function member$ expected exactly 2 argument(s)
+FuzzyCLIPS> (member$ x)                        ; 10.3.3
+[ARGACCES4] Function member$ expected exactly 2 argument(s)
+FuzzyCLIPS> (member$ x (create$ y x q) r)       ; 10.3.3
+[ARGACCES4] Function member$ expected exactly 2 argument(s)
+FuzzyCLIPS> (member$ a (create$ 3 4.1 "a" [a] a))
+5
+FuzzyCLIPS> (member$ "a" (create$ 3 a 4.1 [a] "a"))
+5
+FuzzyCLIPS> (member$ [a] (create$ 3 4.1 "a" a [a]))
+5
+FuzzyCLIPS> (member$ 3 (create$ 4.1 3.0 "a" [a] 3 a))
+5
+FuzzyCLIPS> (member$ 4 (create$ 4 a 4.0 "a" [a]))
+1
+FuzzyCLIPS> (member$ (create$ a) (create$ b a))
+2
+FuzzyCLIPS> (member$ a (create$ a b c))        ; 10.3.3
+1
+FuzzyCLIPS> (member$ x (create$ a b c))        ; 10.3.3
+FALSE
+FuzzyCLIPS> (member$ blue (create$ red 3 "text" 8.7 blue))
+5
+FuzzyCLIPS> (member$ 4 (create$ red 3 "text" 8.7 blue))
+FALSE
+FuzzyCLIPS> (subsetp)                          ; 10.3.4
+[ARGACCES4] Function subsetp expected exactly 2 argument(s)
+FuzzyCLIPS> (subsetp (create$ a))              ; 10.3.4
+[ARGACCES4] Function subsetp expected exactly 2 argument(s)
+FuzzyCLIPS> (subsetp (create$ a) (create$ b) 3)
+[ARGACCES4] Function subsetp expected exactly 2 argument(s)
+FuzzyCLIPS> (subsetp 1 (create$ a))            ; 10.3.4
+[ARGACCES5] Function subsetp expected argument #1 to be of type multifield
+FuzzyCLIPS> (subsetp (create$ a) a)            ; 10.3.4
+[ARGACCES5] Function subsetp expected argument #2 to be of type multifield
+FuzzyCLIPS> (subsetp (create$) (create$))      ; 10.3.4
+TRUE
+FuzzyCLIPS> (subsetp (create$) (create$ x y))  ; 10.3.4
+TRUE
+FuzzyCLIPS> (subsetp (create$ x y) (create$))  ; 10.3.4
+FALSE
+FuzzyCLIPS> (subsetp (create$ a b) (create$ b a))
+TRUE
+FuzzyCLIPS> (subsetp (create$ a) (create$ a b))
+TRUE
+FuzzyCLIPS> (subsetp (create$ b) (create$ a b))
+TRUE
+FuzzyCLIPS> (subsetp (create$ b a a b) (create$ c a b d))
+TRUE
+FuzzyCLIPS> (subsetp (create$ a b c) (create$ a b d))
+FALSE
+FuzzyCLIPS> (subsetp (create$ a) (create$ 3 4.1 "a" [a])) 
+FALSE
+FuzzyCLIPS> (subsetp (create$ [a]) (create$ 3 4.1 "a" a))  
+FALSE
+FuzzyCLIPS> (subsetp (create$ "a") (create$ 3 4.1 a [a]))  
+FALSE
+FuzzyCLIPS> (subsetp (create$ 3) (create$ 3.0 "a" [a]))   
+FALSE
+FuzzyCLIPS> (subsetp (create$ 3.0) (create$ 3 "a" [a])) 
+FALSE
+FuzzyCLIPS> (subsetp (create$ a) (create$ 3 a 4.1)) 
+TRUE
+FuzzyCLIPS> (subsetp (create$ [a]) (create$ [a] 3 4.1))  
+TRUE
+FuzzyCLIPS> (subsetp (create$ "a") (create$ 3 4.1 "a"))  
+TRUE
+FuzzyCLIPS> (subsetp (create$ 3) (create$ 3 "a" [a]))   
+TRUE
+FuzzyCLIPS> (subsetp (create$ 3.0) (create$ "a" [a] 3.0)) 
+TRUE
+FuzzyCLIPS> (subsetp (create$ hammer saw drill)
+         (create$ hammer drill wrench pliers saw))
+TRUE
+FuzzyCLIPS> (subsetp (create$ wrench crowbar)
+         (create$ hammer drill wrench pliers saw))  
+FALSE
+FuzzyCLIPS> (delete$)                        ; 10.3.5
+[ARGACCES4] Function delete$ expected exactly 3 argument(s)
+FuzzyCLIPS> (delete$ 1)                        ; 10.3.5
+[ARGACCES4] Function delete$ expected exactly 3 argument(s)
+FuzzyCLIPS> (delete$ (create$ a b c) [x] 3 3)    ; 10.3.5
+[ARGACCES4] Function delete$ expected exactly 3 argument(s)
+FuzzyCLIPS> (delete$ (create$ a b c d) 3.4 3.4)    ; 10.3.5
+[ARGACCES5] Function delete$ expected argument #2 to be of type integer
+FuzzyCLIPS> (delete$ (create$ a b c d) a a)      ; 10.3.5
+[ARGACCES5] Function delete$ expected argument #2 to be of type integer
+FuzzyCLIPS> (delete$ "a b" 3 3)                ; 10.3.5
+[ARGACCES5] Function delete$ expected argument #1 to be of type multifield
+FuzzyCLIPS> (delete$ (create$ x 1 z) -1 -1)     ; 10.3.5
+[MULTIFUN1] Multifield index -1 out of range 1..3 in function delete$.
+()
+FuzzyCLIPS> (delete$ (create$ x 4.2 z) 0 0)    ; 10.3.5
+[MULTIFUN1] Multifield index 0 out of range 1..3 in function delete$.
+()
+FuzzyCLIPS> (delete$ (create$ [ab] cd ef) 1 1) ; 10.3.5
+(cd ef)
+FuzzyCLIPS> (delete$ (create$ abc d ef) 2 2)   ; 10.3.5
+(abc ef)
+FuzzyCLIPS> (delete$ (create$ abcd 2 e) 3 3)   ; 10.3.5
+(abcd 2)
+FuzzyCLIPS> (delete$ (create$ q 3 "tx") 4 4)   ; 10.3.5
+[MULTIFUN1] Multifield index 4 out of range 1..3 in function delete$.
+()
+FuzzyCLIPS> (delete$ (create$) -1 -1)             ; 10.3.5
+[MULTIFUN1] Multifield index -1 out of range 1..0 in function delete$.
+()
+FuzzyCLIPS> (delete$ (create$) 0 0)              ; 10.3.5
+[MULTIFUN1] Multifield index 0 out of range 1..0 in function delete$.
+()
+FuzzyCLIPS> (delete$ (create$) 1 1)              ; 10.3.5
+[MULTIFUN1] Multifield index 1 out of range 1..0 in function delete$.
+()
+FuzzyCLIPS> (delete$ (create$) 2 2)              ; 10.3.5
+[MULTIFUN1] Multifield index 2 out of range 1..0 in function delete$.
+()
+FuzzyCLIPS> (delete$ (create$ hammer drill saw pliers wrench) 3 3)
+(hammer drill pliers wrench)
+FuzzyCLIPS> (delete$ (create$ computer printer hard-disk) 1 1)
+(printer hard-disk)
+FuzzyCLIPS> (delete$ (create$ computer printer hard-disk floppy-drive) 2 3)
+(computer floppy-drive)
+FuzzyCLIPS> (delete$ (create$ computer printer hard-disk floppy-drive) 1 4)
+()
+FuzzyCLIPS> (delete$ (create$ computer printer hard-disk floppy-drive) 1 2)
+(hard-disk floppy-drive)
+FuzzyCLIPS> (delete$ (create$ computer printer hard-disk floppy-drive) 1 3)
+(floppy-drive)
+FuzzyCLIPS> (delete$ (create$ computer printer hard-disk floppy-drive) 2 4)
+(computer)
+FuzzyCLIPS> (delete$ (create$ computer printer hard-disk floppy-drive) 3 4)
+(computer printer)
+FuzzyCLIPS> (delete$ (create$ computer printer hard-disk floppy-drive) 3 2)
+[MULTIFUN1] Multifield index range 3..2 out of range 1..4 in function delete$.
+()
+FuzzyCLIPS> (length)                           ; 10.3.6
+[ARGACCES4] Function length expected exactly 1 argument(s)
+FuzzyCLIPS> (length "x" 3)                     ; 10.3.6
+[ARGACCES4] Function length expected exactly 1 argument(s)
+FuzzyCLIPS> (length [def])                     ; 10.3.6
+[ARGACCES5] Function length expected argument #1 to be of type multifield, symbol, or string
+FuzzyCLIPS> (length 4.3)                       ; 10.3.6
+[ARGACCES5] Function length expected argument #1 to be of type multifield, symbol, or string
+FuzzyCLIPS> (length 567)                       ; 10.3.6
+[ARGACCES5] Function length expected argument #1 to be of type multifield, symbol, or string
+FuzzyCLIPS> (length blah-blah-blah)            ; 10.3.6
+14
+FuzzyCLIPS> (length "")                        ; 10.3.6
+0
+FuzzyCLIPS> (length "Hello world")             ; 10.3.6
+11
+FuzzyCLIPS> (length (create$))                 ; 10.3.6
+0
+FuzzyCLIPS> (length (create$ a b c))           ; 10.3.6
+3
+FuzzyCLIPS> (length (create$ a b c d e f g)) ; 10.3.6
+7
+FuzzyCLIPS> (length "cat")                     ; 10.3.6
+3
+FuzzyCLIPS> (explode$)                      ; 10.3.7
+[ARGACCES4] Function explode$ expected exactly 1 argument(s)
+FuzzyCLIPS> (explode$ "x" 3)                ; 10.3.7
+[ARGACCES4] Function explode$ expected exactly 1 argument(s)
+FuzzyCLIPS> (explode$ [jocko])              ; 10.3.7
+[ARGACCES5] Function explode$ expected argument #1 to be of type string
+FuzzyCLIPS> (explode$ 134.78)               ; 10.3.7
+[ARGACCES5] Function explode$ expected argument #1 to be of type string
+FuzzyCLIPS> (explode$ -8939)                ; 10.3.7
+[ARGACCES5] Function explode$ expected argument #1 to be of type string
+FuzzyCLIPS> (explode$ yak-yak)              ; 10.3.7
+[ARGACCES5] Function explode$ expected argument #1 to be of type string
+FuzzyCLIPS> (explode$ "")                   ; 10.3.7
+()
+FuzzyCLIPS> (explode$ "Hello world")        ; 10.3.7
+(Hello world)
+FuzzyCLIPS> (explode$ "-3.45 89 [xyx] thishere \"a string\"")
+(-3.45 89 [xyx] thishere "a string")
+FuzzyCLIPS> (explode$ "hammer drill saw screw")
+(hammer drill saw screw)
+FuzzyCLIPS> (explode$ "1 2 abc 3 4 \"abc\" \"def\"")
+(1 2 abc 3 4 "abc" "def")
+FuzzyCLIPS> (explode$ "?x ~ )")             ; 10.3.7
+("?x" "~" ")")
+FuzzyCLIPS> (implode$)                      ; 10.3.8
+[ARGACCES4] Function implode$ expected exactly 1 argument(s)
+FuzzyCLIPS> (implode$ (create$ a b) dkj)    ; 10.3.8
+[ARGACCES4] Function implode$ expected exactly 1 argument(s)
+FuzzyCLIPS> (implode$ [outstanding])        ; 10.3.8
+[ARGACCES5] Function implode$ expected argument #1 to be of type multifield
+FuzzyCLIPS> (implode$ 3499.3)               ; 10.3.8
+[ARGACCES5] Function implode$ expected argument #1 to be of type multifield
+FuzzyCLIPS> (implode$ 203033)               ; 10.3.8
+[ARGACCES5] Function implode$ expected argument #1 to be of type multifield
+FuzzyCLIPS> (implode$ moresymbols)          ; 10.3.8
+[ARGACCES5] Function implode$ expected argument #1 to be of type multifield
+FuzzyCLIPS> (implode$ "Another string")     ; 10.3.8
+[ARGACCES5] Function implode$ expected argument #1 to be of type multifield
+FuzzyCLIPS> (implode$ (create$))            ; 10.3.8
+""
+FuzzyCLIPS> (implode$ (create$ axydk "here it is" -348e3 893 [instance]))
+"axydk "here it is" -348000.0 893 [instance]"
+FuzzyCLIPS> (implode$ (create$ hammer drill screwdriver))
+"hammer drill screwdriver"
+FuzzyCLIPS> (implode$ (create$ 1 "abc" def "ghi" 2))
+"1 "abc" def "ghi" 2"
+FuzzyCLIPS> (implode$ (explode$ "abc      def     ghi"))
+"abc def ghi"
+FuzzyCLIPS> (subseq$)                        ; 10.3.9
+[ARGACCES4] Function subseq$ expected exactly 3 argument(s)
+FuzzyCLIPS> (subseq$ 1)                      ; 10.3.9
+[ARGACCES4] Function subseq$ expected exactly 3 argument(s)
+FuzzyCLIPS> (subseq$ 1 3)                    ; 10.3.9
+[ARGACCES4] Function subseq$ expected exactly 3 argument(s)
+FuzzyCLIPS> (subseq$ (create$ a c d) 1 2 3)  ; 10.3.9
+[ARGACCES4] Function subseq$ expected exactly 3 argument(s)
+FuzzyCLIPS> (subseq$ (create$ a b c) a 2)    ; 10.3.9
+[ARGACCES5] Function subseq$ expected argument #2 to be of type integer
+FuzzyCLIPS> (subseq$ (create$ d e) 2 a)      ; 10.3.9
+[ARGACCES5] Function subseq$ expected argument #3 to be of type integer
+FuzzyCLIPS> (subseq$ this 1 2)               ; 10.3.9
+[ARGACCES5] Function subseq$ expected argument #1 to be of type multifield
+FuzzyCLIPS> (subseq$ (create$ a b c) 1 2)  ; 10.3.9
+(a b)
+FuzzyCLIPS> (subseq$ (create$ a b c) 1 2)  ; 10.3.9
+(a b)
+FuzzyCLIPS> (subseq$ (create$ a b c) 1 2.5)  ; 10.3.9
+[ARGACCES5] Function subseq$ expected argument #3 to be of type integer
+FuzzyCLIPS> (subseq$ (create$ a b c) 1 3)    ; 10.3.9
+(a b c)
+FuzzyCLIPS> (subseq$ (create$ a b c) -1 3)   ; 10.3.9
+(a b c)
+FuzzyCLIPS> (subseq$ (create$ a "b" c) 1 4)  ; 10.3.9
+(a "b" c)
+FuzzyCLIPS> (subseq$ (create$ a b c) 3 1)    ; 10.3.9
+()
+FuzzyCLIPS> (subseq$ (create$ 3 b c) 1 1)    ; 10.3.9
+(3)
+FuzzyCLIPS> (subseq$ (create$ a 4.1 c) 2 2)  ; 10.3.9
+(4.1)
+FuzzyCLIPS> (subseq$ (create$ a b [x]) 3 3)  ; 10.3.9
+([x])
+FuzzyCLIPS> (subseq$ (create$ a b c) 0 0)    ; 10.3.9
+()
+FuzzyCLIPS> (subseq$ (create$ a b c) 4 4)    ; 10.3.9
+()
+FuzzyCLIPS> (subseq$ (create$ a b c d) 2 3)  ; 10.3.9
+(b c)
+FuzzyCLIPS> (subseq$ (create$ a b c) 5 7)    ; 10.3.9
+()
+FuzzyCLIPS> (subseq$ (create$ a b c) -1 0)   ; 10.3.9
+()
+FuzzyCLIPS> (subseq$ (create$ hammer drill wrench pliers) 3 4)
+(wrench pliers)
+FuzzyCLIPS> (subseq$ (create$ a "abc" def "ghi" 2)  1 1)
+(a)
+FuzzyCLIPS> (replace$)                       ; 10.3.10
+[ARGACCES4] Function replace$ expected at least 4 argument(s)
+FuzzyCLIPS> (replace$ 1)                     ; 10.3.10
+[ARGACCES4] Function replace$ expected at least 4 argument(s)
+FuzzyCLIPS> (replace$ (create$ a b) 1 1)       ; 10.3.10
+[ARGACCES4] Function replace$ expected at least 4 argument(s)
+FuzzyCLIPS> (replace$ (create$ a b) 1 1 3 4)   ; 10.3.10
+(3 4 b)
+FuzzyCLIPS> (replace$ (create$ a) 1.5 1.5 [x])   ; 10.3.10
+[ARGACCES5] Function replace$ expected argument #2 to be of type integer
+FuzzyCLIPS> (replace$ 3.5 1 1 a)               ; 10.3.10
+[ARGACCES5] Function replace$ expected argument #1 to be of type multifield
+FuzzyCLIPS> (replace$ (create$ a b) 2 2(create$))
+(a)
+FuzzyCLIPS> (replace$ (create$ a b) -1 -1 x)    ; 10.3.10
+[MULTIFUN1] Multifield index -1 out of range 1..2 in function replace$.
+()
+FuzzyCLIPS> (replace$ (create$ c d) 0 0 3.5)   ; 10.3.10
+[MULTIFUN1] Multifield index 0 out of range 1..2 in function replace$.
+()
+FuzzyCLIPS> (replace$ (create$ "c" "d") 1 1 13)
+(13 "d")
+FuzzyCLIPS> (replace$ (create$ 3 5) 2 2 "x")   ; 10.3.10
+(3 "x")
+FuzzyCLIPS> (replace$ (create$ [a] [b]) 3 3 3) ; 10.3.10
+[MULTIFUN1] Multifield index 3 out of range 1..2 in function replace$.
+()
+FuzzyCLIPS> (replace$ (create$ drill wrench pliers) 3 3 machete)
+(drill wrench machete)
+FuzzyCLIPS> (replace$ (create$ drill wrench pliers hammer) 2 3 machete)
+(drill machete hammer)
+FuzzyCLIPS> (replace$ (create$ drill wrench pliers hammer) 2 4 machete knife)
+(drill machete knife)
+FuzzyCLIPS> (replace$ (create$ drill wrench pliers hammer) 1 4 (create$))
+()
+FuzzyCLIPS> (replace$ (create$ drill wrench pliers hammer) 1 2 machete (create$))
+(machete pliers hammer)
+FuzzyCLIPS> (replace$ (create$ drill wrench pliers hammer) 3 4 machete)
+(drill wrench machete)
+FuzzyCLIPS> (replace$ (create$ drill wrench pliers hammer) 4 3 machete)
+[MULTIFUN1] Multifield index range 4..3 out of range 1..4 in function replace$.
+()
+FuzzyCLIPS> (insert$ (create$ drill wrench pliers hammer) 1 machete)
+(machete drill wrench pliers hammer)
+FuzzyCLIPS> (insert$ (create$ drill wrench pliers hammer) 2 machete)
+(drill machete wrench pliers hammer)
+FuzzyCLIPS> (insert$ (create$ drill wrench pliers hammer) 3 machete)
+(drill wrench machete pliers hammer)
+FuzzyCLIPS> (insert$ (create$ drill wrench pliers hammer) 4 machete)
+(drill wrench pliers machete hammer)
+FuzzyCLIPS> (insert$ (create$ drill wrench pliers hammer) 3 machete knife)
+(drill wrench machete knife pliers hammer)
+FuzzyCLIPS> (insert$ (create$ drill wrench pliers hammer) 2 machete knife (create$))
+(drill machete knife wrench pliers hammer)
+FuzzyCLIPS> (insert$ (create$ drill wrench pliers hammer) 5 machete)
+(drill wrench pliers hammer machete)
+FuzzyCLIPS> (progn$)
+
+[EXPRNPSR2] Expected a constant, variable, or expression.
+FuzzyCLIPS> (progn$ abc)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for progn$.
+FuzzyCLIPS> (progn$ (create$) (bind ?field))
+FALSE
+FuzzyCLIPS> (progn$ (?field (create$)) (bind ?field))
+[MULTIFUN2] Cannot rebind field variable in function progn$.
+FuzzyCLIPS> (progn (bind ?x 0) 
+   (progn$ (create$ 1 2 3) (bind ?x (+ ?x ?field))))
+[EVALUATN1] Variable field is unbound
+[ARGACCES5] Function + expected argument #2 to be of type integer or float
+FALSE
+FuzzyCLIPS> (progn (bind ?x 0) 
+   (progn$ (?field (create$ 1 2 3)) (bind ?x (+ ?x ?field))))
+6
+FuzzyCLIPS> (progn
+  (bind ?outer (create$ abc def ghi jkl mno))
+  (progn$ (?x ?outer)
+    (bind ?inner (subseq$ ?outer ?x-index (length$ ?outer)))
+    (progn$ (?y ?inner)
+       (printout t ?y " "))
+    (printout t crlf)))
+abc def ghi jkl mno 
+def ghi jkl mno 
+ghi jkl mno 
+jkl mno 
+mno 
+FuzzyCLIPS> (first$)
+[ARGACCES4] Function first$ expected exactly 1 argument(s)
+FuzzyCLIPS> (first$ 1)
+[ARGACCES5] Function first$ expected argument #1 to be of type multifield
+FuzzyCLIPS> (first$ (create$ a b c) a)
+[ARGACCES4] Function first$ expected exactly 1 argument(s)
+FuzzyCLIPS> (first$ (create$ a b c))
+(a)
+FuzzyCLIPS> (first$ (create$ a))
+(a)
+FuzzyCLIPS> (first$ (create$))
+()
+FuzzyCLIPS> (rest$)
+[ARGACCES4] Function rest$ expected exactly 1 argument(s)
+FuzzyCLIPS> (rest$ 1)
+[ARGACCES5] Function rest$ expected argument #1 to be of type multifield
+FuzzyCLIPS> (rest$ (create$ a b c) a)
+[ARGACCES4] Function rest$ expected exactly 1 argument(s)
+FuzzyCLIPS> (rest$ (create$ a b c))
+(b c)
+FuzzyCLIPS> (rest$ (create$ a))
+()
+FuzzyCLIPS> (rest$ (create$))
+()
+FuzzyCLIPS> (mv-delete)                        
+[ARGACCES4] Function mv-delete expected exactly 2 argument(s)
+FuzzyCLIPS> (mv-delete 1)                        
+[ARGACCES4] Function mv-delete expected exactly 2 argument(s)
+FuzzyCLIPS> (mv-delete 3 (create$ a b c) [x])    
+[ARGACCES4] Function mv-delete expected exactly 2 argument(s)
+FuzzyCLIPS> (mv-delete 3.4 (create$ a b c d))    
+[ARGACCES5] Function mv-delete expected argument #1 to be of type integer
+FuzzyCLIPS> (mv-delete a (create$ a b c d))      
+[ARGACCES5] Function mv-delete expected argument #1 to be of type integer
+FuzzyCLIPS> (mv-delete 3 "a b")                
+[ARGACCES5] Function mv-delete expected argument #2 to be of type multifield
+FuzzyCLIPS> (mv-delete -1 (create$ x 1 z))     
+[MULTIFUN1] Multifield index -1 out of range 1..3 in function mv-delete.
+()
+FuzzyCLIPS> (mv-delete 0 (create$ x 4.2 z))    
+[MULTIFUN1] Multifield index 0 out of range 1..3 in function mv-delete.
+()
+FuzzyCLIPS> (mv-delete 1 (create$ [ab] cd ef)) 
+(cd ef)
+FuzzyCLIPS> (mv-delete 2 (create$ abc d ef))   
+(abc ef)
+FuzzyCLIPS> (mv-delete 3 (create$ abcd 2 e))   
+(abcd 2)
+FuzzyCLIPS> (mv-delete 4 (create$ q 3 "tx"))   
+[MULTIFUN1] Multifield index 4 out of range 1..3 in function mv-delete.
+()
+FuzzyCLIPS> (mv-delete -1 (create$))             
+[MULTIFUN1] Multifield index -1 out of range 1..0 in function mv-delete.
+()
+FuzzyCLIPS> (mv-delete 0 (create$))              
+[MULTIFUN1] Multifield index 0 out of range 1..0 in function mv-delete.
+()
+FuzzyCLIPS> (mv-delete 1 (create$))              
+[MULTIFUN1] Multifield index 1 out of range 1..0 in function mv-delete.
+()
+FuzzyCLIPS> (mv-delete 2 (create$))              
+[MULTIFUN1] Multifield index 2 out of range 1..0 in function mv-delete.
+()
+FuzzyCLIPS> (mv-delete 3 (create$ hammer drill saw pliers wrench))
+(hammer drill pliers wrench)
+FuzzyCLIPS> (mv-delete 1 (create$ computer printer hard-disk))
+(printer hard-disk)
+FuzzyCLIPS> (mv-subseq)                        
+[ARGACCES4] Function mv-subseq expected exactly 3 argument(s)
+FuzzyCLIPS> (mv-subseq 1)                      
+[ARGACCES4] Function mv-subseq expected exactly 3 argument(s)
+FuzzyCLIPS> (mv-subseq 1 3)                    
+[ARGACCES4] Function mv-subseq expected exactly 3 argument(s)
+FuzzyCLIPS> (mv-subseq 1 2 (create$ a c d) 3)  
+[ARGACCES4] Function mv-subseq expected exactly 3 argument(s)
+FuzzyCLIPS> (mv-subseq a 2 (create$ a b c))    
+[ARGACCES5] Function mv-subseq expected argument #1 to be of type integer
+FuzzyCLIPS> (mv-subseq 2 a (create$ d e))      
+[ARGACCES5] Function mv-subseq expected argument #2 to be of type integer
+FuzzyCLIPS> (mv-subseq 1 2 this)               
+[ARGACCES5] Function mv-subseq expected argument #3 to be of type multifield
+FuzzyCLIPS> (mv-subseq 1 2 (create$ a b c))  
+(a b)
+FuzzyCLIPS> (mv-subseq 1 2 (create$ a b c))  
+(a b)
+FuzzyCLIPS> (mv-subseq 1 2.5 (create$ a b c))  
+[ARGACCES5] Function mv-subseq expected argument #2 to be of type integer
+FuzzyCLIPS> (mv-subseq 1 3 (create$ a b c))    
+(a b c)
+FuzzyCLIPS> (mv-subseq -1 3 (create$ a b c))   
+(a b c)
+FuzzyCLIPS> (mv-subseq 1 4 (create$ a "b" c))  
+(a "b" c)
+FuzzyCLIPS> (mv-subseq 3 1 (create$ a b c))    
+()
+FuzzyCLIPS> (mv-subseq 1 1 (create$ 3 b c))    
+(3)
+FuzzyCLIPS> (mv-subseq 2 2 (create$ a 4.1 c))  
+(4.1)
+FuzzyCLIPS> (mv-subseq 3 3 (create$ a b [x]))  
+([x])
+FuzzyCLIPS> (mv-subseq 0 0 (create$ a b c))    
+()
+FuzzyCLIPS> (mv-subseq 4 4 (create$ a b c))    
+()
+FuzzyCLIPS> (mv-subseq 2 3 (create$ a b c d))  
+(b c)
+FuzzyCLIPS> (mv-subseq 5 7 (create$ a b c))    
+()
+FuzzyCLIPS> (mv-subseq -1 0 (create$ a b c))   
+()
+FuzzyCLIPS> (mv-subseq 3 4 (create$ hammer drill wrench pliers))
+(wrench pliers)
+FuzzyCLIPS> (mv-subseq 1 1 (create$ a "abc" def "ghi" 2))
+(a)
+FuzzyCLIPS> (mv-replace)                       
+[ARGACCES4] Function mv-replace expected exactly 3 argument(s)
+FuzzyCLIPS> (mv-replace 1)                     
+[ARGACCES4] Function mv-replace expected exactly 3 argument(s)
+FuzzyCLIPS> (mv-replace 1 (create$ a b))       
+[ARGACCES4] Function mv-replace expected exactly 3 argument(s)
+FuzzyCLIPS> (mv-replace 1 (create$ a b) 3 4)   
+[ARGACCES4] Function mv-replace expected exactly 3 argument(s)
+FuzzyCLIPS> (mv-replace 1.5 (create$ a) [x])   
+[ARGACCES5] Function mv-replace expected argument #1 to be of type integer
+FuzzyCLIPS> (mv-replace 1 3.5 a)               
+[ARGACCES5] Function mv-replace expected argument #2 to be of type multifield
+FuzzyCLIPS> (mv-replace 2 (create$ a b) (create$))
+(a)
+FuzzyCLIPS> (mv-replace -1 (create$ a b) x)    
+[MULTIFUN1] Multifield index -1 out of range 1..2 in function mv-replace.
+()
+FuzzyCLIPS> (mv-replace 0 (create$ c d) 3.5)   
+[MULTIFUN1] Multifield index 0 out of range 1..2 in function mv-replace.
+()
+FuzzyCLIPS> (mv-replace 1 (create$ "c" "d") 13)
+(13 "d")
+FuzzyCLIPS> (mv-replace 2 (create$ 3 5) "x")   
+(3 "x")
+FuzzyCLIPS> (mv-replace 3 (create$ [a] [b]) 3) 
+[MULTIFUN1] Multifield index 3 out of range 1..2 in function mv-replace.
+()
+FuzzyCLIPS> (mv-replace 3 (create$ drill wrench pliers) machete)
+(drill wrench machete)
+FuzzyCLIPS> (dribble-off)

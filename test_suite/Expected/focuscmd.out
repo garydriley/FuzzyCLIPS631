@@ -1,0 +1,164 @@
+TRUE
+FuzzyCLIPS> (batch "focuscmd.bat")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (get-focus 6)
+[ARGACCES4] Function get-focus expected exactly 0 argument(s)
+FuzzyCLIPS> (get-focus-stack 6)
+[ARGACCES4] Function get-focus-stack expected exactly 0 argument(s)
+FuzzyCLIPS> (pop-focus 6)
+[ARGACCES4] Function pop-focus expected exactly 0 argument(s)
+FuzzyCLIPS> (list-focus-stack 6)
+[ARGACCES4] Function list-focus-stack expected exactly 0 argument(s)
+FuzzyCLIPS> (clear-focus-stack 6)
+[ARGACCES4] Function clear-focus-stack expected exactly 0 argument(s)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (get-focus)
+MAIN
+FuzzyCLIPS> (get-focus-stack)
+(MAIN)
+FuzzyCLIPS> (list-focus-stack)
+MAIN
+FuzzyCLIPS> (clear-focus-stack)
+FuzzyCLIPS> (get-focus)
+FALSE
+FuzzyCLIPS> (get-focus-stack)
+()
+FuzzyCLIPS> (list-focus-stack)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (get-focus)
+MAIN
+FuzzyCLIPS> (get-focus-stack)
+(MAIN)
+FuzzyCLIPS> (list-focus-stack)
+MAIN
+FuzzyCLIPS> (defmodule A)
+FuzzyCLIPS> (defmodule B)
+FuzzyCLIPS> (focus A B)
+TRUE
+FuzzyCLIPS> (get-focus)
+A
+FuzzyCLIPS> (get-focus-stack)
+(A B MAIN)
+FuzzyCLIPS> (list-focus-stack)
+A
+B
+MAIN
+FuzzyCLIPS> (pop-focus)
+A
+FuzzyCLIPS> (get-focus)
+B
+FuzzyCLIPS> (get-focus-stack)
+(B MAIN)
+FuzzyCLIPS> (list-focus-stack)
+B
+MAIN
+FuzzyCLIPS> (pop-focus)
+B
+FuzzyCLIPS> (get-focus)
+MAIN
+FuzzyCLIPS> (get-focus-stack)
+(MAIN)
+FuzzyCLIPS> (list-focus-stack)
+MAIN
+FuzzyCLIPS> (pop-focus)
+MAIN
+FuzzyCLIPS> (get-focus)
+FALSE
+FuzzyCLIPS> (get-focus-stack)
+()
+FuzzyCLIPS> (list-focus-stack)
+FuzzyCLIPS> (clear-focus-stack)
+FuzzyCLIPS> (get-focus)
+FALSE
+FuzzyCLIPS> (get-focus-stack)
+()
+FuzzyCLIPS> (list-focus-stack)
+FuzzyCLIPS> (focus A B)
+TRUE
+FuzzyCLIPS> (clear-focus-stack)
+FuzzyCLIPS> (get-focus)
+FALSE
+FuzzyCLIPS> (get-focus-stack)
+()
+FuzzyCLIPS> (list-focus-stack)
+FuzzyCLIPS> (focus 6)
+[ARGACCES5] Function focus expected argument #1 to be of type symbol
+FuzzyCLIPS> (focus "A")
+[ARGACCES5] Function focus expected argument #1 to be of type symbol
+FuzzyCLIPS> (focus A 6)
+[ARGACCES5] Function focus expected argument #2 to be of type symbol
+FuzzyCLIPS> (focus C)
+[PRNTUTIL1] Unable to find defmodule C.
+FALSE
+FuzzyCLIPS> (focus)
+[ARGACCES4] Function focus expected at least 1 argument(s)
+FuzzyCLIPS> (list-focus-stack)
+FuzzyCLIPS> (focus A)
+TRUE
+FuzzyCLIPS> (focus B)
+TRUE
+FuzzyCLIPS> (list-focus-stack)
+B
+A
+FuzzyCLIPS> (focus A B)
+TRUE
+FuzzyCLIPS> (list-focus-stack)
+A
+B
+A
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defmodule A)
+FuzzyCLIPS> (defmodule B)
+FuzzyCLIPS> (watch focus 6)
+[ARGACCES4] Function watch expected exactly 1 argument(s)
+FuzzyCLIPS> (unwatch focus 6)
+[ARGACCES4] Function unwatch expected exactly 1 argument(s)
+FuzzyCLIPS> (focus A B)
+TRUE
+FuzzyCLIPS> (focus B C)
+[PRNTUTIL1] Unable to find defmodule C.
+FALSE
+FuzzyCLIPS> (list-focus-stack)
+A
+B
+MAIN
+FuzzyCLIPS> (clear-focus-stack)
+FuzzyCLIPS> (watch focus)
+FuzzyCLIPS> (reset)
+==> Focus MAIN
+FuzzyCLIPS> (focus A B)
+==> Focus B from MAIN
+==> Focus A from B
+TRUE
+FuzzyCLIPS> (pop-focus)
+<== Focus A to B
+A
+FuzzyCLIPS> (clear-focus-stack)
+<== Focus B to MAIN
+<== Focus MAIN
+FuzzyCLIPS> (focus A B)
+==> Focus B
+==> Focus A from B
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (run)
+<== Focus MAIN
+FuzzyCLIPS> (run)
+==> Focus MAIN
+<== Focus MAIN
+FuzzyCLIPS> (defmodule A)
+FuzzyCLIPS> (defmodule B)
+FuzzyCLIPS> (focus A B)
+==> Focus B
+==> Focus A from B
+TRUE
+FuzzyCLIPS> (run)
+<== Focus A to B
+<== Focus B
+FuzzyCLIPS> (unwatch focus)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (focus A B)
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (dribble-off)

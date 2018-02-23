@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/drive.h,v 1.3 2001/08/11 21:05:08 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                  DRIVE HEADER FILE                  */
    /*******************************************************/
@@ -19,6 +17,8 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -46,13 +46,9 @@
 #define LOCALE extern
 #endif
 
-   void                           NetworkAssert(struct partialMatch *,struct joinNode *,int);
-   void                           PNLDrive(struct joinNode *,struct partialMatch *);
-   BOOLEAN                        EvaluateJoinExpression(struct expr *,struct partialMatch *,struct partialMatch *,struct joinNode *);
-
-#ifndef _DRIVE_SOURCE_
-   extern int                     JoinOperationInProgress;
-#endif
+   void                           NetworkAssert(void *,struct partialMatch *,struct joinNode *,int);
+   void                           PNLDrive(void *,struct joinNode *,struct partialMatch *);
+   intBool                        EvaluateJoinExpression(void *,struct expr *,struct partialMatch *,struct partialMatch *,struct joinNode *);
 
 #endif
 

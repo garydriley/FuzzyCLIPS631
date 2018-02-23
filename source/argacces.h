@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/argacces.h,v 1.3 2001/08/11 21:04:05 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*             ARGUMENT ACCESS HEADER FILE             */
    /*******************************************************/
@@ -21,16 +19,15 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Added IllegalLogicalNameMessage function.      */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_argacces
 
 #define _H_argacces
-
-/* added to avoid too deep include nesting messages on sun system */
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
 
 #ifndef _H_expressn
 #include "expressn.h"
@@ -52,26 +49,47 @@
 #define LOCALE extern
 #endif
 
-   LOCALE char                          *RtnLexeme(int);
-   LOCALE double                         RtnDouble(int);
-   LOCALE long                           RtnLong(int);
-   LOCALE struct dataObject             *RtnUnknown(int,struct dataObject *);
-   LOCALE int                            RtnArgCount(void);
-   LOCALE int                            ArgCountCheck(char *,int,int);
-   LOCALE int                            ArgRangeCheck(char *,int,int);
-   LOCALE int                            ArgTypeCheck(char *,int,int,struct dataObject *);
-   LOCALE BOOLEAN                        GetNumericArgument(struct expr *,char *,struct dataObject *,int,int);
-   LOCALE char                          *GetLogicalName(int,char *);
-   LOCALE char                          *GetFileName(char *,int);
-   LOCALE char                          *GetConstructName(char *,char *);
-   LOCALE void                           ExpectedCountError(char *,int,int);
-   LOCALE void                           OpenErrorMessage(char *,char *);
-   LOCALE BOOLEAN                        CheckFunctionArgCount(char *,char *,int);
+#if ENVIRONMENT_API_ONLY
+#define RtnArgCount(theEnv) EnvRtnArgCount(theEnv)
+#define ArgCountCheck(theEnv,a,b,c) EnvArgCountCheck(theEnv,a,b,c)
+#define ArgRangeCheck(theEnv,a,b,c) EnvArgRangeCheck(theEnv,a,b,c)
+#define RtnLexeme(theEnv,a) EnvRtnLexeme(theEnv,a)
+#define RtnDouble(theEnv,a) EnvRtnDouble(theEnv,a)
+#define RtnLong(theEnv,a) EnvRtnLong(theEnv,a)
+#define RtnUnknown(theEnv,a,b) EnvRtnUnknown(theEnv,a,b)
+#define ArgTypeCheck(theEnv,a,b,c,d) EnvArgTypeCheck(theEnv,a,b,c,d)
+#else
+#define RtnArgCount() EnvRtnArgCount(GetCurrentEnvironment())
+#define ArgCountCheck(a,b,c) EnvArgCountCheck(GetCurrentEnvironment(),a,b,c)
+#define ArgRangeCheck(a,b,c) EnvArgRangeCheck(GetCurrentEnvironment(),a,b,c)
+#define RtnLexeme(a) EnvRtnLexeme(GetCurrentEnvironment(),a)
+#define RtnDouble(a) EnvRtnDouble(GetCurrentEnvironment(),a)
+#define RtnLong(a) EnvRtnLong(GetCurrentEnvironment(),a)
+#define RtnUnknown(a,b) EnvRtnUnknown(GetCurrentEnvironment(),a,b)
+#define ArgTypeCheck(a,b,c,d) EnvArgTypeCheck(GetCurrentEnvironment(),a,b,c,d)
+#endif
+
+   LOCALE int                            EnvRtnArgCount(void *);
+   LOCALE int                            EnvArgCountCheck(void *,char *,int,int);
+   LOCALE int                            EnvArgRangeCheck(void *,char *,int,int);
+   LOCALE char                          *EnvRtnLexeme(void *,int);
+   LOCALE double                         EnvRtnDouble(void *,int);
+   LOCALE long                           EnvRtnLong(void *,int);
+   LOCALE struct dataObject             *EnvRtnUnknown(void *,int,struct dataObject *);
+   LOCALE int                            EnvArgTypeCheck(void *,char *,int,int,struct dataObject *);
+   LOCALE intBool                        GetNumericArgument(void *,struct expr *,char *,struct dataObject *,int,int);
+   LOCALE char                          *GetLogicalName(void *,int,char *);
+   LOCALE char                          *GetFileName(void *,char *,int);
+   LOCALE char                          *GetConstructName(void *,char *,char *);
+   LOCALE void                           ExpectedCountError(void *,char *,int,int);
+   LOCALE void                           OpenErrorMessage(void *,char *,char *);
+   LOCALE intBool                        CheckFunctionArgCount(void *,char *,char *,int);
    LOCALE void                           ExpectedReturnTypeError(char *,char *);
-   LOCALE void                           ExpectedTypeError1(char *,int,char *);
-   LOCALE void                           ExpectedTypeError2(char *,int);
-   LOCALE struct defmodule              *GetModuleName(char *,int,int *);
-   LOCALE void                          *GetFactOrInstanceArgument(int,DATA_OBJECT *,char *);
+   LOCALE void                           ExpectedTypeError1(void *,char *,int,char *);
+   LOCALE void                           ExpectedTypeError2(void *,char *,int);
+   LOCALE struct defmodule              *GetModuleName(void *,char *,int,int *);
+   LOCALE void                          *GetFactOrInstanceArgument(void *,int,DATA_OBJECT *,char *);
+   LOCALE void                           IllegalLogicalNameMessage(void *,char *);
 
 #endif
 

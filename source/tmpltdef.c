@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/tmpltdef.c,v 1.3 2001/08/11 21:08:13 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                 DEFTEMPLATE MODULE                  */
    /*******************************************************/
@@ -24,6 +22,13 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/tmpltdef.c,v 1.3 2001/08/1
 /*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
+/*      6.23: Added support for templates maintaining their  */
+/*            own list of facts.                             */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Corrected code to remove run-time program      */
+/*            compiler warnings.                             */
 /*                                                           */
 /*************************************************************/
 
@@ -48,6 +53,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/tmpltdef.c,v 1.3 2001/08/1
 #include "modulpsr.h"
 #include "modulutl.h"
 #include "cstrnchk.h"
+#include "envrnmnt.h"
 
 #if BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE
 #include "bload.h"
@@ -58,32 +64,31 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/tmpltdef.c,v 1.3 2001/08/1
 #include "tmpltcmp.h"
 #endif
 
-#include "tmpltdef.h"
-
 #if FUZZY_DEFTEMPLATES  
 #include "fuzzypsr.h"
-#include "fuzzyutl.h"
-#include "symbol.h"
 #endif
+
+#include "tmpltdef.h"
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static void                   *AllocateModule(void);
-   static void                    ReturnModule(void *);
-   static void                    ReturnDeftemplate(void *);
-   static void                    InitializeDeftemplateModules(void);
-   static void                    IncrementDeftemplateBusyCount(void *);
-   static void                    DecrementDeftemplateBusyCount(void *);
+   static void                   *AllocateModule(void *);
+   static void                    ReturnModule(void *,void *);
+   static void                    ReturnDeftemplate(void *,void *);
+   static void                    InitializeDeftemplateModules(void *);
+   static void                    DeallocateDeftemplateData(void *);
+   static void                    DestroyDeftemplateAction(void *,struct constructHeader *,void *);
+   static void                    DestroyDeftemplate(void *,void *);
 
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle struct construct       *DeftemplateConstruct;
-   globle int                     DeftemplateModuleIndex;
-   globle struct entityRecord     DeftemplatePtrRecord = { "DEFTEMPLATE_PTR",
+/******************************************************************/
+/* InitializeDeftemplates: Initializes the deftemplate construct. */
+/******************************************************************/
+globle void InitializeDeftemplates(
+  void *theEnv)
+  {
+   globle struct entityRecord deftemplatePtrRecord = { "DEFTEMPLATE_PTR",
                                                            DEFTEMPLATE_PTR,1,0,0,
                                                            NULL,
                                                            NULL,NULL,
@@ -92,36 +97,88 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/tmpltdef.c,v 1.3 2001/08/1
                                                            DecrementDeftemplateBusyCount,
                                                            IncrementDeftemplateBusyCount,
                                                            NULL,NULL,NULL,NULL };
+   AllocateEnvironmentData(theEnv,DEFTEMPLATE_DATA,sizeof(struct deftemplateData),DeallocateDeftemplateData);
 
-/******************************************************************/
-/* InitializeDeftemplates: Initializes the deftemplate construct. */
-/******************************************************************/
-globle void InitializeDeftemplates()
-  {
-   InitializeFacts();
+   memcpy(&DeftemplateData(theEnv)->DeftemplatePtrRecord,&deftemplatePtrRecord,sizeof(struct entityRecord));   
 
-   InitializeDeftemplateModules();
+   InitializeFacts(theEnv);
 
-   DeftemplateBasicCommands();
+   InitializeDeftemplateModules(theEnv);
 
-   DeftemplateFunctions();
+   DeftemplateBasicCommands(theEnv);
 
-   DeftemplateConstruct =
-      AddConstruct("deftemplate","deftemplates",ParseDeftemplate,FindDeftemplate,
+   DeftemplateFunctions(theEnv);
+
+   DeftemplateData(theEnv)->DeftemplateConstruct =
+      AddConstruct(theEnv,"deftemplate","deftemplates",ParseDeftemplate,EnvFindDeftemplate,
                    GetConstructNamePointer,GetConstructPPForm,
-                   GetConstructModuleItem,GetNextDeftemplate,SetNextConstruct,
-                   IsDeftemplateDeletable,Undeftemplate,ReturnDeftemplate);
+                   GetConstructModuleItem,EnvGetNextDeftemplate,SetNextConstruct,
+                   EnvIsDeftemplateDeletable,EnvUndeftemplate,ReturnDeftemplate);
 
-   InstallPrimitive((ENTITY_RECORD_PTR) &DeftemplatePtrRecord,DEFTEMPLATE_PTR);
+   InstallPrimitive(theEnv,(ENTITY_RECORD_PTR) &DeftemplateData(theEnv)->DeftemplatePtrRecord,DEFTEMPLATE_PTR);
   }
+  
+/******************************************************/
+/* DeallocateDeftemplateData: Deallocates environment */
+/*    data for the deftemplate construct.             */
+/******************************************************/
+static void DeallocateDeftemplateData(
+  void *theEnv)
+  {
+#if ! RUN_TIME
+   struct deftemplateModule *theModuleItem;
+   void *theModule;
+#endif
+#if BLOAD || BLOAD_AND_BSAVE
+   if (Bloaded(theEnv)) return;
+#endif
+
+   DoForAllConstructs(theEnv,DestroyDeftemplateAction,DeftemplateData(theEnv)->DeftemplateModuleIndex,FALSE,NULL); 
+
+#if ! RUN_TIME
+   for (theModule = EnvGetNextDefmodule(theEnv,NULL);
+        theModule != NULL;
+        theModule = EnvGetNextDefmodule(theEnv,theModule))
+     {
+      theModuleItem = (struct deftemplateModule *)
+                      GetModuleItem(theEnv,(struct defmodule *) theModule,
+                                    DeftemplateData(theEnv)->DeftemplateModuleIndex);
+      rtn_struct(theEnv,deftemplateModule,theModuleItem);
+     }
+#endif
+  }
+  
+/*****************************************************/
+/* DestroyDeftemplateAction: Action used to remove   */
+/*   deftemplates as a result of DestroyEnvironment. */
+/*****************************************************/
+#if IBM_TBC
+#pragma argsused
+#endif
+static void DestroyDeftemplateAction(
+  void *theEnv,
+  struct constructHeader *theConstruct,
+  void *buffer)
+  {
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(buffer)
+#endif
+   struct deftemplate *theDeftemplate = (struct deftemplate *) theConstruct;
+   
+   if (theDeftemplate == NULL) return;
+   
+   DestroyDeftemplate(theEnv,theDeftemplate);
+  }
+
 
 /*************************************************************/
 /* InitializeDeftemplateModules: Initializes the deftemplate */
 /*   construct for use with the defmodule construct.         */
 /*************************************************************/
-static void InitializeDeftemplateModules()
+static void InitializeDeftemplateModules(
+  void *theEnv)
   {
-   DeftemplateModuleIndex = RegisterModuleItem("deftemplate",
+   DeftemplateData(theEnv)->DeftemplateModuleIndex = RegisterModuleItem(theEnv,"deftemplate",
                                     AllocateModule,
                                     ReturnModule,
 #if BLOAD_AND_BSAVE || BLOAD || BLOAD_ONLY
@@ -134,27 +191,31 @@ static void InitializeDeftemplateModules()
 #else
                                     NULL,
 #endif
-                                    FindDeftemplate);
+                                    EnvFindDeftemplate);
 
 #if (! BLOAD_ONLY) && (! RUN_TIME) && DEFMODULE_CONSTRUCT
-   AddPortConstructItem("deftemplate",SYMBOL);
+   AddPortConstructItem(theEnv,"deftemplate",SYMBOL);
 #endif
   }
 
 /***************************************************/
 /* AllocateModule: Allocates a deftemplate module. */
 /***************************************************/
-static void *AllocateModule()
-  { return((void *) get_struct(deftemplateModule)); }
+static void *AllocateModule(
+  void *theEnv)
+  {    
+   return((void *) get_struct(theEnv,deftemplateModule)); 
+  }
 
 /*************************************************/
 /* ReturnModule: Deallocates a deftemplate module. */
 /*************************************************/
 static void ReturnModule(
+  void *theEnv,
   void *theItem)
-  {
-   FreeConstructHeaderModule((struct defmoduleItemHeader *) theItem,DeftemplateConstruct);
-   rtn_struct(deftemplateModule,theItem);
+  {   
+   FreeConstructHeaderModule(theEnv,(struct defmoduleItemHeader *) theItem,DeftemplateData(theEnv)->DeftemplateConstruct);
+   rtn_struct(theEnv,deftemplateModule,theItem);
   }
 
 /****************************************************************/
@@ -162,51 +223,53 @@ static void ReturnModule(
 /*  item for the specified deftemplate or defmodule.            */
 /****************************************************************/
 globle struct deftemplateModule *GetDeftemplateModuleItem(
+  void *theEnv,
   struct defmodule *theModule)
-  { return((struct deftemplateModule *) GetConstructModuleItemByIndex(theModule,DeftemplateModuleIndex)); }
+  {   
+   return((struct deftemplateModule *) GetConstructModuleItemByIndex(theEnv,theModule,DeftemplateData(theEnv)->DeftemplateModuleIndex)); 
+  }
 
-/***********************************************************/
-/* FindDeftemplate: Searches for a deftemplate in the list */
-/*   of deftemplates. Returns a pointer to the deftemplate */
-/*   if found, otherwise NULL.                             */
-/***********************************************************/
-globle void *FindDeftemplate(
+/*****************************************************/
+/* EnvFindDeftemplate: Searches for a deftemplate in */
+/*   the list of deftemplates. Returns a pointer to  */
+/*   the deftemplate if  found, otherwise NULL.      */
+/*****************************************************/
+globle void *EnvFindDeftemplate(
+  void *theEnv,
   char *deftemplateName)
-  { return(FindNamedConstruct(deftemplateName,DeftemplateConstruct)); }
+  {  
+   return(FindNamedConstruct(theEnv,deftemplateName,DeftemplateData(theEnv)->DeftemplateConstruct)); 
+  }
 
 /***********************************************************************/
-/* GetNextDeftemplate: If passed a NULL pointer, returns the first     */
+/* EnvGetNextDeftemplate: If passed a NULL pointer, returns the first  */
 /*   deftemplate in the ListOfDeftemplates. Otherwise returns the next */
 /*   deftemplate following the deftemplate passed as an argument.      */
 /***********************************************************************/
-globle void *GetNextDeftemplate(
+globle void *EnvGetNextDeftemplate(
+  void *theEnv,
   void *deftemplatePtr)
-  { return((void *) GetNextConstructItem((struct constructHeader *) deftemplatePtr,DeftemplateModuleIndex)); }
+  {   
+   return((void *) GetNextConstructItem(theEnv,(struct constructHeader *) deftemplatePtr,DeftemplateData(theEnv)->DeftemplateModuleIndex)); 
+  }
 
-/**********************************************************/
-/* IsDeftemplateDeletable: Returns TRUE if a particular   */
-/*   deftemplate can be deleted, otherwise returns FALSE. */
-/**********************************************************/
-globle BOOLEAN IsDeftemplateDeletable(
+/***********************************************************/
+/* EnvIsDeftemplateDeletable: Returns TRUE if a particular */
+/*   deftemplate can be deleted, otherwise returns FALSE.  */
+/***********************************************************/
+globle intBool EnvIsDeftemplateDeletable(
+  void *theEnv,
   void *vTheDeftemplate)
   {
-#if (MAC_MPW || MAC_MCW) && (RUN_TIME || BLOAD_ONLY)
-#pragma unused(vTheDeftemplate)
-#endif
-
-#if BLOAD_ONLY || RUN_TIME
-   return(FALSE);
-#else
    struct deftemplate *theDeftemplate = (struct deftemplate *) vTheDeftemplate;
-#if BLOAD || BLOAD_AND_BSAVE
-   if (Bloaded()) return(FALSE);
-#endif
+
+   if (! ConstructsDeletable(theEnv))
+     { return FALSE; }
 
    if (theDeftemplate->busyCount > 0) return(FALSE);
    if (theDeftemplate->patternNetwork != NULL) return(FALSE);
 
    return(TRUE);
-#endif
   }
 
 /**************************************************************/
@@ -214,10 +277,11 @@ globle BOOLEAN IsDeftemplateDeletable(
 /*   with a deftemplate construct to the pool of free memory. */
 /**************************************************************/
 static void ReturnDeftemplate(
+  void *theEnv,
   void *vTheConstruct)
   {
-#if (MAC_MPW || MAC_MCW) && (RUN_TIME || BLOAD_ONLY)
-#pragma unused(vTheConstruct)
+#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
+#pragma unused(theEnv,vTheConstruct)
 #endif
 
 #if (! BLOAD_ONLY) && (! RUN_TIME)
@@ -231,8 +295,8 @@ static void ReturnDeftemplate(
    /*====================================================================*/
 
 #if DEBUGGING_FUNCTIONS
-   DeletedTemplateDebugFlags = 0;
-   if (theConstruct->watch) BitwiseSet(DeletedTemplateDebugFlags,0);
+   DeftemplateData(theEnv)->DeletedTemplateDebugFlags = 0;
+   if (theConstruct->watch) BitwiseSet(DeftemplateData(theEnv)->DeletedTemplateDebugFlags,0);
 #endif
 
 #if FUZZY_DEFTEMPLATES
@@ -244,7 +308,7 @@ static void ReturnDeftemplate(
 
    if (theConstruct->fuzzyTemplate != NULL)
      {
-       DeinstallFuzzyTemplate(theConstruct->fuzzyTemplate);
+       DeinstallFuzzyTemplate(theEnv,theConstruct->fuzzyTemplate);
        /* for a fuzzy deftemplate the call to RemoveConstraint below
           for its single slot will decrement the busyCount for the
           deftemplate (restrictionList has ptr to this deftemplate)
@@ -262,35 +326,96 @@ static void ReturnDeftemplate(
    slotPtr = theConstruct->slotList;
    while (slotPtr != NULL)
      {
-      DecrementSymbolCount(slotPtr->slotName);
-      RemoveHashedExpression(slotPtr->defaultList);
+      DecrementSymbolCount(theEnv,slotPtr->slotName);
+      RemoveHashedExpression(theEnv,slotPtr->defaultList);
       slotPtr->defaultList = NULL;
-      RemoveConstraint(slotPtr->constraints);
+      RemoveConstraint(theEnv,slotPtr->constraints);
       slotPtr->constraints = NULL;
       slotPtr = slotPtr->next;
      }
 
-   ReturnSlots(theConstruct->slotList);
+   ReturnSlots(theEnv,theConstruct->slotList);
 
    /*==================================*/
    /* Free storage used by the header. */
    /*==================================*/
 
-   DeinstallConstructHeader(&theConstruct->header);
+   DeinstallConstructHeader(theEnv,&theConstruct->header);
 
-   rtn_struct(deftemplate,theConstruct);
+   rtn_struct(theEnv,deftemplate,theConstruct);
 #endif
   }
+  
+/**************************************************************/
+/* DestroyDeftemplate: Returns the data structures associated */
+/*   with a deftemplate construct to the pool of free memory. */
+/**************************************************************/
+static void DestroyDeftemplate(
+  void *theEnv,
+  void *vTheConstruct)
+  {
+#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
+#pragma unused(vTheConstruct)
+#endif
 
+   struct deftemplate *theConstruct = (struct deftemplate *) vTheConstruct;
+#if (! BLOAD_ONLY) && (! RUN_TIME)
+   struct templateSlot *slotPtr, *nextSlot;
+#endif
+   if (theConstruct == NULL) return;
+  
+#if (! BLOAD_ONLY) && (! RUN_TIME)
+   slotPtr = theConstruct->slotList;
+
+   while (slotPtr != NULL)
+     {
+      nextSlot = slotPtr->next;
+      rtn_struct(theEnv,templateSlot,slotPtr);
+      slotPtr = nextSlot;
+     }
+
+#if FUZZY_DEFTEMPLATES
+   if (theConstruct->fuzzyTemplate != NULL)
+     {
+      struct primary_term *pt, *this_pt;
+          
+      pt = theConstruct->fuzzyTemplate->primary_term_list;
+      while (pt != NULL)
+        {
+         this_pt = pt;
+         pt = pt->next;
+         rtn_struct(theEnv,primary_term,this_pt);
+        }
+      
+      rtn_struct(theEnv,fuzzyLv,theConstruct->fuzzyTemplate);
+     }
+#endif
+      
+#endif
+
+   DestroyFactPatternNetwork(theEnv,theConstruct->patternNetwork);
+   
+   /*==================================*/
+   /* Free storage used by the header. */
+   /*==================================*/
+
+#if (! BLOAD_ONLY) && (! RUN_TIME)
+   DeinstallConstructHeader(theEnv,&theConstruct->header);
+
+   rtn_struct(theEnv,deftemplate,theConstruct);
+#endif
+  }
+  
 /***********************************************/
 /* ReturnSlots: Returns the slot structures of */
 /*   a deftemplate to free memory.             */
 /***********************************************/
 globle void ReturnSlots(
+  void *theEnv,
   struct templateSlot *slotPtr)
   {
-#if (MAC_MPW || MAC_MCW) && (RUN_TIME || BLOAD_ONLY)
-#pragma unused(slotPtr)
+#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
+#pragma unused(theEnv,slotPtr)
 #endif
 
 #if (! BLOAD_ONLY) && (! RUN_TIME)
@@ -299,9 +424,9 @@ globle void ReturnSlots(
    while (slotPtr != NULL)
      {
       nextSlot = slotPtr->next;
-      ReturnExpression(slotPtr->defaultList);
-      RemoveConstraint(slotPtr->constraints);
-      rtn_struct(templateSlot,slotPtr);
+      ReturnExpression(theEnv,slotPtr->defaultList);
+      RemoveConstraint(theEnv,slotPtr->constraints);
+      rtn_struct(theEnv,templateSlot,slotPtr);
       slotPtr = nextSlot;
      }
 #endif
@@ -311,24 +436,56 @@ globle void ReturnSlots(
 /* DecrementDeftemplateBusyCount: Decrements the */
 /*   busy count of a deftemplate data structure. */
 /*************************************************/
-static void DecrementDeftemplateBusyCount(
+globle void DecrementDeftemplateBusyCount(
+  void *theEnv,
   void *vTheTemplate)
   {
    struct deftemplate *theTemplate = (struct deftemplate *) vTheTemplate;
 
-   if (! ClearInProgress) theTemplate->busyCount--;
+   if (! ConstructData(theEnv)->ClearInProgress) theTemplate->busyCount--;
   }
 
 /*************************************************/
 /* IncrementDeftemplateBusyCount: Increments the */
 /*   busy count of a deftemplate data structure. */
 /*************************************************/
-static void IncrementDeftemplateBusyCount(
+#if IBM_TBC
+#pragma argsused
+#endif
+globle void IncrementDeftemplateBusyCount(
+  void *theEnv,
   void *vTheTemplate)
   {
    struct deftemplate *theTemplate = (struct deftemplate *) vTheTemplate;
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
+#endif
 
    theTemplate->busyCount++;
+  }
+  
+/*******************************************************************/
+/* EnvGetNextFactInTemplate: If passed a NULL pointer, returns the */
+/*   first fact in the template's fact-list. Otherwise returns the */
+/*   next template fact following the fact passed as an argument.  */
+/*******************************************************************/
+#if IBM_TBC
+#pragma argsused
+#endif
+globle void *EnvGetNextFactInTemplate(
+  void *theEnv,
+  void *theTemplate,
+  void *factPtr)
+  {
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
+#endif
+   if (factPtr == NULL)
+     { return((void *) ((struct deftemplate *) theTemplate)->factList); }
+
+   if (((struct fact *) factPtr)->garbage) return(NULL);
+
+   return((void *) ((struct fact *) factPtr)->nextTemplateFact);
   }
 
 #endif /* DEFTEMPLATE_CONSTRUCT */

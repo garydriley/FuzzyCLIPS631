@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/tmpltpsr.h,v 1.3 2001/08/11 21:08:17 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*            DEFTEMPLATE PARSER HEADER FILE           */
    /*******************************************************/
@@ -41,13 +39,10 @@
 #define LOCALE extern
 #endif
 
-   LOCALE int                            ParseDeftemplate(char *);
-   LOCALE void                           InstallDeftemplate(struct deftemplate *);
+   LOCALE int                            ParseDeftemplate(void *,char *);
+   LOCALE void                           InstallDeftemplate(void *,struct deftemplate *);
 
 #endif
-
-
-
 
 
 

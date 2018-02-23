@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/modulbsc.h,v 1.3 2001/08/11 21:06:48 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*         DEFMODULE BASIC COMMANDS HEADER FILE        */
    /*******************************************************/
@@ -40,13 +38,20 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           DefmoduleBasicCommands(void);
-   LOCALE void                           GetDefmoduleList(DATA_OBJECT_PTR);
-   LOCALE void                           PPDefmoduleCommand(void);
-   LOCALE int                            PPDefmodule(char *,char *);
-   LOCALE void                           ListDefmodulesCommand(void);
-   LOCALE void                           ListDefmodules(char *);
-
+#if ENVIRONMENT_API_ONLY
+#define GetDefmoduleList(theEnv,a) EnvGetDefmoduleList(theEnv,a)
+#define ListDefmodules(theEnv,a) EnvListDefmodules(theEnv,a)
+#else
+#define GetDefmoduleList(a) EnvGetDefmoduleList(GetCurrentEnvironment(),a)
+#define ListDefmodules(a) EnvListDefmodules(GetCurrentEnvironment(),a)
 #endif
 
+   LOCALE void                           DefmoduleBasicCommands(void *);
+   LOCALE void                           EnvGetDefmoduleList(void *,DATA_OBJECT_PTR);
+   LOCALE void                           PPDefmoduleCommand(void *);
+   LOCALE int                            PPDefmodule(void *,char *,char *);
+   LOCALE void                           ListDefmodulesCommand(void *);
+   LOCALE void                           EnvListDefmodules(void *,char *);
+
+#endif
 

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/evaluatn.h,v 1.3 2001/08/11 21:05:19 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*               EVALUATION HEADER FILE                */
    /*******************************************************/
@@ -18,24 +16,11 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Added EvaluateAndStoreInDataObject function.   */
+/*                                                           */
 /*************************************************************/
-
-#ifndef _H_setup
-#include "setup.h"
-#endif
-
-#if FUZZY_DEFTEMPLATES
-/* Due to a circular set of definitions we need to do this
-   symbol.h includes fuzzyval.h which includes tmpltdef.h
-   which includes evaluatn.h => problem!!
-   This effectively makes the include of evaluatn.h an
-   include of symbol.h to make sure tmpltdef is included
-   before evaluatn!
-*/
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#endif
 
 #ifndef _H_evaluatn
 
@@ -57,7 +42,7 @@ struct dataObject;
 struct dataObject
   {
    void *supplementalInfo;
-   int type;
+   unsigned short type;
    void *value;
    long begin;
    long end;
@@ -80,17 +65,17 @@ struct entityRecord
    unsigned int copyToEvaluate : 1;
    unsigned int bitMap : 1;
    unsigned int addsToRuleComplexity : 1;
-   void (*shortPrintFunction)(char *,void *);
-   void (*longPrintFunction)(char *,void *);
-   BOOLEAN (*deleteFunction)(void *);
-   BOOLEAN (*evaluateFunction)(void *,DATA_OBJECT *);
-   void *(*getNextFunction)(void *);
-   void (*decrementBusyCount)(void *);
-   void (*incrementBusyCount)(void *);
-   void (*propagateDepth)(void *);
-   void (*markNeeded)(void *);
-   void (*install)(void *);
-   void (*deinstall)(void *);
+   void (*shortPrintFunction)(void *,char *,void *);
+   void (*longPrintFunction)(void *,char *,void *);
+   intBool (*deleteFunction)(void *,void *);
+   intBool (*evaluateFunction)(void *,void *,DATA_OBJECT *);
+   void *(*getNextFunction)(void *,void *);
+   void (*decrementBusyCount)(void *,void *);
+   void (*incrementBusyCount)(void *,void *);
+   void (*propagateDepth)(void *,void *);
+   void (*markNeeded)(void *,void *);
+   void (*install)(void *,void *);
+   void (*deinstall)(void *,void *);
    struct userData *usrData;
   };
 
@@ -103,17 +88,35 @@ typedef struct entityRecord * ENTITY_RECORD_PTR;
 #define GetDOEnd(target)          ((target).end + 1)
 #define GetpDOBegin(target)       ((target)->begin + 1)
 #define GetpDOEnd(target)         ((target)->end + 1)
-#define SetDOBegin(target,val)   ((target).begin = (val) - 1)
-#define SetDOEnd(target,val)     ((target).end = (val) - 1)
-#define SetpDOBegin(target,val)   ((target)->begin = (val) - 1)
-#define SetpDOEnd(target,val)     ((target)->end = (val) - 1)
+#define SetDOBegin(target,val)   ((target).begin = (long) ((val) - 1))
+#define SetDOEnd(target,val)     ((target).end = (long) ((val) - 1))
+#define SetpDOBegin(target,val)   ((target)->begin = (long) ((val) - 1))
+#define SetpDOEnd(target,val)     ((target)->end = (long) ((val) - 1))
 
-#define DOPToString(target) (((struct symbolHashNode *) (target->value))->contents)
-#define DOPToDouble(target) (((struct floatHashNode *) (target->value))->contents)
-#define DOPToFloat(target) ((float) (((struct floatHashNode *) (target->value))->contents))
-#define DOPToLong(target) (((struct integerHashNode *) (target->value))->contents)
-#define DOPToInteger(target) ((int) (((struct integerHashNode *) (target->value))->contents))
+#define EnvGetDOLength(theEnv,target)       (((target).end - (target).begin) + 1)
+#define EnvGetpDOLength(theEnv,target)      (((target)->end - (target)->begin) + 1)
+#define EnvGetDOBegin(theEnv,target)        ((target).begin + 1)
+#define EnvGetDOEnd(theEnv,target)          ((target).end + 1)
+#define EnvGetpDOBegin(theEnv,target)       ((target)->begin + 1)
+#define EnvGetpDOEnd(theEnv,target)         ((target)->end + 1)
+#define EnvSetDOBegin(theEnv,target,val)   ((target).begin = (long) ((val) - 1))
+#define EnvSetDOEnd(theEnv,target,val)     ((target).end = (long) ((val) - 1))
+#define EnvSetpDOBegin(theEnv,target,val)   ((target)->begin = (long) ((val) - 1))
+#define EnvSetpDOEnd(theEnv,target,val)     ((target)->end = (long) ((val) - 1))
+
+#define DOPToString(target) (((struct symbolHashNode *) ((target)->value))->contents)
+#define DOPToDouble(target) (((struct floatHashNode *) ((target)->value))->contents)
+#define DOPToFloat(target) ((float) (((struct floatHashNode *) ((target)->value))->contents))
+#define DOPToLong(target) (((struct integerHashNode *) ((target)->value))->contents)
+#define DOPToInteger(target) ((int) (((struct integerHashNode *) ((target)->value))->contents))
 #define DOPToPointer(target)       ((target)->value)
+
+#define EnvDOPToString(theEnv,target) (((struct symbolHashNode *) ((target)->value))->contents)
+#define EnvDOPToDouble(theEnv,target) (((struct floatHashNode *) ((target)->value))->contents)
+#define EnvDOPToFloat(theEnv,target) ((float) (((struct floatHashNode *) ((target)->value))->contents))
+#define EnvDOPToLong(theEnv,target) (((struct integerHashNode *) ((target)->value))->contents)
+#define EnvDOPToInteger(theEnv,target) ((int) (((struct integerHashNode *) ((target)->value))->contents))
+#define EnvDOPToPointer(theEnv,target)       ((target)->value)
 
 #define DOToString(target) (((struct symbolHashNode *) (target.value))->contents)
 #define DOToDouble(target) (((struct floatHashNode *) (target.value))->contents)
@@ -122,11 +125,18 @@ typedef struct entityRecord * ENTITY_RECORD_PTR;
 #define DOToInteger(target) ((int) (((struct integerHashNode *) (target.value))->contents))
 #define DOToPointer(target)        ((target).value)
 
+#define EnvDOToString(theEnv,target) (((struct symbolHashNode *) (target.value))->contents)
+#define EnvDOToDouble(theEnv,target) (((struct floatHashNode *) (target.value))->contents)
+#define EnvDOToFloat(theEnv,target) ((float) (((struct floatHashNode *) (target.value))->contents))
+#define EnvDOToLong(theEnv,target) (((struct integerHashNode *) (target.value))->contents)
+#define EnvDOToInteger(theEnv,target) ((int) (((struct integerHashNode *) (target.value))->contents))
+#define EnvDOToPointer(theEnv,target)        ((target).value)
+
 #define CoerceToLongInteger(t,v) ((t == INTEGER) ? ValueToLong(v) : (long int) ValueToDouble(v))
 #define CoerceToInteger(t,v) ((t == INTEGER) ? (int) ValueToLong(v) : (int) ValueToDouble(v))
 #define CoerceToDouble(t,v) ((t == INTEGER) ? (double) ValueToLong(v) : ValueToDouble(v))
 
-#define GetFirstArgument()           (CurrentExpression->argList)
+#define GetFirstArgument()           (EvaluationData(theEnv)->CurrentExpression->argList)
 #define GetNextArgument(ep)          (ep->nextArg)
 
 #define MAXIMUM_PRIMITIVES 150
@@ -141,7 +151,18 @@ typedef struct entityRecord * ENTITY_RECORD_PTR;
 #define SetBitMap(map,id)   BitwiseSet(map[(id) / BITS_PER_BYTE],(id) % BITS_PER_BYTE)
 #define ClearBitMap(map,id) BitwiseClear(map[(id) / BITS_PER_BYTE],(id) % BITS_PER_BYTE)
 
-#define CLIPSFunctionCall(x,y,z) FunctionCall(x,y,z)
+#define EVALUATION_DATA 44
+
+struct evaluationData
+  { 
+   struct expr *CurrentExpression;
+   int EvaluationError;
+   int HaltExecution;
+   int CurrentEvaluationDepth;
+   struct entityRecord *PrimitivesArray[MAXIMUM_PRIMITIVES];
+  };
+
+#define EvaluationData(theEnv) ((struct evaluationData *) GetEnvironmentData(theEnv,EVALUATION_DATA))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -153,39 +174,41 @@ typedef struct entityRecord * ENTITY_RECORD_PTR;
 #define LOCALE extern
 #endif
 
-   LOCALE int                            EvaluateExpression(struct expr *,struct dataObject *);
-   LOCALE void                           SetEvaluationError(BOOLEAN);
-   LOCALE int                            GetEvaluationError(void);
-   LOCALE void                           SetHaltExecution(int);
-   LOCALE int                            GetHaltExecution(void);
-   LOCALE void                           ReturnValues(struct dataObject *);
-   LOCALE void                           PrintDataObject(char *,struct dataObject *);
-   LOCALE void                           SetMultifieldErrorValue(struct dataObject *);
-   LOCALE void                           ValueInstall(struct dataObject *);
-   LOCALE void                           ValueDeinstall(struct dataObject *);
-   LOCALE void                           PropagateReturnValue(struct dataObject *);
-#if DEFFUNCTION_CONSTRUCT || DEFGENERIC_CONSTRUCT
-   LOCALE int                            FunctionCall(char *,char *,DATA_OBJECT *);
-   LOCALE int                            FunctionCall2(FUNCTION_REFERENCE *,char *,DATA_OBJECT *);
+#if ENVIRONMENT_API_ONLY
+#define SetMultifieldErrorValue(theEnv,a) EnvSetMultifieldErrorValue(theEnv,a)
+#define FunctionCall(theEnv,a,b,c) EnvFunctionCall(theEnv,a,b,c)
+#else
+#define SetMultifieldErrorValue(a) EnvSetMultifieldErrorValue(GetCurrentEnvironment(),a)
+#define FunctionCall(a,b,c) EnvFunctionCall(GetCurrentEnvironment(),a,b,c)
 #endif
-   LOCALE void                           CopyDataObject(DATA_OBJECT *,DATA_OBJECT *,int);
-   LOCALE void                           AtomInstall(int,void *);
-   LOCALE void                           AtomDeinstall(int,void *);
-   LOCALE struct expr                   *ConvertValueToExpression(DATA_OBJECT *);
-   LOCALE unsigned int                   GetAtomicHashValue(int,void *,int);
-   LOCALE void                           InstallPrimitive(struct entityRecord *,int);
-   LOCALE void                           TransferDataObjectValues(DATA_OBJECT *,DATA_OBJECT *);
-   LOCALE struct expr                   *FunctionReferenceExpression(char *);
-   LOCALE BOOLEAN                        GetFunctionReference(char *,FUNCTION_REFERENCE *);
-   LOCALE BOOLEAN                        DOsEqual(DATA_OBJECT_PTR,DATA_OBJECT_PTR);
 
-#ifndef _EVALUATN_SOURCE_
-   extern struct expr            *CurrentExpression;
-   extern int                     EvaluationError;
-   extern int                     HaltExecution;
-   extern int                     CurrentEvaluationDepth;
-   extern struct entityRecord    *PrimitivesArray[];
+   LOCALE void                           InitializeEvaluationData(void *);
+   LOCALE int                            EvaluateExpression(void *,struct expr *,struct dataObject *);
+   LOCALE void                           SetEvaluationError(void *,intBool);
+   LOCALE int                            GetEvaluationError(void *);
+   LOCALE void                           SetHaltExecution(void *,int);
+   LOCALE int                            GetHaltExecution(void *);
+   LOCALE void                           ReturnValues(void *,struct dataObject *);
+   LOCALE void                           PrintDataObject(void *,char *,struct dataObject *);
+   LOCALE void                           EnvSetMultifieldErrorValue(void *,struct dataObject *);
+   LOCALE void                           ValueInstall(void *,struct dataObject *);
+   LOCALE void                           ValueDeinstall(void *,struct dataObject *);
+   LOCALE void                           PropagateReturnValue(void *,struct dataObject *);
+#if DEFFUNCTION_CONSTRUCT || DEFGENERIC_CONSTRUCT
+   LOCALE int                            EnvFunctionCall(void *,char *,char *,DATA_OBJECT *);
+   LOCALE int                            FunctionCall2(void *,FUNCTION_REFERENCE *,char *,DATA_OBJECT *);
 #endif
+   LOCALE void                           CopyDataObject(void *,DATA_OBJECT *,DATA_OBJECT *,int);
+   LOCALE void                           AtomInstall(void *,int,void *);
+   LOCALE void                           AtomDeinstall(void *,int,void *);
+   LOCALE struct expr                   *ConvertValueToExpression(void *,DATA_OBJECT *);
+   LOCALE unsigned int                   GetAtomicHashValue(unsigned short,void *,int);
+   LOCALE void                           InstallPrimitive(void *,struct entityRecord *,int);
+   LOCALE void                           TransferDataObjectValues(DATA_OBJECT *,DATA_OBJECT *);
+   LOCALE struct expr                   *FunctionReferenceExpression(void *,char *);
+   LOCALE intBool                        GetFunctionReference(void *,char *,FUNCTION_REFERENCE *);
+   LOCALE intBool                        DOsEqual(DATA_OBJECT_PTR,DATA_OBJECT_PTR);
+   LOCALE int                            EvaluateAndStoreInDataObject(void *,int,EXPRESSION *,DATA_OBJECT *,int);
 
 #endif
 

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/rulebld.h,v 1.3 2001/08/11 21:07:41 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*               RULE BUILD HEADER FILE                */
    /*******************************************************/
@@ -47,12 +45,9 @@
 #define LOCALE extern
 #endif
 
-   LOCALE struct joinNode               *ConstructJoins(int,struct lhsParseNode *);
+   LOCALE struct joinNode               *ConstructJoins(void *,int,struct lhsParseNode *);
 
 #endif
-
-
-
 
 
 

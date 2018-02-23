@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/factgen.h,v 1.3 2001/08/11 21:05:35 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*        FACT RETE FUNCTION GENERATION HEADER FILE    */
    /*******************************************************/
@@ -47,8 +45,8 @@ struct factGetVarPN1Call
   {
    unsigned int factAddress : 1;
    unsigned int allFields : 1;
-   unsigned int whichField : 8;
-   unsigned int whichSlot : 8;
+   unsigned short whichField;
+   unsigned short whichSlot;
   };
 
 /***********************************************************/
@@ -61,7 +59,7 @@ struct factGetVarPN1Call
 /***********************************************************/
 struct factGetVarPN2Call
   {
-   unsigned int whichSlot : 8;
+   unsigned short whichSlot;
   };
 
 /**********************************************************/
@@ -71,9 +69,9 @@ struct factGetVarPN3Call
   {
    unsigned int fromBeginning : 1;
    unsigned int fromEnd : 1;
-   unsigned int beginOffset : 7;
-   unsigned int endOffset : 7;
-   unsigned int whichSlot : 8;
+   unsigned short beginOffset;
+   unsigned short endOffset;
+   unsigned short whichSlot;
   };
 
 /**************************************************************/
@@ -111,9 +109,9 @@ struct factGetVarJN1Call
   {
    unsigned int factAddress : 1;
    unsigned int allFields : 1;
-   unsigned int whichPattern : 8;
-   unsigned int whichSlot : 8;
-   unsigned int whichField : 8;
+   unsigned short whichPattern;
+   unsigned short whichSlot;
+   unsigned short whichField;
   };
 
 /**********************************************************/
@@ -121,8 +119,8 @@ struct factGetVarJN1Call
 /**********************************************************/
 struct factGetVarJN2Call
   {
-   unsigned int whichPattern : 8;
-   unsigned int whichSlot : 8;
+   unsigned short whichPattern;
+   unsigned short whichSlot;
   };
 
 /**********************************************************/
@@ -132,10 +130,10 @@ struct factGetVarJN3Call
   {
    unsigned int fromBeginning : 1;
    unsigned int fromEnd : 1;
-   unsigned int beginOffset : 7;
-   unsigned int endOffset : 7;
-   unsigned int whichPattern : 8;
-   unsigned int whichSlot : 8;
+   unsigned short beginOffset;
+   unsigned short endOffset;
+   unsigned short whichPattern;
+   unsigned short whichSlot;
   };
 
 /**********************************************************/
@@ -186,26 +184,26 @@ struct factCompVarsJN2Call
 
 struct factCheckLengthPNCall
   {
-    unsigned int minLength : 8;
     unsigned int exactly : 1;
-    unsigned int whichSlot : 8;
+    unsigned short minLength;
+    unsigned short whichSlot;
   };
 
 /****************************************/
 /* GLOBAL EXTERNAL FUNCTION DEFINITIONS */
 /****************************************/
 
-   LOCALE void                       InitializeFactReteFunctions(void);
-   LOCALE struct expr               *FactPNVariableComparison(struct lhsParseNode *,
+   LOCALE void                       InitializeFactReteFunctions(void *);
+   LOCALE struct expr               *FactPNVariableComparison(void *,struct lhsParseNode *,
                                                               struct lhsParseNode *);
-   LOCALE struct expr               *FactJNVariableComparison(struct lhsParseNode *,
+   LOCALE struct expr               *FactJNVariableComparison(void *,struct lhsParseNode *,
                                                               struct lhsParseNode *);
-   LOCALE void                       FactReplaceGetvar(struct expr *,struct lhsParseNode *);
-   LOCALE void                       FactReplaceGetfield(struct expr *,struct lhsParseNode *);
-   LOCALE struct expr               *FactGenPNConstant(struct lhsParseNode *);
-   LOCALE struct expr               *FactGenGetfield(struct lhsParseNode *);
-   LOCALE struct expr               *FactGenGetvar(struct lhsParseNode *);
-   LOCALE struct expr               *FactGenCheckLength(struct lhsParseNode *);
-   LOCALE struct expr               *FactGenCheckZeroLength(int);
+   LOCALE void                       FactReplaceGetvar(void *,struct expr *,struct lhsParseNode *);
+   LOCALE void                       FactReplaceGetfield(void *,struct expr *,struct lhsParseNode *);
+   LOCALE struct expr               *FactGenPNConstant(void *,struct lhsParseNode *);
+   LOCALE struct expr               *FactGenGetfield(void *,struct lhsParseNode *);
+   LOCALE struct expr               *FactGenGetvar(void *,struct lhsParseNode *);
+   LOCALE struct expr               *FactGenCheckLength(void *,struct lhsParseNode *);
+   LOCALE struct expr               *FactGenCheckZeroLength(void *,unsigned);
 
 #endif

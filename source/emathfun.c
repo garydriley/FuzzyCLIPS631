@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/emathfun.c,v 1.3 2001/08/11 21:05:16 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.22  06/15/04            */
    /*                                                     */
    /*            EXTENDED MATH FUNCTIONS MODULE           */
    /*******************************************************/
@@ -28,6 +26,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/emathfun.c,v 1.3 2001/08/1
 
 #include "setup.h"
 #include "argacces.h"
+#include "envrnmnt.h"
 #include "extnfunc.h"
 #include "router.h"
 
@@ -56,11 +55,11 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/emathfun.c,v 1.3 2001/08/1
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     SingleNumberCheck(char *,double *);
+   static int                     SingleNumberCheck(void *,char *,double *);
    static int                     TestProximity(double,double);
-   static void                    DomainErrorMessage(char *);
-   static void                    ArgumentOverflowErrorMessage(char *);
-   static void                    SingularityErrorMessage(char *);
+   static void                    DomainErrorMessage(void *,char *);
+   static void                    ArgumentOverflowErrorMessage(void *,char *);
+   static void                    SingularityErrorMessage(void *,char *);
    static double                  genacosh(double);
    static double                  genasinh(double);
    static double                  genatanh(double);
@@ -72,48 +71,53 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/emathfun.c,v 1.3 2001/08/1
 /* ExtendedMathFunctionDefinitions: Initializes */
 /*   the extended math functions.               */
 /************************************************/
-#if ! RUN_TIME
-globle void ExtendedMathFunctionDefinitions()
+globle void ExtendedMathFunctionDefinitions(
+  void *theEnv)
   {
-   DefineFunction2("cos",      'd', PTIF CosFunction,      "CosFunction", "11n");
-   DefineFunction2("sin",      'd', PTIF SinFunction,      "SinFunction", "11n");
-   DefineFunction2("tan",      'd', PTIF TanFunction,      "TanFunction", "11n");
-   DefineFunction2("sec",      'd', PTIF SecFunction,      "SecFunction", "11n");
-   DefineFunction2("csc",      'd', PTIF CscFunction,      "CscFunction", "11n");
-   DefineFunction2("cot",      'd', PTIF CotFunction,      "CotFunction", "11n");
-   DefineFunction2("acos",     'd', PTIF AcosFunction,     "AcosFunction", "11n");
-   DefineFunction2("asin",     'd', PTIF AsinFunction,     "AsinFunction", "11n");
-   DefineFunction2("atan",     'd', PTIF AtanFunction,     "AtanFunction", "11n");
-   DefineFunction2("asec",     'd', PTIF AsecFunction,     "AsecFunction", "11n");
-   DefineFunction2("acsc",     'd', PTIF AcscFunction,     "AcscFunction", "11n");
-   DefineFunction2("acot",     'd', PTIF AcotFunction,     "AcotFunction", "11n");
-   DefineFunction2("cosh",     'd', PTIF CoshFunction,     "CoshFunction", "11n");
-   DefineFunction2("sinh",     'd', PTIF SinhFunction,     "SinhFunction", "11n");
-   DefineFunction2("tanh",     'd', PTIF TanhFunction,     "TanhFunction", "11n");
-   DefineFunction2("sech",     'd', PTIF SechFunction,     "SechFunction", "11n");
-   DefineFunction2("csch",     'd', PTIF CschFunction,     "CschFunction", "11n");
-   DefineFunction2("coth",     'd', PTIF CothFunction,     "CothFunction", "11n");
-   DefineFunction2("acosh",    'd', PTIF AcoshFunction,    "AcoshFunction", "11n");
-   DefineFunction2("asinh",    'd', PTIF AsinhFunction,    "AsinhFunction", "11n");
-   DefineFunction2("atanh",    'd', PTIF AtanhFunction,    "AtanhFunction", "11n");
-   DefineFunction2("asech",    'd', PTIF AsechFunction,    "AsechFunction", "11n");
-   DefineFunction2("acsch",    'd', PTIF AcschFunction,    "AcschFunction", "11n");
-   DefineFunction2("acoth",    'd', PTIF AcothFunction,    "AcothFunction", "11n");
+#if ! RUN_TIME
+   EnvDefineFunction2(theEnv,"cos",      'd', PTIEF CosFunction,      "CosFunction", "11n");
+   EnvDefineFunction2(theEnv,"sin",      'd', PTIEF SinFunction,      "SinFunction", "11n");
+   EnvDefineFunction2(theEnv,"tan",      'd', PTIEF TanFunction,      "TanFunction", "11n");
+   EnvDefineFunction2(theEnv,"sec",      'd', PTIEF SecFunction,      "SecFunction", "11n");
+   EnvDefineFunction2(theEnv,"csc",      'd', PTIEF CscFunction,      "CscFunction", "11n");
+   EnvDefineFunction2(theEnv,"cot",      'd', PTIEF CotFunction,      "CotFunction", "11n");
+   EnvDefineFunction2(theEnv,"acos",     'd', PTIEF AcosFunction,     "AcosFunction", "11n");
+   EnvDefineFunction2(theEnv,"asin",     'd', PTIEF AsinFunction,     "AsinFunction", "11n");
+   EnvDefineFunction2(theEnv,"atan",     'd', PTIEF AtanFunction,     "AtanFunction", "11n");
+   EnvDefineFunction2(theEnv,"asec",     'd', PTIEF AsecFunction,     "AsecFunction", "11n");
+   EnvDefineFunction2(theEnv,"acsc",     'd', PTIEF AcscFunction,     "AcscFunction", "11n");
+   EnvDefineFunction2(theEnv,"acot",     'd', PTIEF AcotFunction,     "AcotFunction", "11n");
+   EnvDefineFunction2(theEnv,"cosh",     'd', PTIEF CoshFunction,     "CoshFunction", "11n");
+   EnvDefineFunction2(theEnv,"sinh",     'd', PTIEF SinhFunction,     "SinhFunction", "11n");
+   EnvDefineFunction2(theEnv,"tanh",     'd', PTIEF TanhFunction,     "TanhFunction", "11n");
+   EnvDefineFunction2(theEnv,"sech",     'd', PTIEF SechFunction,     "SechFunction", "11n");
+   EnvDefineFunction2(theEnv,"csch",     'd', PTIEF CschFunction,     "CschFunction", "11n");
+   EnvDefineFunction2(theEnv,"coth",     'd', PTIEF CothFunction,     "CothFunction", "11n");
+   EnvDefineFunction2(theEnv,"acosh",    'd', PTIEF AcoshFunction,    "AcoshFunction", "11n");
+   EnvDefineFunction2(theEnv,"asinh",    'd', PTIEF AsinhFunction,    "AsinhFunction", "11n");
+   EnvDefineFunction2(theEnv,"atanh",    'd', PTIEF AtanhFunction,    "AtanhFunction", "11n");
+   EnvDefineFunction2(theEnv,"asech",    'd', PTIEF AsechFunction,    "AsechFunction", "11n");
+   EnvDefineFunction2(theEnv,"acsch",    'd', PTIEF AcschFunction,    "AcschFunction", "11n");
+   EnvDefineFunction2(theEnv,"acoth",    'd', PTIEF AcothFunction,    "AcothFunction", "11n");
 
-   DefineFunction2("mod",      'n', PTIF ModFunction,      "ModFunction", "22n");
-   DefineFunction2("exp",      'd', PTIF ExpFunction,      "ExpFunction", "11n");
-   DefineFunction2("log",      'd', PTIF LogFunction,      "LogFunction", "11n");
-   DefineFunction2("log10",    'd', PTIF Log10Function,    "Log10Function", "11n");
-   DefineFunction2("sqrt",     'd', PTIF SqrtFunction,     "SqrtFunction", "11n");
-   DefineFunction2("pi",       'd', PTIF PiFunction,       "PiFunction", "00");
-   DefineFunction2("deg-rad",  'd', PTIF DegRadFunction,   "DegRadFunction", "11n");
-   DefineFunction2("rad-deg",  'd', PTIF RadDegFunction,   "RadDegFunction", "11n");
-   DefineFunction2("deg-grad", 'd', PTIF DegGradFunction,  "DegGradFunction", "11n");
-   DefineFunction2("grad-deg", 'd', PTIF GradDegFunction,  "GradDegFunction", "11n");
-   DefineFunction2("**",       'd', PTIF PowFunction,      "PowFunction", "22n");
-   DefineFunction2("round",    'l', PTIF RoundFunction,    "RoundFunction", "11n");
-  }
+   EnvDefineFunction2(theEnv,"mod",      'n', PTIEF ModFunction,      "ModFunction", "22n");
+   EnvDefineFunction2(theEnv,"exp",      'd', PTIEF ExpFunction,      "ExpFunction", "11n");
+   EnvDefineFunction2(theEnv,"log",      'd', PTIEF LogFunction,      "LogFunction", "11n");
+   EnvDefineFunction2(theEnv,"log10",    'd', PTIEF Log10Function,    "Log10Function", "11n");
+   EnvDefineFunction2(theEnv,"sqrt",     'd', PTIEF SqrtFunction,     "SqrtFunction", "11n");
+   EnvDefineFunction2(theEnv,"pi",       'd', PTIEF PiFunction,       "PiFunction", "00");
+   EnvDefineFunction2(theEnv,"deg-rad",  'd', PTIEF DegRadFunction,   "DegRadFunction", "11n");
+   EnvDefineFunction2(theEnv,"rad-deg",  'd', PTIEF RadDegFunction,   "RadDegFunction", "11n");
+   EnvDefineFunction2(theEnv,"deg-grad", 'd', PTIEF DegGradFunction,  "DegGradFunction", "11n");
+   EnvDefineFunction2(theEnv,"grad-deg", 'd', PTIEF GradDegFunction,  "GradDegFunction", "11n");
+   EnvDefineFunction2(theEnv,"**",       'd', PTIEF PowFunction,      "PowFunction", "22n");
+   EnvDefineFunction2(theEnv,"round",    'l', PTIEF RoundFunction,    "RoundFunction", "11n");
+#else
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
 #endif
+#endif
+  }
 
 /************************************************************/
 /* SingleNumberCheck: Retrieves the numeric argument for    */
@@ -121,13 +125,14 @@ globle void ExtendedMathFunctionDefinitions()
 /*   point argument.                                        */
 /************************************************************/
 static int SingleNumberCheck(
+  void *theEnv,
   char *functionName,
   double *theNumber)
   {
    DATA_OBJECT theValue;
 
-   if (ArgCountCheck(functionName,EXACTLY,1) == -1) return(FALSE);
-   if (ArgTypeCheck(functionName,1,FLOAT,&theValue) == FALSE) return(FALSE);
+   if (EnvArgCountCheck(theEnv,functionName,EXACTLY,1) == -1) return(FALSE);
+   if (EnvArgTypeCheck(theEnv,functionName,1,FLOAT,&theValue) == FALSE) return(FALSE);
 
    *theNumber = DOToDouble(theValue);
    return(TRUE);
@@ -151,14 +156,15 @@ static int TestProximity(
 /*   the extended math functions.                       */
 /********************************************************/
 static void DomainErrorMessage(
+  void *theEnv,
   char *functionName)
   {
-   PrintErrorID("EMATHFUN",1,FALSE);
-   PrintRouter(WERROR,"Domain error for ");
-   PrintRouter(WERROR,functionName);
-   PrintRouter(WERROR," function.\n");
-   SetHaltExecution(TRUE);
-   SetEvaluationError(TRUE);
+   PrintErrorID(theEnv,"EMATHFUN",1,FALSE);
+   EnvPrintRouter(theEnv,WERROR,"Domain error for ");
+   EnvPrintRouter(theEnv,WERROR,functionName);
+   EnvPrintRouter(theEnv,WERROR," function.\n");
+   SetHaltExecution(theEnv,TRUE);
+   SetEvaluationError(theEnv,TRUE);
   }
 
 /************************************************************/
@@ -167,14 +173,15 @@ static void DomainErrorMessage(
 /*   one of the extended math functions.                    */
 /************************************************************/
 static void ArgumentOverflowErrorMessage(
+  void *theEnv,
   char *functionName)
   {
-   PrintErrorID("EMATHFUN",2,FALSE);
-   PrintRouter(WERROR,"Argument overflow for ");
-   PrintRouter(WERROR,functionName);
-   PrintRouter(WERROR," function.\n");
-   SetHaltExecution(TRUE);
-   SetEvaluationError(TRUE);
+   PrintErrorID(theEnv,"EMATHFUN",2,FALSE);
+   EnvPrintRouter(theEnv,WERROR,"Argument overflow for ");
+   EnvPrintRouter(theEnv,WERROR,functionName);
+   EnvPrintRouter(theEnv,WERROR," function.\n");
+   SetHaltExecution(theEnv,TRUE);
+   SetEvaluationError(theEnv,TRUE);
   }
 
 /************************************************************/
@@ -183,25 +190,27 @@ static void ArgumentOverflowErrorMessage(
 /*   extended math functions.                               */
 /************************************************************/
 static void SingularityErrorMessage(
+  void *theEnv,
   char *functionName)
   {
-   PrintErrorID("EMATHFUN",3,FALSE);
-   PrintRouter(WERROR,"Singularity at asymptote in ");
-   PrintRouter(WERROR,functionName);
-   PrintRouter(WERROR," function.\n");
-   SetHaltExecution(TRUE);
-   SetEvaluationError(TRUE);
+   PrintErrorID(theEnv,"EMATHFUN",3,FALSE);
+   EnvPrintRouter(theEnv,WERROR,"Singularity at asymptote in ");
+   EnvPrintRouter(theEnv,WERROR,functionName);
+   EnvPrintRouter(theEnv,WERROR," function.\n");
+   SetHaltExecution(theEnv,TRUE);
+   SetEvaluationError(theEnv,TRUE);
   }
 
 /*************************************/
 /* CosFunction: H/L access routine   */
 /*   for the cos function.           */
 /*************************************/
-globle double CosFunction()
+globle double CosFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("cos",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"cos",&num) == FALSE) return(0.0);
    return(cos(num));
   }
 
@@ -209,11 +218,12 @@ globle double CosFunction()
 /* SinFunction: H/L access routine   */
 /*   for the sin function.           */
 /*************************************/
-globle double SinFunction()
+globle double SinFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("sin",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"sin",&num) == FALSE) return(0.0);
    return(sin(num));
   }
 
@@ -221,15 +231,16 @@ globle double SinFunction()
 /* TanFunction: H/L access routine   */
 /*   for the tan function.           */
 /*************************************/
-globle double TanFunction()
+globle double TanFunction(
+  void *theEnv)
   {
    double num, tv;
 
-   if (SingleNumberCheck("tan",&num) == FALSE) return (0.0);
+   if (SingleNumberCheck(theEnv,"tan",&num) == FALSE) return (0.0);
    tv = cos(num);
    if ((tv < SMALLEST_ALLOWED_NUMBER) && (tv > -SMALLEST_ALLOWED_NUMBER))
      {
-      SingularityErrorMessage("tan");
+      SingularityErrorMessage(theEnv,"tan");
       return(0.0);
      }
 
@@ -240,16 +251,17 @@ globle double TanFunction()
 /* SecFunction: H/L access routine   */
 /*   for the sec function.           */
 /*************************************/
-globle double SecFunction()
+globle double SecFunction(
+  void *theEnv)
   {
    double num, tv;
 
-   if (SingleNumberCheck("sec",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"sec",&num) == FALSE) return(0.0);
 
    tv = cos(num);
    if ((tv < SMALLEST_ALLOWED_NUMBER) && (tv > -SMALLEST_ALLOWED_NUMBER))
      {
-      SingularityErrorMessage("sec");
+      SingularityErrorMessage(theEnv,"sec");
       return(0.0);
      }
 
@@ -260,15 +272,16 @@ globle double SecFunction()
 /* CscFunction: H/L access routine   */
 /*   for the csc function.           */
 /*************************************/
-globle double CscFunction()
+globle double CscFunction(
+  void *theEnv)
   {
    double num, tv;
 
-   if (SingleNumberCheck("csc",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"csc",&num) == FALSE) return(0.0);
    tv = sin(num);
    if ((tv < SMALLEST_ALLOWED_NUMBER) && (tv > -SMALLEST_ALLOWED_NUMBER))
      {
-      SingularityErrorMessage("csc");
+      SingularityErrorMessage(theEnv,"csc");
       return(0.0);
      }
 
@@ -279,16 +292,17 @@ globle double CscFunction()
 /* CotFunction: H/L access routine   */
 /*   for the cot function.           */
 /*************************************/
-globle double CotFunction()
+globle double CotFunction(
+  void *theEnv)
   {
     double num, tv;
 
-    if (SingleNumberCheck("cot",&num) == FALSE) return(0.0);
+    if (SingleNumberCheck(theEnv,"cot",&num) == FALSE) return(0.0);
 
     tv = sin(num);
     if ((tv < SMALLEST_ALLOWED_NUMBER) && (tv > -SMALLEST_ALLOWED_NUMBER))
       {
-       SingularityErrorMessage("cot");
+       SingularityErrorMessage(theEnv,"cot");
        return(0.0);
       }
 
@@ -299,14 +313,15 @@ globle double CotFunction()
 /* AcosFunction: H/L access routine   */
 /*   for the acos function.           */
 /**************************************/
-globle double AcosFunction()
+globle double AcosFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("acos",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"acos",&num) == FALSE) return(0.0);
    if ((num > 1.0) || (num < -1.0))
      {
-      DomainErrorMessage("acos");
+      DomainErrorMessage(theEnv,"acos");
       return(0.0);
      }
     return(acos(num));
@@ -316,14 +331,15 @@ globle double AcosFunction()
 /* AsinFunction: H/L access routine   */
 /*   for the asin function.           */
 /**************************************/
-globle double AsinFunction()
+globle double AsinFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("asin",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"asin",&num) == FALSE) return(0.0);
    if ((num > 1.0) || (num < -1.0))
      {
-      DomainErrorMessage("asin");
+      DomainErrorMessage(theEnv,"asin");
       return(0.0);
      }
    return(asin(num));
@@ -333,26 +349,28 @@ globle double AsinFunction()
 /* AtanFunction: H/L access routine   */
 /*   for the atan function.           */
 /**************************************/
-globle double AtanFunction()
+globle double AtanFunction(
+  void *theEnv)
   {
-    double num;
+   double num;
 
-    if (SingleNumberCheck("atan",&num) == FALSE) return(0.0);
-    return(atan(num));
+   if (SingleNumberCheck(theEnv,"atan",&num) == FALSE) return(0.0);
+   return(atan(num));
   }
 
 /**************************************/
 /* AsecFunction: H/L access routine   */
 /*   for the asec function.           */
 /**************************************/
-globle double AsecFunction()
+globle double AsecFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("asec",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"asec",&num) == FALSE) return(0.0);
    if ((num < 1.0) && (num > -1.0))
      {
-      DomainErrorMessage("asec");
+      DomainErrorMessage(theEnv,"asec");
       return(0.0);
      }
     num = 1.0 / num;
@@ -363,14 +381,15 @@ globle double AsecFunction()
 /* AcscFunction: H/L access routine   */
 /*   for the acsc function.           */
 /**************************************/
-globle double AcscFunction()
+globle double AcscFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("acsc",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"acsc",&num) == FALSE) return(0.0);
    if ((num < 1.0) && (num > -1.0))
      {
-      DomainErrorMessage("acsc");
+      DomainErrorMessage(theEnv,"acsc");
       return(0.0);
      }
     num = 1.0 / num;
@@ -381,11 +400,12 @@ globle double AcscFunction()
 /* AcotFunction: H/L access routine   */
 /*   for the acot function.           */
 /**************************************/
-globle double AcotFunction()
+globle double AcotFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("acot",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"acot",&num) == FALSE) return(0.0);
    if (TestProximity(num,1e-25) == TRUE)  return(PID2);
    num = 1.0 / num;
    return(atan(num));
@@ -395,11 +415,12 @@ globle double AcotFunction()
 /* CoshFunction: H/L access routine   */
 /*   for the cosh function.           */
 /**************************************/
-globle double CoshFunction()
+globle double CoshFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("cosh",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"cosh",&num) == FALSE) return(0.0);
    return(cosh(num));
   }
 
@@ -407,11 +428,12 @@ globle double CoshFunction()
 /* SinhFunction: H/L access routine   */
 /*   for the sinh function.           */
 /**************************************/
-globle double SinhFunction()
+globle double SinhFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("sinh",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"sinh",&num) == FALSE) return(0.0);
    return(sinh(num));
   }
 
@@ -419,11 +441,12 @@ globle double SinhFunction()
 /* TanhFunction: H/L access routine   */
 /*   for the tanh function.           */
 /**************************************/
-globle double TanhFunction()
+globle double TanhFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("tanh",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"tanh",&num) == FALSE) return(0.0);
    return(tanh(num));
   }
 
@@ -431,11 +454,12 @@ globle double TanhFunction()
 /* SechFunction: H/L access routine   */
 /*   for the sech function.           */
 /**************************************/
-globle double SechFunction()
+globle double SechFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("sech",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"sech",&num) == FALSE) return(0.0);
    return(1.0 / cosh(num));
   }
 
@@ -443,19 +467,20 @@ globle double SechFunction()
 /* CschFunction: H/L access routine   */
 /*   for the csch function.           */
 /**************************************/
-globle double CschFunction()
+globle double CschFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("csch",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"csch",&num) == FALSE) return(0.0);
    if (num == 0.0)
      {
-      SingularityErrorMessage("csch");
+      SingularityErrorMessage(theEnv,"csch");
       return(0.0);
      }
    else if (TestProximity(num,1e-25) == TRUE)
      {
-      ArgumentOverflowErrorMessage("csch");
+      ArgumentOverflowErrorMessage(theEnv,"csch");
       return(0.0);
      }
    return(1.0 / sinh(num));
@@ -465,19 +490,20 @@ globle double CschFunction()
 /* CothFunction: H/L access routine   */
 /*   for the coth function.           */
 /**************************************/
-globle double CothFunction()
+globle double CothFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("coth",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"coth",&num) == FALSE) return(0.0);
    if (num == 0.0)
      {
-      SingularityErrorMessage("coth");
+      SingularityErrorMessage(theEnv,"coth");
       return(0.0);
      }
    else if (TestProximity(num,1e-25) == TRUE)
      {
-      ArgumentOverflowErrorMessage("coth");
+      ArgumentOverflowErrorMessage(theEnv,"coth");
       return(0.0);
      }
    return(1.0 / tanh(num));
@@ -487,14 +513,15 @@ globle double CothFunction()
 /* AcoshFunction: H/L access routine   */
 /*   for the acosh function.           */
 /***************************************/
-globle double AcoshFunction()
+globle double AcoshFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("acosh",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"acosh",&num) == FALSE) return(0.0);
    if (num < 1.0)
      {
-      DomainErrorMessage("acosh");
+      DomainErrorMessage(theEnv,"acosh");
       return(0.0);
      }
    return(genacosh(num));
@@ -504,11 +531,12 @@ globle double AcoshFunction()
 /* AsinhFunction: H/L access routine   */
 /*   for the asinh function.           */
 /***************************************/
-globle double AsinhFunction()
+globle double AsinhFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("asinh",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"asinh",&num) == FALSE) return(0.0);
    return(genasinh(num));
   }
 
@@ -516,14 +544,15 @@ globle double AsinhFunction()
 /* AtanhFunction: H/L access routine   */
 /*   for the atanh function.           */
 /***************************************/
-globle double AtanhFunction()
+globle double AtanhFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("atanh",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"atanh",&num) == FALSE) return(0.0);
    if ((num >= 1.0) || (num <= -1.0))
      {
-      DomainErrorMessage("atanh");
+      DomainErrorMessage(theEnv,"atanh");
       return(0.0);
      }
    return(genatanh(num));
@@ -533,14 +562,15 @@ globle double AtanhFunction()
 /* AsechFunction: H/L access routine   */
 /*   for the asech function.           */
 /***************************************/
-globle double AsechFunction()
+globle double AsechFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("asech",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"asech",&num) == FALSE) return(0.0);
    if ((num > 1.0) || (num <= 0.0))
      {
-      DomainErrorMessage("asech");
+      DomainErrorMessage(theEnv,"asech");
       return(0.0);
      }
    return(genasech(num));
@@ -550,14 +580,15 @@ globle double AsechFunction()
 /* AcschFunction: H/L access routine   */
 /*   for the acsch function.           */
 /***************************************/
-globle double AcschFunction()
+globle double AcschFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("acsch",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"acsch",&num) == FALSE) return(0.0);
    if (num == 0.0)
      {
-      DomainErrorMessage("acsch");
+      DomainErrorMessage(theEnv,"acsch");
       return(0.0);
      }
    return(genacsch(num));
@@ -567,14 +598,15 @@ globle double AcschFunction()
 /* AcothFunction: H/L access routine   */
 /*   for the acoth function.           */
 /***************************************/
-globle double AcothFunction()
+globle double AcothFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("acoth",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"acoth",&num) == FALSE) return(0.0);
    if ((num <= 1.0) && (num >= -1.0))
      {
-      DomainErrorMessage("acoth");
+      DomainErrorMessage(theEnv,"acoth");
       return(0.0);
      }
    return(genacoth(num));
@@ -584,11 +616,12 @@ globle double AcothFunction()
 /* ExpFunction: H/L access routine   */
 /*   for the exp function.           */
 /*************************************/
-globle double ExpFunction()
+globle double ExpFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("exp",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"exp",&num) == FALSE) return(0.0);
    return(exp(num));
   }
 
@@ -596,19 +629,20 @@ globle double ExpFunction()
 /* LogFunction: H/L access routine   */
 /*   for the log function.           */
 /*************************************/
-globle double LogFunction()
+globle double LogFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("log",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"log",&num) == FALSE) return(0.0);
    if (num < 0.0)
      {
-      DomainErrorMessage("log");
+      DomainErrorMessage(theEnv,"log");
       return(0.0);
      }
    else if (num == 0.0)
      {
-      ArgumentOverflowErrorMessage("log");
+      ArgumentOverflowErrorMessage(theEnv,"log");
       return(0.0);
      }
 
@@ -619,19 +653,20 @@ globle double LogFunction()
 /* Log10Function: H/L access routine   */
 /*   for the log10 function.           */
 /***************************************/
-globle double Log10Function()
+globle double Log10Function(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("log10",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"log10",&num) == FALSE) return(0.0);
    if (num < 0.0)
      {
-      DomainErrorMessage("log10");
+      DomainErrorMessage(theEnv,"log10");
       return(0.0);
      }
    else if (num == 0.0)
      {
-      ArgumentOverflowErrorMessage("log10");
+      ArgumentOverflowErrorMessage(theEnv,"log10");
       return(0.0);
      }
 
@@ -642,14 +677,15 @@ globle double Log10Function()
 /* SqrtFunction: H/L access routine   */
 /*   for the sqrt function.           */
 /**************************************/
-globle double SqrtFunction()
+globle double SqrtFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("sqrt",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"sqrt",&num) == FALSE) return(0.0);
    if (num < 0.00000)
      {
-      DomainErrorMessage("sqrt");
+      DomainErrorMessage(theEnv,"sqrt");
       return(0.0);
      }
    return(sqrt(num));
@@ -659,23 +695,24 @@ globle double SqrtFunction()
 /* PowFunction: H/L access routine   */
 /*   for the pow function.           */
 /*************************************/
-globle double PowFunction()
+globle double PowFunction(
+  void *theEnv)
   {
    DATA_OBJECT value1, value2;
 
-   if (ArgCountCheck("**",EXACTLY,2) == -1) return(0.0);
+   if (EnvArgCountCheck(theEnv,"**",EXACTLY,2) == -1) return(0.0);
 
-   if (ArgTypeCheck("**",1,FLOAT,&value1) == FALSE) return(0.0);
-   if (ArgTypeCheck("**",2,FLOAT,&value2) == FALSE) return(0.0);
+   if (EnvArgTypeCheck(theEnv,"**",1,FLOAT,&value1) == FALSE) return(0.0);
+   if (EnvArgTypeCheck(theEnv,"**",2,FLOAT,&value2) == FALSE) return(0.0);
 
     if (((DOToDouble(value1) == 0.0) &&
         (DOToDouble(value2) <= 0.0)) ||
        ((DOToDouble(value1) < 0.0) &&
         (dtrunc((double) DOToDouble(value2)) != DOToDouble(value2))))
      {
-      DomainErrorMessage("**");
-      SetHaltExecution(TRUE);
-      SetEvaluationError(TRUE);
+      DomainErrorMessage(theEnv,"**");
+      SetHaltExecution(theEnv,TRUE);
+      SetEvaluationError(theEnv,TRUE);
       return(0.0);
      }
 
@@ -687,40 +724,41 @@ globle double PowFunction()
 /*   for the mod function.           */
 /*************************************/
 globle void ModFunction(
+  void *theEnv,
   DATA_OBJECT_PTR result)
   {
    DATA_OBJECT item1, item2;
    double fnum1, fnum2;
    long lnum1, lnum2;
 
-   if (ArgCountCheck("mod",EXACTLY,2) == -1)
+   if (EnvArgCountCheck(theEnv,"mod",EXACTLY,2) == -1)
      {
       result->type = INTEGER;
-      result->value = (void *) AddLong(0L);
+      result->value = (void *) EnvAddLong(theEnv,0L);
       return;
      }
 
-   if (ArgTypeCheck("mod",1,INTEGER_OR_FLOAT,&item1) == FALSE)
+   if (EnvArgTypeCheck(theEnv,"mod",1,INTEGER_OR_FLOAT,&item1) == FALSE)
      {
       result->type = INTEGER;
-      result->value = (void *) AddLong(0L);
+      result->value = (void *) EnvAddLong(theEnv,0L);
       return;
      }
 
-   if (ArgTypeCheck("mod",2,INTEGER_OR_FLOAT,&item2) == FALSE)
+   if (EnvArgTypeCheck(theEnv,"mod",2,INTEGER_OR_FLOAT,&item2) == FALSE)
      {
       result->type = INTEGER;
-      result->value = (void *) AddLong(0L);
+      result->value = (void *) EnvAddLong(theEnv,0L);
       return;
      }
 
    if (((item2.type == INTEGER) ? (ValueToLong(item2.value) == 0L) : FALSE) ||
        ((item2.type == FLOAT) ? ValueToDouble(item2.value) == 0.0 : FALSE))
      {
-      DivideByZeroErrorMessage("mod");
-      SetEvaluationError(TRUE);
+      DivideByZeroErrorMessage(theEnv,"mod");
+      SetEvaluationError(theEnv,TRUE);
       result->type = INTEGER;
-      result->value = (void *) AddLong(0L);
+      result->value = (void *) EnvAddLong(theEnv,0L);
       return;
      }
 
@@ -729,14 +767,14 @@ globle void ModFunction(
       fnum1 = CoerceToDouble(item1.type,item1.value);
       fnum2 = CoerceToDouble(item2.type,item2.value);
       result->type = FLOAT;
-      result->value = (void *) AddDouble(fnum1 - (dtrunc(fnum1 / fnum2) * fnum2));
+      result->value = (void *) EnvAddDouble(theEnv,fnum1 - (dtrunc(fnum1 / fnum2) * fnum2));
      }
    else
      {
       lnum1 = DOToLong(item1);
       lnum2 = DOToLong(item2);
       result->type = INTEGER;
-      result->value = (void *) AddLong(lnum1 - (lnum1 / lnum2) * lnum2);
+      result->value = (void *) EnvAddLong(theEnv,lnum1 - (lnum1 / lnum2) * lnum2);
      }
   }
 
@@ -744,9 +782,11 @@ globle void ModFunction(
 /* PiFunction: H/L access routine   */
 /*   for the pi function.           */
 /************************************/
-globle double PiFunction()
+globle double PiFunction(
+  void *theEnv)
   {
-   if (ArgCountCheck("pi",EXACTLY,0) == -1) return(acos(-1.0));
+
+   if (EnvArgCountCheck(theEnv,"pi",EXACTLY,0) == -1) return(acos(-1.0));
    return(acos(-1.0));
   }
 
@@ -754,11 +794,12 @@ globle double PiFunction()
 /* DegRadFunction: H/L access routine   */
 /*   for the deg-rad function.          */
 /****************************************/
-globle double DegRadFunction()
+globle double DegRadFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("deg-rad",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"deg-rad",&num) == FALSE) return(0.0);
    return(num * PI / 180.0);
   }
 
@@ -766,11 +807,12 @@ globle double DegRadFunction()
 /* RadDegFunction: H/L access routine   */
 /*   for the rad-deg function.          */
 /****************************************/
-globle double RadDegFunction()
+globle double RadDegFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("rad-deg",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"rad-deg",&num) == FALSE) return(0.0);
    return(num * 180.0 / PI);
   }
 
@@ -778,11 +820,12 @@ globle double RadDegFunction()
 /* DegGradFunction: H/L access routine   */
 /*   for the deg-grad function.          */
 /*****************************************/
-globle double DegGradFunction()
+globle double DegGradFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("deg-grad",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"deg-grad",&num) == FALSE) return(0.0);
    return(num / 0.9);
   }
 
@@ -790,11 +833,12 @@ globle double DegGradFunction()
 /* GradDegFunction: H/L access routine   */
 /*   for the grad-deg function.          */
 /*****************************************/
-globle double GradDegFunction()
+globle double GradDegFunction(
+  void *theEnv)
   {
    double num;
 
-   if (SingleNumberCheck("grad-deg",&num) == FALSE) return(0.0);
+   if (SingleNumberCheck(theEnv,"grad-deg",&num) == FALSE) return(0.0);
    return(num * 0.9);
   }
 
@@ -802,14 +846,15 @@ globle double GradDegFunction()
 /* RoundFunction: H/L access routine   */
 /*   for the round function.           */
 /***************************************/
-globle long int RoundFunction()
+globle long int RoundFunction(
+  void *theEnv)
   {
    DATA_OBJECT result;
 
-   if (ArgCountCheck("round",EXACTLY,1) == -1)
+   if (EnvArgCountCheck(theEnv,"round",EXACTLY,1) == -1)
      { return(0L); }
 
-   if (ArgTypeCheck("round",1,INTEGER_OR_FLOAT,&result) == FALSE)
+   if (EnvArgTypeCheck(theEnv,"round",1,INTEGER_OR_FLOAT,&result) == FALSE)
      { return(0L); }
 
    if (result.type == INTEGER)

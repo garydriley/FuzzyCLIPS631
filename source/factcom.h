@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/factcom.h,v 1.3 2001/08/11 21:05:32 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.21  06/15/03            */
    /*                                                     */
    /*               FACT COMMANDS HEADER FILE             */
    /*******************************************************/
@@ -37,20 +35,32 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           FactCommandDefinitions(void);
-   LOCALE void                           AssertCommand(DATA_OBJECT_PTR);
-   LOCALE void                           RetractCommand(void);
-   LOCALE void                           AssertStringFunction(DATA_OBJECT_PTR);
-   LOCALE void                           FactsCommand(void);
-   LOCALE void                           Facts(char *,void *,long,long,long);
-   LOCALE int                            SetFactDuplicationCommand(void);
-   LOCALE int                            GetFactDuplicationCommand(void);
-   LOCALE int                            SaveFactsCommand(void);
-   LOCALE int                            LoadFactsCommand(void);
-   LOCALE int                            SaveFacts(char *,int,struct expr *);
-   LOCALE int                            LoadFacts(char *);
-   LOCALE int                            LoadFactsFromString(char *,int);
-   LOCALE long int                       FactIndexFunction(void);
+#if ENVIRONMENT_API_ONLY
+#define Facts(theEnv,a,b,c,d,e) EnvFacts(theEnv,a,b,c,d,e)
+#define LoadFacts(theEnv,a) EnvLoadFacts(theEnv,a)
+#define SaveFacts(theEnv,a,b,c) EnvSaveFacts(theEnv,a,b,c)
+#define LoadFactsFromString(theEnv,a,b) EnvLoadFactsFromString(theEnv,a,b)
+#else
+#define Facts(a,b,c,d,e) EnvFacts(GetCurrentEnvironment(),a,b,c,d,e)
+#define LoadFacts(a) EnvLoadFacts(GetCurrentEnvironment(),a)
+#define SaveFacts(a,b,c) EnvSaveFacts(GetCurrentEnvironment(),a,b,c)
+#define LoadFactsFromString(a,b) EnvLoadFactsFromString(GetCurrentEnvironment(),a,b)
+#endif
+
+   LOCALE void                           FactCommandDefinitions(void *);
+   LOCALE void                           AssertCommand(void *,DATA_OBJECT_PTR);
+   LOCALE void                           RetractCommand(void *);
+   LOCALE void                           AssertStringFunction(void *,DATA_OBJECT_PTR);
+   LOCALE void                           FactsCommand(void *);
+   LOCALE void                           EnvFacts(void *,char *,void *,long,long,long);
+   LOCALE int                            SetFactDuplicationCommand(void *);
+   LOCALE int                            GetFactDuplicationCommand(void *);
+   LOCALE int                            SaveFactsCommand(void *);
+   LOCALE int                            LoadFactsCommand(void *);
+   LOCALE int                            EnvSaveFacts(void *,char *,int,struct expr *);
+   LOCALE int                            EnvLoadFacts(void *,char *);
+   LOCALE int                            EnvLoadFactsFromString(void *,char *,int);
+   LOCALE long int                       FactIndexFunction(void *);
 
 #endif
 

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/insfile.h,v 1.3 2001/08/11 21:06:29 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.24  06/05/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -18,6 +16,8 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_insfile
@@ -25,6 +25,30 @@
 
 #ifndef _H_expressn
 #include "expressn.h"
+#endif
+
+#define INSTANCE_FILE_DATA 30
+
+#if BLOAD_INSTANCES || BSAVE_INSTANCES
+struct instanceFileData
+  { 
+#if BLOAD_INSTANCES || BSAVE_INSTANCES
+   char *InstanceBinaryPrefixID;
+   char *InstanceBinaryVersionID;
+   unsigned long BinaryInstanceFileSize;
+
+#if BLOAD_INSTANCES
+   unsigned long BinaryInstanceFileOffset;
+   char *CurrentReadBuffer;
+   unsigned long CurrentReadBufferSize;
+   unsigned long CurrentReadBufferOffset;
+#endif
+
+#endif
+  };
+
+#define InstanceFileData(theEnv) ((struct instanceFileData *) GetEnvironmentData(theEnv,INSTANCE_FILE_DATA))
+
 #endif
 
 #ifdef LOCALE
@@ -37,36 +61,50 @@
 #define LOCALE extern
 #endif
 
-#if (! RUN_TIME)
-LOCALE void SetupInstanceFileCommands(void);
+#if ENVIRONMENT_API_ONLY
+#define BinaryLoadInstances(theEnv,a) EnvBinaryLoadInstances(theEnv,a)
+#define BinarySaveInstances(theEnv,a,b,c,d) EnvBinarySaveInstances(theEnv,a,b,c,d)
+#define LoadInstances(theEnv,a) EnvLoadInstances(theEnv,a)
+#define LoadInstancesFromString(theEnv,a,b) EnvLoadInstancesFromString(theEnv,a,b)
+#define RestoreInstances(theEnv,a) EnvRestoreInstances(theEnv,a)
+#define RestoreInstancesFromString(theEnv,a,b) EnvRestoreInstancesFromString(theEnv,a,b)
+#define SaveInstances(theEnv,a,b,c,d) EnvSaveInstances(theEnv,a,b,c,d)
+#else
+#define BinaryLoadInstances(a) EnvBinaryLoadInstances(GetCurrentEnvironment(),a)
+#define BinarySaveInstances(a,b,c,d) EnvBinarySaveInstances(GetCurrentEnvironment(),a,b,c,d)
+#define LoadInstances(a) EnvLoadInstances(GetCurrentEnvironment(),a)
+#define LoadInstancesFromString(a,b) EnvLoadInstancesFromString(GetCurrentEnvironment(),a,b)
+#define RestoreInstances(a) EnvRestoreInstances(GetCurrentEnvironment(),a)
+#define RestoreInstancesFromString(a,b) EnvRestoreInstancesFromString(GetCurrentEnvironment(),a,b)
+#define SaveInstances(a,b,c,d) EnvSaveInstances(GetCurrentEnvironment(),a,b,c,d)
 #endif
 
-LOCALE long SaveInstancesCommand(void);
-LOCALE long LoadInstancesCommand(void);
-LOCALE long RestoreInstancesCommand(void);
-LOCALE long SaveInstances(char *,int,EXPRESSION *,BOOLEAN);
+LOCALE void SetupInstanceFileCommands(void *);
+
+LOCALE long SaveInstancesCommand(void *);
+LOCALE long LoadInstancesCommand(void *);
+LOCALE long RestoreInstancesCommand(void *);
+LOCALE long EnvSaveInstances(void *,char *,int,EXPRESSION *,intBool);
 
 #if BSAVE_INSTANCES
-LOCALE long BinarySaveInstancesCommand(void);
-LOCALE long BinarySaveInstances(char *,int,EXPRESSION *,BOOLEAN);
+LOCALE long BinarySaveInstancesCommand(void *);
+LOCALE long EnvBinarySaveInstances(void *,char *,int,EXPRESSION *,intBool);
 #endif
 
 #if BLOAD_INSTANCES
-LOCALE long BinaryLoadInstancesCommand(void);
-LOCALE long BinaryLoadInstances(char *);
+LOCALE long BinaryLoadInstancesCommand(void *);
+LOCALE long EnvBinaryLoadInstances(void *,char *);
 #endif
 
-LOCALE long LoadInstances(char *);
-LOCALE long LoadInstancesFromString(char *,int);
-LOCALE long RestoreInstances(char *);
-LOCALE long RestoreInstancesFromString(char *,int);
+LOCALE long EnvLoadInstances(void *,char *);
+LOCALE long EnvLoadInstancesFromString(void *,char *,int);
+LOCALE long EnvRestoreInstances(void *,char *);
+LOCALE long EnvRestoreInstancesFromString(void *,char *,int);
 
 #ifndef _INSFILE_SOURCE_
 #endif
 
 #endif
-
-
 
 
 

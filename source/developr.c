@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/developr.c,v 1.3 2001/08/11 21:04:50 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*                   DEVELOPER MODULE                  */
    /*******************************************************/
@@ -20,6 +18,9 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/developr.c,v 1.3 2001/08/1
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Converted INSTANCE_PATTERN_MATCHING to          */
+/*            DEFRULE_CONSTRUCT.                              */
+/*                                                            */
 /*************************************************************/
 
 #define _DEVELOPR_SOURCE_
@@ -29,10 +30,13 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/developr.c,v 1.3 2001/08/1
 
 #include "setup.h"
 
-#include "router.h"
 #include "argacces.h"
+#include "envrnmnt.h"
 #include "extnfunc.h"
+#include "inscom.h"
 #include "modulutl.h"
+#include "router.h"
+#include "utility.h"
 
 #if DEFRULE_CONSTRUCT && DEFTEMPLATE_CONSTRUCT
 #include "tmpltdef.h"
@@ -40,47 +44,79 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/developr.c,v 1.3 2001/08/1
 #include "facthsh.h"
 #endif
 
-#if INSTANCE_PATTERN_MATCHING
+#if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
 #include "classcom.h"
 #include "classfun.h"
 #include "objrtmch.h"
+#endif
+#if OBJECT_SYSTEM
+#include "insfun.h"
 #endif
 
 #include "developr.h"
 
 #if DEVELOPER
 
-#if INSTANCE_PATTERN_MATCHING
-static void PrintOPNLevel(OBJECT_PATTERN_NODE *,char *,int);
+#if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
+static void PrintOPNLevel(void *theEnv,OBJECT_PATTERN_NODE *,char *,int);
 #endif
 
 /**************************************************/
 /* DeveloperCommands: Sets up developer commands. */
 /**************************************************/
-globle void DeveloperCommands()
+globle void DeveloperCommands(
+  void *theEnv)
   {
 #if ! RUN_TIME
-   DefineFunction2("primitives-info",'v', PTIF PrimitiveTablesInfo,"PrimitiveTablesInfo","00");
+   EnvDefineFunction2(theEnv,"primitives-info",'v', PTIEF PrimitiveTablesInfo,"PrimitiveTablesInfo","00");
+   EnvDefineFunction2(theEnv,"primitives-usage",'v', PTIEF PrimitiveTablesUsage,"PrimitiveTablesUsage","00");
+   EnvDefineFunction2(theEnv,"enable-gc-heuristics",'v', PTIEF EnableGCHeuristics,"EnableGCHeuristics","00");
+   EnvDefineFunction2(theEnv,"disable-gc-heuristics",'v', PTIEF DisableGCHeuristics,"DisableGCHeuristics","00");
 
 #if DEFRULE_CONSTRUCT && DEFTEMPLATE_CONSTRUCT
-   DefineFunction2("show-fpn",'v', PTIF ShowFactPatternNetwork,"ShowFactPatternNetwork","11w");
-   DefineFunction2("show-fht",'v', PTIF ShowFactHashTable,"ShowFactHashTable","00");
+   EnvDefineFunction2(theEnv,"show-fpn",'v', PTIEF ShowFactPatternNetwork,"ShowFactPatternNetwork","11w");
+   EnvDefineFunction2(theEnv,"show-fht",'v', PTIEF ShowFactHashTable,"ShowFactHashTable","00");
 #endif
-#if INSTANCE_PATTERN_MATCHING
-   DefineFunction2("show-opn",'v',PTIF PrintObjectPatternNetwork,
+#if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
+   EnvDefineFunction2(theEnv,"show-opn",'v',PTIEF PrintObjectPatternNetwork,
                    "PrintObjectPatternNetwork","00");
+#endif
+
+#if OBJECT_SYSTEM
+   EnvDefineFunction2(theEnv,"instance-table-usage",'v', PTIEF InstanceTableUsage,"InstanceTableUsage","00");
 #endif
 
 #endif
   }
 
 /******************************************************/
+/* EnableGCHeuristics:      */
+/******************************************************/
+globle void EnableGCHeuristics(
+  void *theEnv)
+  {
+   EnvArgCountCheck(theEnv,"enable-gc-heuristics",EXACTLY,0);
+   SetGarbageCollectionHeuristics(theEnv,TRUE);
+  }
+  
+/******************************************************/
+/* DisableGCHeuristics:      */
+/******************************************************/
+globle void DisableGCHeuristics(
+  void *theEnv)
+  {
+   EnvArgCountCheck(theEnv,"disable-gc-heuristics",EXACTLY,0);
+   SetGarbageCollectionHeuristics(theEnv,FALSE);
+  }
+
+/******************************************************/
 /* PrimitiveTablesInfo: Prints information about the  */
 /*   symbol, float, integer, and bitmap tables.       */
 /******************************************************/
-globle void PrimitiveTablesInfo()
+globle void PrimitiveTablesInfo(
+  void *theEnv)
   {
-   int i;
+   unsigned long i;
    SYMBOL_HN **symbolArray, *symbolPtr;
    FLOAT_HN **floatArray, *floatPtr;
    INTEGER_HN **integerArray, *integerPtr;
@@ -92,13 +128,13 @@ globle void PrimitiveTablesInfo()
    unsigned long int symbolCount = 0, integerCount = 0;
    unsigned long int floatCount = 0, bitMapCount = 0;
 
-   ArgCountCheck("primitives-info",EXACTLY,0);
+   EnvArgCountCheck(theEnv,"primitives-info",EXACTLY,0);
 
    /*====================================*/
    /* Count entries in the symbol table. */
    /*====================================*/
 
-   symbolArray = GetSymbolTable();
+   symbolArray = GetSymbolTable(theEnv);
    for (i = 0; i < SYMBOL_HASH_SIZE; i++)
      {
       for (symbolPtr = symbolArray[i]; symbolPtr != NULL; symbolPtr = symbolPtr->next)
@@ -109,7 +145,7 @@ globle void PrimitiveTablesInfo()
    /* Count entries in the integer table. */
    /*====================================*/
 
-   integerArray = GetIntegerTable();
+   integerArray = GetIntegerTable(theEnv);
    for (i = 0; i < INTEGER_HASH_SIZE; i++)
      {
       for (integerPtr = integerArray[i]; integerPtr != NULL; integerPtr = integerPtr->next)
@@ -120,7 +156,7 @@ globle void PrimitiveTablesInfo()
    /* Count entries in the float table. */
    /*====================================*/
 
-   floatArray = GetFloatTable();
+   floatArray = GetFloatTable(theEnv);
    for (i = 0; i < FLOAT_HASH_SIZE; i++)
      {
       for (floatPtr = floatArray[i]; floatPtr != NULL; floatPtr = floatPtr->next)
@@ -131,13 +167,13 @@ globle void PrimitiveTablesInfo()
    /* Count entries in the bitmap table. */
    /*====================================*/
 
-   bitMapArray = GetBitMapTable();
+   bitMapArray = GetBitMapTable(theEnv);
    for (i = 0; i < BITMAP_HASH_SIZE; i++)
      {
       for (bitMapPtr = bitMapArray[i]; bitMapPtr != NULL; bitMapPtr = bitMapPtr->next)
         { bitMapCount++; }
      }
-
+     
 #if FUZZY_DEFTEMPLATES
    /*========================================*/
    /* Count entries in the fuzzyValue table. */
@@ -155,23 +191,116 @@ globle void PrimitiveTablesInfo()
    /* Print the information. */
    /*========================*/
 
-   PrintRouter(WDISPLAY,"Symbols: ");
-   PrintLongInteger(WDISPLAY,(long) symbolCount);
-   PrintRouter(WDISPLAY,"\n");
-   PrintRouter(WDISPLAY,"Integers: ");
-   PrintLongInteger(WDISPLAY,(long) integerCount);
-   PrintRouter(WDISPLAY,"\n");
-   PrintRouter(WDISPLAY,"Floats: ");
-   PrintLongInteger(WDISPLAY,(long) floatCount);
-   PrintRouter(WDISPLAY,"\n");
-   PrintRouter(WDISPLAY,"BitMaps: ");
-   PrintLongInteger(WDISPLAY,(long) bitMapCount);
-   PrintRouter(WDISPLAY,"\n");
+   EnvPrintRouter(theEnv,WDISPLAY,"Symbols: ");
+   PrintLongInteger(theEnv,WDISPLAY,(long) symbolCount);
+   EnvPrintRouter(theEnv,WDISPLAY,"\n");
+   EnvPrintRouter(theEnv,WDISPLAY,"Integers: ");
+   PrintLongInteger(theEnv,WDISPLAY,(long) integerCount);
+   EnvPrintRouter(theEnv,WDISPLAY,"\n");
+   EnvPrintRouter(theEnv,WDISPLAY,"Floats: ");
+   PrintLongInteger(theEnv,WDISPLAY,(long) floatCount);
+   EnvPrintRouter(theEnv,WDISPLAY,"\n");
+   EnvPrintRouter(theEnv,WDISPLAY,"BitMaps: ");
+   PrintLongInteger(theEnv,WDISPLAY,(long) bitMapCount);
+   EnvPrintRouter(theEnv,WDISPLAY,"\n");
 #if FUZZY_DEFTEMPLATES
    PrintRouter(WDISPLAY,"FuzzyValues: ");
    PrintLongInteger(WDISPLAY,(long) fuzzyValueCount);
    PrintRouter(WDISPLAY,"\n");
 #endif
+  }
+  
+#define COUNT_SIZE 21
+
+/******************************************************/
+/* PrimitiveTablesUsage: Prints information about the  */
+/*   symbol, float, integer, and bitmap tables.       */
+/******************************************************/
+globle void PrimitiveTablesUsage(
+  void *theEnv)
+  {
+   unsigned long i;
+   int symbolCounts[COUNT_SIZE], floatCounts[COUNT_SIZE];
+   SYMBOL_HN **symbolArray, *symbolPtr;
+   FLOAT_HN **floatArray, *floatPtr;
+   unsigned long int symbolCount, totalSymbolCount = 0;
+   unsigned long int floatCount, totalFloatCount = 0;
+
+   EnvArgCountCheck(theEnv,"primitives-usage",EXACTLY,0);
+
+   for (i = 0; i < 21; i++)
+     {
+      symbolCounts[i] = 0;
+      floatCounts[i] = 0; 
+     }
+     
+   /*====================================*/
+   /* Count entries in the symbol table. */
+   /*====================================*/
+
+   symbolArray = GetSymbolTable(theEnv);
+   for (i = 0; i < SYMBOL_HASH_SIZE; i++)
+     {
+      symbolCount = 0;
+      for (symbolPtr = symbolArray[i]; symbolPtr != NULL; symbolPtr = symbolPtr->next)
+        { 
+         symbolCount++;
+         totalSymbolCount++;
+        }
+           
+      if (symbolCount < (COUNT_SIZE - 1))
+        { symbolCounts[symbolCount]++; }
+      else
+        { symbolCounts[COUNT_SIZE - 1]++; }
+     }
+
+   /*===================================*/
+   /* Count entries in the float table. */
+   /*===================================*/
+   
+   floatArray = GetFloatTable(theEnv);
+   for (i = 0; i < FLOAT_HASH_SIZE; i++)
+     {
+      floatCount = 0;
+      for (floatPtr = floatArray[i]; floatPtr != NULL; floatPtr = floatPtr->next)
+        { 
+         floatCount++;
+         totalFloatCount++;
+        }
+           
+      if (floatCount < (COUNT_SIZE - 1))
+        { floatCounts[floatCount]++; }
+      else
+        { floatCounts[COUNT_SIZE - 1]++; }
+     }
+
+
+   /*========================*/
+   /* Print the information. */
+   /*========================*/
+
+   EnvPrintRouter(theEnv,WDISPLAY,"Total Symbols: ");
+   PrintLongInteger(theEnv,WDISPLAY,(long) totalSymbolCount);
+   EnvPrintRouter(theEnv,WDISPLAY,"\n");
+   for (i = 0; i < COUNT_SIZE; i++)
+     {
+      PrintLongInteger(theEnv,WDISPLAY,(long) i);
+      EnvPrintRouter(theEnv,WDISPLAY," ");
+      PrintLongInteger(theEnv,WDISPLAY,(long) symbolCounts[i]);
+      EnvPrintRouter(theEnv,WDISPLAY,"\n");
+     }
+
+   EnvPrintRouter(theEnv,WDISPLAY,"\nTotal Floats: ");
+   PrintLongInteger(theEnv,WDISPLAY,(long) totalFloatCount);
+   EnvPrintRouter(theEnv,WDISPLAY,"\n");
+   for (i = 0; i < COUNT_SIZE; i++)
+     {
+      PrintLongInteger(theEnv,WDISPLAY,(long) i);
+      EnvPrintRouter(theEnv,WDISPLAY," ");
+      PrintLongInteger(theEnv,WDISPLAY,(long) floatCounts[i]);
+      EnvPrintRouter(theEnv,WDISPLAY,"\n");
+     }
+
   }
 
 #if DEFRULE_CONSTRUCT && DEFTEMPLATE_CONSTRUCT
@@ -180,42 +309,43 @@ globle void PrimitiveTablesInfo()
 /* ShowFactPatternNetwork: Command for displaying the  */
 /*   fact pattern network for a specified deftemplate. */
 /*******************************************************/
-globle void ShowFactPatternNetwork()
+globle void ShowFactPatternNetwork(
+  void *theEnv)
   {
    struct factPatternNode *patternPtr;
    struct deftemplate *theDeftemplate;
    char *theName;
    int depth = 0, i;
 
-   theName = GetConstructName("show-fpn","template name");
+   theName = GetConstructName(theEnv,"show-fpn","template name");
    if (theName == NULL) return;
 
-   theDeftemplate = (struct deftemplate *) FindDeftemplate(theName);
+   theDeftemplate = (struct deftemplate *) EnvFindDeftemplate(theEnv,theName);
    if (theDeftemplate == NULL) return;
 
    patternPtr = theDeftemplate->patternNetwork;
    while (patternPtr != NULL)
      {
-      for (i = 0; i < depth; i++) PrintRouter(WDISPLAY," ");
-      if (patternPtr->header.singlefieldNode) PrintRouter(WDISPLAY,"SF   ");
+      for (i = 0; i < depth; i++) EnvPrintRouter(theEnv,WDISPLAY," ");
+      if (patternPtr->header.singlefieldNode) EnvPrintRouter(theEnv,WDISPLAY,"SF   ");
       else if (patternPtr->header.multifieldNode)
         {
-         PrintRouter(WDISPLAY,"MF");
-         if (patternPtr->header.endSlot) PrintRouter(WDISPLAY,")");
-         else PrintRouter(WDISPLAY,"*");
-         PrintLongInteger(WDISPLAY,(long) patternPtr->leaveFields);
-         PrintRouter(WDISPLAY," ");
+         EnvPrintRouter(theEnv,WDISPLAY,"MF");
+         if (patternPtr->header.endSlot) EnvPrintRouter(theEnv,WDISPLAY,")");
+         else EnvPrintRouter(theEnv,WDISPLAY,"*");
+         PrintLongInteger(theEnv,WDISPLAY,(long) patternPtr->leaveFields);
+         EnvPrintRouter(theEnv,WDISPLAY," ");
         }
 
-      PrintRouter(WDISPLAY,"Slot: ");
+      EnvPrintRouter(theEnv,WDISPLAY,"Slot: ");
 
-      PrintLongInteger(WDISPLAY,(long) patternPtr->whichSlot);
-      PrintRouter(WDISPLAY," Field: ");
-      PrintLongInteger(WDISPLAY,(long) patternPtr->whichField);
-      PrintRouter(WDISPLAY," Expression: ");
-      if (patternPtr->networkTest == NULL) PrintRouter(WDISPLAY,"None");
-      else PrintExpression(WDISPLAY,patternPtr->networkTest);
-      PrintRouter(WDISPLAY,"\n");
+      PrintLongInteger(theEnv,WDISPLAY,(long) patternPtr->whichSlot);
+      EnvPrintRouter(theEnv,WDISPLAY," Field: ");
+      PrintLongInteger(theEnv,WDISPLAY,(long) patternPtr->whichField);
+      EnvPrintRouter(theEnv,WDISPLAY," Expression: ");
+      if (patternPtr->networkTest == NULL) EnvPrintRouter(theEnv,WDISPLAY,"None");
+      else PrintExpression(theEnv,WDISPLAY,patternPtr->networkTest);
+      EnvPrintRouter(theEnv,WDISPLAY,"\n");
 
       if (patternPtr->nextLevel == NULL)
         {
@@ -237,7 +367,7 @@ globle void ShowFactPatternNetwork()
 
 #endif
 
-#if INSTANCE_PATTERN_MATCHING
+#if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
 
 /***************************************************
   NAME         : PrintObjectPatternNetwork
@@ -248,12 +378,13 @@ globle void ShowFactPatternNetwork()
   SIDE EFFECTS : Object pattern network displayed
   NOTES        : None
  ***************************************************/
-globle void PrintObjectPatternNetwork()
+globle void PrintObjectPatternNetwork(
+  void *theEnv)
   {
    char indentbuf[80];
 
    indentbuf[0] = '\0';
-   PrintOPNLevel(ObjectNetworkPointer(),indentbuf,0);
+   PrintOPNLevel(theEnv,ObjectNetworkPointer(theEnv),indentbuf,0);
   }
 
 /**********************************************************
@@ -268,6 +399,7 @@ globle void PrintObjectPatternNetwork()
   NOTES        : None
  **********************************************************/
 static void PrintOPNLevel(
+  void *theEnv,
   OBJECT_PATTERN_NODE *pptr,
   char *indentbuf,
   int ilen)
@@ -280,36 +412,36 @@ static void PrintOPNLevel(
 
    while (pptr != NULL)
      {
-      PrintRouter(WDISPLAY,indentbuf);
+      EnvPrintRouter(theEnv,WDISPLAY,indentbuf);
       if (pptr->alphaNode != NULL)
-        PrintRouter(WDISPLAY,"+");
-      PrintRouter(WDISPLAY,ValueToString(FindIDSlotName(pptr->slotNameID)));
-      PrintRouter(WDISPLAY," (");
-      PrintLongInteger(WDISPLAY,(long) pptr->slotNameID);
-      PrintRouter(WDISPLAY,") ");
-      PrintRouter(WDISPLAY,pptr->endSlot ? "EPF#" : "PF#");
-      PrintLongInteger(WDISPLAY,(long) pptr->whichField);
-      PrintRouter(WDISPLAY," ");
-      PrintRouter(WDISPLAY,pptr->multifieldNode ? "$? " : "? ");
+        EnvPrintRouter(theEnv,WDISPLAY,"+");
+      EnvPrintRouter(theEnv,WDISPLAY,ValueToString(FindIDSlotName(theEnv,pptr->slotNameID)));
+      EnvPrintRouter(theEnv,WDISPLAY," (");
+      PrintLongInteger(theEnv,WDISPLAY,(long) pptr->slotNameID);
+      EnvPrintRouter(theEnv,WDISPLAY,") ");
+      EnvPrintRouter(theEnv,WDISPLAY,pptr->endSlot ? "EPF#" : "PF#");
+      PrintLongInteger(theEnv,WDISPLAY,(long) pptr->whichField);
+      EnvPrintRouter(theEnv,WDISPLAY," ");
+      EnvPrintRouter(theEnv,WDISPLAY,pptr->multifieldNode ? "$? " : "? ");
       if (pptr->networkTest != NULL)
-        PrintExpression(WDISPLAY,pptr->networkTest);
-      PrintRouter(WDISPLAY,"\n");
+        PrintExpression(theEnv,WDISPLAY,pptr->networkTest);
+      EnvPrintRouter(theEnv,WDISPLAY,"\n");
       alphaPtr = pptr->alphaNode;
       while (alphaPtr != NULL)
         {
-         PrintRouter(WDISPLAY,indentbuf);
-         PrintRouter(WDISPLAY,"     Classes:");
+         EnvPrintRouter(theEnv,WDISPLAY,indentbuf);
+         EnvPrintRouter(theEnv,WDISPLAY,"     Classes:");
          cbmp = (CLASS_BITMAP *) ValueToBitMap(alphaPtr->classbmp);
          for (i = 0 ; i <= cbmp->maxid ; i++)
            if (TestBitMap(cbmp->map,i))
              {
-              PrintRouter(WDISPLAY," ");
-              PrintRouter(WDISPLAY,GetDefclassName((void *) ClassIDMap[i]));
+              EnvPrintRouter(theEnv,WDISPLAY," ");
+              EnvPrintRouter(theEnv,WDISPLAY,EnvGetDefclassName(theEnv,(void *) DefclassData(theEnv)->ClassIDMap[i]));
              }
          if (alphaPtr->slotbmp != NULL)
            {
             sbmp = (SLOT_BITMAP *) ValueToBitMap(pptr->alphaNode->slotbmp);
-            PrintRouter(WDISPLAY," *** Slots:");
+            EnvPrintRouter(theEnv,WDISPLAY," *** Slots:");
             for (i = NAME_ID ; i <= sbmp->maxid ; i++)
               if (TestBitMap(sbmp->map,i))
                 {
@@ -318,25 +450,81 @@ static void PrintOPNLevel(
                      break;
                  if (uptr == NULL)
                    {
-                    PrintRouter(WDISPLAY," ");
-                    PrintRouter(WDISPLAY,ValueToString(FindIDSlotName(i)));
+                    EnvPrintRouter(theEnv,WDISPLAY," ");
+                    EnvPrintRouter(theEnv,WDISPLAY,ValueToString(FindIDSlotName(theEnv,i)));
                    }
                 }
            }
-         PrintRouter(WDISPLAY,"\n");
+         EnvPrintRouter(theEnv,WDISPLAY,"\n");
          alphaPtr = alphaPtr->nxtInGroup;
         }
-      indentbuf[ilen++] = (char) (pptr->rightNode != NULL) ? '|' : ' ';
+      indentbuf[ilen++] = (char) ((pptr->rightNode != NULL) ? '|' : ' ');
       indentbuf[ilen++] = ' ';
       indentbuf[ilen++] = ' ';
       indentbuf[ilen] = '\0';
-      PrintOPNLevel(pptr->nextLevel,indentbuf,ilen);
+      PrintOPNLevel(theEnv,pptr->nextLevel,indentbuf,ilen);
       ilen -= 3;
       indentbuf[ilen] = '\0';
       pptr = pptr->rightNode;
      }
   }
 
+#endif
+
+#if OBJECT_SYSTEM
+
+/******************************************************/
+/* InstanceTableUsage: Prints information about the  */
+/*   instances in the instance hash table.       */
+/******************************************************/
+globle void InstanceTableUsage(
+  void *theEnv)
+  {
+   unsigned long i;
+   int instanceCounts[COUNT_SIZE];
+   INSTANCE_TYPE *ins;
+   unsigned long int instanceCount, totalInstanceCount = 0;
+
+   EnvArgCountCheck(theEnv,"instance-table-usage",EXACTLY,0);
+
+   for (i = 0; i < COUNT_SIZE; i++)
+     { instanceCounts[i] = 0; }
+     
+   /*======================================*/
+   /* Count entries in the instance table. */
+   /*======================================*/
+
+   for (i = 0; i < INSTANCE_TABLE_HASH_SIZE; i++)
+     {
+      instanceCount = 0;
+      for (ins = InstanceData(theEnv)->InstanceTable[i]; ins != NULL; ins = ins->nxtHash)
+        { 
+         instanceCount++;
+         totalInstanceCount++;
+        }
+           
+      if (instanceCount < (COUNT_SIZE - 1))
+        { instanceCounts[instanceCount]++; }
+      else
+        { instanceCounts[COUNT_SIZE - 1]++; }
+     }
+
+   /*========================*/
+   /* Print the information. */
+   /*========================*/
+
+   EnvPrintRouter(theEnv,WDISPLAY,"Total Instances: ");
+   PrintLongInteger(theEnv,WDISPLAY,(long) totalInstanceCount);
+   EnvPrintRouter(theEnv,WDISPLAY,"\n");
+   for (i = 0; i < COUNT_SIZE; i++)
+     {
+      PrintLongInteger(theEnv,WDISPLAY,(long) i);
+      EnvPrintRouter(theEnv,WDISPLAY," ");
+      PrintLongInteger(theEnv,WDISPLAY,(long) instanceCounts[i]);
+      EnvPrintRouter(theEnv,WDISPLAY,"\n");
+     }
+  }
+  
 #endif
 
 #endif

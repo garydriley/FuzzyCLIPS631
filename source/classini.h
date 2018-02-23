@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/classini.h,v 1.3 2001/08/11 21:04:18 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.10  04/13/98          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -42,16 +40,11 @@
 #define LOCALE extern
 #endif
 
-LOCALE void SetupObjectSystem(void);
+LOCALE void SetupObjectSystem(void *);
 #if RUN_TIME
-LOCALE void ObjectsRunTimeInitialize(DEFCLASS *[],SLOT_NAME *[],DEFCLASS *[],unsigned);
+LOCALE void ObjectsRunTimeInitialize(void *,DEFCLASS *[],SLOT_NAME *[],DEFCLASS *[],unsigned);
 #else
-LOCALE void CreateSystemClasses(void);
-#endif
-
-#ifndef _CLASSINI_SOURCE_
-extern int DefclassModuleIndex;
-extern struct construct *DefclassConstruct;
+LOCALE void CreateSystemClasses(void *);
 #endif
 
 #endif

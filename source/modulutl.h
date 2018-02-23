@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/modulutl.h,v 1.3 2001/08/11 21:06:56 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*            DEFMODULE UTILITY HEADER FILE            */
    /*******************************************************/
@@ -43,22 +41,24 @@
 #define LOCALE extern
 #endif
 
-   LOCALE int                            FindModuleSeparator(char *);
-   LOCALE SYMBOL_HN                     *ExtractModuleName(int,char *);
-   LOCALE SYMBOL_HN                     *ExtractConstructName(int,char *);
-   LOCALE char                          *ExtractModuleAndConstructName(char *);
-   LOCALE void                          *FindImportedConstruct(char *,struct defmodule *,
+   LOCALE unsigned                       FindModuleSeparator(char *);
+   LOCALE SYMBOL_HN                     *ExtractModuleName(void *,unsigned,char *);
+   LOCALE SYMBOL_HN                     *ExtractConstructName(void *,unsigned,char *);
+   LOCALE char                          *ExtractModuleAndConstructName(void *,char *);
+   LOCALE void                          *FindImportedConstruct(void *,char *,struct defmodule *,
                                                                char *,int *,int,struct defmodule *);
-   LOCALE void                           AmbiguousReferenceErrorMessage(char *,char *);
-   LOCALE void                           MarkModulesAsUnvisited(void);
-   LOCALE void                           ListItemsDriver(char *,struct defmodule *,
+   LOCALE void                           AmbiguousReferenceErrorMessage(void *,char *,char *);
+   LOCALE void                           MarkModulesAsUnvisited(void *);
+   LOCALE void                           ListItemsDriver(void *,
+                                                         char *,struct defmodule *,
                                                          char *,char *,
-                                                          void *(*)(void *),
+                                                          void *(*)(void *,void *),
                                                           char *(*)(void *),
-                                                          void (*)(char *,void *),
-                                                          int (*)(void *));
-   LOCALE long                           DoForAllModules(void (*)(struct defmodule *,void *),
-                                                          int,void *);
+                                                          void (*)(void *,char *,void *),
+                                                          int (*)(void *,void *));
+   LOCALE long                           DoForAllModules(void *,
+                                                         void (*)(struct defmodule *,void *),
+                                                         int,void *);
 
 #endif
 

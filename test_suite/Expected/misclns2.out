@@ -1,0 +1,511 @@
+TRUE
+FuzzyCLIPS> (batch "misclns2.bat")
+TRUE
+FuzzyCLIPS> (clear)                              ; CR0222
+FuzzyCLIPS> (remove misclns2.tmp)
+FALSE
+FuzzyCLIPS> (remove misclns2.bin)
+FALSE
+FuzzyCLIPS> (load misclns2.tmp)
+[ARGACCES2] Function load was unable to open file misclns2.tmp.
+FALSE
+FuzzyCLIPS> (bload "Temp//misclns2.bin")
+[ARGACCES2] Function bload was unable to open file Temp//misclns2.bin.
+FALSE
+FuzzyCLIPS> (open "Temp//misclns2.tmp" misc2 "w")
+TRUE
+FuzzyCLIPS> (printout misc2 "(defrule foo =>)")
+FuzzyCLIPS> (close misc2)
+TRUE
+FuzzyCLIPS> (load "Temp//misclns2.tmp")
+*
+TRUE
+FuzzyCLIPS> (bsave "Temp//misclns2.bin")
+TRUE
+FuzzyCLIPS> (bload "Temp//misclns2.tmp")
+[BLOAD2] File Temp//misclns2.tmp is not a binary construct file.
+FALSE
+FuzzyCLIPS> (bload "Temp//misclns2.bin")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (remove "Temp//misclns2.tmp")
+TRUE
+FuzzyCLIPS> (open "Temp//misclns2.tmp" misc2 "w")
+TRUE
+FuzzyCLIPS> (printout misc2 "(defrule foo bar =>)")
+FuzzyCLIPS> (close misc2)
+TRUE
+FuzzyCLIPS> (load "Temp//misclns2.tmp")
+*
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule MAIN::foo
+   bar
+
+FALSE
+FuzzyCLIPS> (remove "Temp//misclns2.tmp")
+TRUE
+FuzzyCLIPS> (remove "Temp//misclns2.bin")
+TRUE
+FuzzyCLIPS> (clear)                              ; CR0218
+FuzzyCLIPS> (insert$ (create$ 1 2) 1000 3)
+(1 2 3)
+FuzzyCLIPS> (clear)                              ; CR0181 & CR0213
+FuzzyCLIPS> (defclass FOO (is-a USER) (role concrete) (pattern-match reactive))
+FuzzyCLIPS> (defrule foo1 (declare (salience 5)) =>)
+FuzzyCLIPS> (defrule foo2 (declare (salience 4)) (not (b)) =>)
+FuzzyCLIPS> (defrule foo3 (declare (salience 3)) (test (> 5 3)) =>)
+FuzzyCLIPS> (defrule foo4 (declare (salience 2)) (test (> 5 3)) (not (b)) =>)
+FuzzyCLIPS> (defrule foo5 (declare (salience 1)) (not (object (is-a FOO))) =>)
+FuzzyCLIPS> (defrule foo6 (test (> 5 3)) (not (object (is-a FOO))) =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+5      foo1: f-0
+4      foo2: f-0,
+3      foo3: f-0
+2      foo4: f-0,
+1      foo5: [initial-object],
+0      foo6: [initial-object],
+For a total of 6 activations.
+FuzzyCLIPS> (clear)                              ; Bug Test
+FuzzyCLIPS> (defrule foo1 (bar a $?x b) => (printout t "1: " ?x crlf))
+FuzzyCLIPS> (defrule foo2 (bar $?x a) => (printout t "2: " ?x crlf))
+FuzzyCLIPS> (defrule foo3 (bar a b $?x c d) => (printout t "3: " ?x crlf))
+FuzzyCLIPS> (assert (bar a b c d))
+<Fact-0>
+FuzzyCLIPS> (assert (bar a b 1 2 3 c d))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+0      foo3: f-1
+0      foo3: f-0
+For a total of 2 activations.
+FuzzyCLIPS> (run)
+3: (1 2 3)
+3: ()
+FuzzyCLIPS> (clear)                              ; Bug Test
+FuzzyCLIPS> (defrule foo1 (bar) =>)
+FuzzyCLIPS> (defrule foo2 (bar ?) =>)
+FuzzyCLIPS> (defrule foo3 (bar () =>))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule MAIN::foo3
+   (bar (
+FuzzyCLIPS> (defrule foo4 (bar ~) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule MAIN::foo4
+   (bar ~)
+FuzzyCLIPS> (ppdefrule foo1)
+(defrule MAIN::foo1
+   (bar)
+   =>)
+FuzzyCLIPS> (ppdefrule foo2)
+(defrule MAIN::foo2
+   (bar ?)
+   =>)
+FuzzyCLIPS> (assert (bar))
+<Fact-0>
+FuzzyCLIPS> (assert (bar 1))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+0      foo2: f-1
+0      foo1: f-0
+For a total of 2 activations.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deftemplate yak (multifield bar))
+FuzzyCLIPS> (defrule foo1 (yak (bar)) =>)
+FuzzyCLIPS> (defrule foo2 (yak (bar ?)) =>)
+FuzzyCLIPS> (defrule foo3 (yak (bar ()) =>))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule MAIN::foo3
+   (yak (bar (
+FuzzyCLIPS> (defrule foo4 (yak (bar ~)) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule MAIN::foo4
+   (yak (bar ~)
+FuzzyCLIPS> (ppdefrule foo1)
+(defrule MAIN::foo1
+   (yak (bar))
+   =>)
+FuzzyCLIPS> (ppdefrule foo2)
+(defrule MAIN::foo2
+   (yak (bar ?))
+   =>)
+FuzzyCLIPS> (assert (yak (bar)))
+<Fact-0>
+FuzzyCLIPS> (assert (yak (bar 1)))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+0      foo2: f-1
+0      foo1: f-0
+For a total of 2 activations.
+FuzzyCLIPS> (clear)                              ; Bug Test
+FuzzyCLIPS> (defrule foo (a $?x b) => (printout t ?x crlf))
+FuzzyCLIPS> (assert (a b))
+<Fact-0>
+FuzzyCLIPS> (assert (a c b))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+0      foo: f-1
+0      foo: f-0
+For a total of 2 activations.
+FuzzyCLIPS> (run)
+(c)
+()
+FuzzyCLIPS> (clear)                              ; Bug Test
+FuzzyCLIPS> (defrule blah (fact $?x here $?x) => (printout t ?x crlf))
+FuzzyCLIPS> (assert (fact))
+<Fact-0>
+FuzzyCLIPS> (assert (fact 1 here 2))
+<Fact-1>
+FuzzyCLIPS> (assert (fact 1 2 here 3 4))
+<Fact-2>
+FuzzyCLIPS> (assert (fact here))
+<Fact-3>
+FuzzyCLIPS> (assert (fact 5 here 5))
+<Fact-4>
+FuzzyCLIPS> (assert (fact 6 7 here 6 7))
+<Fact-5>
+FuzzyCLIPS> (assert (fact 6 7 here 6 8))
+<Fact-6>
+FuzzyCLIPS> (assert (fact 6 8 here 7 8))
+<Fact-7>
+FuzzyCLIPS> (agenda)
+0      blah: f-5
+0      blah: f-4
+0      blah: f-3
+For a total of 3 activations.
+FuzzyCLIPS> (run)
+(6 7)
+(5)
+()
+FuzzyCLIPS> (clear)                              ; Use of reserved symbols
+FuzzyCLIPS> (deftemplate and "example")
+
+[PATTERN1] The symbol and has special meaning
+and may not be used as a deftemplate name.
+
+ERROR:
+(deftemplate MAIN::and "example")
+FuzzyCLIPS> (deftemplate not)
+
+[PATTERN1] The symbol not has special meaning
+and may not be used as a deftemplate name.
+
+ERROR:
+(deftemplate MAIN::not)
+FuzzyCLIPS> (deftemplate or "example")
+
+[PATTERN1] The symbol or has special meaning
+and may not be used as a deftemplate name.
+
+ERROR:
+(deftemplate MAIN::or "example")
+FuzzyCLIPS> (deftemplate test)
+
+[PATTERN1] The symbol test has special meaning
+and may not be used as a deftemplate name.
+
+ERROR:
+(deftemplate MAIN::test)
+FuzzyCLIPS> (deftemplate logical "example" (field y))
+
+[PATTERN1] The symbol logical has special meaning
+and may not be used as a deftemplate name.
+
+ERROR:
+(deftemplate MAIN::logical "example"
+   (
+FuzzyCLIPS> (deftemplate exists)
+
+[PATTERN1] The symbol exists has special meaning
+and may not be used as a deftemplate name.
+
+ERROR:
+(deftemplate MAIN::exists)
+FuzzyCLIPS> (deftemplate forall (field x))
+
+[PATTERN1] The symbol forall has special meaning
+and may not be used as a deftemplate name.
+
+ERROR:
+(deftemplate MAIN::forall
+   (
+FuzzyCLIPS> (deftemplate object "example")
+
+[PATTERN1] The symbol object has special meaning
+and may not be used as a deftemplate name.
+
+ERROR:
+(deftemplate MAIN::object "example")
+FuzzyCLIPS> (assert (and))
+
+[PATTERN1] The symbol and has special meaning
+and may not be used as a relation name.
+FuzzyCLIPS> (assert (not b))
+
+[PATTERN1] The symbol not has special meaning
+and may not be used as a relation name.
+FuzzyCLIPS> (defrule foo => (assert (or c)))
+
+[PATTERN1] The symbol or has special meaning
+and may not be used as a relation name.
+
+ERROR:
+(defrule MAIN::foo
+   =>
+   (assert (or
+FuzzyCLIPS> (assert (test))
+
+[PATTERN1] The symbol test has special meaning
+and may not be used as a relation name.
+FuzzyCLIPS> (assert (logical))
+
+[PATTERN1] The symbol logical has special meaning
+and may not be used as a relation name.
+FuzzyCLIPS> (assert (this) (exists))
+
+[PATTERN1] The symbol exists has special meaning
+and may not be used as a relation name.
+FuzzyCLIPS> (assert (forall) (that))
+
+[PATTERN1] The symbol forall has special meaning
+and may not be used as a relation name.
+FuzzyCLIPS> (assert (object))
+
+[PATTERN1] The symbol object has special meaning
+and may not be used as a relation name.
+FuzzyCLIPS> (clear)                              ; First pattern field usage
+FuzzyCLIPS> (defrule foo ($?x&abc) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for the first field of a pattern.
+
+ERROR:
+(defrule MAIN::foo
+   ($?x
+FuzzyCLIPS> (clear)                              ; Order Dependency
+FuzzyCLIPS> (deftemplate foo (field x) (field y))
+FuzzyCLIPS> (defrule blah (foo (y ?y&:(numberp ?y)) (x =(+ ?y 1))) =>)
+FuzzyCLIPS> (assert (foo (y a) (x 3)))
+<Fact-0>
+FuzzyCLIPS> (clear)                              ; Bind & RHS constraints
+FuzzyCLIPS> (deftemplate foo (field x (type SYMBOL)))
+FuzzyCLIPS> 
+(defrule bar1 
+  (foo (x ?x))
+  =>
+  (+ ?x 1))
+
+[RULECSTR3] Previous variable bindings of ?x caused the type restrictions
+for argument #1 of the expression (+ ?x 1)
+found in the rule's RHS to be violated.
+
+ERROR:
+(defrule MAIN::bar1
+   (foo (x ?x))
+   =>
+   (+ ?x 1))
+FuzzyCLIPS> 
+(defrule bar2
+  (foo (x ?x))
+  =>
+  (sym-cat ?x ?x))
+FuzzyCLIPS> 
+(defrule bar3
+  (foo (x ?x))
+  =>
+  (bind ?x 3)
+  (sym-cat ?x ?x)
+  (+ ?x 1))
+FuzzyCLIPS> 
+(defrule bar4
+  (foo (x ?x))
+  =>
+  (sym-cat ?x ?x)
+  (+ ?x 1)
+  (bind ?x 3))
+FuzzyCLIPS> (clear) ; Thing 1
+FuzzyCLIPS> (defrule foo
+   ?f <- (bar)
+   (test (neq ?f g))
+   =>)
+FuzzyCLIPS> (clear) ; Thing 2
+FuzzyCLIPS> (deftemplate status 
+   (field farmer)
+   (field fox))
+FuzzyCLIPS> (defrule move-alone 
+  (status (farmer ?fs))
+  =>)
+FuzzyCLIPS> (defrule move-with-fox
+  (status (farmer ?fs) (fox ?fs))
+=>)
+FuzzyCLIPS> (deffacts stuff 
+  (status (farmer 1) (fox 2))
+  (status (farmer 3) (fox 3)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+0      move-alone: f-2
+0      move-with-fox: f-2
+0      move-alone: f-1
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Thing 3
+FuzzyCLIPS> (load other1.clp)
+%$
+[CSTRCPSR1] Expected the beginning of a construct.
+$
+FALSE
+FuzzyCLIPS> (clear) ; Thing 4
+FuzzyCLIPS> (defrule foo
+ "12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890
+  12345678901234567890123456789012345678901234567890"
+  =>)
+FuzzyCLIPS> (clear) ; Thing 5
+FuzzyCLIPS> (deftemplate foo (field x) (field y))
+FuzzyCLIPS> (defrule bar (foo (y ?y&:(> ?y 3))) =>)
+FuzzyCLIPS> (assert (foo (y a)))
+[ARGACCES5] Function > expected argument #1 to be of type integer or float
+
+[FACTMCH1] This error occurred in the fact pattern network
+   Currently active fact: (foo (x nil) (y a)) CF 1.00 
+   Problem resides in slot y
+      Of pattern #1 in rule(s):
+         bar
+
+<Fact-0>
+FuzzyCLIPS> (defrule yak (quo ? ?x&:(> ?x 3)) =>)
+FuzzyCLIPS> (assert (quo b a))
+[ARGACCES5] Function > expected argument #1 to be of type integer or float
+
+[FACTMCH1] This error occurred in the fact pattern network
+   Currently active fact: (quo b a) CF 1.00 
+   Problem resides in field #2
+      Of pattern #1 in rule(s):
+         yak
+
+<Fact-1>
+FuzzyCLIPS> (clear) ; Thing 6
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (reset)
+==> f-0     (initial-fact) CF 1.00 
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (clear) ; Thing 7
+FuzzyCLIPS> (deftemplate bar (slot y) (slot x) (slot z))
+FuzzyCLIPS> (defrule foo1 (bar (x ?x&:(> ?x 3))) =>)
+FuzzyCLIPS> (defrule foo2 (bar (y ?x&:(> ?x 3))) =>)
+FuzzyCLIPS> (defrule foo3 (bar (z ?x&:(> ?x 3))) =>)
+FuzzyCLIPS> (assert (bar (x a) (y 1) (z 1)))
+==> f-0     (bar (y 1) (x a) (z 1)) CF 1.00 
+[ARGACCES5] Function > expected argument #1 to be of type integer or float
+
+[FACTMCH1] This error occurred in the fact pattern network
+   Currently active fact: (bar (y 1) (x a) (z 1)) CF 1.00 
+   Problem resides in slot x
+      Of pattern #1 in rule(s):
+         foo1
+
+<Fact-0>
+FuzzyCLIPS> (assert (bar (x 1) (y a) (z 1)))
+==> f-1     (bar (y a) (x 1) (z 1)) CF 1.00 
+[ARGACCES5] Function > expected argument #1 to be of type integer or float
+
+[FACTMCH1] This error occurred in the fact pattern network
+   Currently active fact: (bar (y a) (x 1) (z 1)) CF 1.00 
+   Problem resides in slot y
+      Of pattern #1 in rule(s):
+         foo2
+
+<Fact-1>
+FuzzyCLIPS> (assert (bar (x 1) (y 1) (z a)))
+==> f-2     (bar (y 1) (x 1) (z a)) CF 1.00 
+[ARGACCES5] Function > expected argument #1 to be of type integer or float
+
+[FACTMCH1] This error occurred in the fact pattern network
+   Currently active fact: (bar (y 1) (x 1) (z a)) CF 1.00 
+   Problem resides in slot z
+      Of pattern #1 in rule(s):
+         foo3
+
+<Fact-2>
+FuzzyCLIPS> (clear) ; Thing 8
+FuzzyCLIPS> (defrule foo1 (bar ?x&:(> ?x 3) ?) =>)
+FuzzyCLIPS> (defrule foo2 (bar ? ?x&:(> ?x 3)) =>)
+FuzzyCLIPS> (assert (bar a 1))
+==> f-0     (bar a 1) CF 1.00 
+[ARGACCES5] Function > expected argument #1 to be of type integer or float
+
+[FACTMCH1] This error occurred in the fact pattern network
+   Currently active fact: (bar a 1) CF 1.00 
+   Problem resides in field #1
+      Of pattern #1 in rule(s):
+         foo1
+
+<Fact-0>
+FuzzyCLIPS> (assert (bar 1 a))
+==> f-1     (bar 1 a) CF 1.00 
+[ARGACCES5] Function > expected argument #1 to be of type integer or float
+
+[FACTMCH1] This error occurred in the fact pattern network
+   Currently active fact: (bar 1 a) CF 1.00 
+   Problem resides in field #2
+      Of pattern #1 in rule(s):
+         foo2
+
+<Fact-1>
+FuzzyCLIPS> (clear) ; Can't delete deftemplates while they're being used
+FuzzyCLIPS> (deftemplate foo)
+FuzzyCLIPS> (undeftemplate foo)
+FuzzyCLIPS> (deftemplate foo)
+FuzzyCLIPS> (assert (foo))
+==> f-0     (foo) CF 1.00 
+<Fact-0>
+FuzzyCLIPS> (undeftemplate foo)
+[PRNTUTIL4] Unable to delete deftemplate foo.
+FuzzyCLIPS> (defrule foobar => (assert (foo)))
+FuzzyCLIPS> (undeftemplate foo)
+[PRNTUTIL4] Unable to delete deftemplate foo.
+FuzzyCLIPS> (retract 0)
+<== f-0     (foo) CF 1.00 
+FuzzyCLIPS> (undeftemplate foo)
+[PRNTUTIL4] Unable to delete deftemplate foo.
+FuzzyCLIPS> (undefrule foobar)
+FuzzyCLIPS> (undeftemplate foo)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deftemplate foo)
+FuzzyCLIPS> (defrule bar (foo) =>)
+FuzzyCLIPS> (deftemplate foo)
+
+[CSTRCPSR4] Cannot redefine deftemplate foo while it is in use.
+
+ERROR:
+(deftemplate MAIN::foo
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deftemplate foo)
+FuzzyCLIPS> (deftemplate foo (slot x))
+FuzzyCLIPS> (clear) ; Next Thing
+FuzzyCLIPS> (dribble-off)

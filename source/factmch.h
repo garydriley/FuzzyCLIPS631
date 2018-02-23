@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/factmch.h,v 1.3 2001/08/11 21:05:39 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*               FACT MATCH HEADER FILE                */
    /*******************************************************/
@@ -44,17 +42,12 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           FactPatternMatch(struct fact *,
+   LOCALE void                           FactPatternMatch(void *,struct fact *,
                                                struct factPatternNode *,int,
                                                struct multifieldMarker *,
                                                struct multifieldMarker *);
-   LOCALE void                           MarkFactPatternForIncrementalReset(struct patternNodeHeader *,int);
-   LOCALE void                           FactsIncrementalReset(void);
-
-#ifndef _FACTMCH_SOURCE_
-   extern struct fact             *CurrentPatternFact;
-   extern struct multifieldMarker *CurrentPatternMarks;
-#endif
+   LOCALE void                           MarkFactPatternForIncrementalReset(void *,struct patternNodeHeader *,int);
+   LOCALE void                           FactsIncrementalReset(void *);
 
 #endif
 

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/dfinscmp.h,v 1.3 2001/08/11 21:05:05 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -40,12 +38,11 @@
 #define LOCALE extern
 #endif
 
-LOCALE void SetupDefinstancesCompiler(void);
-LOCALE void DefinstancesCModuleReference(FILE *,int,int,int);
+LOCALE void SetupDefinstancesCompiler(void *);
+LOCALE void DefinstancesCModuleReference(void *,FILE *,int,int,int);
 
 #endif
 
 #endif
-
 
 

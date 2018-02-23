@@ -1,0 +1,206 @@
+TRUE
+FuzzyCLIPS> (batch "dffctcmd.bat")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deftemplate foo (field x) (multifield y))
+FuzzyCLIPS> (deffacts d1)
+FuzzyCLIPS> (deffacts d2 (a))
+FuzzyCLIPS> (deffacts d3 (a) (b) (c))
+FuzzyCLIPS> (deffacts d4 (foo (x 3) (y)))
+FuzzyCLIPS> (deffacts d5 (a) (foo (y a) (x 3)))
+FuzzyCLIPS> (deffacts d6 (foo (y a b)) (b) (foo (x 3)) (d))
+FuzzyCLIPS> (deffacts *)
+FuzzyCLIPS> (list-deffacts d6)
+[ARGACCES5] Function list-deffacts expected argument #1 to be of type defmodule name
+FuzzyCLIPS> (list-deffacts)
+initial-fact
+d1
+d2
+d3
+d4
+d5
+d6
+*
+For a total of 8 deffacts.
+FuzzyCLIPS> (ppdeffacts d1)
+(deffacts MAIN::d1)
+FuzzyCLIPS> (ppdeffacts d2)
+(deffacts MAIN::d2
+   (a))
+FuzzyCLIPS> (ppdeffacts d3)
+(deffacts MAIN::d3
+   (a)
+   (b)
+   (c))
+FuzzyCLIPS> (ppdeffacts d4)
+(deffacts MAIN::d4
+   (foo (x 3) (y)))
+FuzzyCLIPS> (ppdeffacts d5)
+(deffacts MAIN::d5
+   (a)
+   (foo (y a) (x 3)))
+FuzzyCLIPS> (ppdeffacts d6)
+(deffacts MAIN::d6
+   (foo (y a b))
+   (b)
+   (foo (x 3))
+   (d))
+FuzzyCLIPS> (undeffacts)
+[ARGACCES4] Function undeffacts expected exactly 1 argument(s)
+FuzzyCLIPS> (undeffacts 10)
+[ARGACCES5] Function undeffacts expected argument #1 to be of type symbol
+FuzzyCLIPS> (undeffacts bad-name)
+[PRNTUTIL1] Unable to find deffacts bad-name.
+FuzzyCLIPS> (undeffacts d6 10)
+[ARGACCES4] Function undeffacts expected exactly 1 argument(s)
+FuzzyCLIPS> (list-deffacts)
+initial-fact
+d1
+d2
+d3
+d4
+d5
+d6
+*
+For a total of 8 deffacts.
+FuzzyCLIPS> (undeffacts d1)
+FuzzyCLIPS> (undeffacts d2)
+FuzzyCLIPS> (undeffacts d3)
+FuzzyCLIPS> (list-deffacts)
+initial-fact
+d4
+d5
+d6
+*
+For a total of 5 deffacts.
+FuzzyCLIPS> (undeffacts *)
+FuzzyCLIPS> (list-deffacts)
+initial-fact
+d4
+d5
+d6
+For a total of 4 deffacts.
+FuzzyCLIPS> (undeffacts *)
+FuzzyCLIPS> (list-deffacts)
+FuzzyCLIPS> (clear) ; Some new 6.0 features
+FuzzyCLIPS> (deffacts BOGUS::d5)
+[PRNTUTIL1] Unable to find defmodule BOGUS.
+
+ERROR:
+(deffacts BOGUS::d5
+FuzzyCLIPS> (defmodule FOO)
+FuzzyCLIPS> (deffacts FOO::d1)
+FuzzyCLIPS> (deffacts FOO::d2)
+FuzzyCLIPS> (defmodule BAR)
+FuzzyCLIPS> (deffacts BAR::d2)
+FuzzyCLIPS> (deffacts BAR::d3)
+FuzzyCLIPS> (list-deffacts BOGUS)
+[ARGACCES5] Function list-deffacts expected argument #1 to be of type defmodule name
+FuzzyCLIPS> (list-deffacts FOO 7)
+[ARGACCES4] Function list-deffacts expected no more than 1 argument(s)
+FuzzyCLIPS> (list-deffacts FOO)
+d1
+d2
+For a total of 2 deffacts.
+FuzzyCLIPS> (list-deffacts BAR)
+d2
+d3
+For a total of 2 deffacts.
+FuzzyCLIPS> (list-deffacts)
+d2
+d3
+For a total of 2 deffacts.
+FuzzyCLIPS> (list-deffacts *)
+MAIN:
+   initial-fact
+FOO:
+   d1
+   d2
+BAR:
+   d2
+   d3
+For a total of 5 deffacts.
+FuzzyCLIPS> (get-deffacts-list 7)
+[ARGACCES5] Function get-deffacts-list expected argument #1 to be of type symbol
+FuzzyCLIPS> (get-deffacts-list BOGUS 7)
+[ARGACCES4] Function get-deffacts-list expected no more than 1 argument(s)
+FuzzyCLIPS> (get-deffacts-list)
+(d2 d3)
+FuzzyCLIPS> (get-deffacts-list BOGUS)
+[ARGACCES5] Function get-deffacts-list expected argument #1 to be of type defmodule name
+()
+FuzzyCLIPS> (get-deffacts-list FOO)
+(d1 d2)
+FuzzyCLIPS> (get-deffacts-list BAR)
+(d2 d3)
+FuzzyCLIPS> (get-deffacts-list *)
+(MAIN::initial-fact FOO::d1 FOO::d2 BAR::d2 BAR::d3)
+FuzzyCLIPS> (ppdeffacts d1)
+[PRNTUTIL1] Unable to find deffacts d1.
+FuzzyCLIPS> (ppdeffacts d2)
+(deffacts BAR::d2)
+FuzzyCLIPS> (ppdeffacts d3)
+(deffacts BAR::d3)
+FuzzyCLIPS> (ppdeffacts BOGUS::d2)
+[PRNTUTIL1] Unable to find deffacts BOGUS::d2.
+FuzzyCLIPS> (ppdeffacts FOO::d1)
+(deffacts FOO::d1)
+FuzzyCLIPS> (ppdeffacts FOO::d2)
+(deffacts FOO::d2)
+FuzzyCLIPS> (ppdeffacts FOO::d3)
+[PRNTUTIL1] Unable to find deffacts FOO::d3.
+FuzzyCLIPS> (ppdeffacts BAR::d1)
+[PRNTUTIL1] Unable to find deffacts BAR::d1.
+FuzzyCLIPS> (ppdeffacts BAR::d2)
+(deffacts BAR::d2)
+FuzzyCLIPS> (ppdeffacts BAR::d3)
+(deffacts BAR::d3)
+FuzzyCLIPS> (deffacts-module)
+[ARGACCES4] Function deffacts-module expected exactly 1 argument(s)
+FuzzyCLIPS> (deffacts-module bogus)
+[PRNTUTIL1] Unable to find deffacts bogus.
+FALSE
+FuzzyCLIPS> (deffacts-module d3 7)
+[ARGACCES4] Function deffacts-module expected exactly 1 argument(s)
+FuzzyCLIPS> (deffacts-module d2)
+BAR
+FuzzyCLIPS> (deffacts-module d3)
+BAR
+FuzzyCLIPS> (deffacts-module FOO::d1)
+FOO
+FuzzyCLIPS> (deffacts-module FOO::d2)
+FOO
+FuzzyCLIPS> (deffacts-module BAR::d2)
+BAR
+FuzzyCLIPS> (deffacts-module BAR::d3)
+BAR
+FuzzyCLIPS> (undeffacts BOGUS::d2)
+[PRNTUTIL1] Unable to find deffacts BOGUS::d2.
+FuzzyCLIPS> (undeffacts FOO::d2)
+FuzzyCLIPS> (list-deffacts *)
+MAIN:
+   initial-fact
+FOO:
+   d1
+BAR:
+   d2
+   d3
+For a total of 4 deffacts.
+FuzzyCLIPS> (undeffacts BAR::d2)
+FuzzyCLIPS> (list-deffacts *)
+MAIN:
+   initial-fact
+FOO:
+   d1
+BAR:
+   d3
+For a total of 3 deffacts.
+FuzzyCLIPS> (undeffacts *)
+FuzzyCLIPS> (list-deffacts *)
+MAIN:
+   initial-fact
+FOO:
+   d1
+BAR:
+For a total of 2 deffacts.
+FuzzyCLIPS> (dribble-off)

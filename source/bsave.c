@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/bsave.c,v 1.3 2001/08/11 21:04:08 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.10  04/13/98          */
+   /*               CLIPS Version 6.24  06/05/06          */
    /*                                                     */
    /*                     BSAVE MODULE                    */
    /*******************************************************/
@@ -22,8 +20,12 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/bsave.c,v 1.3 2001/08/11 2
 /*                  (certainty factors for facts and rules)  */
 /*                  (extensions to run command)              */
 /*                                                           */
-/*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Added environment parameter to GenClose.       */
+/*            Added environment parameter to GenOpen.        */
 /*                                                           */
 /*************************************************************/
 
@@ -31,82 +33,90 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/bsave.c,v 1.3 2001/08/11 2
 
 #include "setup.h"
 
-#include "memalloc.h"
-#include "exprnpsr.h"
 #include "argacces.h"
-#include "router.h"
-#include "cstrnbin.h"
-#include "moduldef.h"
-#include "symblbin.h"
 #include "bload.h"
+#include "cstrnbin.h"
+#include "envrnmnt.h"
+#include "exprnpsr.h"
+#include "memalloc.h"
+#include "moduldef.h"
+#include "router.h"
+#include "symblbin.h"
 
 #include "bsave.h"
-
-/*******************/
-/* DATA STRUCTURES */
-/*******************/
-
-#if BLOAD_AND_BSAVE
-
-typedef struct bloadcntsv
-  {
-   long val;
-   struct bloadcntsv *nxt;
-  } BLOADCNTSV;
-
-#endif
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
 #if BLOAD_AND_BSAVE
-   static void                        FindNeededItems(void);
-   static void                        InitializeFunctionNeededFlags(void);
-   static void                        WriteNeededFunctions(FILE *);
-   static unsigned long int           FunctionBinarySize(void);
-   static void                        WriteBinaryHeader(FILE *);
-   static void                        WriteBinaryFooter(FILE *);
+   static void                        FindNeededItems(void *);
+   static void                        InitializeFunctionNeededFlags(void *);
+   static void                        WriteNeededFunctions(void *,FILE *);
+   static unsigned long int           FunctionBinarySize(void *);
+   static void                        WriteBinaryHeader(void *,FILE *);
+   static void                        WriteBinaryFooter(void *,FILE *);
 #endif
+   static void                        DeallocateBsaveData(void *);
 
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle struct BinaryItem         *ListOfBinaryItems = NULL;
-
-/****************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS  */
-/****************************************/
-
-#if BLOAD_AND_BSAVE
-   static BLOADCNTSV                *BloadCountSaveTop = NULL;
-#endif
+/**********************************************/
+/* InitializeBsaveData: Allocates environment */
+/*    data for the bsave command.             */
+/**********************************************/
+globle void InitializeBsaveData(
+  void *theEnv)
+  {
+   AllocateEnvironmentData(theEnv,BSAVE_DATA,sizeof(struct bsaveData),DeallocateBsaveData);
+  }
+  
+/************************************************/
+/* DeallocateBsaveData: Deallocates environment */
+/*    data for the bsave command.               */
+/************************************************/
+static void DeallocateBsaveData(
+  void *theEnv)
+  {
+   struct BinaryItem *tmpPtr, *nextPtr;
+   
+   tmpPtr = BsaveData(theEnv)->ListOfBinaryItems;
+   while (tmpPtr != NULL)
+     {
+      nextPtr = tmpPtr->next;
+      rtn_struct(theEnv,BinaryItem,tmpPtr);
+      tmpPtr = nextPtr;
+     }
+  }
 
 /**************************************/
 /* BsaveCommand: H/L access routine   */
 /*   for the bsave command.           */
 /**************************************/
-globle int BsaveCommand()
+globle int BsaveCommand(
+  void *theEnv)
   {
 #if (! RUN_TIME) && BLOAD_AND_BSAVE
    char *fileName;
 
-   if (ArgCountCheck("bsave",EXACTLY,1) == -1) return(FALSE);
-   fileName = GetFileName("bsave",1);
+   if (EnvArgCountCheck(theEnv,"bsave",EXACTLY,1) == -1) return(FALSE);
+   fileName = GetFileName(theEnv,"bsave",1);
    if (fileName != NULL)
-     { if (Bsave(fileName)) return(TRUE); }
+     { if (EnvBsave(theEnv,fileName)) return(TRUE); }
+#else
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
+#endif
 #endif
    return(FALSE);
   }
 
 #if BLOAD_AND_BSAVE
 
-/****************************/
-/* Bsave: C access routine  */
-/*   for the bsave command. */
-/****************************/
-globle BOOLEAN Bsave(
+/******************************/
+/* EnvBsave: C access routine */
+/*   for the bsave command.   */
+/******************************/
+globle intBool EnvBsave(
+  void *theEnv,
   char *fileName)
   {
    FILE *fp;
@@ -119,10 +129,10 @@ globle BOOLEAN Bsave(
    /* image is already loaded.          */
    /*===================================*/
 
-   if (Bloaded())
+   if (Bloaded(theEnv))
      {
-      PrintErrorID("BSAVE",1,FALSE);
-      PrintRouter(WERROR,
+      PrintErrorID(theEnv,"BSAVE",1,FALSE);
+      EnvPrintRouter(theEnv,WERROR,
           "Cannot perform a binary save while a binary load is in effect.\n");
       return(0);
      }
@@ -131,9 +141,9 @@ globle BOOLEAN Bsave(
    /* Open the file. */
    /*================*/
 
-   if ((fp = fopen(fileName,"wb")) == NULL)
+   if ((fp = GenOpen(theEnv,fileName,"wb")) == NULL)
      {
-      OpenErrorMessage("bsave",fileName);
+      OpenErrorMessage(theEnv,"bsave",fileName);
       return(0);
      }
 
@@ -141,13 +151,13 @@ globle BOOLEAN Bsave(
    /* Remember the current module. */
    /*==============================*/
 
-   SaveCurrentModule();
+   SaveCurrentModule(theEnv);
 
    /*==================================*/
    /* Write binary header to the file. */
    /*==================================*/
 
-   WriteBinaryHeader(fp);
+   WriteBinaryHeader(theEnv,fp);
 
    /*===========================================*/
    /* Initialize count variables, index values, */
@@ -155,12 +165,13 @@ globle BOOLEAN Bsave(
    /* which need to be saved.                   */
    /*===========================================*/
 
-   ExpressionCount = 0;
-   InitializeFunctionNeededFlags();
-   InitAtomicValueNeededFlags();
-   FindHashedExpressions();
-   FindNeededItems();
-   SetAtomicValueIndices(FALSE);
+   ExpressionData(theEnv)->ExpressionCount = 0;
+   InitializeFunctionNeededFlags(theEnv);
+   InitAtomicValueNeededFlags(theEnv);
+   FindHashedExpressions(theEnv);
+   FindNeededItems(theEnv);
+   SetAtomicValueIndices(theEnv,FALSE);
+   
 #if FUZZY_DEFTEMPLATES
    /* NOTE: changed order for fuzzy CLIPS!!! */
 
@@ -169,42 +180,42 @@ globle BOOLEAN Bsave(
    /* to store the constructs.                                   */
    /*============================================================*/
 
-   biPtr = ListOfBinaryItems;
+   biPtr = BsaveData(theEnv)->ListOfBinaryItems;
    while (biPtr != NULL)
      {
       if (biPtr->bsaveStorageFunction != NULL)
         {
          strncpy(constructBuffer,biPtr->name,CONSTRUCT_HEADER_SIZE);
          GenWrite(constructBuffer,(unsigned long) CONSTRUCT_HEADER_SIZE,fp);
-         (*biPtr->bsaveStorageFunction)(fp);
+         (*biPtr->bsaveStorageFunction)(theEnv,fp);
         }
       biPtr = biPtr->next;
      }
-   WriteBinaryFooter(fp);
+   WriteBinaryFooter(theEnv,fp);
 #endif
-
 
    /*===============================*/
    /* Save the functions and atoms. */
    /*===============================*/
 
-   WriteNeededFunctions(fp);
-   WriteNeededAtomicValues(fp);
+   WriteNeededFunctions(theEnv,fp);
+   WriteNeededAtomicValues(theEnv,fp);
 
    /*=========================================*/
    /* Write out the number of expression data */
    /* structures in the binary image.         */
    /*=========================================*/
 
-   GenWrite((void *) &ExpressionCount,(unsigned long) sizeof(unsigned long),fp);
+   GenWrite((void *) &ExpressionData(theEnv)->ExpressionCount,(unsigned long) sizeof(unsigned long),fp);
 
 #if !FUZZY_DEFTEMPLATES
+
    /*===========================================*/
    /* Save the numbers indicating the amount of */
    /* memory needed to bload the constructs.    */
    /*===========================================*/
 
-   for (biPtr = ListOfBinaryItems;
+   for (biPtr = BsaveData(theEnv)->ListOfBinaryItems;
         biPtr != NULL;
         biPtr = biPtr->next)
      {
@@ -212,7 +223,7 @@ globle BOOLEAN Bsave(
         {
          strncpy(constructBuffer,biPtr->name,CONSTRUCT_HEADER_SIZE);
          GenWrite(constructBuffer,(unsigned long) CONSTRUCT_HEADER_SIZE,fp);
-         (*biPtr->bsaveStorageFunction)(fp);
+         (*biPtr->bsaveStorageFunction)(theEnv,fp);
         }
      }
 
@@ -220,30 +231,30 @@ globle BOOLEAN Bsave(
    /* Write a binary footer to the file. */
    /*====================================*/
 
-   WriteBinaryFooter(fp);
+   WriteBinaryFooter(theEnv,fp);
 #endif
 
    /*===================*/
    /* Save expressions. */
    /*===================*/
 
-   ExpressionCount = 0;
-   BsaveHashedExpressions(fp);
-   saveExpressionCount = ExpressionCount;
-   BsaveConstructExpressions(fp);
-   ExpressionCount = saveExpressionCount;
+   ExpressionData(theEnv)->ExpressionCount = 0;
+   BsaveHashedExpressions(theEnv,fp);
+   saveExpressionCount = ExpressionData(theEnv)->ExpressionCount;
+   BsaveConstructExpressions(theEnv,fp);
+   ExpressionData(theEnv)->ExpressionCount = saveExpressionCount;
 
    /*===================*/
    /* Save constraints. */
    /*===================*/
 
-   WriteNeededConstraints(fp);
+   WriteNeededConstraints(theEnv,fp);
 
    /*==================*/
    /* Save constructs. */
    /*==================*/
 
-   for (biPtr = ListOfBinaryItems;
+   for (biPtr = BsaveData(theEnv)->ListOfBinaryItems;
         biPtr != NULL;
         biPtr = biPtr->next)
      {
@@ -251,7 +262,7 @@ globle BOOLEAN Bsave(
         {
          strncpy(constructBuffer,biPtr->name,CONSTRUCT_HEADER_SIZE);
          GenWrite(constructBuffer,(unsigned long) CONSTRUCT_HEADER_SIZE,fp);
-         (*biPtr->bsaveFunction)(fp);
+         (*biPtr->bsaveFunction)(theEnv,fp);
         }
      }
 
@@ -259,25 +270,25 @@ globle BOOLEAN Bsave(
    /* Save a binary footer to the file. */
    /*===================================*/
 
-   WriteBinaryFooter(fp);
+   WriteBinaryFooter(theEnv,fp);
 
    /*===========*/
    /* Clean up. */
    /*===========*/
 
-   RestoreAtomicValueBuckets();
+   RestoreAtomicValueBuckets(theEnv);
 
    /*=================*/
    /* Close the file. */
    /*=================*/
 
-   fclose(fp);
+   GenClose(theEnv,fp);
 
    /*=============================*/
    /* Restore the current module. */
    /*=============================*/
 
-   RestoreCurrentModule();
+   RestoreCurrentModule(theEnv);
 
    /*========================================*/
    /* Return TRUE to indicate success. */
@@ -291,11 +302,12 @@ globle BOOLEAN Bsave(
 /*   function in the list of functions as    */
 /*   being unneeded by this binary image.    */
 /*********************************************/
-static void InitializeFunctionNeededFlags()
+static void InitializeFunctionNeededFlags(
+  void *theEnv)
   {
    struct FunctionDefinition *functionList;
 
-   for (functionList = GetFunctionList();
+   for (functionList = GetFunctionList(theEnv);
         functionList != NULL;
         functionList = functionList->next)
      { functionList->bsaveIndex = 0; }
@@ -307,14 +319,15 @@ static void InitializeFunctionNeededFlags()
 /*   by that construct. This routine also counts the      */
 /*   number of expressions in use (through a global).     */
 /**********************************************************/
-static void FindNeededItems()
+static void FindNeededItems(
+  void *theEnv)
   {
    struct BinaryItem *biPtr;
 
-   for (biPtr = ListOfBinaryItems;
+   for (biPtr = BsaveData(theEnv)->ListOfBinaryItems;
         biPtr != NULL;
         biPtr = biPtr->next)
-     { if (biPtr->findFunction != NULL) (*biPtr->findFunction)(); }
+     { if (biPtr->findFunction != NULL) (*biPtr->findFunction)(theEnv); }
   }
 
 /****************************************************/
@@ -322,6 +335,7 @@ static void FindNeededItems()
 /*   functions to the binary save file.             */
 /****************************************************/
 static void WriteNeededFunctions(
+  void *theEnv,
   FILE *fp)
   {
    unsigned long int space, count = 0, length;
@@ -331,7 +345,7 @@ static void WriteNeededFunctions(
    /* Assign each function an index if it is needed. */
    /*================================================*/
 
-   for (functionList = GetFunctionList();
+   for (functionList = GetFunctionList(theEnv);
         functionList != NULL;
         functionList = functionList->next)
      {
@@ -357,14 +371,14 @@ static void WriteNeededFunctions(
    /* needed for the function names. */
    /*================================*/
 
-   space = FunctionBinarySize();
+   space = FunctionBinarySize(theEnv);
    GenWrite(&space,(unsigned long) sizeof(unsigned long int),fp);
 
    /*===============================*/
    /* Write out the function names. */
    /*===============================*/
 
-   for (functionList = GetFunctionList();
+   for (functionList = GetFunctionList(theEnv);
         functionList != NULL;
         functionList = functionList->next)
      {
@@ -381,12 +395,13 @@ static void WriteNeededFunctions(
 /*   of bytes needed to save all of the      */
 /*   function names in the binary save file. */
 /*********************************************/
-static unsigned long int FunctionBinarySize()
+static unsigned long int FunctionBinarySize(
+  void *theEnv)
   {
    unsigned long int size = 0;
    struct FunctionDefinition *functionList;
 
-   for (functionList = GetFunctionList();
+   for (functionList = GetFunctionList(theEnv);
         functionList != NULL;
         functionList = functionList->next)
      {
@@ -403,19 +418,20 @@ static unsigned long int FunctionBinarySize()
 /*   issued when a binary image is loaded.         */
 /***************************************************/
 globle void SaveBloadCount(
+  void *theEnv,
   long cnt)
   {
    BLOADCNTSV *tmp, *prv;
 
-   tmp = get_struct(bloadcntsv);
+   tmp = get_struct(theEnv,bloadcntsv);
    tmp->val = cnt;
    tmp->nxt = NULL;
 
-   if (BloadCountSaveTop == NULL)
-     { BloadCountSaveTop = tmp; }
+   if (BsaveData(theEnv)->BloadCountSaveTop == NULL)
+     { BsaveData(theEnv)->BloadCountSaveTop = tmp; }
    else
      {
-      prv = BloadCountSaveTop;
+      prv = BsaveData(theEnv)->BloadCountSaveTop;
       while (prv->nxt != NULL)
         { prv = prv->nxt; }
       prv->nxt = tmp;
@@ -428,14 +444,15 @@ globle void SaveBloadCount(
 /*   completed when a binary image is loaded.     */
 /**************************************************/
 globle void RestoreBloadCount(
+  void *theEnv,
   long *cnt)
   {
    BLOADCNTSV *tmp;
 
-   *cnt = BloadCountSaveTop->val;
-   tmp = BloadCountSaveTop;
-   BloadCountSaveTop = BloadCountSaveTop->nxt;
-   rtn_struct(bloadcntsv,tmp);
+   *cnt = BsaveData(theEnv)->BloadCountSaveTop->val;
+   tmp = BsaveData(theEnv)->BloadCountSaveTop;
+   BsaveData(theEnv)->BloadCountSaveTop = BsaveData(theEnv)->BloadCountSaveTop->nxt;
+   rtn_struct(theEnv,bloadcntsv,tmp);
   }
 
 /**********************************************/
@@ -444,6 +461,7 @@ globle void RestoreBloadCount(
 /*   an expression as part of a binary image. */
 /**********************************************/
 globle void MarkNeededItems(
+  void *theEnv,
   struct expr *testPtr)
   {
    while (testPtr != NULL)
@@ -464,7 +482,7 @@ globle void MarkNeededItems(
          case INTEGER:
             ((INTEGER_HN *) testPtr->value)->neededInteger = TRUE;
             break;
-
+            
 #if FUZZY_DEFTEMPLATES
          case FUZZY_VALUE:
             { /* fuzzy value is needed */
@@ -481,15 +499,15 @@ globle void MarkNeededItems(
            break;
 
          default:
-           if (PrimitivesArray[testPtr->type] == NULL) break;
-           if (PrimitivesArray[testPtr->type]->bitMap)
+           if (EvaluationData(theEnv)->PrimitivesArray[testPtr->type] == NULL) break;
+           if (EvaluationData(theEnv)->PrimitivesArray[testPtr->type]->bitMap)
              { ((BITMAP_HN *) testPtr->value)->neededBitMap = TRUE; }
            break;
 
         }
 
       if (testPtr->argList != NULL)
-        { MarkNeededItems(testPtr->argList); }
+        { MarkNeededItems(theEnv,testPtr->argList); }
 
       testPtr = testPtr->nextArg;
      }
@@ -500,10 +518,11 @@ globle void MarkNeededItems(
 /*   verification when a binary image is loaded.      */
 /******************************************************/
 static void WriteBinaryHeader(
+  void *theEnv,
   FILE *fp)
   {
-   GenWrite(BinaryPrefixID,(unsigned long) strlen(BinaryPrefixID) + 1,fp);
-   GenWrite(BinaryVersionID,(unsigned long) strlen(BinaryVersionID) + 1,fp);
+   GenWrite(BloadData(theEnv)->BinaryPrefixID,(unsigned long) strlen(BloadData(theEnv)->BinaryPrefixID) + 1,fp);
+   GenWrite(BloadData(theEnv)->BinaryVersionID,(unsigned long) strlen(BloadData(theEnv)->BinaryVersionID) + 1,fp);
   }
 
 /******************************************************/
@@ -511,11 +530,12 @@ static void WriteBinaryHeader(
 /*   verification when a binary image is loaded.      */
 /******************************************************/
 static void WriteBinaryFooter(
+  void *theEnv,
   FILE *fp)
   {
    char footerBuffer[CONSTRUCT_HEADER_SIZE];
 
-   strncpy(footerBuffer,BinaryPrefixID,CONSTRUCT_HEADER_SIZE);
+   strncpy(footerBuffer,BloadData(theEnv)->BinaryPrefixID,CONSTRUCT_HEADER_SIZE);
    GenWrite(footerBuffer,(unsigned long) CONSTRUCT_HEADER_SIZE,fp);
   }
 
@@ -529,16 +549,17 @@ static void WriteBinaryFooter(
 /*   data structures of a construct or other "item" to a  */
 /*   binary file.                                         */
 /**********************************************************/
-globle BOOLEAN AddBinaryItem(
+globle intBool AddBinaryItem(
+  void *theEnv,
   char *name,
   int priority,
-  void (*findFunction)(void),
-  void (*expressionFunction)(FILE *),
-  void (*bsaveStorageFunction)(FILE *),
-  void (*bsaveFunction)(FILE *),
-  void (*bloadStorageFunction)(void),
-  void (*bloadFunction)(void),
-  void (*clearFunction)(void))
+  void (*findFunction)(void *),
+  void (*expressionFunction)(void *,FILE *),
+  void (*bsaveStorageFunction)(void *,FILE *),
+  void (*bsaveFunction)(void *,FILE *),
+  void (*bloadStorageFunction)(void *),
+  void (*bloadFunction)(void *),
+  void (*clearFunction)(void *))
   {
    struct BinaryItem *newPtr, *currentPtr, *lastPtr = NULL;
 
@@ -546,7 +567,7 @@ globle BOOLEAN AddBinaryItem(
    /* Create the binary item data structure. */
    /*========================================*/
 
-   newPtr = get_struct(BinaryItem);
+   newPtr = get_struct(theEnv,BinaryItem);
 
    newPtr->name = name;
    newPtr->findFunction = findFunction;
@@ -563,10 +584,10 @@ globle BOOLEAN AddBinaryItem(
    /* just put the item on the list.  */
    /*=================================*/
 
-   if (ListOfBinaryItems == NULL)
+   if (BsaveData(theEnv)->ListOfBinaryItems == NULL)
      {
       newPtr->next = NULL;
-      ListOfBinaryItems = newPtr;
+      BsaveData(theEnv)->ListOfBinaryItems = newPtr;
       return(TRUE);
      }
 
@@ -576,7 +597,7 @@ globle BOOLEAN AddBinaryItem(
    /* items based on its priority.            */
    /*=========================================*/
 
-   currentPtr = ListOfBinaryItems;
+   currentPtr = BsaveData(theEnv)->ListOfBinaryItems;
    while ((currentPtr != NULL) ? (priority < currentPtr->priority) : FALSE)
      {
       lastPtr = currentPtr;
@@ -585,8 +606,8 @@ globle BOOLEAN AddBinaryItem(
 
    if (lastPtr == NULL)
      {
-      newPtr->next = ListOfBinaryItems;
-      ListOfBinaryItems = newPtr;
+      newPtr->next = BsaveData(theEnv)->ListOfBinaryItems;
+      BsaveData(theEnv)->ListOfBinaryItems = newPtr;
      }
    else
      {
@@ -603,23 +624,6 @@ globle BOOLEAN AddBinaryItem(
   }
 
 #endif /* BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE */
-
-#if BLOAD_AND_BSAVE || BSAVE_INSTANCES
-
-/***********************************************/
-/* GenWrite: Generic routine for writing to a  */
-/*   file. No machine specific code as of yet. */
-/***********************************************/
-globle void GenWrite(
-  void *dataPtr,
-  unsigned long size,
-  FILE *fp)
-  {
-   if (size == 0) return;
-   fwrite(dataPtr,(STD_SIZE) size,1,fp);
-  }
-
-#endif /* BLOAD_AND_BSAVE || BSAVE_INSTANCES */
 
 
 

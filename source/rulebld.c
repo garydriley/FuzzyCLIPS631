@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/rulebld.c,v 1.3 2001/08/11 21:07:40 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*                  RULE BUILD MODULE                  */
    /*******************************************************/
@@ -24,6 +22,10 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/rulebld.c,v 1.3 2001/08/11
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Removed INCREMENTAL_RESET compilation flag.    */
+/*                                                           */
+/*            Corrected code to remove compiler warnings.    */
+/*                                                           */
 /*************************************************************/
 
 #define _RULEBLD_SOURCE_
@@ -37,41 +39,43 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/rulebld.c,v 1.3 2001/08/11
 #include <stdlib.h>
 
 #include "constant.h"
-#include "memalloc.h"
-#include "router.h"
-#include "watch.h"
+#include "envrnmnt.h"
 #include "constrct.h"
 #include "drive.h"
+#include "incrrset.h"
+#include "memalloc.h"
 #include "pattern.h"
 #include "reteutil.h"
-#include "incrrset.h"
+#include "router.h"
 #include "rulebld.h"
+#include "watch.h"
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static struct joinNode        *FindShareableJoin(struct joinNode *,void *,int,int,int,
+   static struct joinNode        *FindShareableJoin(struct joinNode *,void *,unsigned,unsigned,int,
                                                     struct expr *,
                                                     int,int,int,struct joinNode **);
-   static int                     TestJoinForReuse(struct joinNode *,int,int,int,
+   static int                     TestJoinForReuse(struct joinNode *,unsigned,unsigned,int,
                                                    struct expr *,
                                                    int,int,int,struct joinNode **);
-   static struct joinNode        *CreateNewJoin(struct expr *,
+   static struct joinNode        *CreateNewJoin(void *,struct expr *,
                                                 struct joinNode *,void *,int,int);
-   static void                    AttachTestCEsToPatternCEs(struct lhsParseNode *);
+   static void                    AttachTestCEsToPatternCEs(void *,struct lhsParseNode *);
 
 /****************************************************************/
 /* ConstructJoins: Integrates a set of pattern and join tests   */
 /*   associated with a rule into the pattern and join networks. */
 /****************************************************************/
 globle struct joinNode *ConstructJoins(
+  void *theEnv,
   int logicalJoin,
   struct lhsParseNode *theLHS)
   {
    struct joinNode *lastJoin = NULL;
    struct patternNodeHeader *lastPattern;
-   int firstJoin = TRUE;
+   unsigned firstJoin = TRUE;
    int tryToReuse = TRUE;
    struct joinNode *listOfJoins;
    struct joinNode *oldJoin;
@@ -89,7 +93,7 @@ globle struct joinNode *ConstructJoins(
    /* join at the same not/and depth.                   */
    /*===================================================*/
 
-   AttachTestCEsToPatternCEs(theLHS);
+   AttachTestCEsToPatternCEs(theEnv,theLHS);
 
    /*=====================================================*/
    /* Process each pattern CE in the rule. At this point, */
@@ -117,7 +121,7 @@ globle struct joinNode *ConstructJoins(
       /*============================================================*/
 
       rhsType = theLHS->patternType->positionInArray;
-      lastPattern = (*theLHS->patternType->addPatternFunction)(theLHS);
+      lastPattern = (*theLHS->patternType->addPatternFunction)(theEnv,theLHS);
 
       /*======================================================*/
       /* Determine if the join being added is a logical join. */
@@ -143,21 +147,21 @@ globle struct joinNode *ConstructJoins(
       endDepth = theLHS->endNandDepth;
       if ((tryToReuse == TRUE) &&
           ((oldJoin = FindShareableJoin(listOfJoins,(void *) lastPattern,firstJoin,
-                                        (int) theLHS->negated,isLogical,
+                                        theLHS->negated,isLogical,
                                         theLHS->networkTest,
                                         endDepth,currentDepth,
                                         lastIteration,nandReconnect)) != NULL) )
         {
 #if DEBUGGING_FUNCTIONS
-         if ((GetWatchItem("compilations") == TRUE) && GetPrintWhileLoading())
-           { PrintRouter(WDIALOG,"=j"); }
+         if ((EnvGetWatchItem(theEnv,"compilations") == TRUE) && GetPrintWhileLoading(theEnv))
+           { EnvPrintRouter(theEnv,WDIALOG,"=j"); }
 #endif
          lastJoin = oldJoin;
         }
       else
         {
          tryToReuse = FALSE;
-         lastJoin = CreateNewJoin(theLHS->networkTest,
+         lastJoin = CreateNewJoin(theEnv,theLHS->networkTest,
                                   lastJoin,lastPattern,
                                   FALSE,(int) theLHS->negated);
          lastJoin->rhsType = rhsType;
@@ -177,14 +181,14 @@ globle struct joinNode *ConstructJoins(
          if (tryToReuse)
            {
 #if DEBUGGING_FUNCTIONS
-            if ((GetWatchItem("compilations") == TRUE) && GetPrintWhileLoading())
-              { PrintRouter(WDIALOG,"=j"); }
+            if ((EnvGetWatchItem(theEnv,"compilations") == TRUE) && GetPrintWhileLoading(theEnv))
+              { EnvPrintRouter(theEnv,WDIALOG,"=j"); }
 #endif
             lastJoin = lastJoin->nextLevel;
            }
          else
            {
-            lastJoin = CreateNewJoin(NULL,nandReconnect[currentDepth-1],
+            lastJoin = CreateNewJoin(theEnv,NULL,nandReconnect[currentDepth-1],
                                      lastJoin,TRUE,FALSE);
            }
         }
@@ -204,8 +208,8 @@ globle struct joinNode *ConstructJoins(
    /*===================================================*/
 
 #if DEBUGGING_FUNCTIONS
-   if ((GetWatchItem("compilations") == TRUE) && GetPrintWhileLoading())
-     { PrintRouter(WDIALOG,"\n"); }
+   if ((EnvGetWatchItem(theEnv,"compilations") == TRUE) && GetPrintWhileLoading(theEnv))
+     { EnvPrintRouter(theEnv,WDIALOG,"\n"); }
 #endif
 
    /*=============================*/
@@ -221,9 +225,10 @@ globle struct joinNode *ConstructJoins(
 /*   negated and is at the same not/and depth.                  */
 /****************************************************************/
 static void AttachTestCEsToPatternCEs(
+  void *theEnv,
   struct lhsParseNode *theLHS)
   {
-   struct lhsParseNode *lastNode, *trackNode, *tempNode;
+   struct lhsParseNode *lastNode = NULL, *trackNode, *tempNode;
 
    /*===============================================*/
    /* Look at each pattern on the rule's LHS to see */
@@ -285,14 +290,14 @@ static void AttachTestCEsToPatternCEs(
 
          else if (trackNode->type == TEST_CE)
            {
-            theLHS->networkTest = CombineExpressions(theLHS->networkTest,
+            theLHS->networkTest = CombineExpressions(theEnv,theLHS->networkTest,
                                                      trackNode->networkTest);
             trackNode->networkTest = NULL;
             tempNode = trackNode->bottom;
             trackNode->bottom = NULL;
             lastNode->bottom = tempNode;
             lastNode->endNandDepth = trackNode->endNandDepth;
-            ReturnLHSParseNodes(trackNode);
+            ReturnLHSParseNodes(theEnv,trackNode);
             trackNode = tempNode;
            }
 
@@ -303,8 +308,8 @@ static void AttachTestCEsToPatternCEs(
 
          else
            {
-            SystemError("BUILD",1);
-            ExitRouter(EXIT_FAILURE);
+            SystemError(theEnv,"BUILD",1);
+            EnvExitRouter(theEnv,EXIT_FAILURE);
            }
         }
 
@@ -325,8 +330,8 @@ static void AttachTestCEsToPatternCEs(
 static struct joinNode *FindShareableJoin(
   struct joinNode *listOfJoins,
   void *rhsStruct,
-  int firstJoin,
-  int negatedRHS,
+  unsigned int firstJoin,
+  unsigned int negatedRHS,
   int isLogical,
   struct expr *joinTest,
   int endDepth,
@@ -386,8 +391,8 @@ static struct joinNode *FindShareableJoin(
 /**************************************************************/
 static int TestJoinForReuse(
   struct joinNode *testJoin,
-  int firstJoin,
-  int negatedRHS,
+  unsigned firstJoin,
+  unsigned negatedRHS,
   int isLogical,
   struct expr *joinTest,
   int endDepth,
@@ -493,6 +498,7 @@ static int TestJoinForReuse(
 /* CreateNewJoin: Creates a new join and links it into the join network. */
 /*************************************************************************/
 static struct joinNode *CreateNewJoin(
+  void *theEnv,
   struct expr *joinTest,
   struct joinNode *lhsEntryStruct,
   void *rhsEntryStruct,
@@ -509,24 +515,20 @@ static struct joinNode *CreateNewJoin(
    /*===============================================*/
 
 #if DEBUGGING_FUNCTIONS
-   if ((GetWatchItem("compilations") == TRUE) && GetPrintWhileLoading())
-     { PrintRouter(WDIALOG,"+j"); }
+   if ((EnvGetWatchItem(theEnv,"compilations") == TRUE) && GetPrintWhileLoading(theEnv))
+     { EnvPrintRouter(theEnv,WDIALOG,"+j"); }
 #endif
 
    /*========================================================*/
    /* Create the new join and initialize some of its values. */
    /*========================================================*/
 
-   newJoin = get_struct(joinNode);
+   newJoin = get_struct(theEnv,joinNode);
    newJoin->beta = NULL;
    newJoin->nextLevel = NULL;
    newJoin->joinFromTheRight = joinFromTheRight;
    newJoin->patternIsNegated = negatedRHSPattern;
-#if INCREMENTAL_RESET
-   newJoin->initialize = GetIncrementalReset();
-#else
-   newJoin->initialize = FALSE;
-#endif
+   newJoin->initialize = EnvGetIncrementalReset(theEnv);
    newJoin->logicalJoin = FALSE;
    newJoin->ruleToActivate = NULL;
 
@@ -536,7 +538,7 @@ static struct joinNode *CreateNewJoin(
    /* associated with this join.                   */
    /*==============================================*/
 
-   newJoin->networkTest = AddHashedExpression(joinTest);
+   newJoin->networkTest = AddHashedExpression(theEnv,joinTest);
 
    /*============================================================*/
    /* Initialize the values associated with the LHS of the join. */

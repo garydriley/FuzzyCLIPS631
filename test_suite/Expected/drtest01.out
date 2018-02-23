@@ -1,0 +1,268 @@
+TRUE
+FuzzyCLIPS> (batch "drtest01.bat")
+TRUE
+FuzzyCLIPS> (toss "a")                        ; DR0001
+FALSE
+FuzzyCLIPS> (toss a)                          ; DR0001
+FALSE
+FuzzyCLIPS> (clear)                           ; DR0003
+FuzzyCLIPS> (>= 1)                            ; DR0003
+[ARGACCES4] Function >= expected at least 2 argument(s)
+FuzzyCLIPS> (defrule b (x ?y&:(>= 1)) =>)     ; DR0003
+[ARGACCES4] Function >= expected at least 2 argument(s)
+
+ERROR:
+(defrule MAIN::b
+   (x ?y&:(>= 1)
+FuzzyCLIPS> (clear)                           ; DR0006
+FuzzyCLIPS> (defrule x                        ; DR0006
+   (not (a ?x))
+   (not (b ?x))
+   =>)
+FuzzyCLIPS> (str-cat (readline))              ; DR0011
+a b
+"a b"
+FuzzyCLIPS> (clear)                           ; DR0012
+FuzzyCLIPS> (defrule b                        ; DR0012
+   (not (z))
+   (test (> 0 1))
+   =>)
+FuzzyCLIPS> (agenda)                          ; DR0012
+FuzzyCLIPS> (reset)                           ; DR0012
+FuzzyCLIPS> (agenda)                          ; DR0012
+FuzzyCLIPS> (clear)                           ; DR0033
+FuzzyCLIPS> (=)                               ; DR0033
+[ARGACCES4] Function = expected at least 2 argument(s)
+FuzzyCLIPS> (defrule b (x ?v) (test (=)) =>)  ; DR0033
+[ARGACCES4] Function = expected at least 2 argument(s)
+
+ERROR:
+(defrule MAIN::b
+   (x ?v)
+   (test (=)
+FuzzyCLIPS> (defrule c (x ?v) => (clear))     ; DR0033
+FuzzyCLIPS> (assert (x 9))                    ; DR0033
+<Fact-0>
+FuzzyCLIPS> (run)                             ; DR0033
+[CONSTRCT1] Some constructs are still in use. Clear cannot continue.
+FuzzyCLIPS> (clear)                           ; DR0034
+FuzzyCLIPS> (bind ?b)                         ; DR0034
+FALSE
+FuzzyCLIPS> (defrule a (x ?b) => (bind ?b)))  ; DR0034
+FuzzyCLIPS> (assert (x n))                    ; DR0034
+<Fact-0>
+FuzzyCLIPS> (run)                             ; DR0034
+FuzzyCLIPS> (close blah)                      ; DR0037
+FALSE
+FuzzyCLIPS> (deffacts a ())                   ; DR0039
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for first field of a RHS pattern.
+
+ERROR:
+(deffacts MAIN::a
+   ()
+FuzzyCLIPS> (assert ())                       ; DR0039
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for first field of a RHS pattern.
+FuzzyCLIPS> (system)                          ; DR0043
+[ARGACCES4] Function system expected at least 1 argument(s)
+FuzzyCLIPS> (clear)                           ; DR0047
+FuzzyCLIPS> (defrule a (= 5 7) =>)            ; DR0047
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for the field field of a pattern.
+
+ERROR:
+(defrule MAIN::a
+   (=
+FuzzyCLIPS> (assert (= 5 7))                  ; DR0047
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for first field of a RHS pattern.
+FuzzyCLIPS> (agenda)                          ; DR0047
+FuzzyCLIPS> (open "Temp//f1.tmp" name "w")    ; DR0048
+TRUE
+FuzzyCLIPS> (open "Temp//f2.tmp" name "w")    ; DR0048
+[IOFUN2] Logical name name already in use.
+FALSE
+FuzzyCLIPS> (close name)                      ; DR0048
+TRUE
+FuzzyCLIPS> (clear)                           ; DR0051
+FuzzyCLIPS> (defrule a                        ; DR0051
+   (data $?a)
+   =>
+   (format t "%s" ?a))
+FuzzyCLIPS> (assert (data a b c d))           ; DR0051
+<Fact-0>
+FuzzyCLIPS> (run)                             ; DR0051
+[ARGACCES5] Function format expected argument #3 to be of type symbol or string
+[PRCCODE4] Execution halted during the actions of defrule a.
+FuzzyCLIPS> (clear)                           ; DR0052
+FuzzyCLIPS> (defrule one                      ; DR0052
+   (b ?x ?y&:(evenp ?value)|?y&:(oddp ?value) ?z)
+   =>)
+
+[ANALYSIS4] Variable ?value found in the expression (evenp ?value)
+was referenced in CE #1 field #2 before being defined.
+
+ERROR:
+(defrule MAIN::one
+   (b ?x ?y&:(evenp ?value)|?y&:(oddp ?value) ?z)
+   =>)
+FuzzyCLIPS> (assert (b 2 3 4))                ; DR0052
+<Fact-0>
+FuzzyCLIPS> (agenda)                          ; DR0052
+FuzzyCLIPS> (clear)                           ; DR0053
+FuzzyCLIPS> (defrule rule1 (oven-type $?) =>) ; DR0053
+FuzzyCLIPS> (defrule rule2                    ; DR0053
+  (oven-type ?ch&:(not (numberp ?ch)))
+  =>)
+FuzzyCLIPS> (defrule rule3 (oven-type ?) =>)  ; DR0053
+FuzzyCLIPS> (assert (oven-type 1))            ; DR0053
+<Fact-0>
+FuzzyCLIPS> (agenda)                          ; DR0053
+0      rule1: f-0
+0      rule3: f-0
+For a total of 2 activations.
+FuzzyCLIPS> (clear)                           ; DR0054
+FuzzyCLIPS> (defrule test (a ?i) (b ?n&=?i)   ; DR0054
+  =>)
+FuzzyCLIPS> (assert (a 3) (b 3))              ; DR0054
+<Fact-1>
+FuzzyCLIPS> (agenda)                          ; DR0054
+FuzzyCLIPS> (oddp 3.1)                        ; DR0056
+[ARGACCES5] Function oddp expected argument #1 to be of type integer
+FuzzyCLIPS> (oddp 4.1)                        ; DR0056
+[ARGACCES5] Function oddp expected argument #1 to be of type integer
+FuzzyCLIPS> (evenp 3.1)                       ; DR0056
+[ARGACCES5] Function evenp expected argument #1 to be of type integer
+FuzzyCLIPS> (evenp 4.1)                       ; DR0056
+[ARGACCES5] Function evenp expected argument #1 to be of type integer
+FuzzyCLIPS> (integerp a)                      ; DR0058
+FALSE
+FuzzyCLIPS> (symbolp 3)                       ; DR0059
+FALSE
+FuzzyCLIPS> (symbolp x)                       ; DR0059
+TRUE
+FuzzyCLIPS> (symbolp "x")                     ; DR0059
+FALSE
+FuzzyCLIPS> (clear)                           ; DR0063
+FuzzyCLIPS> (defrule foo                      ; DR0063
+  (data foo $?x)
+  =>
+  (printout t (nth 3 ?x) crlf))  ; DR0063
+FuzzyCLIPS> (assert (data foo a b here d))    ; DR0063
+<Fact-0>
+FuzzyCLIPS> (run)                             ; DR0063
+here
+FuzzyCLIPS> (retract ?f)                      ; DR0067
+[EVALUATN1] Variable f is unbound
+[ARGACCES5] Function retract expected argument #1 to be of type fact-address, fact-index, or the symbol *
+FuzzyCLIPS> (clear)                           ; DR0068
+FuzzyCLIPS> (defrule foo =>)                  ; DR0068
+FuzzyCLIPS> (reset)                           ; DR0068
+FuzzyCLIPS> (agenda)                          ; DR0068
+0      foo: f-0
+For a total of 1 activation.
+FuzzyCLIPS> (undefrule foo)                   ; DR0068
+FuzzyCLIPS> (agenda)                          ; DR0068
+FuzzyCLIPS> (clear)                           ; DR0069
+FuzzyCLIPS> (defrule foo ?f (fact) =>)        ; DR0069
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for binding patterns.
+
+ERROR:
+(defrule MAIN::foo
+   ?f (
+FuzzyCLIPS> (defrule foo ?f <- fact)          ; DR0069
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for binding patterns.
+
+ERROR:
+(defrule MAIN::foo
+   ?f <- fact
+FuzzyCLIPS> (deffacts info (fact 1) fact 2)   ; DR0070
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for RHS patterns.
+
+ERROR:
+(deffacts MAIN::info
+   (fact 1)
+   fact
+FuzzyCLIPS> (** 3 2)                          ; DR0074
+9.0
+FuzzyCLIPS> (clear)                           ; DR0075
+FuzzyCLIPS> (assert (a~b))                    ; DR0075
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for RHS patterns.
+FuzzyCLIPS> (facts)                           ; DR0075
+FuzzyCLIPS> (print-region t "f.f")            ; DR0077
+FALSE
+FuzzyCLIPS> (printout q)                      ; DR0080
+[ROUTER1] Logical name q was not recognized by any routers
+FuzzyCLIPS> (eq)                              ; DR0082
+[ARGACCES4] Function eq expected at least 2 argument(s)
+FuzzyCLIPS> (neq)                             ; DR0082
+[ARGACCES4] Function neq expected at least 2 argument(s)
+FuzzyCLIPS> (neq 1 1 2)                       ; DR0082
+FALSE
+FuzzyCLIPS> (!= 1 1 2)                        ; DR0082
+FALSE
+FuzzyCLIPS> (and)                             ; DR0083
+[ARGACCES4] Function and expected at least 2 argument(s)
+FuzzyCLIPS> (or)                              ; DR0083
+[ARGACCES4] Function or expected at least 2 argument(s)
+FuzzyCLIPS> (not)                             ; DR0083
+[ARGACCES4] Function not expected exactly 1 argument(s)
+FuzzyCLIPS> (clear)                           ; DR0087
+FuzzyCLIPS> (defrule a                        ; DR0087
+  (x $?y) 
+  => 
+  (assert (z ?y)))
+FuzzyCLIPS> (assert (x q))                    ; DR0087
+<Fact-0>
+FuzzyCLIPS> (run)                             ; DR0087
+FuzzyCLIPS> (facts)                           ; DR0087
+f-0     (x q) CF 1.00 
+f-1     (z q) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (subseq$ a 2 4)                 ; DR0090
+[ARGACCES5] Function subseq$ expected argument #1 to be of type multifield
+FuzzyCLIPS> (sub-string)                      ; DR0092
+[ARGACCES4] Function sub-string expected exactly 3 argument(s)
+FuzzyCLIPS> (str-explode "a b c")             ; DR0093
+(a b c)
+FuzzyCLIPS> (length (str-explode "a b c"))    ; DR0093
+3
+FuzzyCLIPS> (tan 0)                           ; DR0096
+0.0
+FuzzyCLIPS> (sec 0)                           ; DR0096
+1.0
+FuzzyCLIPS> (/ 1 0)                           ; DR0097
+[PRNTUTIL7] Attempt to divide by zero in / function.
+1.0
+FuzzyCLIPS> (/ 1.0 0.0)                       ; DR0097 
+[PRNTUTIL7] Attempt to divide by zero in / function.
+1.0
+FuzzyCLIPS> (** 0 0)                          ; DR0098
+[EMATHFUN1] Domain error for ** function.
+0.0
+FuzzyCLIPS> (** 0 -.5)                        ; DR0098
+[EMATHFUN1] Domain error for ** function.
+0.0
+FuzzyCLIPS> (** -2 .5)                        ; DR0098 
+[EMATHFUN1] Domain error for ** function.
+0.0
+FuzzyCLIPS> (** 0.0 0.0)                      ; DR0098
+[EMATHFUN1] Domain error for ** function.
+0.0
+FuzzyCLIPS> (** 0.0 -.5)                      ; DR0098
+[EMATHFUN1] Domain error for ** function.
+0.0
+FuzzyCLIPS> (** -2.0 .5)                      ; DR0098
+[EMATHFUN1] Domain error for ** function.
+0.0
+FuzzyCLIPS> (** -3 2)                         ; DR0098
+9.0
+FuzzyCLIPS> (** -3 2.2)                       ; DR0098
+[EMATHFUN1] Domain error for ** function.
+0.0
+FuzzyCLIPS> (dribble-off)

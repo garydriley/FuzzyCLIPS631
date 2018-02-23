@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/genrcexe.h,v 1.3 2001/08/11 21:06:09 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.24  05/17/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -17,6 +15,8 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Removed IMPERATIVE_METHODS compilation flag.   */
 /*                                                           */
 /*************************************************************/
 
@@ -43,18 +43,16 @@
 #define LOCALE extern
 #endif
 
-LOCALE void GenericDispatch(DEFGENERIC *,DEFMETHOD *,DEFMETHOD *,EXPRESSION *,DATA_OBJECT *);
-LOCALE void UnboundMethodErr(void);
-LOCALE BOOLEAN IsMethodApplicable(DEFMETHOD *);
+LOCALE void GenericDispatch(void *,DEFGENERIC *,DEFMETHOD *,DEFMETHOD *,EXPRESSION *,DATA_OBJECT *);
+LOCALE void UnboundMethodErr(void *);
+LOCALE intBool IsMethodApplicable(void *,DEFMETHOD *);
 
-#if IMPERATIVE_METHODS
-LOCALE int NextMethodP(void);
-LOCALE void CallNextMethod(DATA_OBJECT *);
-LOCALE void CallSpecificMethod(DATA_OBJECT *);
-LOCALE void OverrideNextMethod(DATA_OBJECT *);
-#endif
+LOCALE int NextMethodP(void *);
+LOCALE void CallNextMethod(void *,DATA_OBJECT *);
+LOCALE void CallSpecificMethod(void *,DATA_OBJECT *);
+LOCALE void OverrideNextMethod(void *,DATA_OBJECT *);
 
-LOCALE void GetGenericCurrentArgument(DATA_OBJECT *);
+LOCALE void GetGenericCurrentArgument(void *,DATA_OBJECT *);
 
 #ifndef _GENRCEXE_SOURCE_
 #endif

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/filecom.h,v 1.3 2001/08/11 21:05:49 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*              FILE COMMANDS HEADER FILE              */
    /*******************************************************/
@@ -19,6 +17,8 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -36,26 +36,38 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           FileCommandDefinitions(void);
-   LOCALE BOOLEAN                        DribbleOn(char *);
-   LOCALE BOOLEAN                        DribbleActive(void);
-   LOCALE BOOLEAN                        DribbleOff(void);
-   LOCALE void                           SetDribbleStatusFunction(int (*)(int));
-   LOCALE int                            LLGetcBatch(char *,int);
-   LOCALE int                            Batch(char *);
-   LOCALE int                            OpenBatch(char *,int);
-   LOCALE int                            OpenStringBatch(char *,char *,int);
-   LOCALE int                            RemoveBatch(void);
-   LOCALE BOOLEAN                        BatchActive(void);
-   LOCALE void                           CloseAllBatchSources(void);
-   LOCALE int                            BatchCommand(void);
-   LOCALE int                            BatchStarCommand(void);
-   LOCALE int                            BatchStar(char *);
-   LOCALE int                            LoadCommand(void);
-   LOCALE int                            LoadStarCommand(void);
-   LOCALE int                            SaveCommand(void);
-   LOCALE int                            DribbleOnCommand(void);
-   LOCALE int                            DribbleOffCommand(void);
+#if ENVIRONMENT_API_ONLY
+#define DribbleActive(theEnv) EnvDribbleActive(theEnv)
+#define DribbleOn(theEnv,a) EnvDribbleOn(theEnv,a)
+#define DribbleOff(theEnv) EnvDribbleOff(theEnv)
+#define BatchStar(theEnv,a) EnvBatchStar(theEnv,a)
+#else
+#define DribbleActive() EnvDribbleActive(GetCurrentEnvironment())
+#define DribbleOn(a) EnvDribbleOn(GetCurrentEnvironment(),a)
+#define DribbleOff() EnvDribbleOff(GetCurrentEnvironment())
+#define BatchStar(a) EnvBatchStar(GetCurrentEnvironment(),a)
+#endif
+
+   LOCALE void                           FileCommandDefinitions(void *);
+   LOCALE intBool                        EnvDribbleOn(void *,char *);
+   LOCALE intBool                        EnvDribbleActive(void *);
+   LOCALE intBool                        EnvDribbleOff(void *);
+   LOCALE void                           SetDribbleStatusFunction(void *,int (*)(void *,int));
+   LOCALE int                            LLGetcBatch(void *,char *,int);
+   LOCALE int                            Batch(void *,char *);
+   LOCALE int                            OpenBatch(void *,char *,int);
+   LOCALE int                            OpenStringBatch(void *,char *,char *,int);
+   LOCALE int                            RemoveBatch(void *);
+   LOCALE intBool                        BatchActive(void *);
+   LOCALE void                           CloseAllBatchSources(void *);
+   LOCALE int                            BatchCommand(void *);
+   LOCALE int                            BatchStarCommand(void *);
+   LOCALE int                            EnvBatchStar(void *,char *);
+   LOCALE int                            LoadCommand(void *);
+   LOCALE int                            LoadStarCommand(void *);
+   LOCALE int                            SaveCommand(void *);
+   LOCALE int                            DribbleOnCommand(void *);
+   LOCALE int                            DribbleOffCommand(void *);
 
 #endif
 

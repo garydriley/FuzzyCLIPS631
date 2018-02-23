@@ -1,0 +1,312 @@
+TRUE
+FuzzyCLIPS> (batch "strngfnx.bat")
+TRUE
+FuzzyCLIPS> (clear)                            ; 10.4.1
+FuzzyCLIPS> (str-cat)                          ; 10.4.1
+[ARGACCES4] Function str-cat expected at least 1 argument(s)
+FuzzyCLIPS> (str-cat (create$))                ; 10.4.1
+[ARGACCES5] Function str-cat expected argument #1 to be of type string, instance name, symbol, float, or integer
+""
+FuzzyCLIPS> (str-cat a)                        ; 10.4.1
+"a"
+FuzzyCLIPS> (str-cat "this one")               ; 10.4.1
+"this one"
+FuzzyCLIPS> (str-cat 8.25)                     ; 10.4.1
+"8.25"
+FuzzyCLIPS> (str-cat 19838)                    ; 10.4.1
+"19838"
+FuzzyCLIPS> (str-cat [this-instance])          ; 10.4.1
+"this-instance"
+FuzzyCLIPS> (str-cat a "b c" 8.9 " " 78 [x])   ; 10.4.1
+"ab c8.9 78x"
+FuzzyCLIPS> (str-cat "" "" "" "")              ; 10.4.1
+""
+FuzzyCLIPS> (str-cat "foo" bar)                ; 10.4.1
+"foobar"
+FuzzyCLIPS> (sym-cat)                          ; 10.4.2
+[ARGACCES4] Function sym-cat expected at least 1 argument(s)
+FuzzyCLIPS> (sym-cat (create$))                ; 10.4.2
+[ARGACCES5] Function sym-cat expected argument #1 to be of type string, instance name, symbol, float, or integer
+nil
+FuzzyCLIPS> (sym-cat a)                        ; 10.4.2
+a
+FuzzyCLIPS> (sym-cat "this one")               ; 10.4.2
+this one
+FuzzyCLIPS> (sym-cat 8.5)                      ; 10.4.2
+8.5
+FuzzyCLIPS> (sym-cat 19838)                    ; 10.4.2
+19838
+FuzzyCLIPS> (sym-cat [this-instance])          ; 10.4.2
+this-instance
+FuzzyCLIPS> (sym-cat a "b c" 8.9 " " 78 [x])   ; 10.4.2
+ab c8.9 78x
+FuzzyCLIPS> (sym-cat "" "" "" "")              ; 10.4.2
+
+FuzzyCLIPS> (sub-string)                       ; 10.4.3
+[ARGACCES4] Function sub-string expected exactly 3 argument(s)
+FuzzyCLIPS> (sub-string 1)                     ; 10.4.3
+[ARGACCES4] Function sub-string expected exactly 3 argument(s)
+FuzzyCLIPS> (sub-string 1 3)                   ; 10.4.3
+[ARGACCES4] Function sub-string expected exactly 3 argument(s)
+FuzzyCLIPS> (sub-string 1 2 "acd" 3)           ; 10.4.3
+[ARGACCES4] Function sub-string expected exactly 3 argument(s)
+FuzzyCLIPS> (sub-string a 2 "abc")             ; 10.4.3
+[ARGACCES5] Function sub-string expected argument #1 to be of type integer
+FuzzyCLIPS> (sub-string 2 a "de")              ; 10.4.3
+[ARGACCES5] Function sub-string expected argument #2 to be of type integer
+FuzzyCLIPS> (sub-string 1 2 (create$ a b))     ; 10.4.3
+[ARGACCES5] Function sub-string expected argument #3 to be of type symbol, string, or instance name
+FuzzyCLIPS> (sub-string 1.0 2 "abc")           ; 10.4.3
+[ARGACCES5] Function sub-string expected argument #1 to be of type integer
+FuzzyCLIPS> (sub-string 1 2.0 "abc")           ; 10.4.3
+[ARGACCES5] Function sub-string expected argument #2 to be of type integer
+FuzzyCLIPS> (sub-string 1 2.5 "abc")           ; 10.4.3
+[ARGACCES5] Function sub-string expected argument #2 to be of type integer
+FuzzyCLIPS> (sub-string 2 2 abc)               ; 10.4.3
+"b"
+FuzzyCLIPS> (sub-string 1 3 "abc")             ; 10.4.3
+"abc"
+FuzzyCLIPS> (sub-string -1 3 "abc")            ; 10.4.3
+"abc"
+FuzzyCLIPS> (sub-string 1 4 "xyz")             ; 10.4.3
+"xyz"
+FuzzyCLIPS> (sub-string 3 1 "abc")             ; 10.4.3
+""
+FuzzyCLIPS> (sub-string 1 1 "xyz")             ; 10.4.3
+"x"
+FuzzyCLIPS> (sub-string 2 2 "xyz")             ; 10.4.3
+"y"
+FuzzyCLIPS> (sub-string 3 3 "xyz")             ; 10.4.3
+"z"
+FuzzyCLIPS> (sub-string 0 0 "abc")             ; 10.4.3
+""
+FuzzyCLIPS> (sub-string 4 4 "abc")             ; 10.4.3
+""
+FuzzyCLIPS> (sub-string 2 3 "xyzq")            ; 10.4.3
+"yz"
+FuzzyCLIPS> (sub-string 5 7 "abc")             ; 10.4.3
+""
+FuzzyCLIPS> (sub-string -1 0 "abc")            ; 10.4.3
+""
+FuzzyCLIPS> (sub-string 3 8 "abcdefghijkl")    ; 10.4.3
+"cdefgh"
+FuzzyCLIPS> (str-index)                        ; 10.4.4
+[ARGACCES4] Function str-index expected exactly 2 argument(s)
+FuzzyCLIPS> (str-index "a")                    ; 10.4.4
+[ARGACCES4] Function str-index expected exactly 2 argument(s)
+FuzzyCLIPS> (str-index "a" "b" 3)              ; 10.4.4
+[ARGACCES4] Function str-index expected exactly 2 argument(s)
+FuzzyCLIPS> (str-index 1 "a")                  ; 10.4.4
+[ARGACCES5] Function str-index expected argument #1 to be of type symbol, string, or instance name
+FuzzyCLIPS> (str-index "a" 7.3)                ; 10.4.4
+[ARGACCES5] Function str-index expected argument #2 to be of type symbol, string, or instance name
+FuzzyCLIPS> (str-index "a" a)                  ; 10.4.4
+1
+FuzzyCLIPS> (str-index a "a")                  ; 10.4.4
+1
+FuzzyCLIPS> (str-index "" "")                  ; 10.4.4
+1
+FuzzyCLIPS> (str-index "" "xy")                ; 10.4.4
+3
+FuzzyCLIPS> (str-index "xy" "")                ; 10.4.4
+FALSE
+FuzzyCLIPS> (str-index "ab" "abcd")            ; 10.4.4
+1
+FuzzyCLIPS> (str-index "ab" "cabd")            ; 10.4.4
+2
+FuzzyCLIPS> (str-index "ab" "cdab")            ; 10.4.4
+3
+FuzzyCLIPS> (str-index "b" "xyzq")             ; 10.4.4
+FALSE
+FuzzyCLIPS> (str-index "ab" "axbayaazbbq")     ; 10.4.4
+FALSE
+FuzzyCLIPS> (str-index [ab] [dabc])            ; 10.4.4
+2
+FuzzyCLIPS> (str-index "def" "abcdefghi")      ; 10.4.4
+4
+FuzzyCLIPS> (str-index "qwerty" "qwertypoiuyt")
+1
+FuzzyCLIPS> (str-index "qwerty" "poiuytqwer")  ; 10.4.4
+FALSE
+FuzzyCLIPS> (eval)                             ; 10.4.5
+[ARGACCES4] Function eval expected exactly 1 argument(s)
+FuzzyCLIPS> (eval "cat" "dog")                 ; 10.4.5
+[ARGACCES4] Function eval expected exactly 1 argument(s)
+FuzzyCLIPS> (eval 7.8)                         ; 10.4.5
+[ARGACCES5] Function eval expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (eval 900)                         ; 10.4.5
+[ARGACCES5] Function eval expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (eval [abc])                       ; 10.4.5
+[ARGACCES5] Function eval expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (eval (create$ a x y))             ; 10.4.5
+[ARGACCES5] Function eval expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (eval cat)                         ; 10.4.5
+cat
+FuzzyCLIPS> (eval "dog")                       ; 10.4.5
+dog
+FuzzyCLIPS> (eval "7")                         ; 10.4.5
+7
+FuzzyCLIPS> (eval "893.34")                    ; 10.4.5
+893.34
+FuzzyCLIPS> (eval "[ab]")                      ; 10.4.5
+[ab]
+FuzzyCLIPS> (eval "(+ 3 (* 4 5))")             ; 10.4.5
+23
+FuzzyCLIPS> (eval "(facts)")                   ; 10.4.5
+FuzzyCLIPS> (eval "?x")                        ; 10.4.5
+[STRNGFUN2] Some variables could not be accessed by the eval function.
+FALSE
+FuzzyCLIPS> (eval "(defrule foo =>)")          ; 10.4.5
+
+[EXPRNPSR3] Missing function declaration for defrule.
+FALSE
+FuzzyCLIPS> (eval "(+ 3 4)")                   ; 10.4.5
+7
+FuzzyCLIPS> (eval "(mv-append a b c)")         ; 10.4.5
+(a b c)
+FuzzyCLIPS> (build)                            ; 10.4.6
+[ARGACCES4] Function build expected exactly 1 argument(s)
+FuzzyCLIPS> (build "(defrule foo =>)" "dog")   ; 10.4.6
+[ARGACCES4] Function build expected exactly 1 argument(s)
+FuzzyCLIPS> (build 7.8)                        ; 10.4.6
+[ARGACCES5] Function build expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (build 900)                        ; 10.4.6
+[ARGACCES5] Function build expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (build [abc])                      ; 10.4.6
+[ARGACCES5] Function build expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (build (create$ a x y))            ; 10.4.6
+[ARGACCES5] Function build expected argument #1 to be of type symbol or string
+FuzzyCLIPS> (build deftemplate)                ; 10.4.6
+FALSE
+FuzzyCLIPS> (build "(defrule foo =>)")         ; 10.4.6
+TRUE
+FuzzyCLIPS> (build "(defrule blah)")           ; 10.4.6
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule MAIN::blah)
+FALSE
+FuzzyCLIPS> (build "(+ 3 4)")                  ; 10.4.6
+FALSE
+FuzzyCLIPS> (build "defrule foo =>)")          ; 10.4.6
+FALSE
+FuzzyCLIPS> (rules)                            ; 10.4.6
+foo
+For a total of 1 defrule.
+FuzzyCLIPS> (clear)                            ; 10.4.6
+FuzzyCLIPS> (upcase)                           ; 10.4.7
+[ARGACCES4] Function upcase expected exactly 1 argument(s)
+FuzzyCLIPS> (upcase "abc" "def")               ; 10.4.7
+[ARGACCES4] Function upcase expected exactly 1 argument(s)
+FuzzyCLIPS> (upcase abc)                       ; 10.4.7
+ABC
+FuzzyCLIPS> (upcase "xyz")                     ; 10.4.7
+"XYZ"
+FuzzyCLIPS> (upcase 8993.34)                   ; 10.4.7
+[ARGACCES5] Function upcase expected argument #1 to be of type symbol, string, or instance name
+FuzzyCLIPS> (upcase 8993)                      ; 10.4.7
+[ARGACCES5] Function upcase expected argument #1 to be of type symbol, string, or instance name
+FuzzyCLIPS> (upcase [another-thingo])          ; 10.4.7
+[ANOTHER-THINGO]
+FuzzyCLIPS> (upcase (create$ jkkj 78 3.45))    ; 10.4.7
+[ARGACCES5] Function upcase expected argument #1 to be of type symbol, string, or instance name
+FuzzyCLIPS> (upcase "this is a sentence")      ; 10.4.7
+"THIS IS A SENTENCE"
+FuzzyCLIPS> (upcase "THIS IS A SENTENCE")      ; 10.4.7
+"THIS IS A SENTENCE"
+FuzzyCLIPS> (upcase "aA1234567890zZ")          ; 10.4.7
+"AA1234567890ZZ"
+FuzzyCLIPS> (upcase "aA!@#$%^&*()zZ")          ; 10.4.7
+"AA!@#$%^&*()ZZ"
+FuzzyCLIPS> (upcase "`~-_=+[{]}|;:',<.>?")     ; 10.4.7
+"`~-_=+[{]}|;:',<.>?"
+FuzzyCLIPS> (upcase "This is a test of upcase")
+"THIS IS A TEST OF UPCASE"
+FuzzyCLIPS> (upcase A_Word_Test_for_Upcase)    ; 10.4.7
+A_WORD_TEST_FOR_UPCASE
+FuzzyCLIPS> (lowcase)                          ; 10.4.8
+[ARGACCES4] Function lowcase expected exactly 1 argument(s)
+FuzzyCLIPS> (lowcase "ABC" "DEF")              ; 10.4.8
+[ARGACCES4] Function lowcase expected exactly 1 argument(s)
+FuzzyCLIPS> (lowcase ABC)                      ; 10.4.8
+abc
+FuzzyCLIPS> (lowcase "XYZ")                    ; 10.4.8
+"xyz"
+FuzzyCLIPS> (lowcase 8993.34)                  ; 10.4.8
+[ARGACCES5] Function lowcase expected argument #1 to be of type symbol, string, or instance name
+FuzzyCLIPS> (lowcase 8993)                     ; 10.4.8
+[ARGACCES5] Function lowcase expected argument #1 to be of type symbol, string, or instance name
+FuzzyCLIPS> (lowcase [another-thingo])         ; 10.4.8
+[another-thingo]
+FuzzyCLIPS> (lowcase (create$ jkkj 78 3.45))   ; 10.4.8
+[ARGACCES5] Function lowcase expected argument #1 to be of type symbol, string, or instance name
+FuzzyCLIPS> (lowcase "this is a sentence")     ; 10.4.8
+"this is a sentence"
+FuzzyCLIPS> (lowcase "THIS IS A SENTENCE")     ; 10.4.8
+"this is a sentence"
+FuzzyCLIPS> (lowcase "aA1234567890zZ")         ; 10.4.8
+"aa1234567890zz"
+FuzzyCLIPS> (lowcase "aA!@#$%^&*()zZ")         ; 10.4.8
+"aa!@#$%^&*()zz"
+FuzzyCLIPS> (lowcase "`~-_=+[{]}|;:',<.>?")    ; 10.4.8
+"`~-_=+[{]}|;:',<.>?"
+FuzzyCLIPS> (lowcase "this is a test of lowcase")
+"this is a test of lowcase"
+FuzzyCLIPS> (lowcase A_Word_Test_for_Lowcase)  ; 10.4.8
+a_word_test_for_lowcase
+FuzzyCLIPS> (str-compare)                      ; 10.4.9
+[ARGACCES4] Function str-compare expected at least 2 argument(s)
+FuzzyCLIPS> (str-compare "xyz")                ; 10.4.9
+[ARGACCES4] Function str-compare expected at least 2 argument(s)
+FuzzyCLIPS> (str-compare "zykk" "kkdfj" "df")  ; 10.4.9
+[ARGACCES5] Function str-compare expected argument #3 to be of type integer
+FuzzyCLIPS> (str-compare 783.9 "dlfj")         ; 10.4.9
+[ARGACCES5] Function str-compare expected argument #1 to be of type symbol, string, or instance name
+FuzzyCLIPS> (str-compare [xyz] "ldf")          ; 10.4.9
+1
+FuzzyCLIPS> (str-compare kkdm 9883)            ; 10.4.9
+[ARGACCES5] Function str-compare expected argument #2 to be of type symbol, string, or instance name
+FuzzyCLIPS> (str-compare klkll (create$ a))    ; 10.4.9
+[ARGACCES5] Function str-compare expected argument #2 to be of type symbol, string, or instance name
+FuzzyCLIPS> (str-compare abc ABC)              ; 10.4.9
+1
+FuzzyCLIPS> (str-compare ABC abc)              ; 10.4.9
+-1
+FuzzyCLIPS> (str-compare "abcd" "abce")        ; 10.4.9
+-1
+FuzzyCLIPS> (str-compare "ABCD" ABCE)          ; 10.4.9
+-1
+FuzzyCLIPS> (str-compare abc xyz)              ; 10.4.9
+-1
+FuzzyCLIPS> (str-compare xyz abc)              ; 10.4.9
+1
+FuzzyCLIPS> (str-compare [a23] [a24])          ; 10.4.9
+-1
+FuzzyCLIPS> (str-compare same "same")          ; 10.4.9
+0
+FuzzyCLIPS> (str-compare "string1" "string2")  ; 10.4.9
+-1
+FuzzyCLIPS> (str-length)                       ; 10.4.10
+[ARGACCES4] Function str-length expected exactly 1 argument(s)
+FuzzyCLIPS> (str-length "zykk" "kkdfj")        ; 10.4.10
+[ARGACCES4] Function str-length expected exactly 1 argument(s)
+FuzzyCLIPS> (str-length 783.9)                 ; 10.4.10
+[ARGACCES5] Function str-length expected argument #1 to be of type symbol, string, or instance name
+FuzzyCLIPS> (str-length [xyz])                 ; 10.4.10
+3
+FuzzyCLIPS> (str-length 9883)                  ; 10.4.10
+[ARGACCES5] Function str-length expected argument #1 to be of type symbol, string, or instance name
+FuzzyCLIPS> (str-length (create$ a))           ; 10.4.10
+[ARGACCES5] Function str-length expected argument #1 to be of type symbol, string, or instance name
+FuzzyCLIPS> (str-length "")                    ; 10.4.10
+0
+FuzzyCLIPS> (str-length "x y z")               ; 10.4.10
+5
+FuzzyCLIPS> (str-length a)                     ; 10.4.10
+1
+FuzzyCLIPS> (str-length "abcd")                ; 10.4.10
+4
+FuzzyCLIPS> (str-length xyz)                   ; 10.4.10
+3
+FuzzyCLIPS> (dribble-off)

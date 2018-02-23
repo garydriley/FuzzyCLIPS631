@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/evaluatn.c,v 1.3 2001/08/11 21:05:19 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                  EVALUATION MODULE                  */
    /*******************************************************/
@@ -22,6 +20,11 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/evaluatn.c,v 1.3 2001/08/1
 /*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Added EvaluateAndStoreInDataObject function.   */
 /*                                                           */
 /*************************************************************/
 
@@ -35,15 +38,9 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/evaluatn.c,v 1.3 2001/08/1
 
 #include "setup.h"
 
-#if FUZZY_DEFTEMPLATES 
-#include "symbol.h"
-#include "fuzzyrhs.h"
-#include "fuzzypsr.h"
-#endif
-
-
 #include "commline.h"
 #include "constant.h"
+#include "envrnmnt.h"
 #include "memalloc.h"
 #include "router.h"
 #include "extnfunc.h"
@@ -68,29 +65,35 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/evaluatn.c,v 1.3 2001/08/1
 #include "object.h"
 #endif
 
+#if FUZZY_DEFTEMPLATES 
+#include "fuzzyrhs.h"
+#include "fuzzypsr.h"
+#endif
+
 #include "evaluatn.h"
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static void                    PropagateReturnAtom(int,void *);
+   static void                    PropagateReturnAtom(void *,int,void *);
 
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle struct expr          *CurrentExpression = NULL;
-   globle int                   EvaluationError = FALSE;
-   globle int                   HaltExecution = FALSE;
-   globle int                   CurrentEvaluationDepth = 0;
-   globle struct entityRecord  *PrimitivesArray[MAXIMUM_PRIMITIVES];
+/**************************************************/
+/* InitializeEvaluationData: Allocates environment */
+/*    data for expression evaluation.             */
+/**************************************************/
+globle void InitializeEvaluationData(
+  void *theEnv)
+  {
+   AllocateEnvironmentData(theEnv,EVALUATION_DATA,sizeof(struct evaluationData),NULL);
+  }
 
 /**************************************************************/
 /* EvaluateExpression: Evaluates an expression. Returns FALSE */
 /*   if no errors occurred during evaluation, otherwise TRUE. */
 /**************************************************************/
 globle int EvaluateExpression(
+  void *theEnv,
   struct expr *problem,
   DATA_OBJECT_PTR returnValue)
   {
@@ -103,8 +106,8 @@ globle int EvaluateExpression(
    if (problem == NULL)
      {
       returnValue->type = SYMBOL;
-      returnValue->value = FalseSymbol;
-      return(EvaluationError);
+      returnValue->value = EnvFalseSymbol(theEnv);
+      return(EvaluationData(theEnv)->EvaluationError);
      }
 
    switch (problem->type)
@@ -124,7 +127,7 @@ globle int EvaluateExpression(
         returnValue->type = problem->type;
         returnValue->value = problem->value;
         break;
-
+        
 #if FUZZY_DEFTEMPLATES 
       case S_FUNCTION:
       case PI_FUNCTION:
@@ -136,19 +139,19 @@ globle int EvaluateExpression(
              */
                 {
                   struct fuzzy_value *fvptr;
-                  fvptr = getConstantFuzzyValue(problem, &EvaluationError);
+                  fvptr = getConstantFuzzyValue(theEnv,problem, &EvaluationData(theEnv)->EvaluationError);
           returnValue->type = FUZZY_VALUE;
                   if (fvptr != NULL)
                     {
-              returnValue->value = (VOID *)AddFuzzyValue(fvptr);
+              returnValue->value = (VOID *)AddFuzzyValue(theEnv,fvptr);
                       /* AddFuzzyValue makes a copy of the fuzzy value -- so remove this one */
-              rtnFuzzyValue(fvptr);
+              rtnFuzzyValue(theEnv,fvptr);
                         }
               else
                   {
                    returnValue->type = RVOID;
-                   returnValue->value = CLIPSFalseSymbol;
-                   SetEvaluationError(TRUE);
+                   returnValue->value = EnvFalseSymbol(theEnv);
+                   SetEvaluationError(theEnv,TRUE);
                   }
         }
         break;
@@ -159,104 +162,199 @@ globle int EvaluateExpression(
          fptr = (struct FunctionDefinition *) problem->value;
 
 #if PROFILING_FUNCTIONS   
-         StartProfile(&profileFrame,
+         StartProfile(theEnv,&profileFrame,
                       &fptr->usrData,
-                      ProfileUserFunctions);
+                      ProfileFunctionData(theEnv)->ProfileUserFunctions);
 #endif
 
-         oldArgument = CurrentExpression;
-         CurrentExpression = problem;
+         oldArgument = EvaluationData(theEnv)->CurrentExpression;
+         EvaluationData(theEnv)->CurrentExpression = problem;
 
          switch(fptr->returnValueType)
            {
             case 'v' :
-              (* (void (*)(void)) fptr->functionPointer)();
+              if (fptr->environmentAware)
+                { (* (void (*)(void *)) fptr->functionPointer)(theEnv); }
+              else
+                { (* (void (*)(void)) fptr->functionPointer)(); }
               returnValue->type = RVOID;
-              returnValue->value = FalseSymbol;
+              returnValue->value = EnvFalseSymbol(theEnv);
               break;
             case 'b' :
               returnValue->type = SYMBOL;
-              if ((* (int (*)(void)) fptr->functionPointer)())
-                returnValue->value = TrueSymbol;
+              if (fptr->environmentAware)
+                {
+                 if ((* (int (*)(void *)) fptr->functionPointer)(theEnv))
+                   returnValue->value = EnvTrueSymbol(theEnv);
+                 else
+                   returnValue->value = EnvFalseSymbol(theEnv);
+                }
               else
-                returnValue->value = FalseSymbol;
+                {
+                 if ((* (int (*)(void)) fptr->functionPointer)())
+                   returnValue->value = EnvTrueSymbol(theEnv);
+                 else
+                   returnValue->value = EnvFalseSymbol(theEnv);
+                }
               break;
             case 'a' :
               returnValue->type = EXTERNAL_ADDRESS;
-              returnValue->value =
-                             (* (void *(*)(void)) fptr->functionPointer)();
+              if (fptr->environmentAware)
+                {
+                 returnValue->value =
+                                (* (void *(*)(void *)) fptr->functionPointer)(theEnv);
+                }
+              else
+                {
+                 returnValue->value =
+                                (* (void *(*)(void)) fptr->functionPointer)();
+                }
               break;
             case 'i' :
               returnValue->type = INTEGER;
-              returnValue->value = (void *)
-                AddLong((long) (* (int (*)(void)) fptr->functionPointer)());
+              if (fptr->environmentAware)
+                {
+                 returnValue->value = (void *)
+                   EnvAddLong(theEnv,(long) (* (int (*)(void *)) fptr->functionPointer)(theEnv));
+                }
+              else
+                {
+                 returnValue->value = (void *)
+                   EnvAddLong(theEnv,(long) (* (int (*)(void)) fptr->functionPointer)());
+                }
               break;
             case 'l' :
               returnValue->type = INTEGER;
-              returnValue->value = (void *)
-                 AddLong((* (long int (*)(void)) fptr->functionPointer)());
+              if (fptr->environmentAware)
+                {
+                 returnValue->value = (void *)
+                    EnvAddLong(theEnv,(* (long int (*)(void *)) fptr->functionPointer)(theEnv));
+                }
+              else
+                {
+                 returnValue->value = (void *)
+                    EnvAddLong(theEnv,(* (long int (*)(void)) fptr->functionPointer)());
+                }
               break;
 #if FUZZY_DEFTEMPLATES 
             case 'F' :
               {
                 struct fuzzy_value *fvPtr;
 
-                fvPtr = (* (struct fuzzy_value * (*)(VOID_ARG)) fptr->functionPointer)();
+              if (fptr->environmentAware)
+                { fvPtr = (* (struct fuzzy_value * (*)(void *)) fptr->functionPointer)(theEnv); }
+              else
+                { fvPtr = (* (struct fuzzy_value * (*)(void)) fptr->functionPointer)(); }
+                
                 if (fvPtr != NULL)
                   {
                    returnValue->type = FUZZY_VALUE;
-                   returnValue->value = (VOID *)AddFuzzyValue( fvPtr );
+                   returnValue->value = AddFuzzyValue( theEnv,fvPtr );
                    /* AddFuzzyValue makes a copy of fv .. so return it */
-                   rtnFuzzyValue( fvPtr );
+                   rtnFuzzyValue( theEnv,fvPtr );
                   }
                 else
                   {
                    returnValue->type = RVOID;
-                   returnValue->value = CLIPSFalseSymbol;
+                   returnValue->value = EnvFalseSymbol(theEnv);
                   }
                }
               break;
 #endif
             case 'f' :
               returnValue->type = FLOAT;
-              returnValue->value = (void *)
-                 AddDouble((double) (* (float (*)(void)) fptr->functionPointer)());
+              if (fptr->environmentAware)
+                {
+                 returnValue->value = (void *)
+                    EnvAddDouble(theEnv,(double) (* (float (*)(void *)) fptr->functionPointer)(theEnv));
+                }
+              else
+                {
+                 returnValue->value = (void *)
+                    EnvAddDouble(theEnv,(double) (* (float (*)(void)) fptr->functionPointer)());
+                }
               break;
             case 'd' :
               returnValue->type = FLOAT;
-              returnValue->value = (void *)
-                 AddDouble((* (double (*)(void)) fptr->functionPointer)());
+              if (fptr->environmentAware)
+                {
+                 returnValue->value = (void *)
+                    EnvAddDouble(theEnv,(* (double (*)(void *)) fptr->functionPointer)(theEnv));
+                }
+              else
+                {
+                 returnValue->value = (void *)
+                    EnvAddDouble(theEnv,(* (double (*)(void)) fptr->functionPointer)());
+                }
               break;
             case 's' :
               returnValue->type = STRING;
-              returnValue->value = (void *)
-                (* (SYMBOL_HN *(*)(void)) fptr->functionPointer)();
+              if (fptr->environmentAware)
+                {
+                 returnValue->value = (void *)
+                   (* (SYMBOL_HN *(*)(void *)) fptr->functionPointer)(theEnv);
+                }
+              else
+                {
+                 returnValue->value = (void *)
+                   (* (SYMBOL_HN *(*)(void)) fptr->functionPointer)();
+                }
               break;
             case 'w' :
               returnValue->type = SYMBOL;
-              returnValue->value = (void *)
-                (* (SYMBOL_HN *(*)(void)) fptr->functionPointer)();
+              if (fptr->environmentAware)
+                {
+                 returnValue->value = (void *)
+                   (* (SYMBOL_HN *(*)(void *)) fptr->functionPointer)(theEnv);
+                }
+              else
+                {
+                 returnValue->value = (void *)
+                   (* (SYMBOL_HN *(*)(void)) fptr->functionPointer)();
+                }
               break;
 #if OBJECT_SYSTEM
             case 'x' :
               returnValue->type = INSTANCE_ADDRESS;
-              returnValue->value =
-                             (* (void *(*)(void)) fptr->functionPointer)();
+              if (fptr->environmentAware)
+                {
+                 returnValue->value =
+                                (* (void *(*)(void *)) fptr->functionPointer)(theEnv);
+                }
+              else
+                {
+                 returnValue->value =
+                                (* (void *(*)(void)) fptr->functionPointer)();
+                }
               break;
             case 'o' :
               returnValue->type = INSTANCE_NAME;
-              returnValue->value = (void *)
-                (* (SYMBOL_HN *(*)(void)) fptr->functionPointer)();
+              if (fptr->environmentAware)
+                {
+                 returnValue->value = (void *)
+                   (* (SYMBOL_HN *(*)(void *)) fptr->functionPointer)(theEnv);
+                }
+              else
+                {
+                 returnValue->value = (void *)
+                   (* (SYMBOL_HN *(*)(void)) fptr->functionPointer)();
+                }
               break;
 #endif
             case 'c' :
               {
                char cbuff[2];
-
-               cbuff[0] = (* (char (*)(void)) fptr->functionPointer)();
+               if (fptr->environmentAware)
+                 {
+                  cbuff[0] = (* (char (*)(void *)) fptr->functionPointer)(theEnv);
+                 }
+               else
+                 {
+                  cbuff[0] = (* (char (*)(void)) fptr->functionPointer)();
+                 }
                cbuff[1] = EOS;
                returnValue->type = SYMBOL;
-               returnValue->value = (void *) AddSymbol(cbuff);
+               returnValue->value = (void *) EnvAddSymbol(theEnv,cbuff);
                break;
               }
 
@@ -265,20 +363,27 @@ globle int EvaluateExpression(
             case 'm' :
             case 'n' :
             case 'u' :
-              (* (void (*)(DATA_OBJECT_PTR)) fptr->functionPointer)(returnValue);
+               if (fptr->environmentAware)
+                 {
+                  (* (void (*)(void *,DATA_OBJECT_PTR)) fptr->functionPointer)(theEnv,returnValue);
+                 }
+               else
+                 {
+                  (* (void (*)(DATA_OBJECT_PTR)) fptr->functionPointer)(returnValue);
+                 }
               break;
 
             default :
-               SystemError("EVALUATN",2);
-               ExitRouter(EXIT_FAILURE);
+               SystemError(theEnv,"EVALUATN",2);
+               EnvExitRouter(theEnv,EXIT_FAILURE);
                break;
             }
 
 #if PROFILING_FUNCTIONS 
-        EndProfile(&profileFrame);
+        EndProfile(theEnv,&profileFrame);
 #endif
 
-        CurrentExpression = oldArgument;
+        EvaluationData(theEnv)->CurrentExpression = oldArgument;
         break;
         }
 
@@ -291,59 +396,59 @@ globle int EvaluateExpression(
 
      case MF_VARIABLE:
      case SF_VARIABLE:
-        if (GetBoundVariable(returnValue,(SYMBOL_HN *) problem->value) == FALSE)
+        if (GetBoundVariable(theEnv,returnValue,(SYMBOL_HN *) problem->value) == FALSE)
           {
-           PrintErrorID("EVALUATN",1,FALSE);
-           PrintRouter(WERROR,"Variable ");
-           PrintRouter(WERROR,ValueToString(problem->value));
-           PrintRouter(WERROR," is unbound\n");
+           PrintErrorID(theEnv,"EVALUATN",1,FALSE);
+           EnvPrintRouter(theEnv,WERROR,"Variable ");
+           EnvPrintRouter(theEnv,WERROR,ValueToString(problem->value));
+           EnvPrintRouter(theEnv,WERROR," is unbound\n");
            returnValue->type = SYMBOL;
-           returnValue->value = FalseSymbol;
-           SetEvaluationError(TRUE);
+           returnValue->value = EnvFalseSymbol(theEnv);
+           SetEvaluationError(theEnv,TRUE);
           }
         break;
 
       default:
-        if (PrimitivesArray[problem->type] == NULL)
+        if (EvaluationData(theEnv)->PrimitivesArray[problem->type] == NULL)
           {
-           SystemError("EVALUATN",3);
-           ExitRouter(EXIT_FAILURE);
+           SystemError(theEnv,"EVALUATN",3);
+           EnvExitRouter(theEnv,EXIT_FAILURE);
           }
 
-        if (PrimitivesArray[problem->type]->copyToEvaluate)
+        if (EvaluationData(theEnv)->PrimitivesArray[problem->type]->copyToEvaluate)
           {
            returnValue->type = problem->type;
            returnValue->value = problem->value;
            break;
           }
 
-        if (PrimitivesArray[problem->type]->evaluateFunction == NULL)
+        if (EvaluationData(theEnv)->PrimitivesArray[problem->type]->evaluateFunction == NULL)
           {
-           SystemError("EVALUATN",4);
-           ExitRouter(EXIT_FAILURE);
+           SystemError(theEnv,"EVALUATN",4);
+           EnvExitRouter(theEnv,EXIT_FAILURE);
           }
 
-        oldArgument = CurrentExpression;
-        CurrentExpression = problem;
+        oldArgument = EvaluationData(theEnv)->CurrentExpression;
+        EvaluationData(theEnv)->CurrentExpression = problem;
 
 #if PROFILING_FUNCTIONS 
-        StartProfile(&profileFrame,
-                     &PrimitivesArray[problem->type]->usrData,
-                     ProfileUserFunctions);
+        StartProfile(theEnv,&profileFrame,
+                     &EvaluationData(theEnv)->PrimitivesArray[problem->type]->usrData,
+                     ProfileFunctionData(theEnv)->ProfileUserFunctions);
 #endif
 
-        (*PrimitivesArray[problem->type]->evaluateFunction)(problem->value,returnValue);
+        (*EvaluationData(theEnv)->PrimitivesArray[problem->type]->evaluateFunction)(theEnv,problem->value,returnValue);
 
 #if PROFILING_FUNCTIONS
-        EndProfile(&profileFrame);
+        EndProfile(theEnv,&profileFrame);
 #endif
 
-        CurrentExpression = oldArgument;
+        EvaluationData(theEnv)->CurrentExpression = oldArgument;
         break;
      }
 
-   PropagateReturnValue(returnValue);
-   return(EvaluationError);
+   PropagateReturnValue(theEnv,returnValue);
+   return(EvaluationData(theEnv)->EvaluationError);
   }
 
 /******************************************/
@@ -351,49 +456,57 @@ globle int EvaluateExpression(
 /*   data type in the primitives array.   */
 /******************************************/
 globle void InstallPrimitive(
+  void *theEnv,
   struct entityRecord *thePrimitive,
   int whichPosition)
   {
-   if (PrimitivesArray[whichPosition] != NULL)
+   if (EvaluationData(theEnv)->PrimitivesArray[whichPosition] != NULL)
      {
-      SystemError("EVALUATN",5);
-      ExitRouter(EXIT_FAILURE);
+      SystemError(theEnv,"EVALUATN",5);
+      EnvExitRouter(theEnv,EXIT_FAILURE);
      }
 
-   PrimitivesArray[whichPosition] = thePrimitive;
+   EvaluationData(theEnv)->PrimitivesArray[whichPosition] = thePrimitive;
   }
 
 /******************************************************/
 /* SetEvaluationError: Sets the EvaluationError flag. */
 /******************************************************/
 globle void SetEvaluationError(
+  void *theEnv,
   int value)
   {
-   EvaluationError = value;
-   if (value == TRUE) HaltExecution = TRUE;
+   EvaluationData(theEnv)->EvaluationError = value;
+   if (value == TRUE) 
+     { EvaluationData(theEnv)->HaltExecution = TRUE; }
   }
 
 /*********************************************************/
 /* GetEvaluationError: Returns the EvaluationError flag. */
 /*********************************************************/
-globle int GetEvaluationError()
+globle int GetEvaluationError(
+  void *theEnv)
   {
-   return(EvaluationError);
+   return(EvaluationData(theEnv)->EvaluationError);
   }
 
 /**************************************************/
 /* SetHaltExecution: Sets the HaltExecution flag. */
 /**************************************************/
 globle void SetHaltExecution(
+  void *theEnv,
   int value)
-  { HaltExecution = value; }
+  { 
+   EvaluationData(theEnv)->HaltExecution = value; 
+  }
 
 /*****************************************************/
 /* GetHaltExecution: Returns the HaltExecution flag. */
 /*****************************************************/
-globle int GetHaltExecution()
+globle int GetHaltExecution(
+  void *theEnv)
   {
-   return(HaltExecution);
+   return(EvaluationData(theEnv)->HaltExecution);
   }
 
 /******************************************************/
@@ -401,6 +514,7 @@ globle int GetHaltExecution()
 /*   structures to the pool of free memory.           */
 /******************************************************/
 globle void ReturnValues(
+  void *theEnv,
   DATA_OBJECT_PTR garbagePtr)
   {
    DATA_OBJECT_PTR nextPtr;
@@ -408,8 +522,8 @@ globle void ReturnValues(
    while (garbagePtr != NULL)
      {
       nextPtr = garbagePtr->next;
-      ValueDeinstall(garbagePtr);
-      rtn_struct(dataObject,garbagePtr);
+      ValueDeinstall(theEnv,garbagePtr);
+      rtn_struct(theEnv,dataObject,garbagePtr);
       garbagePtr = nextPtr;
      }
   }
@@ -419,6 +533,7 @@ globle void ReturnValues(
 /*   to the specified logical name.                */
 /***************************************************/
 globle void PrintDataObject(
+  void *theEnv,
   char *fileid,
   DATA_OBJECT_PTR argPtr)
   {
@@ -438,46 +553,47 @@ globle void PrintDataObject(
 #if FUZZY_DEFTEMPLATES 
      case FUZZY_VALUE:
 #endif
-        PrintAtom(fileid,argPtr->type,argPtr->value);
+        PrintAtom(theEnv,fileid,argPtr->type,argPtr->value);
         break;
       case MULTIFIELD:
-        PrintMultifield(fileid,(struct multifield *) argPtr->value,
+        PrintMultifield(theEnv,fileid,(struct multifield *) argPtr->value,
                         argPtr->begin,argPtr->end,TRUE);
         break;
 
       default:
-        if (PrimitivesArray[argPtr->type] != NULL)
+        if (EvaluationData(theEnv)->PrimitivesArray[argPtr->type] != NULL)
           {
-           if (PrimitivesArray[argPtr->type]->longPrintFunction)
+           if (EvaluationData(theEnv)->PrimitivesArray[argPtr->type]->longPrintFunction)
              {
-              (*PrimitivesArray[argPtr->type]->longPrintFunction)(fileid,argPtr->value);
+              (*EvaluationData(theEnv)->PrimitivesArray[argPtr->type]->longPrintFunction)(theEnv,fileid,argPtr->value);
               break;
              }
-           else if (PrimitivesArray[argPtr->type]->shortPrintFunction)
+           else if (EvaluationData(theEnv)->PrimitivesArray[argPtr->type]->shortPrintFunction)
              {
-              (*PrimitivesArray[argPtr->type]->shortPrintFunction)(fileid,argPtr->value);
+              (*EvaluationData(theEnv)->PrimitivesArray[argPtr->type]->shortPrintFunction)(theEnv,fileid,argPtr->value);
               break;
              }
           }
 
-        PrintRouter(fileid,"<UnknownPrintType");
-        PrintLongInteger(fileid,(long int) argPtr->type);
-        PrintRouter(fileid,">");
-        SetHaltExecution(TRUE);
-        SetEvaluationError(TRUE);
+        EnvPrintRouter(theEnv,fileid,"<UnknownPrintType");
+        PrintLongInteger(theEnv,fileid,(long int) argPtr->type);
+        EnvPrintRouter(theEnv,fileid,">");
+        SetHaltExecution(theEnv,TRUE);
+        SetEvaluationError(theEnv,TRUE);
         break;
      }
   }
 
-/*************************************************/
-/* SetMultifieldErrorValue: Creates a multifield */
-/*   value of length zero for error returns.     */
-/*************************************************/
-globle void SetMultifieldErrorValue(
+/****************************************************/
+/* EnvSetMultifieldErrorValue: Creates a multifield */
+/*   value of length zero for error returns.        */
+/****************************************************/
+globle void EnvSetMultifieldErrorValue(
+  void *theEnv,
   DATA_OBJECT_PTR returnValue)
   {
    returnValue->type = MULTIFIELD;
-   returnValue->value = CreateMultifield(0L);
+   returnValue->value = EnvCreateMultifield(theEnv,0L);
    returnValue->begin = 1;
    returnValue->end = 0;
   }
@@ -487,10 +603,11 @@ globle void SetMultifieldErrorValue(
 /*   (in use) values for a DATA_OBJECT structure. */
 /**************************************************/
 globle void ValueInstall(
+  void *theEnv,
   DATA_OBJECT *vPtr)
   {
-   if (vPtr->type == MULTIFIELD) MultifieldInstall((struct multifield *) vPtr->value);
-   else AtomInstall(vPtr->type,vPtr->value);
+   if (vPtr->type == MULTIFIELD) MultifieldInstall(theEnv,(struct multifield *) vPtr->value);
+   else AtomInstall(theEnv,vPtr->type,vPtr->value);
   }
 
 /****************************************************/
@@ -498,10 +615,11 @@ globle void ValueInstall(
 /*   (in use) values for a DATA_OBJECT structure.   */
 /****************************************************/
 globle void ValueDeinstall(
+  void *theEnv,
   DATA_OBJECT *vPtr)
   {
-   if (vPtr->type == MULTIFIELD) MultifieldDeinstall((struct multifield *) vPtr->value);
-   else AtomDeinstall(vPtr->type,vPtr->value);
+   if (vPtr->type == MULTIFIELD) MultifieldDeinstall(theEnv,(struct multifield *) vPtr->value);
+   else AtomDeinstall(theEnv,vPtr->type,vPtr->value);
   }
 
 /*****************************************/
@@ -509,6 +627,7 @@ globle void ValueDeinstall(
 /*   count of an atomic data type.       */
 /*****************************************/
 globle void AtomInstall(
+  void *theEnv,
   int type,
   void *vPtr)
   {
@@ -534,9 +653,9 @@ globle void AtomInstall(
         break;
 
       case MULTIFIELD:
-        MultifieldInstall((struct multifield *) vPtr);
+        MultifieldInstall(theEnv,(struct multifield *) vPtr);
         break;
-
+        
 #if FUZZY_DEFTEMPLATES
       /* fuzzy values have a name which is a symbol */
       case FUZZY_VALUE:
@@ -548,10 +667,10 @@ globle void AtomInstall(
         break;
 
       default:
-        if (PrimitivesArray[type] == NULL) break;
-        if (PrimitivesArray[type]->bitMap) IncrementBitMapCount(vPtr);
-        else if (PrimitivesArray[type]->incrementBusyCount)
-          { (*PrimitivesArray[type]->incrementBusyCount)(vPtr); }
+        if (EvaluationData(theEnv)->PrimitivesArray[type] == NULL) break;
+        if (EvaluationData(theEnv)->PrimitivesArray[type]->bitMap) IncrementBitMapCount(vPtr);
+        else if (EvaluationData(theEnv)->PrimitivesArray[type]->incrementBusyCount)
+          { (*EvaluationData(theEnv)->PrimitivesArray[type]->incrementBusyCount)(theEnv,vPtr); }
         break;
      }
   }
@@ -561,6 +680,7 @@ globle void AtomInstall(
 /*   count of an atomic data type.         */
 /*******************************************/
 globle void AtomDeinstall(
+  void *theEnv,
   int type,
   void *vPtr)
   {
@@ -574,35 +694,35 @@ globle void AtomDeinstall(
 #if OBJECT_SYSTEM
       case INSTANCE_NAME:
 #endif
-        DecrementSymbolCount((SYMBOL_HN *) vPtr);
+        DecrementSymbolCount(theEnv,(SYMBOL_HN *) vPtr);
         break;
 
       case FLOAT:
-        DecrementFloatCount((FLOAT_HN *) vPtr);
+        DecrementFloatCount(theEnv,(FLOAT_HN *) vPtr);
         break;
 
       case INTEGER:
-        DecrementIntegerCount((INTEGER_HN *) vPtr);
+        DecrementIntegerCount(theEnv,(INTEGER_HN *) vPtr);
         break;
-
+        
 #if FUZZY_DEFTEMPLATES
       case FUZZY_VALUE:
-            DeinstallFuzzyValue(vPtr);
+            DeinstallFuzzyValue(theEnv,vPtr);
         break;
 #endif
 
       case MULTIFIELD:
-        MultifieldDeinstall((struct multifield *) vPtr);
+        MultifieldDeinstall(theEnv,(struct multifield *) vPtr);
         break;
 
       case RVOID:
         break;
 
       default:
-        if (PrimitivesArray[type] == NULL) break;
-        if (PrimitivesArray[type]->bitMap) DecrementBitMapCount((BITMAP_HN *) vPtr);
-        else if (PrimitivesArray[type]->decrementBusyCount)
-          { (*PrimitivesArray[type]->decrementBusyCount)(vPtr); }
+        if (EvaluationData(theEnv)->PrimitivesArray[type] == NULL) break;
+        if (EvaluationData(theEnv)->PrimitivesArray[type]->bitMap) DecrementBitMapCount(theEnv,(BITMAP_HN *) vPtr);
+        else if (EvaluationData(theEnv)->PrimitivesArray[type]->decrementBusyCount)
+          { (*EvaluationData(theEnv)->PrimitivesArray[type]->decrementBusyCount)(theEnv,vPtr); }
      }
   }
 
@@ -616,25 +736,26 @@ globle void AtomDeinstall(
 /*   the evaluation that generated the return value.                 */
 /*********************************************************************/
 globle void PropagateReturnValue(
+  void *theEnv,
   DATA_OBJECT *vPtr)
   {
-   long i; /* 6.04 Bug Fix */
+   unsigned long i; /* 6.04 Bug Fix */
    struct multifield *theSegment;
    struct field *theMultifield;
 
    if (vPtr->type != MULTIFIELD)
-     { PropagateReturnAtom(vPtr->type,vPtr->value); }
+     { PropagateReturnAtom(theEnv,vPtr->type,vPtr->value); }
    else
      {
       theSegment = (struct multifield *) vPtr->value;
 
-      if (theSegment->depth > CurrentEvaluationDepth)
-        theSegment->depth = (short) CurrentEvaluationDepth;
+      if (theSegment->depth > EvaluationData(theEnv)->CurrentEvaluationDepth)
+        theSegment->depth = (short) EvaluationData(theEnv)->CurrentEvaluationDepth;
 
       theMultifield = theSegment->theFields;
 
       for (i = 0; i < theSegment->multifieldLength; i++)
-        { PropagateReturnAtom(theMultifield[i].type,theMultifield[i].value); }
+        { PropagateReturnAtom(theEnv,theMultifield[i].type,theMultifield[i].value); }
      }
   }
 
@@ -643,6 +764,7 @@ globle void PropagateReturnValue(
 /*   for PropagateReturnValue.           */
 /*****************************************/
 static void PropagateReturnAtom(
+  void *theEnv,
   int type,
   void *value)
   {
@@ -652,19 +774,18 @@ static void PropagateReturnAtom(
       case FLOAT           :
       case SYMBOL          :
       case STRING          :
-
 #if OBJECT_SYSTEM
       case INSTANCE_NAME   :
 #endif
-        if (((SYMBOL_HN *) value)->depth > CurrentEvaluationDepth)
-          { ((SYMBOL_HN *) value)->depth = CurrentEvaluationDepth; }
+        if (((SYMBOL_HN *) value)->depth > EvaluationData(theEnv)->CurrentEvaluationDepth)
+          { ((SYMBOL_HN *) value)->depth = EvaluationData(theEnv)->CurrentEvaluationDepth; }
         break;
-
+        
 #if FUZZY_DEFTEMPLATES
       case FUZZY_VALUE     :
         {
-          if (((FUZZY_VALUE_HN *) value)->depth > CurrentEvaluationDepth)
-            { ((FUZZY_VALUE_HN *) value)->depth = CurrentEvaluationDepth; }
+          if (((FUZZY_VALUE_HN *) value)->depth > EvaluationData(theEnv)->CurrentEvaluationDepth)
+            { ((FUZZY_VALUE_HN *) value)->depth = EvaluationData(theEnv)->CurrentEvaluationDepth; }
         }
 
         break;
@@ -672,13 +793,13 @@ static void PropagateReturnAtom(
 
 #if OBJECT_SYSTEM
       case INSTANCE_ADDRESS :
-        if (((INSTANCE_TYPE *) value)->depth > CurrentEvaluationDepth)
-          { ((INSTANCE_TYPE *) value)->depth = CurrentEvaluationDepth; }
+        if (((INSTANCE_TYPE *) value)->depth > EvaluationData(theEnv)->CurrentEvaluationDepth)
+          { ((INSTANCE_TYPE *) value)->depth = EvaluationData(theEnv)->CurrentEvaluationDepth; }
         break;
 #endif
       case FACT_ADDRESS :
-        if (((int) ((struct fact *) value)->depth) > CurrentEvaluationDepth)
-          { ((struct fact *) value)->depth = (unsigned) CurrentEvaluationDepth; }
+        if (((int) ((struct fact *) value)->depth) > EvaluationData(theEnv)->CurrentEvaluationDepth)
+          { ((struct fact *) value)->depth = (unsigned) EvaluationData(theEnv)->CurrentEvaluationDepth; }
         break;
      }
   }
@@ -686,11 +807,12 @@ static void PropagateReturnAtom(
 #if DEFFUNCTION_CONSTRUCT || DEFGENERIC_CONSTRUCT
 
 /********************************************/
-/* FunctionCall: Allows Deffunctions and    */
+/* EnvFunctionCall: Allows Deffunctions and */
 /*   Generic Functions to be called from C. */
 /*   Allows only constants as arguments.    */
 /********************************************/
-globle int FunctionCall(
+globle int EnvFunctionCall(
+  void *theEnv,
   char *name,
   char *args,
   DATA_OBJECT *result)
@@ -701,8 +823,8 @@ globle int FunctionCall(
    /* Call the function if it can be found. */
    /*=======================================*/
 
-   if (GetFunctionReference(name,&theReference))
-     { return(FunctionCall2(&theReference,args,result)); }
+   if (GetFunctionReference(theEnv,name,&theReference))
+     { return(FunctionCall2(theEnv,&theReference,args,result)); }
 
    /*=========================================================*/
    /* Otherwise signal an error if a deffunction, defgeneric, */
@@ -710,10 +832,10 @@ globle int FunctionCall(
    /* the specified function name.                            */
    /*=========================================================*/
 
-   PrintErrorID("EVALUATN",2,FALSE);
-   PrintRouter(WERROR,"No function, generic function or deffunction of name ");
-   PrintRouter(WERROR,name);
-   PrintRouter(WERROR," exists for external call.\n");
+   PrintErrorID(theEnv,"EVALUATN",2,FALSE);
+   EnvPrintRouter(theEnv,WERROR,"No function, generic function or deffunction of name ");
+   EnvPrintRouter(theEnv,WERROR,name);
+   EnvPrintRouter(theEnv,WERROR," exists for external call.\n");
    return(TRUE);
   }
 
@@ -723,6 +845,7 @@ globle int FunctionCall(
 /*   Allows only constants as arguments.    */
 /********************************************/
 globle int FunctionCall2(
+  void *theEnv,
   FUNCTION_REFERENCE *theReference,
   char *args,
   DATA_OBJECT *result)
@@ -735,29 +858,29 @@ globle int FunctionCall2(
    /* was executed from an embedded application.  */
    /*=============================================*/
 
-   if ((CurrentEvaluationDepth == 0) && (! EvaluatingTopLevelCommand) &&
-       (CurrentExpression == NULL))
-     { PeriodicCleanup(TRUE,FALSE); }
+   if ((EvaluationData(theEnv)->CurrentEvaluationDepth == 0) && (! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
+       (EvaluationData(theEnv)->CurrentExpression == NULL))
+     { PeriodicCleanup(theEnv,TRUE,FALSE); }
 
    /*========================*/
    /* Reset the error state. */
    /*========================*/
 
-   if (CurrentEvaluationDepth == 0) SetHaltExecution(FALSE);
-   EvaluationError = FALSE;
+   if (EvaluationData(theEnv)->CurrentEvaluationDepth == 0) SetHaltExecution(theEnv,FALSE);
+   EvaluationData(theEnv)->EvaluationError = FALSE;
 
    /*======================================*/
    /* Initialize the default return value. */
    /*======================================*/
 
    result->type = SYMBOL;
-   result->value = FalseSymbol;
+   result->value = EnvFalseSymbol(theEnv);
 
    /*============================*/
    /* Parse the argument string. */
    /*============================*/
 
-   argexps = ParseConstantArguments(args,&error);
+   argexps = ParseConstantArguments(theEnv,args,&error);
    if (error == TRUE) return(TRUE);
 
    /*====================*/
@@ -765,13 +888,13 @@ globle int FunctionCall2(
    /*====================*/
 
    theReference->argList = argexps;
-   error = EvaluateExpression(theReference,result);
+   error = EvaluateExpression(theEnv,theReference,result);
 
    /*========================*/
    /* Return the expression. */
    /*========================*/
 
-   ReturnExpression(argexps);
+   ReturnExpression(theEnv,argexps);
    theReference->argList = NULL;
 
    /*==========================*/
@@ -788,6 +911,7 @@ globle int FunctionCall2(
 /*   DATA_OBJECT to a destination DATA_OBJECT.     */
 /***************************************************/
 globle void CopyDataObject(
+  void *theEnv,
   DATA_OBJECT *dst,
   DATA_OBJECT *src,
   int garbageMultifield)
@@ -799,9 +923,9 @@ globle void CopyDataObject(
      }
    else
      {
-      DuplicateMultifield(dst,src);
+      DuplicateMultifield(theEnv,dst,src);
       if (garbageMultifield)
-        { AddToMultifieldList((struct multifield *) dst->value); }
+        { AddToMultifieldList(theEnv,(struct multifield *) dst->value); }
      }
   }
 
@@ -829,17 +953,18 @@ globle void TransferDataObjectValues(
 /*   single field value, a single expression is created.                */
 /************************************************************************/
 globle struct expr *ConvertValueToExpression(
+  void *theEnv,
   DATA_OBJECT *theValue)
   {
    long i;
    struct expr *head = NULL, *last = NULL, *newItem;
 
    if (GetpType(theValue) != MULTIFIELD)
-     { return(GenConstant(GetpType(theValue),GetpValue(theValue))); }
+     { return(GenConstant(theEnv,GetpType(theValue),GetpValue(theValue))); }
 
    for (i = GetpDOBegin(theValue); i <= GetpDOEnd(theValue); i++)
      {
-      newItem = GenConstant(GetMFType(GetpValue(theValue),i),
+      newItem = GenConstant(theEnv,GetMFType(GetpValue(theValue),i),
                         GetMFValue(GetpValue(theValue),i));
       if (last == NULL) head = newItem;
       else last->nextArg = newItem;
@@ -847,7 +972,7 @@ globle struct expr *ConvertValueToExpression(
      }
 
    if (head == NULL)
-     return(GenConstant(FCALL,(void *) FindFunction("create$")));
+     return(GenConstant(theEnv,FCALL,(void *) FindFunction(theEnv,"create$")));
 
    return(head);
   }
@@ -857,7 +982,7 @@ globle struct expr *ConvertValueToExpression(
 /*   value for an atomic data type.     */
 /****************************************/
 unsigned int GetAtomicHashValue(
-  int type,
+  unsigned short type,
   void *value,
   int position)
   {
@@ -865,7 +990,6 @@ unsigned int GetAtomicHashValue(
    union
      {
       double fv;
-      void *vv;
       unsigned int liv;
      } fis;
 
@@ -885,9 +1009,7 @@ unsigned int GetAtomicHashValue(
       case INSTANCE_ADDRESS:
 #endif
       case EXTERNAL_ADDRESS:
-         fis.liv = 0;
-         fis.vv = value;
-         tvalue = (unsigned int) fis.liv;
+         tvalue = (unsigned int) value;
          break;
 
       case STRING:
@@ -914,6 +1036,7 @@ unsigned int GetAtomicHashValue(
 /*   or user/system defined function.                      */
 /***********************************************************/
 globle struct expr *FunctionReferenceExpression(
+  void *theEnv,
   char *name)
   {
 #if DEFGENERIC_CONSTRUCT
@@ -929,8 +1052,8 @@ globle struct expr *FunctionReferenceExpression(
    /*=====================================================*/
 
 #if DEFFUNCTION_CONSTRUCT
-   if ((dptr = (void *) LookupDeffunctionInScope(name)) != NULL)
-     { return(GenConstant(PCALL,dptr)); }
+   if ((dptr = (void *) LookupDeffunctionInScope(theEnv,name)) != NULL)
+     { return(GenConstant(theEnv,PCALL,dptr)); }
 #endif
 
    /*====================================================*/
@@ -938,8 +1061,8 @@ globle struct expr *FunctionReferenceExpression(
    /*====================================================*/
 
 #if DEFGENERIC_CONSTRUCT
-   if ((gfunc = (void *) LookupDefgenericInScope(name)) != NULL)
-     { return(GenConstant(GCALL,gfunc)); }
+   if ((gfunc = (void *) LookupDefgenericInScope(theEnv,name)) != NULL)
+     { return(GenConstant(theEnv,GCALL,gfunc)); }
 #endif
 
    /*======================================*/
@@ -947,8 +1070,8 @@ globle struct expr *FunctionReferenceExpression(
    /* a system or user defined function.   */
    /*======================================*/
 
-   if ((fptr = FindFunction(name)) != NULL)
-     { return(GenConstant(FCALL,fptr)); }
+   if ((fptr = FindFunction(theEnv,name)) != NULL)
+     { return(GenConstant(theEnv,FCALL,fptr)); }
 
    /*===================================================*/
    /* The specified function name is not a deffunction, */
@@ -964,7 +1087,8 @@ globle struct expr *FunctionReferenceExpression(
 /*   name of a deffunction, defgeneric, or user/system defined    */
 /*   function.                                                    */
 /******************************************************************/
-globle BOOLEAN GetFunctionReference(
+globle intBool GetFunctionReference(
+  void *theEnv,
   char *name,
   FUNCTION_REFERENCE *theReference)
   {
@@ -986,7 +1110,7 @@ globle BOOLEAN GetFunctionReference(
    /*=====================================================*/
 
 #if DEFFUNCTION_CONSTRUCT
-   if ((dptr = (void *) LookupDeffunctionInScope(name)) != NULL)
+   if ((dptr = (void *) LookupDeffunctionInScope(theEnv,name)) != NULL)
      {
       theReference->type = PCALL;
       theReference->value = dptr;
@@ -999,7 +1123,7 @@ globle BOOLEAN GetFunctionReference(
    /*====================================================*/
 
 #if DEFGENERIC_CONSTRUCT
-   if ((gfunc = (void *) LookupDefgenericInScope(name)) != NULL)
+   if ((gfunc = (void *) LookupDefgenericInScope(theEnv,name)) != NULL)
      {
       theReference->type = GCALL;
       theReference->value = gfunc;
@@ -1012,7 +1136,7 @@ globle BOOLEAN GetFunctionReference(
    /* a system or user defined function.   */
    /*======================================*/
 
-   if ((fptr = FindFunction(name)) != NULL)
+   if ((fptr = FindFunction(theEnv,name)) != NULL)
      {
       theReference->type = FCALL;
       theReference->value = fptr;
@@ -1030,7 +1154,7 @@ globle BOOLEAN GetFunctionReference(
 /*******************************************************/
 /* DOsEqual: Determines if two DATA_OBJECTS are equal. */
 /*******************************************************/
-globle BOOLEAN DOsEqual(
+globle intBool DOsEqual(
   DATA_OBJECT_PTR dobj1,
   DATA_OBJECT_PTR dobj2)
   {
@@ -1048,4 +1172,45 @@ globle BOOLEAN DOsEqual(
    return(TRUE);
   }
 
+/***********************************************************
+  NAME         : EvaluateAndStoreInDataObject
+  DESCRIPTION  : Evaluates slot-value expressions
+                   and stores the result in a
+                   Kernel data object
+  INPUTS       : 1) Flag indicating if multifields are OK
+                 2) The value-expression
+                 3) The data object structure
+                 4) Flag indicating if a multifield value
+                    should be placed on the garbage list.
+  RETURNS      : FALSE on errors, TRUE otherwise
+  SIDE EFFECTS : Segment allocated for storing
+                 multifield values
+  NOTES        : None
+ ***********************************************************/
+globle int EvaluateAndStoreInDataObject(
+  void *theEnv,
+  int mfp,
+  EXPRESSION *theExp,
+  DATA_OBJECT *val,
+  int garbageSegment)
+  {
+   val->type = MULTIFIELD;
+   val->begin = 0;
+   val->end = -1;
+   
+   if (theExp == NULL)
+     {
+      if (garbageSegment) val->value = EnvCreateMultifield(theEnv,0L);
+      else val->value = CreateMultifield2(theEnv,0L);
+
+      return(TRUE);
+     }
+
+   if ((mfp == 0) && (theExp->nextArg == NULL))
+     EvaluateExpression(theEnv,theExp,val);
+   else
+     StoreInMultifield(theEnv,val,theExp,garbageSegment);
+   
+   return(EvaluationData(theEnv)->EvaluationError ? FALSE : TRUE);
+  }
 

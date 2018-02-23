@@ -1,0 +1,261 @@
+TRUE
+FuzzyCLIPS> (batch "dftmpcmd.bat")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deftemplate d1)
+FuzzyCLIPS> (deftemplate d2 (field x))
+FuzzyCLIPS> (deftemplate d3 (field x (type STRING)))
+FuzzyCLIPS> (deftemplate d4 (field x) (multifield y) (field z))
+FuzzyCLIPS> (deftemplate d5 
+  (field x (type ?VARIABLE) (default 30))
+  (field y (type STRING SYMBOL) (allowed-symbols a b) (allowed-strings "a" "b"))
+  (field z (type NUMBER) (allowed-integers 1) (allowed-floats 3.5))
+  (field w (type NUMBER) (range 3.5 9))
+  (multifield q (type SYMBOL NUMBER) (allowed-symbols x) (default)))
+FuzzyCLIPS> (deftemplate d6 
+  (multifield q (cardinality 2 6))
+  (field x (type ?VARIABLE) (default ?NONE))
+  (field y (type STRING SYMBOL) (allowed-symbols ?VARIABLE)))
+FuzzyCLIPS> (deftemplate *)
+FuzzyCLIPS> (list-deftemplates d6)
+[ARGACCES5] Function list-deftemplates expected argument #1 to be of type defmodule name
+FuzzyCLIPS> (list-deftemplates)
+initial-fact
+d1
+d2
+d3
+d4
+d5
+d6
+*
+For a total of 8 deftemplates.
+FuzzyCLIPS> (ppdeftemplate d1)
+(deftemplate MAIN::d1)
+FuzzyCLIPS> (ppdeftemplate d2)
+(deftemplate MAIN::d2
+   (field x))
+FuzzyCLIPS> (ppdeftemplate d3)
+(deftemplate MAIN::d3
+   (field x (type STRING)))
+FuzzyCLIPS> (ppdeftemplate d4)
+(deftemplate MAIN::d4
+   (field x)
+   (multifield y)
+   (field z))
+FuzzyCLIPS> (ppdeftemplate d5)
+(deftemplate MAIN::d5
+   (field x (type ?VARIABLE) (default 30))
+   (field y (type STRING SYMBOL) (allowed-symbols a b) (allowed-strings "a" "b"))
+   (field z (type NUMBER) (allowed-integers 1) (allowed-floats 3.5))
+   (field w (type NUMBER) (range 3.5 9))
+   (multifield q (type SYMBOL NUMBER) (allowed-symbols x) (default)))
+FuzzyCLIPS> (ppdeftemplate d6)
+(deftemplate MAIN::d6
+   (multifield q (cardinality 2 6))
+   (field x (type ?VARIABLE) (default ?NONE))
+   (field y (type STRING SYMBOL) (allowed-symbols ?VARIABLE)))
+FuzzyCLIPS> (get-dynamic-constraint-checking)
+FALSE
+FuzzyCLIPS> (get-dynamic-constraint-checking TRUE)
+[ARGACCES4] Function get-dynamic-constraint-checking expected exactly 0 argument(s)
+FuzzyCLIPS> (assert (d3 (x 7)))
+
+[CSTRNCHK1] A literal slot value found in the assert command
+does not match the allowed types for slot x.
+FuzzyCLIPS> (facts)
+FuzzyCLIPS> (assert (d3 (x =(read))))
+7
+<Fact-0>
+FuzzyCLIPS> (facts)
+f-0     (d3 (x 7)) CF 1.00 
+For a total of 1 fact.
+FuzzyCLIPS> (retract *)
+FuzzyCLIPS> (set-dynamic-constraint-checking)
+[ARGACCES4] Function set-dynamic-constraint-checking expected exactly 1 argument(s)
+FuzzyCLIPS> (set-dynamic-constraint-checking TRUE FALSE)
+[ARGACCES4] Function set-dynamic-constraint-checking expected exactly 1 argument(s)
+FuzzyCLIPS> (set-dynamic-constraint-checking 10)
+FALSE
+FuzzyCLIPS> (get-dynamic-constraint-checking)
+TRUE
+FuzzyCLIPS> (set-dynamic-constraint-checking TRUE)
+TRUE
+FuzzyCLIPS> (assert (d3 (x 8)))
+
+[CSTRNCHK1] A literal slot value found in the assert command
+does not match the allowed types for slot x.
+FuzzyCLIPS> (facts)
+FuzzyCLIPS> (assert (d3 (x =(read))))
+8
+
+[CSTRNCHK1] Slot value 8 found in fact f-1     
+does not match the allowed types for slot x.
+<Fact-1>
+FuzzyCLIPS> (facts)
+f-1     (d3 (x 8)) CF 1.00 
+For a total of 1 fact.
+FuzzyCLIPS> (retract *)
+FuzzyCLIPS> (set-dynamic-constraint-checking FALSE)
+TRUE
+FuzzyCLIPS> (get-dynamic-constraint-checking)
+FALSE
+FuzzyCLIPS> (undeftemplate)
+[ARGACCES4] Function undeftemplate expected exactly 1 argument(s)
+FuzzyCLIPS> (undeftemplate 10)
+[ARGACCES5] Function undeftemplate expected argument #1 to be of type symbol
+FuzzyCLIPS> (undeftemplate bad-name)
+[PRNTUTIL1] Unable to find deftemplate bad-name.
+FuzzyCLIPS> (undeftemplate d6 10)
+[ARGACCES4] Function undeftemplate expected exactly 1 argument(s)
+FuzzyCLIPS> (list-deftemplates)
+initial-fact
+d1
+d2
+d3
+d4
+d5
+d6
+*
+For a total of 8 deftemplates.
+FuzzyCLIPS> (undeftemplate d1)
+FuzzyCLIPS> (undeftemplate d2)
+FuzzyCLIPS> (undeftemplate d3)
+FuzzyCLIPS> (list-deftemplates)
+initial-fact
+d4
+d5
+d6
+*
+For a total of 5 deftemplates.
+FuzzyCLIPS> (undeffacts initial-fact)
+FuzzyCLIPS> (undeftemplate *)
+FuzzyCLIPS> (list-deftemplates)
+initial-fact
+d4
+d5
+d6
+For a total of 4 deftemplates.
+FuzzyCLIPS> (undeftemplate *)
+FuzzyCLIPS> (list-deftemplates)
+FuzzyCLIPS> (clear) ; Some new 6.0 features
+FuzzyCLIPS> (deftemplate BOGUS::d5)
+[PRNTUTIL1] Unable to find defmodule BOGUS.
+
+ERROR:
+(deftemplate BOGUS::d5
+FuzzyCLIPS> (defmodule FOO)
+FuzzyCLIPS> (deftemplate FOO::d1)
+FuzzyCLIPS> (deftemplate FOO::d2)
+FuzzyCLIPS> (defmodule BAR)
+FuzzyCLIPS> (deftemplate BAR::d2)
+FuzzyCLIPS> (deftemplate BAR::d3)
+FuzzyCLIPS> (list-deftemplates BOGUS)
+[ARGACCES5] Function list-deftemplates expected argument #1 to be of type defmodule name
+FuzzyCLIPS> (list-deftemplates FOO 7)
+[ARGACCES4] Function list-deftemplates expected no more than 1 argument(s)
+FuzzyCLIPS> (list-deftemplates FOO)
+d1
+d2
+For a total of 2 deftemplates.
+FuzzyCLIPS> (list-deftemplates BAR)
+d2
+d3
+For a total of 2 deftemplates.
+FuzzyCLIPS> (list-deftemplates)
+d2
+d3
+For a total of 2 deftemplates.
+FuzzyCLIPS> (list-deftemplates *)
+MAIN:
+   initial-fact
+FOO:
+   d1
+   d2
+BAR:
+   d2
+   d3
+For a total of 5 deftemplates.
+FuzzyCLIPS> (get-deftemplate-list 7)
+[ARGACCES5] Function get-deftemplate-list expected argument #1 to be of type symbol
+FuzzyCLIPS> (get-deftemplate-list BOGUS 7)
+[ARGACCES4] Function get-deftemplate-list expected no more than 1 argument(s)
+FuzzyCLIPS> (get-deftemplate-list)
+(d2 d3)
+FuzzyCLIPS> (get-deftemplate-list BOGUS)
+[ARGACCES5] Function get-deftemplate-list expected argument #1 to be of type defmodule name
+()
+FuzzyCLIPS> (get-deftemplate-list FOO)
+(d1 d2)
+FuzzyCLIPS> (get-deftemplate-list BAR)
+(d2 d3)
+FuzzyCLIPS> (get-deftemplate-list *)
+(MAIN::initial-fact FOO::d1 FOO::d2 BAR::d2 BAR::d3)
+FuzzyCLIPS> (ppdeftemplate d1)
+[PRNTUTIL1] Unable to find deftemplate d1.
+FuzzyCLIPS> (ppdeftemplate d2)
+(deftemplate BAR::d2)
+FuzzyCLIPS> (ppdeftemplate d3)
+(deftemplate BAR::d3)
+FuzzyCLIPS> (ppdeftemplate BOGUS::d2)
+[PRNTUTIL1] Unable to find deftemplate BOGUS::d2.
+FuzzyCLIPS> (ppdeftemplate FOO::d1)
+(deftemplate FOO::d1)
+FuzzyCLIPS> (ppdeftemplate FOO::d2)
+(deftemplate FOO::d2)
+FuzzyCLIPS> (ppdeftemplate FOO::d3)
+[PRNTUTIL1] Unable to find deftemplate FOO::d3.
+FuzzyCLIPS> (ppdeftemplate BAR::d1)
+[PRNTUTIL1] Unable to find deftemplate BAR::d1.
+FuzzyCLIPS> (ppdeftemplate BAR::d2)
+(deftemplate BAR::d2)
+FuzzyCLIPS> (ppdeftemplate BAR::d3)
+(deftemplate BAR::d3)
+FuzzyCLIPS> (deftemplate-module)
+[ARGACCES4] Function deftemplate-module expected exactly 1 argument(s)
+FuzzyCLIPS> (deftemplate-module bogus)
+[PRNTUTIL1] Unable to find deftemplate bogus.
+FALSE
+FuzzyCLIPS> (deftemplate-module d3 7)
+[ARGACCES4] Function deftemplate-module expected exactly 1 argument(s)
+FuzzyCLIPS> (deftemplate-module d2)
+BAR
+FuzzyCLIPS> (deftemplate-module d3)
+BAR
+FuzzyCLIPS> (deftemplate-module FOO::d1)
+FOO
+FuzzyCLIPS> (deftemplate-module FOO::d2)
+FOO
+FuzzyCLIPS> (deftemplate-module BAR::d2)
+BAR
+FuzzyCLIPS> (deftemplate-module BAR::d3)
+BAR
+FuzzyCLIPS> (undeftemplate BOGUS::d2)
+[PRNTUTIL1] Unable to find deftemplate BOGUS::d2.
+FuzzyCLIPS> (undeftemplate FOO::d2)
+FuzzyCLIPS> (list-deftemplates *)
+MAIN:
+   initial-fact
+FOO:
+   d1
+BAR:
+   d2
+   d3
+For a total of 4 deftemplates.
+FuzzyCLIPS> (undeftemplate BAR::d2)
+FuzzyCLIPS> (list-deftemplates *)
+MAIN:
+   initial-fact
+FOO:
+   d1
+BAR:
+   d3
+For a total of 3 deftemplates.
+FuzzyCLIPS> (undeftemplate *)
+FuzzyCLIPS> (list-deftemplates *)
+MAIN:
+   initial-fact
+FOO:
+   d1
+BAR:
+For a total of 2 deftemplates.
+FuzzyCLIPS> (dribble-off)

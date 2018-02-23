@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/multifld.h,v 1.3 2001/08/11 21:07:03 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                MULTIFIELD HEADER FILE               */
    /*******************************************************/
@@ -19,27 +17,11 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Moved ImplodeMultifield from multifun.c.       */
+/*                                                           */
 /*************************************************************/
-
-#ifndef _H_setup
-#include "setup.h"
-#endif
-
-#if FUZZY_DEFTEMPLATES
-/* Due to a circular set of definitions we need to do this
-   evaluatn.h includes symbol.h which includes fuzzyval.h
-   which includes tmpltdef.h which includes ... .h
-   which includes multifld.h => problem!!
-   This effectively makes the include of evaluatn.h an
-   include of symbol.h to make sure tmpltdef is included
-   before evaluatn!
-*/
-
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#endif
-
 
 #ifndef _H_multifld
 
@@ -54,7 +36,7 @@ struct multifield;
 
 struct field
   {
-   short int type;
+   unsigned short type;
    void *value;
   };
 
@@ -62,7 +44,7 @@ struct multifield
   {
    unsigned busyCount;
    short depth;
-   long multifieldLength;
+   unsigned long multifieldLength;
    struct multifield *next;
    struct field theFields[1];
   };
@@ -75,10 +57,30 @@ typedef struct field * FIELD_PTR;
 
 #define GetMFLength(target)     (((struct multifield *) (target))->multifieldLength)
 #define GetMFPtr(target,index)  (&(((struct field *) ((struct multifield *) (target))->theFields)[index-1]))
-#define SetMFType(target,index,value)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].type = (value))
+#define SetMFType(target,index,value)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].type = (unsigned short) (value))
 #define SetMFValue(target,index,val)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].value = (void *) (val))
 #define GetMFType(target,index)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].type)
 #define GetMFValue(target,index)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].value)
+
+#define EnvGetMFLength(theEnv,target)     (((struct multifield *) (target))->multifieldLength)
+#define EnvGetMFPtr(theEnv,target,index)  (&(((struct field *) ((struct multifield *) (target))->theFields)[index-1]))
+#define EnvSetMFType(theEnv,target,index,value)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].type = (unsigned short) (value))
+#define EnvSetMFValue(theEnv,target,index,val)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].value = (void *) (val))
+#define EnvGetMFType(theEnv,target,index)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].type)
+#define EnvGetMFValue(theEnv,target,index)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].value)
+
+/*==================*/
+/* ENVIRONMENT DATA */
+/*==================*/
+
+#define MULTIFIELD_DATA 51
+
+struct multifieldData
+  { 
+   struct multifield *ListOfMultifields;
+  };
+
+#define MultifieldData(theEnv) ((struct multifieldData *) GetEnvironmentData(theEnv,MULTIFIELD_DATA))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -88,27 +90,34 @@ typedef struct field * FIELD_PTR;
 #else
 #define LOCALE extern
 #endif
-
-   LOCALE void                          *CreateMultifield2(long);
-   LOCALE void                           ReturnMultifield(struct multifield *);
-   LOCALE void                           MultifieldInstall(struct multifield *);
-   LOCALE void                           MultifieldDeinstall(struct multifield *);
-   LOCALE struct multifield             *StringToMultifield(char *);
-   LOCALE void                          *CreateMultifield(long);
-   LOCALE void                           AddToMultifieldList(struct multifield *);
-   LOCALE void                           FlushMultifields(void);
-   LOCALE void                           DuplicateMultifield(struct dataObject *,struct dataObject *);
-   LOCALE void                           PrintMultifield(char *,SEGMENT_PTR,long,long,int);
-   LOCALE BOOLEAN                        MultifieldDOsEqual(DATA_OBJECT_PTR,DATA_OBJECT_PTR);
-   LOCALE void                           StoreInMultifield(DATA_OBJECT *,EXPRESSION *,int);
-   LOCALE void                          *CopyMultifield(struct multifield *);
-   LOCALE BOOLEAN                        MultifieldsEqual(struct multifield *,struct multifield *);
-   LOCALE void                          *DOToMultifield(DATA_OBJECT *);
-   LOCALE int                            HashMultifield(struct multifield *,int);
-   LOCALE struct multifield             *GetMultifieldList(void);
-
+   
+#if ENVIRONMENT_API_ONLY
+#define CreateMultifield(theEnv,a) EnvCreateMultifield(theEnv,a)
+#else
+#define CreateMultifield(a) EnvCreateMultifield(GetCurrentEnvironment(),a)
 #endif
 
+   LOCALE void                           InitializeMultifieldData(void *);
+   LOCALE void                          *CreateMultifield2(void *,unsigned long);
+   LOCALE void                           ReturnMultifield(void *,struct multifield *);
+   LOCALE void                           MultifieldInstall(void *,struct multifield *);
+   LOCALE void                           MultifieldDeinstall(void *,struct multifield *);
+   LOCALE struct multifield             *StringToMultifield(void *,char *);
+   LOCALE void                          *EnvCreateMultifield(void *,unsigned long);
+   LOCALE void                           AddToMultifieldList(void *,struct multifield *);
+   LOCALE void                           FlushMultifields(void *);
+   LOCALE void                           DuplicateMultifield(void *,struct dataObject *,struct dataObject *);
+   LOCALE void                           PrintMultifield(void *,char *,SEGMENT_PTR,long,long,int);
+   LOCALE intBool                        MultifieldDOsEqual(DATA_OBJECT_PTR,DATA_OBJECT_PTR);
+   LOCALE void                           StoreInMultifield(void *,DATA_OBJECT *,EXPRESSION *,int);
+   LOCALE void                          *CopyMultifield(void *,struct multifield *);
+   LOCALE intBool                        MultifieldsEqual(struct multifield *,struct multifield *);
+   LOCALE void                          *DOToMultifield(void *,DATA_OBJECT *);
+   LOCALE unsigned                       HashMultifield(struct multifield *,unsigned);
+   LOCALE struct multifield             *GetMultifieldList(void *);
+   LOCALE void                          *ImplodeMultifield(void *,DATA_OBJECT *);
+
+#endif
 
 
 

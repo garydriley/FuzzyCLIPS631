@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/factbld.h,v 1.3 2001/08/11 21:05:29 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                FACT BUILD HEADER FILE               */
    /*******************************************************/
@@ -39,9 +37,9 @@ struct factPatternNode
   {
    struct patternNodeHeader header;
    long bsaveID;
-   unsigned int whichField : 8;
-   unsigned int whichSlot : 8;
-   unsigned int leaveFields : 8;
+   unsigned short whichField;
+   unsigned short whichSlot;
+   unsigned short leaveFields;
    struct expr *networkTest;
    struct factPatternNode *nextLevel;
    struct factPatternNode *lastLevel;
@@ -55,10 +53,8 @@ struct factPatternNode
 #define LOCALE extern
 #endif
 
-   LOCALE void                           InitializeFactPatterns(void);
-
-#ifndef _FACTBLD_SOURCE_
-   extern globle struct patternEntityRecord     FactInfo;
-#endif
+   LOCALE void                           InitializeFactPatterns(void *);
+   LOCALE void                           DestroyFactPatternNetwork(void *,
+                                                                   struct factPatternNode *);
 
 #endif

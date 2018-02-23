@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/exprnpsr.h,v 1.3 2001/08/11 21:05:25 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*            EXPRESSION PARSER HEADER FILE            */
    /*******************************************************/
@@ -18,18 +16,13 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_exprnpsr
 
 #define _H_exprnpsr
-
-#ifndef _H_extnfunc
-#include "extnfunc.h"
-#endif
-#ifndef _H_scanner
-#include "scanner.h"
-#endif
 
 #if (! RUN_TIME)
 
@@ -42,6 +35,13 @@ typedef struct saved_contexts
 
 #endif
 
+#ifndef _H_extnfunc
+#include "extnfunc.h"
+#endif
+#ifndef _H_scanner
+#include "scanner.h"
+#endif
+
 #ifdef LOCALE
 #undef LOCALE
 #endif
@@ -52,30 +52,31 @@ typedef struct saved_contexts
 #define LOCALE extern
 #endif
 
-   LOCALE struct expr                   *Function0Parse(char *);
-   LOCALE struct expr                   *Function1Parse(char *);
-   LOCALE struct expr                   *Function2Parse(char *,char *);
-   LOCALE void                           PushRtnBrkContexts(void);
-   LOCALE void                           PopRtnBrkContexts(void);
-   LOCALE BOOLEAN                        ReplaceSequenceExpansionOps(struct expr *,struct expr *,
-                                                                     void *,void *);
-   LOCALE struct expr                   *CollectArguments(struct expr *,char *);
-   LOCALE struct expr                   *ArgumentParse(char *,int *);
-   LOCALE struct expr                   *ParseAtomOrExpression(char *,struct token *);
-   LOCALE EXPRESSION                    *ParseConstantArguments(char *,int *);
-   LOCALE BOOLEAN                        SetSequenceOperatorRecognition(int);
-   LOCALE BOOLEAN                        GetSequenceOperatorRecognition(void);
-   LOCALE struct expr                   *GroupActions(char *,struct token *,int,char *,int);
-#if (! RUN_TIME)
-   LOCALE int                     CheckExpressionAgainstRestrictions(struct expr *,char *,char *);
+#if ENVIRONMENT_API_ONLY
+#define GetSequenceOperatorRecognition(theEnv) EnvGetSequenceOperatorRecognition(theEnv)
+#define SetSequenceOperatorRecognition(theEnv,a) EnvSetSequenceOperatorRecognition(theEnv,a)
+#else
+#define GetSequenceOperatorRecognition() EnvGetSequenceOperatorRecognition(GetCurrentEnvironment())
+#define SetSequenceOperatorRecognition(a) EnvSetSequenceOperatorRecognition(GetCurrentEnvironment(),a)
 #endif
 
-#ifndef _EXPRNPSR_SOURCE_
+   LOCALE struct expr                   *Function0Parse(void *,char *);
+   LOCALE struct expr                   *Function1Parse(void *,char *);
+   LOCALE struct expr                   *Function2Parse(void *,char *,char *);
+   LOCALE void                           PushRtnBrkContexts(void *);
+   LOCALE void                           PopRtnBrkContexts(void *);
+   LOCALE intBool                        ReplaceSequenceExpansionOps(void *,struct expr *,struct expr *,
+                                                                     void *,void *);
+   LOCALE struct expr                   *CollectArguments(void *,struct expr *,char *);
+   LOCALE struct expr                   *ArgumentParse(void *,char *,int *);
+   LOCALE struct expr                   *ParseAtomOrExpression(void *,char *,struct token *);
+   LOCALE EXPRESSION                    *ParseConstantArguments(void *,char *,int *);
+   LOCALE intBool                        EnvSetSequenceOperatorRecognition(void *,int);
+   LOCALE intBool                        EnvGetSequenceOperatorRecognition(void *);
+   LOCALE struct expr                   *GroupActions(void *,char *,struct token *,int,char *,int);
+   LOCALE struct expr                   *RemoveUnneededProgn(void *,struct expr *);
 #if (! RUN_TIME)
-extern SAVED_CONTEXTS *svContexts;
-extern int ReturnContext,BreakContext;
-#endif
-extern int SequenceOpMode;
+   LOCALE int                     CheckExpressionAgainstRestrictions(void *,struct expr *,char *,char *);
 #endif
 
 #endif

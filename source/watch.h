@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/watch.h,v 1.3 2001/08/11 21:08:24 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                  WATCH HEADER FILE                  */
    /*******************************************************/
@@ -19,10 +17,37 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Added EnvSetWatchItem function.                */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_watch
 #define _H_watch
+
+#ifndef _H_expressn
+#include "expressn.h"
+#endif
+
+#define WATCH_DATA 54
+
+struct watchItem
+  {
+   char *name;
+   unsigned *flag;
+   int code,priority;
+   unsigned (*accessFunc)(void *,int,unsigned,struct expr *);
+   unsigned (*printFunc)(void *,char *,int,struct expr *);
+   struct watchItem *next;
+  };
+
+struct watchData
+  { 
+   struct watchItem *ListOfWatchItems;
+  };
+
+#define WatchData(theEnv) ((struct watchData *) GetEnvironmentData(theEnv,WATCH_DATA))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -34,27 +59,35 @@
 #define LOCALE extern
 #endif
 
-#ifndef _H_expressn
-#include "expressn.h"
+#if ENVIRONMENT_API_ONLY
+#define GetWatchItem(theEnv,a) EnvGetWatchItem(theEnv,a)
+#define SetWatchItem(theEnv,a,b) EnvSetWatchItem(theEnv,a,b)
+#define Watch(theEnv,a) EnvWatch(theEnv,a)
+#define Unwatch(theEnv,a) EnvUnwatch(theEnv,a)
+#else
+#define GetWatchItem(a) EnvGetWatchItem(GetCurrentEnvironment(),a)
+#define SetWatchItem(a,b) EnvSetWatchItem(GetCurrentEnvironment(),a,b)
+#define Watch(a) EnvWatch(GetCurrentEnvironment(),a)
+#define Unwatch(a) EnvUnwatch(GetCurrentEnvironment(),a)
 #endif
 
-   LOCALE BOOLEAN                        SetWatchItem(char *,int,struct expr *);
-   LOCALE int                            GetWatchItem(char *);
-   LOCALE BOOLEAN                        AddWatchItem(char *,int,int *,int,
-                                                      BOOLEAN (*)(int,int,struct expr *),
-                                                      BOOLEAN (*)(char *,int,struct expr *));
-   LOCALE char                          *GetNthWatchName(int);
-   LOCALE int                            GetNthWatchValue(int);
-   LOCALE void                           WatchCommand(void);
-   LOCALE void                           UnwatchCommand(void);
-   LOCALE void                           ListWatchItemsCommand(void);
-   LOCALE void                           WatchFunctionDefinitions(void);
-   LOCALE BOOLEAN                        Watch(char *);
-   LOCALE BOOLEAN                        Unwatch(char *);
-   LOCALE int                            GetWatchItemCommand(void);
+   LOCALE void                           InitializeWatchData(void *);   
+   LOCALE int                            EnvSetWatchItem(void *,char *,unsigned,struct expr *);
+   LOCALE int                            EnvGetWatchItem(void *,char *);
+   LOCALE intBool                        AddWatchItem(void *,char *,int,unsigned *,int,
+                                                      unsigned (*)(void *,int,unsigned,struct expr *),
+                                                      unsigned (*)(void *,char *,int,struct expr *));
+   LOCALE char                          *GetNthWatchName(void *,int);
+   LOCALE int                            GetNthWatchValue(void *,int);
+   LOCALE void                           WatchCommand(void *);
+   LOCALE void                           UnwatchCommand(void *);
+   LOCALE void                           ListWatchItemsCommand(void *);
+   LOCALE void                           WatchFunctionDefinitions(void *);
+   LOCALE intBool                        EnvWatch(void *,char *);
+   LOCALE intBool                        EnvUnwatch(void *,char *);
+   LOCALE int                            GetWatchItemCommand(void *);
 
 #endif
-
 
 
 

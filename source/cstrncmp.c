@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrncmp.c,v 1.3 2001/08/11 21:04:40 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  07/01/05            */
    /*                                                     */
    /*          CONSTRAINT CONSTRUCTS-TO-C MODULE          */
    /*******************************************************/
@@ -20,6 +18,10 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrncmp.c,v 1.3 2001/08/1
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Added allowed-classes slot facet.              */
+/*                                                           */
+/*            Added environment parameter to GenClose.       */
+/*                                                           */
 /*************************************************************/
 
 #define _CSTRNCMP_SOURCE_
@@ -29,9 +31,12 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrncmp.c,v 1.3 2001/08/1
 #if CONSTRUCT_COMPILER && (! RUN_TIME)
 
 #include "constant.h"
+
+#include "conscomp.h"
+#include "envrnmnt.h"
 #include "memalloc.h"
 #include "router.h"
-#include "conscomp.h"
+#include "sysdep.h"
 
 #include "cstrncmp.h"
 
@@ -41,6 +46,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrncmp.c,v 1.3 2001/08/1
 /*   using the constructs-to-c function.       */
 /***********************************************/
 globle int ConstraintsToCode(
+  void *theEnv,
   char *fileName,
   int fileID,
   FILE *headerFP,
@@ -65,15 +71,17 @@ globle int ConstraintsToCode(
 
    for (i = 0 ; i < SIZE_CONSTRAINT_HASH; i++)
      {
-      for (tmpPtr = ConstraintHashtable[i];
+      for (tmpPtr = ConstraintData(theEnv)->ConstraintHashtable[i];
            tmpPtr != NULL;
            tmpPtr = tmpPtr->next)
-        { tmpPtr->bsaveIndex = numberOfConstraints++;
+        { 
+         tmpPtr->bsaveIndex = numberOfConstraints++;
 #if FUZZY_DEFTEMPLATES
          if (tmpPtr->fuzzyValuesAllowed)
             numberOfFuzzyValueConstraints++;
 #endif
-	 }
+
+        }
      }
 
    /*=====================================================*/
@@ -82,7 +90,7 @@ globle int ConstraintsToCode(
    /* which could be saved, then issue a warning message. */
    /*=====================================================*/
 
-   if ((! GetDynamicConstraintChecking()) && (numberOfConstraints != 0))
+   if ((! EnvGetDynamicConstraintChecking(theEnv)) && (numberOfConstraints != 0))
      {
 #if FUZZY_DEFTEMPLATES
       int theIndex = 0;
@@ -91,7 +99,7 @@ globle int ConstraintsToCode(
       saveOnlyFuzzyValueConstraints = TRUE;
       for (i = 0 ; i < SIZE_CONSTRAINT_HASH; i++)
         {
-         tmpPtr = ConstraintHashtable[i];
+         tmpPtr = ConstraintData(theEnv)->ConstraintHashtable[i];
          while (tmpPtr != NULL)
            {
             if (tmpPtr->fuzzyValuesAllowed)
@@ -104,11 +112,11 @@ globle int ConstraintsToCode(
 #else
       numberOfConstraints = 0;
 #endif
-      PrintWarningID("CSTRNCMP",1,FALSE);
-      PrintRouter(WWARNING,"Constraints are not saved with a constructs-to-c image\n");
-      PrintRouter(WWARNING,"  when dynamic constraint checking is disabled.\n");
+      PrintWarningID(theEnv,"CSTRNCMP",1,FALSE);
+      EnvPrintRouter(theEnv,WWARNING,"Constraints are not saved with a constructs-to-c image\n");
+      EnvPrintRouter(theEnv,WWARNING,"  when dynamic constraint checking is disabled.\n");
 #if FUZZY_DEFTEMPLATES
-      PrintRouter(WWARNING,"  (except Fuzzy Value constraints are always saved)\n");
+      EnvPrintRouter(theEnv,WWARNING,"  (except Fuzzy Value constraints are always saved)\n");
 #endif
      }
 
@@ -118,14 +126,14 @@ globle int ConstraintsToCode(
    /* Print the extern definition in the header file. */
    /*=================================================*/
 
-   for (i = 1; i <= ((int)numberOfConstraints / maxIndices) + 1 ; i++)
+   for (i = 1; i <= (numberOfConstraints / maxIndices) + 1 ; i++)
      { fprintf(headerFP,"extern CONSTRAINT_RECORD C%d_%d[];\n",imageID,i); }
 
    /*==================*/
    /* Create the file. */
    /*==================*/
 
-   if ((fp = NewCFile(fileName,fileID,version,FALSE)) == NULL) return(-1);
+   if ((fp = NewCFile(theEnv,fileName,fileID,version,FALSE)) == NULL) return(-1);
 
    /*===================*/
    /* List the entries. */
@@ -136,7 +144,7 @@ globle int ConstraintsToCode(
 
    for (i = 0; i < SIZE_CONSTRAINT_HASH; i++)
      {
-      for (tmpPtr = ConstraintHashtable[i];
+      for (tmpPtr = ConstraintData(theEnv)->ConstraintHashtable[i];
            tmpPtr != NULL;
            tmpPtr = tmpPtr->next)
         {
@@ -153,7 +161,7 @@ globle int ConstraintsToCode(
            }
 
 #if FUZZY_DEFTEMPLATES
-         fprintf(fp,"{%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
+         fprintf(fp,"{%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
                  tmpPtr->anyAllowed,
                  tmpPtr->symbolsAllowed,
                  tmpPtr->stringsAllowed,
@@ -164,13 +172,14 @@ globle int ConstraintsToCode(
                  tmpPtr->externalAddressesAllowed,
                  tmpPtr->factAddressesAllowed,
                  tmpPtr->fuzzyValuesAllowed,
-                 0, /* void allowed */
                  tmpPtr->fuzzyValueRestriction,
+                 0, /* void allowed */
                  tmpPtr->anyRestriction,
                  tmpPtr->symbolRestriction,
                  tmpPtr->stringRestriction,
                  tmpPtr->floatRestriction,
                  tmpPtr->integerRestriction,
+                 tmpPtr->classRestriction,
                  tmpPtr->instanceNameRestriction);
 
 /* Due to some restriction in the MicroSoft C compiler, it was
@@ -181,7 +190,7 @@ globle int ConstraintsToCode(
                  tmpPtr->singlefieldsAllowed);
 #else
 
-         fprintf(fp,"{%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+         fprintf(fp,"{%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
                  tmpPtr->anyAllowed,
                  tmpPtr->symbolsAllowed,
                  tmpPtr->stringsAllowed,
@@ -197,23 +206,25 @@ globle int ConstraintsToCode(
                  tmpPtr->stringRestriction,
                  tmpPtr->floatRestriction,
                  tmpPtr->integerRestriction,
+                 tmpPtr->classRestriction,
                  tmpPtr->instanceNameRestriction,
                  tmpPtr->multifieldsAllowed,
                  tmpPtr->singlefieldsAllowed);
-
 #endif
 
          fprintf(fp,",0,"); /* bsaveIndex */
 
-         PrintHashedExpressionReference(fp,tmpPtr->restrictionList,imageID,maxIndices);
+         PrintHashedExpressionReference(theEnv,fp,tmpPtr->classList,imageID,maxIndices);
          fprintf(fp,",");
-         PrintHashedExpressionReference(fp,tmpPtr->minValue,imageID,maxIndices);
+         PrintHashedExpressionReference(theEnv,fp,tmpPtr->restrictionList,imageID,maxIndices);
          fprintf(fp,",");
-         PrintHashedExpressionReference(fp,tmpPtr->maxValue,imageID,maxIndices);
+         PrintHashedExpressionReference(theEnv,fp,tmpPtr->minValue,imageID,maxIndices);
          fprintf(fp,",");
-         PrintHashedExpressionReference(fp,tmpPtr->minFields,imageID,maxIndices);
+         PrintHashedExpressionReference(theEnv,fp,tmpPtr->maxValue,imageID,maxIndices);
          fprintf(fp,",");
-         PrintHashedExpressionReference(fp,tmpPtr->maxFields,imageID,maxIndices);
+         PrintHashedExpressionReference(theEnv,fp,tmpPtr->minFields,imageID,maxIndices);
+         fprintf(fp,",");
+         PrintHashedExpressionReference(theEnv,fp,tmpPtr->maxFields,imageID,maxIndices);
 
          /* multifield slot */
 
@@ -239,22 +250,23 @@ globle int ConstraintsToCode(
          if ((count == numberOfConstraints) || (j >= maxIndices))
            {
             fprintf(fp,"}};\n");
-            fclose(fp);
+            GenClose(theEnv,fp);
             j = 0;
             version++;
             arrayVersion++;
-            if (count < (int)numberOfConstraints)
+            if (count < numberOfConstraints)
               {
-               if ((fp = NewCFile(fileName,1,version,FALSE)) == NULL) return(0);
+               if ((fp = NewCFile(theEnv,fileName,1,version,FALSE)) == NULL) return(0);
                newHeader = TRUE;
               }
            }
          else
            { fprintf(fp,"},\n"); }
-
+           
 #if FUZZY_DEFTEMPLATES
            }
 #endif
+
         }
      }
 
@@ -266,6 +278,7 @@ globle int ConstraintsToCode(
 /*   of a constraint record data structure reference.     */
 /**********************************************************/
 globle void PrintConstraintReference(
+  void *theEnv,
   FILE *fp,
   CONSTRAINT_RECORD *cPtr,
   int imageID,
@@ -274,7 +287,7 @@ globle void PrintConstraintReference(
 #if FUZZY_DEFTEMPLATES
    if ((cPtr == NULL) || (cPtr->bsaveIndex == -1L))
 #else
-   if ((cPtr == NULL) || (! GetDynamicConstraintChecking()))
+   if ((cPtr == NULL) || (! EnvGetDynamicConstraintChecking(theEnv)))
 #endif
      { fprintf(fp,"NULL"); }
    else fprintf(fp,"&C%d_%d[%d]",imageID,

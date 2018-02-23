@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/inherpsr.c,v 1.3 2001/08/11 21:06:25 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*             MULTIPLE INHERITANCE PARSER MODULE      */
    /*******************************************************/
@@ -31,6 +29,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/inherpsr.c,v 1.3 2001/08/1
 
 #include "classcom.h"
 #include "classfun.h"
+#include "envrnmnt.h"
 #include "memalloc.h"
 #include "modulutl.h"
 #include "router.h"
@@ -38,14 +37,6 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/inherpsr.c,v 1.3 2001/08/1
 
 #define _INHERPSR_SOURCE_
 #include "inherpsr.h"
-
-extern struct token ObjectParseToken;
-
-/* =========================================
-   *****************************************
-                   CONSTANTS
-   =========================================
-   ***************************************** */
 
 /* =========================================
    *****************************************
@@ -75,23 +66,11 @@ struct successor
    =========================================
    ***************************************** */
 
-static PARTIAL_ORDER *InitializePartialOrderTable(PARTIAL_ORDER *,PACKED_CLASS_LINKS *);
-static void RecordPartialOrders(PARTIAL_ORDER *,DEFCLASS *,PACKED_CLASS_LINKS *,unsigned);
+static PARTIAL_ORDER *InitializePartialOrderTable(void *,PARTIAL_ORDER *,PACKED_CLASS_LINKS *);
+static void RecordPartialOrders(void *,PARTIAL_ORDER *,DEFCLASS *,PACKED_CLASS_LINKS *,unsigned);
 static PARTIAL_ORDER *FindPartialOrder(PARTIAL_ORDER *,DEFCLASS *);
-static void PrintPartialOrderLoop(PARTIAL_ORDER *);
-static void PrintClassLinks(char *,char *,CLASS_LINK *);
-
-/* =========================================
-   *****************************************
-      EXTERNALLY VISIBLE GLOBAL VARIABLES
-   =========================================
-   ***************************************** */
-
-/* =========================================
-   *****************************************
-      INTERNALLY VISIBLE GLOBAL VARIABLES
-   =========================================
-   ***************************************** */
+static void PrintPartialOrderLoop(void *,PARTIAL_ORDER *);
+static void PrintClassLinks(void *,char *,char *,CLASS_LINK *);
 
 /* =========================================
    *****************************************
@@ -133,6 +112,7 @@ static void PrintClassLinks(char *,char *,CLASS_LINK *);
                  This routine allocates the space for the list
  ***************************************************************/
 globle PACKED_CLASS_LINKS *ParseSuperclasses(
+  void *theEnv,
   char *readSource,
   SYMBOL_HN *newClassName)
   {
@@ -140,65 +120,65 @@ globle PACKED_CLASS_LINKS *ParseSuperclasses(
    DEFCLASS *sclass;
    PACKED_CLASS_LINKS *plinks;
 
-   if (GetType(ObjectParseToken) != LPAREN)
+   if (GetType(DefclassData(theEnv)->ObjectParseToken) != LPAREN)
      {
-      SyntaxErrorMessage("defclass inheritance");
+      SyntaxErrorMessage(theEnv,"defclass inheritance");
       return(NULL);
      }
-   GetToken(readSource,&ObjectParseToken);
-   if ((GetType(ObjectParseToken) != SYMBOL) ? TRUE :
-       (ObjectParseToken.value != (void *) ISA_SYMBOL))
+   GetToken(theEnv,readSource,&DefclassData(theEnv)->ObjectParseToken);
+   if ((GetType(DefclassData(theEnv)->ObjectParseToken) != SYMBOL) ? TRUE :
+       (DefclassData(theEnv)->ObjectParseToken.value != (void *) DefclassData(theEnv)->ISA_SYMBOL))
      {
-      SyntaxErrorMessage("defclass inheritance");
+      SyntaxErrorMessage(theEnv,"defclass inheritance");
       return(NULL);
      }
-   SavePPBuffer(" ");
-   GetToken(readSource,&ObjectParseToken);
-   while (GetType(ObjectParseToken) != RPAREN)
+   SavePPBuffer(theEnv," ");
+   GetToken(theEnv,readSource,&DefclassData(theEnv)->ObjectParseToken);
+   while (GetType(DefclassData(theEnv)->ObjectParseToken) != RPAREN)
      {
-      if (GetType(ObjectParseToken) != SYMBOL)
+      if (GetType(DefclassData(theEnv)->ObjectParseToken) != SYMBOL)
         {
-         SyntaxErrorMessage("defclass");
+         SyntaxErrorMessage(theEnv,"defclass");
          goto SuperclassParseError;
         }
       if (FindModuleSeparator(ValueToString(newClassName)))
         {
-         IllegalModuleSpecifierMessage();
+         IllegalModuleSpecifierMessage(theEnv);
          goto SuperclassParseError;
         }
-      if (GetValue(ObjectParseToken) == (void *) newClassName)
+      if (GetValue(DefclassData(theEnv)->ObjectParseToken) == (void *) newClassName)
         {
-         PrintErrorID("INHERPSR",1,FALSE);
-         PrintRouter(WERROR,"A class may not have itself as a superclass.\n");
+         PrintErrorID(theEnv,"INHERPSR",1,FALSE);
+         EnvPrintRouter(theEnv,WERROR,"A class may not have itself as a superclass.\n");
          goto SuperclassParseError;
         }
       for (ctmp = clink ; ctmp != NULL ; ctmp = ctmp->nxt)
         {
-         if (GetValue(ObjectParseToken) == (void *) ctmp->cls->header.name)
+         if (GetValue(DefclassData(theEnv)->ObjectParseToken) == (void *) ctmp->cls->header.name)
            {
-            PrintErrorID("INHERPSR",2,FALSE);
-            PrintRouter(WERROR,"A class may inherit from a superclass only once.\n");
+            PrintErrorID(theEnv,"INHERPSR",2,FALSE);
+            EnvPrintRouter(theEnv,WERROR,"A class may inherit from a superclass only once.\n");
             goto SuperclassParseError;
            }
         }
-      sclass = LookupDefclassInScope(ValueToString(GetValue(ObjectParseToken)));
+      sclass = LookupDefclassInScope(theEnv,ValueToString(GetValue(DefclassData(theEnv)->ObjectParseToken)));
       if (sclass == NULL)
         {
-         PrintErrorID("INHERPSR",3,FALSE);
-         PrintRouter(WERROR,"A class must be defined after all its superclasses.\n");
+         PrintErrorID(theEnv,"INHERPSR",3,FALSE);
+         EnvPrintRouter(theEnv,WERROR,"A class must be defined after all its superclasses.\n");
          goto SuperclassParseError;
         }
-      if ((sclass == PrimitiveClassMap[INSTANCE_NAME]) ||
-          (sclass == PrimitiveClassMap[INSTANCE_ADDRESS]) ||
-          (sclass == PrimitiveClassMap[INSTANCE_NAME]->directSuperclasses.classArray[0]))
+      if ((sclass == DefclassData(theEnv)->PrimitiveClassMap[INSTANCE_NAME]) ||
+          (sclass == DefclassData(theEnv)->PrimitiveClassMap[INSTANCE_ADDRESS]) ||
+          (sclass == DefclassData(theEnv)->PrimitiveClassMap[INSTANCE_NAME]->directSuperclasses.classArray[0]))
         {
-         PrintErrorID("INHERPSR",6,FALSE);
-         PrintRouter(WERROR,"A user-defined class cannot be a subclass of ");
-         PrintRouter(WERROR,GetDefclassName((void *) sclass));
-         PrintRouter(WERROR,".\n");
+         PrintErrorID(theEnv,"INHERPSR",6,FALSE);
+         EnvPrintRouter(theEnv,WERROR,"A user-defined class cannot be a subclass of ");
+         EnvPrintRouter(theEnv,WERROR,EnvGetDefclassName(theEnv,(void *) sclass));
+         EnvPrintRouter(theEnv,WERROR,".\n");
          goto SuperclassParseError;
         }
-      ctmp = get_struct(classLink);
+      ctmp = get_struct(theEnv,classLink);
       ctmp->cls = sclass;
       if (clink == NULL)
         clink = ctmp;
@@ -207,24 +187,24 @@ globle PACKED_CLASS_LINKS *ParseSuperclasses(
       ctmp->nxt = NULL;
       cbot = ctmp;
 
-      SavePPBuffer(" ");
-      GetToken(readSource,&ObjectParseToken);
+      SavePPBuffer(theEnv," ");
+      GetToken(theEnv,readSource,&DefclassData(theEnv)->ObjectParseToken);
      }
    if (clink == NULL)
      {
-      PrintErrorID("INHERPSR",4,FALSE);
-      PrintRouter(WERROR,"Must have at least one superclass.\n");
+      PrintErrorID(theEnv,"INHERPSR",4,FALSE);
+      EnvPrintRouter(theEnv,WERROR,"Must have at least one superclass.\n");
       return(NULL);
      }
-   PPBackup();
-   PPBackup();
-   SavePPBuffer(")");
-   plinks = get_struct(packedClassLinks);
-   PackClassLinks(plinks,clink);
+   PPBackup(theEnv);
+   PPBackup(theEnv);
+   SavePPBuffer(theEnv,")");
+   plinks = get_struct(theEnv,packedClassLinks);
+   PackClassLinks(theEnv,plinks,clink);
    return(plinks);
 
 SuperclassParseError:
-   DeleteClassLinks(clink);
+   DeleteClassLinks(theEnv,clink);
    return(NULL);
   }
 
@@ -326,6 +306,7 @@ SuperclassParseError:
                  Donald Knuth.
  ***************************************************************************/
 globle PACKED_CLASS_LINKS *FindPrecedenceList(
+  void *theEnv,
   DEFCLASS *cls,
   PACKED_CLASS_LINKS *supers)
   {
@@ -339,7 +320,7 @@ globle PACKED_CLASS_LINKS *FindPrecedenceList(
       Recursively add all superclasses in a pre-order depth-first traversal
       to the partial order table.  There should be only one node per class.
       ===================================================================== */
-   po_table = InitializePartialOrderTable(po_table,supers);
+   po_table = InitializePartialOrderTable(theEnv,po_table,supers);
 
    /* =============================================================
       If the class already exists, record the rule 1 partial orders
@@ -348,14 +329,14 @@ globle PACKED_CLASS_LINKS *FindPrecedenceList(
       ============================================================= */
    if (cls != NULL)
      {
-      pop = get_struct(partialOrder);
+      pop = get_struct(theEnv,partialOrder);
       pop->cls = cls;
       pop->pre = 0;
       pop->suc = NULL;
       pop->nxt = po_table;
       po_table = pop;
       pop = po_table->nxt;
-      RecordPartialOrders(po_table,cls,supers,0);
+      RecordPartialOrders(theEnv,po_table,cls,supers,0);
      }
    else
      pop = po_table;
@@ -370,9 +351,9 @@ globle PACKED_CLASS_LINKS *FindPrecedenceList(
       ================================================================== */
    for ( ; pop != NULL ; pop = pop->nxt)
      {
-      RecordPartialOrders(po_table,pop->cls,&pop->cls->directSuperclasses,0);
+      RecordPartialOrders(theEnv,po_table,pop->cls,&pop->cls->directSuperclasses,0);
       for (i = 0 ; i < pop->cls->directSuperclasses.classCount ; i++)
-        RecordPartialOrders(po_table,pop->cls->directSuperclasses.classArray[i],
+        RecordPartialOrders(theEnv,po_table,pop->cls->directSuperclasses.classArray[i],
                             &pop->cls->directSuperclasses,i+1);
      }
 
@@ -380,7 +361,7 @@ globle PACKED_CLASS_LINKS *FindPrecedenceList(
       Record the rule 2 partial orders given by the superclass list
       ============================================================= */
    for (i = 0 ; i < supers->classCount ; i++)
-     RecordPartialOrders(po_table,supers->classArray[i],supers,i+1);
+     RecordPartialOrders(theEnv,po_table,supers->classArray[i],supers,i+1);
 
    start = NULL;
    poprv = NULL;
@@ -421,7 +402,7 @@ globle PACKED_CLASS_LINKS *FindPrecedenceList(
             stmp = pop->suc;
             pop->suc = stmp->nxt;
             stmp->po->pre--;
-            rtn_struct(successor,stmp);
+            rtn_struct(theEnv,successor,stmp);
            }
 
          /* =============================================
@@ -435,10 +416,10 @@ globle PACKED_CLASS_LINKS *FindPrecedenceList(
            poprv->nxt = pop->nxt;
          pop = pop->nxt;
          start = poprv;
-         ptmp = get_struct(classLink);
+         ptmp = get_struct(theEnv,classLink);
          ptmp->cls = potmp->cls;
          ptmp->nxt = NULL;
-         rtn_struct(partialOrder,potmp);
+         rtn_struct(theEnv,partialOrder,potmp);
          if (ptop == NULL)
            ptop = ptmp;
          else
@@ -460,22 +441,22 @@ globle PACKED_CLASS_LINKS *FindPrecedenceList(
       ====================================================================== */
    if (po_table != NULL)
      {
-      PrintErrorID("INHERPSR",5,FALSE);
-      PrintClassLinks(WERROR,"Partial precedence list formed:",ptop);
-      PrintPartialOrderLoop(po_table);
+      PrintErrorID(theEnv,"INHERPSR",5,FALSE);
+      PrintClassLinks(theEnv,WERROR,"Partial precedence list formed:",ptop);
+      PrintPartialOrderLoop(theEnv,po_table);
       while (po_table != NULL)
         {
          while (po_table->suc != NULL)
            {
             stmp = po_table->suc;
             po_table->suc = stmp->nxt;
-            rtn_struct(successor,stmp);
+            rtn_struct(theEnv,successor,stmp);
            }
          potmp = po_table;
          po_table = po_table->nxt;
-         rtn_struct(partialOrder,potmp);
+         rtn_struct(theEnv,partialOrder,potmp);
         }
-      DeleteClassLinks(ptop);
+      DeleteClassLinks(theEnv,ptop);
       return(NULL);
      }
 
@@ -490,7 +471,7 @@ globle PACKED_CLASS_LINKS *FindPrecedenceList(
       ============================================================================= */
    if (cls == NULL)
      {
-      ptmp = get_struct(classLink);
+      ptmp = get_struct(theEnv,classLink);
       ptmp->nxt = ptop;
       ptop = ptmp;
      }
@@ -500,8 +481,8 @@ globle PACKED_CLASS_LINKS *FindPrecedenceList(
       ============================================================ */
    ptop->cls = NULL;
 
-   plinks = get_struct(packedClassLinks);
-   PackClassLinks(plinks,ptop);
+   plinks = get_struct(theEnv,packedClassLinks);
+   PackClassLinks(theEnv,plinks,ptop);
    return(plinks);
   }
 
@@ -519,6 +500,7 @@ globle PACKED_CLASS_LINKS *FindPrecedenceList(
   NOTES        : None
  ***************************************************/
 globle void PackClassLinks(
+  void *theEnv,
   PACKED_CLASS_LINKS *plinks,
   CLASS_LINK *lptop)
   {
@@ -528,12 +510,12 @@ globle void PackClassLinks(
    for (count = 0 , lp = lptop ; lp != NULL ; lp = lp->nxt)
      count++;
    if (count > 0)
-     plinks->classArray = (DEFCLASS **) gm2((int) (sizeof(DEFCLASS *) * count));
+     plinks->classArray = (DEFCLASS **) gm2(theEnv,(sizeof(DEFCLASS *) * count));
    else
      plinks->classArray = NULL;
    for (count = 0 , lp = lptop ; lp != NULL ; lp = lp->nxt , count++)
      plinks->classArray[count] = lp->cls;
-   DeleteClassLinks(lptop);
+   DeleteClassLinks(theEnv,lptop);
    plinks->classCount = (unsigned short) count;
   }
 
@@ -560,6 +542,7 @@ globle void PackClassLinks(
   NOTES        : None
  **************************************************************************/
 static PARTIAL_ORDER *InitializePartialOrderTable(
+  void *theEnv,
   PARTIAL_ORDER *po_table,
   PACKED_CLASS_LINKS *supers)
   {
@@ -581,7 +564,7 @@ static PARTIAL_ORDER *InitializePartialOrderTable(
         }
       if (pop == NULL)
         {
-         pop = get_struct(partialOrder);
+         pop = get_struct(theEnv,partialOrder);
          pop->cls = supers->classArray[i];
          pop->nxt = NULL;
          pop->suc = NULL;
@@ -596,7 +579,7 @@ static PARTIAL_ORDER *InitializePartialOrderTable(
             This order will allow us to preserve the "family" heuristic
             in the precedence list.
             ============================================================= */
-         po_table = InitializePartialOrderTable(po_table,
+         po_table = InitializePartialOrderTable(theEnv,po_table,
                      &supers->classArray[i]->directSuperclasses);
         }
      }
@@ -639,6 +622,7 @@ static PARTIAL_ORDER *InitializePartialOrderTable(
   NOTES        : None
  ***********************************************************************************/
 static void RecordPartialOrders(
+  void *theEnv,
   PARTIAL_ORDER *po_table,
   DEFCLASS *cls,
   PACKED_CLASS_LINKS *successors,
@@ -650,7 +634,7 @@ static void RecordPartialOrders(
    clspo = FindPartialOrder(po_table,cls);
    while (starti < successors->classCount)
      {
-      stmp = get_struct(successor);
+      stmp = get_struct(theEnv,successor);
       stmp->po = FindPartialOrder(po_table,successors->classArray[starti]);
       stmp->nxt = clspo->suc;
       clspo->suc = stmp;
@@ -734,6 +718,7 @@ static PARTIAL_ORDER *FindPartialOrder(
                  (Fundamental Algorithms).
  **************************************************************************/
 static void PrintPartialOrderLoop(
+  void *theEnv,
   PARTIAL_ORDER *po_table)
   {
    register PARTIAL_ORDER *pop1,*pop2;
@@ -775,7 +760,7 @@ static void PrintPartialOrderLoop(
          pop2 = FindPartialOrder(po_table,prc->po->cls);
          if (pop2->pre == 0)
            {
-            stmp = get_struct(successor);
+            stmp = get_struct(theEnv,successor);
             stmp->po = pop1;
             stmp->nxt = pop2->suc;
             pop2->suc = stmp;
@@ -783,7 +768,7 @@ static void PrintPartialOrderLoop(
            }
          stmp = prc;
          prc = prc->nxt;
-         rtn_struct(successor,stmp);
+         rtn_struct(theEnv,successor,stmp);
         }
      }
 
@@ -809,16 +794,16 @@ static void PrintPartialOrderLoop(
       pop1 = pop1->suc->po;
      }
 
-   PrintRouter(WERROR,"Precedence loop in superclasses:");
+   EnvPrintRouter(theEnv,WERROR,"Precedence loop in superclasses:");
    while (pop1->pre == 1)
      {
-      PrintRouter(WERROR," ");
-      PrintClassName(WERROR,pop1->cls,FALSE);
+      EnvPrintRouter(theEnv,WERROR," ");
+      PrintClassName(theEnv,WERROR,pop1->cls,FALSE);
       pop1->pre = 0;
       pop1 = pop1->suc->po;
      }
-   PrintRouter(WERROR," ");
-   PrintClassName(WERROR,pop1->cls,TRUE);
+   EnvPrintRouter(theEnv,WERROR," ");
+   PrintClassName(theEnv,WERROR,pop1->cls,TRUE);
   }
 
 /***************************************************
@@ -833,28 +818,21 @@ static void PrintPartialOrderLoop(
   NOTES        : None
  ***************************************************/
 static void PrintClassLinks(
+  void *theEnv,
   char *logicalName,
   char *title,
   CLASS_LINK *clink)
   {
    if (title != NULL)
-     PrintRouter(logicalName,title);
+     EnvPrintRouter(theEnv,logicalName,title);
    while (clink != NULL)
      {
-      PrintRouter(logicalName," ");
-      PrintClassName(logicalName,clink->cls,FALSE);
+      EnvPrintRouter(theEnv,logicalName," ");
+      PrintClassName(theEnv,logicalName,clink->cls,FALSE);
       clink = clink->nxt;
      }
-   PrintRouter(logicalName,"\n");
+   EnvPrintRouter(theEnv,logicalName,"\n");
   }
 
 #endif
 
-/***************************************************
-  NAME         :
-  DESCRIPTION  :
-  INPUTS       :
-  RETURNS      :
-  SIDE EFFECTS :
-  NOTES        :
- ***************************************************/

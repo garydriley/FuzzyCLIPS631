@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/factprt.h,v 1.3 2001/08/11 21:05:44 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*         FACT RETE PRINT FUNCTIONS HEADER FILE       */
    /*******************************************************/
@@ -34,27 +32,22 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           PrintFactJNCompVars1(char *,void *);
-   LOCALE void                           PrintFactJNCompVars2(char *,void *);
-   LOCALE void                           PrintFactPNCompVars1(char *,void *);
-   LOCALE void                           PrintFactJNGetVar1(char *,void *);
-   LOCALE void                           PrintFactJNGetVar2(char *,void *);
-   LOCALE void                           PrintFactJNGetVar3(char *,void *);
-   LOCALE void                           PrintFactPNGetVar1(char *,void *);
-   LOCALE void                           PrintFactPNGetVar2(char *,void *);
-   LOCALE void                           PrintFactPNGetVar3(char *,void *);
-   LOCALE void                           PrintFactSlotLength(char *,void *);
-   LOCALE void                           PrintFactPNConstant1(char *,void *);
-   LOCALE void                           PrintFactPNConstant2(char *,void *);
+   LOCALE void                           PrintFactJNCompVars1(void *,char *,void *);
+   LOCALE void                           PrintFactJNCompVars2(void *,char *,void *);
+   LOCALE void                           PrintFactPNCompVars1(void *,char *,void *);
+   LOCALE void                           PrintFactJNGetVar1(void *,char *,void *);
+   LOCALE void                           PrintFactJNGetVar2(void *,char *,void *);
+   LOCALE void                           PrintFactJNGetVar3(void *,char *,void *);
+   LOCALE void                           PrintFactPNGetVar1(void *,char *,void *);
+   LOCALE void                           PrintFactPNGetVar2(void *,char *,void *);
+   LOCALE void                           PrintFactPNGetVar3(void *,char *,void *);
+   LOCALE void                           PrintFactSlotLength(void *,char *,void *);
+   LOCALE void                           PrintFactPNConstant1(void *,char *,void *);
+   LOCALE void                           PrintFactPNConstant2(void *,char *,void *);
 #if FUZZY_DEFTEMPLATES
-   LOCALE void                           PrintPNFUZZY_VALUE(char *,void *);
+   LOCALE void                           PrintPNFUZZY_VALUE(void *,char *,void *);
 #endif
 
-
 #endif
-
-
-
-
 
 

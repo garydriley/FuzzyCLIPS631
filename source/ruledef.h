@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/ruledef.h,v 1.3 2001/08/11 21:07:47 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                 DEFRULE HEADER FILE                 */
    /*******************************************************/
@@ -21,6 +19,11 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Removed DYNAMIC_SALIENCE and                   */
+/*            LOGICAL_DEPENDENCIES compilation flags.        */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_ruledef
@@ -31,6 +34,9 @@
 struct defrule;
 struct defruleModule;
 
+#ifndef _H_conscomp
+#include "conscomp.h"
+#endif
 #ifndef _H_symbol
 #include "symbol.h"
 #endif
@@ -79,7 +85,6 @@ struct fzSlotLocator
 
 #endif
 
-
 struct defrule
   {
    struct constructHeader header;
@@ -91,13 +96,9 @@ struct defrule
    unsigned int watchFiring     :  1;
    unsigned int autoFocus       :  1;
    unsigned int executing       :  1;
-#if DYNAMIC_SALIENCE
    struct expr *dynamicSalience;
-#endif
    struct expr *actions;
-#if LOGICAL_DEPENDENCIES
    struct joinNode *logicalJoin;
-#endif
    struct joinNode *lastJoin;
    struct defrule *disjunct;
 #if CERTAINTY_FACTORS     /* added 03-12-96 */
@@ -118,9 +119,30 @@ struct defruleModule
    struct activation *agenda;
   };
 
-#define GetDefruleName(x) GetConstructNameString((struct constructHeader *) x)
-#define GetDefrulePPForm(x) GetConstructPPForm((struct constructHeader *) x)
-#define DefruleModule(x) GetConstructModuleName((struct constructHeader *) x)
+#define DEFRULE_DATA 16
+
+struct defruleData
+  { 
+   struct construct *DefruleConstruct;
+   int DefruleModuleIndex;
+   long CurrentEntityTimeTag;
+#if DEBUGGING_FUNCTIONS
+    unsigned WatchRules;
+    int DeletedRuleDebugFlags;
+#endif
+#if DEVELOPER && (! RUN_TIME) && (! BLOAD_ONLY)
+    unsigned WatchRuleAnalysis;
+#endif
+#if CONSTRUCT_COMPILER && (! RUN_TIME)
+   struct CodeGeneratorItem *DefruleCodeItem;
+#endif
+  };
+
+#define EnvGetDefruleName(theEnv,x) GetConstructNameString((struct constructHeader *) x)
+#define EnvGetDefrulePPForm(theEnv,x) GetConstructPPForm(theEnv,(struct constructHeader *) x)
+#define EnvDefruleModule(theEnv,x) GetConstructModuleName((struct constructHeader *) x)
+
+#define DefruleData(theEnv) ((struct defruleData *) GetEnvironmentData(theEnv,DEFRULE_DATA))
 
 #define GetPreviousJoin(theJoin) \
    (((theJoin)->joinFromTheRight) ? \
@@ -141,17 +163,27 @@ struct defruleModule
 #define LOCALE extern
 #endif
 
-   LOCALE void                           InitializeDefrules(void);
-   LOCALE void                          *FindDefrule(char *);
-   LOCALE void                          *GetNextDefrule(void *);
-   LOCALE struct defruleModule          *GetDefruleModuleItem(struct defmodule *);
-   LOCALE BOOLEAN                        IsDefruleDeletable(void *);
-
-#ifndef _RULEDEF_SOURCE_
-   extern struct construct              *DefruleConstruct;
-   extern int                            DefruleModuleIndex;
-   extern long                           CurrentEntityTimeTag;
+#if ENVIRONMENT_API_ONLY
+#define DefruleModule(theEnv,x) GetConstructModuleName((struct constructHeader *) x)
+#define FindDefrule(theEnv,a) EnvFindDefrule(theEnv,a)
+#define GetDefruleName(theEnv,x) GetConstructNameString((struct constructHeader *) x)
+#define GetDefrulePPForm(theEnv,x) GetConstructPPForm(theEnv,(struct constructHeader *) x)
+#define GetNextDefrule(theEnv,a) EnvGetNextDefrule(theEnv,a)
+#define IsDefruleDeletable(theEnv,a) EnvIsDefruleDeletable(theEnv,a)
+#else
+#define DefruleModule(x) GetConstructModuleName((struct constructHeader *) x)
+#define FindDefrule(a) EnvFindDefrule(GetCurrentEnvironment(),a)
+#define GetDefruleName(x) GetConstructNameString((struct constructHeader *) x)
+#define GetDefrulePPForm(x) GetConstructPPForm(GetCurrentEnvironment(),(struct constructHeader *) x)
+#define GetNextDefrule(a) EnvGetNextDefrule(GetCurrentEnvironment(),a)
+#define IsDefruleDeletable(a) EnvIsDefruleDeletable(GetCurrentEnvironment(),a)
 #endif
+
+   LOCALE void                           InitializeDefrules(void *);
+   LOCALE void                          *EnvFindDefrule(void *,char *);
+   LOCALE void                          *EnvGetNextDefrule(void *,void *);
+   LOCALE struct defruleModule          *GetDefruleModuleItem(void *,struct defmodule *);
+   LOCALE intBool                        EnvIsDefruleDeletable(void *,void *);
 
 #endif
 

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/genrcfun.h,v 1.3 2001/08/11 21:06:10 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.24  06/05/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -18,13 +16,12 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_genrcfun
 #define _H_genrcfun
-
-#define SaveBusyCount(gfunc)    (OldGenericBusySave = gfunc->busy)
-#define RestoreBusyCount(gfunc) (gfunc->busy = OldGenericBusySave)
 
 typedef struct defgenericModule DEFGENERIC_MODULE;
 typedef struct restriction RESTRICTION;
@@ -36,6 +33,9 @@ typedef struct defgeneric DEFGENERIC;
 #include <stdio.h>
 #endif
 
+#ifndef _H_conscomp
+#include "conscomp.h"
+#endif
 #ifndef _H_constrct
 #include "constrct.h"
 #endif
@@ -92,6 +92,35 @@ struct defgeneric
    unsigned mcnt,new_index;
   };
 
+#define DEFGENERIC_DATA 27
+
+struct defgenericData
+  { 
+   struct construct *DefgenericConstruct;
+   int DefgenericModuleIndex;
+   ENTITY_RECORD GenericEntityRecord;
+#if DEBUGGING_FUNCTIONS
+   unsigned WatchGenerics;
+   unsigned WatchMethods;
+#endif
+   DEFGENERIC *CurrentGeneric;
+   DEFMETHOD *CurrentMethod;
+   DATA_OBJECT *GenericCurrentArgument;
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+   unsigned OldGenericBusySave;
+#endif
+#if CONSTRUCT_COMPILER && (! RUN_TIME)
+   struct CodeGeneratorItem *DefgenericCodeItem;
+#endif
+#if (! BLOAD_ONLY) && (! RUN_TIME)
+   struct token GenericInputToken;
+#endif
+  };
+
+#define DefgenericData(theEnv) ((struct defgenericData *) GetEnvironmentData(theEnv,DEFGENERIC_DATA))
+#define SaveBusyCount(gfunc)    (DefgenericData(theEnv)->OldGenericBusySave = gfunc->busy)
+#define RestoreBusyCount(gfunc) (gfunc->busy = DefgenericData(theEnv)->OldGenericBusySave)
+
 #ifdef LOCALE
 #undef LOCALE
 #endif
@@ -103,53 +132,39 @@ struct defgeneric
 #endif
 
 #if ! RUN_TIME
-LOCALE BOOLEAN ClearDefgenericsReady(void);
-LOCALE void *AllocateDefgenericModule(void);
-LOCALE void FreeDefgenericModule(void *);
+LOCALE intBool ClearDefgenericsReady(void *);
+LOCALE void *AllocateDefgenericModule(void *);
+LOCALE void FreeDefgenericModule(void *,void *);
 #endif
 
 #if (! BLOAD_ONLY) && (! RUN_TIME)
 
-LOCALE int ClearDefmethods(void);
-LOCALE int RemoveAllExplicitMethods(DEFGENERIC *);
-LOCALE void RemoveDefgeneric(void *);
-LOCALE int ClearDefgenerics(void);
-LOCALE void MethodAlterError(DEFGENERIC *);
-LOCALE void DeleteMethodInfo(DEFGENERIC *,DEFMETHOD *);
+LOCALE int ClearDefmethods(void *);
+LOCALE int RemoveAllExplicitMethods(void *,DEFGENERIC *);
+LOCALE void RemoveDefgeneric(void *,void *);
+LOCALE int ClearDefgenerics(void *);
+LOCALE void MethodAlterError(void *,DEFGENERIC *);
+LOCALE void DeleteMethodInfo(void *,DEFGENERIC *,DEFMETHOD *);
+LOCALE void DestroyMethodInfo(void *,DEFGENERIC *,DEFMETHOD *);
 LOCALE int MethodsExecuting(DEFGENERIC *);
-#if ! OBJECT_SYSTEM
-LOCALE BOOLEAN SubsumeType(int,int);
 #endif
+#if ! OBJECT_SYSTEM
+LOCALE intBool SubsumeType(int,int);
 #endif
 
 LOCALE int FindMethodByIndex(DEFGENERIC *,unsigned);
 #if DEBUGGING_FUNCTIONS
-LOCALE void PreviewGeneric(void);
-LOCALE void PrintMethod(char *,int,DEFMETHOD *);
+LOCALE void PreviewGeneric(void *);
+LOCALE void PrintMethod(void *,char *,int,DEFMETHOD *);
 #endif
-LOCALE DEFGENERIC *CheckGenericExists(char *,char *);
-LOCALE int CheckMethodExists(char *,DEFGENERIC *,int);
+LOCALE DEFGENERIC *CheckGenericExists(void *,char *,char *);
+LOCALE int CheckMethodExists(void *,char *,DEFGENERIC *,int);
 
 #if ! OBJECT_SYSTEM
-LOCALE char *TypeName(int);
+LOCALE char *TypeName(void *,int);
 #endif
 
-LOCALE void PrintGenericName(char *,DEFGENERIC *);
-
-#ifndef _GENRCFUN_SOURCE_
-extern DEFGENERIC *CurrentGeneric;
-extern DEFMETHOD *CurrentMethod;
-extern DATA_OBJECT *GenericCurrentArgument;
-
-#if DEBUGGING_FUNCTIONS
-extern int WatchGenerics,WatchMethods;
-#endif
-
-#if (! RUN_TIME) && (! BLOAD_ONLY)
-extern int OldGenericBusySave;
-#endif
-
-#endif
+LOCALE void PrintGenericName(void *,char *,DEFGENERIC *);
 
 #endif
 

@@ -1,11 +1,9 @@
-/*  $Header: /dist/CVS/fzclips/src/insmngr.h,v 1.3 2001/08/11 21:06:32 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.24  05/17/06          */
    /*                                                     */
-   /*                                                     */
+   /*            INSTANCE PRIMITIVE SUPPORT MODULE        */
    /*******************************************************/
 
 /*************************************************************/
@@ -17,6 +15,11 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Converted INSTANCE_PATTERN_MATCHING to         */
+/*            DEFRULE_CONSTRUCT.                             */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -37,21 +40,16 @@
 #define LOCALE extern
 #endif
 
-LOCALE void InitializeInstanceCommand(DATA_OBJECT *);
-LOCALE void MakeInstanceCommand(DATA_OBJECT *);
-LOCALE SYMBOL_HN *GetFullInstanceName(INSTANCE_TYPE *);
-LOCALE INSTANCE_TYPE *BuildInstance(SYMBOL_HN *,DEFCLASS *,BOOLEAN);
-LOCALE void InitSlotsCommand(DATA_OBJECT *);
-LOCALE BOOLEAN QuashInstance(INSTANCE_TYPE *);
+LOCALE void InitializeInstanceCommand(void *,DATA_OBJECT *);
+LOCALE void MakeInstanceCommand(void *,DATA_OBJECT *);
+LOCALE SYMBOL_HN *GetFullInstanceName(void *,INSTANCE_TYPE *);
+LOCALE INSTANCE_TYPE *BuildInstance(void *,SYMBOL_HN *,DEFCLASS *,intBool);
+LOCALE void InitSlotsCommand(void *,DATA_OBJECT *);
+LOCALE intBool QuashInstance(void *,INSTANCE_TYPE *);
 
-#if INSTANCE_PATTERN_MATCHING
-LOCALE void InactiveInitializeInstance(DATA_OBJECT *);
-LOCALE void InactiveMakeInstance(DATA_OBJECT *);
-#endif
-
-#ifndef _INSMNGR_SOURCE_
-extern INSTANCE_TYPE *InstanceList;
-extern unsigned long GlobalNumberOfInstances;
+#if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
+LOCALE void InactiveInitializeInstance(void *,DATA_OBJECT *);
+LOCALE void InactiveMakeInstance(void *,DATA_OBJECT *);
 #endif
 
 #endif

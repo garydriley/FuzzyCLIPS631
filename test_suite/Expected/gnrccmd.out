@@ -1,0 +1,55 @@
+TRUE
+FuzzyCLIPS> (batch "gnrccmd.bat")
+TRUE
+FuzzyCLIPS> (defclass CAR (is-a USER) (role concrete))
+FuzzyCLIPS> (make-instance Rolls-Royce of CAR)
+[Rolls-Royce]
+FuzzyCLIPS> (type Rolls-Royce)
+SYMBOL
+FuzzyCLIPS> (type [Rolls-Royce])
+CAR
+FuzzyCLIPS> (type (+ 2 2))
+INTEGER
+FuzzyCLIPS> (defgeneric describe)
+FuzzyCLIPS> (defmethod describe ((?a INTEGER))
+  (if (next-methodp) then
+     (bind ?extension (str-cat " " (call-next-method)))
+   else
+     (bind ?extension ""))
+   (str-cat "INTEGER" ?extension))
+FuzzyCLIPS> (describe 3)
+"INTEGER"
+FuzzyCLIPS> (defmethod describe ((?a NUMBER))
+   "NUMBER")
+FuzzyCLIPS> (describe 3)
+"INTEGER NUMBER"
+FuzzyCLIPS> (describe 3.0)
+"NUMBER"
+FuzzyCLIPS> (ppdefgeneric describe)
+(defgeneric MAIN::describe)
+FuzzyCLIPS> (ppdefmethod describe 2)
+(defmethod MAIN::describe
+   ((?a NUMBER))
+   "NUMBER")
+FuzzyCLIPS> (preview-generic describe 34)
+describe #1  (INTEGER)
+describe #2  (NUMBER)
+FuzzyCLIPS> (preview-generic describe 34.0)
+describe #2  (NUMBER)
+FuzzyCLIPS> (list-defgenerics)
+describe
+For a total of 1 defgeneric.
+FuzzyCLIPS> (list-defmethods)
+describe #1  (INTEGER)
+describe #2  (NUMBER)
+For a total of 2 methods.
+FuzzyCLIPS> (undefgeneric *)
+FuzzyCLIPS> (list-defgenerics)
+FuzzyCLIPS> (list-defmethods)
+FuzzyCLIPS> (call-next-method 0)
+[ARGACCES4] Function call-next-method expected exactly 0 argument(s)
+FuzzyCLIPS> (next-methodp 0)
+[ARGACCES4] Function next-methodp expected exactly 0 argument(s)
+FuzzyCLIPS> (preview-generic)
+[ARGACCES4] Function preview-generic expected at least 1 argument(s)
+FuzzyCLIPS> (dribble-off)

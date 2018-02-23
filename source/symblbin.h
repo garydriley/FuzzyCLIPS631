@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/symblbin.h,v 1.3 2001/08/11 21:08:02 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*           SYMBOL BINARY SAVE HEADER FILE            */
    /*******************************************************/
@@ -44,35 +42,27 @@
 #define LOCALE extern
 #endif
 
-#define BitMapPointer(i) ((BITMAP_HN *) (BitMapArray[i]))
-#define SymbolPointer(i) ((SYMBOL_HN *) (SymbolArray[i]))
-#define FloatPointer(i) ((FLOAT_HN *) (FloatArray[i]))
+#define BitMapPointer(i) ((BITMAP_HN *) (SymbolData(theEnv)->BitMapArray[i]))
+#define SymbolPointer(i) ((SYMBOL_HN *) (SymbolData(theEnv)->SymbolArray[i]))
+#define FloatPointer(i) ((FLOAT_HN *) (SymbolData(theEnv)->FloatArray[i]))
+#define IntegerPointer(i) ((INTEGER_HN *) (SymbolData(theEnv)->IntegerArray[i]))
 #if FUZZY_DEFTEMPLATES  
-#define FuzzyValuePointer(i) ((FUZZY_VALUE_HN *) (FuzzyValueArray[i]))
+#define FuzzyValuePointer(i) ((FUZZY_VALUE_HN *) (SymbolData(theEnv)->FuzzyValueArray[i]))
 #endif
-#define IntegerPointer(i) ((INTEGER_HN *) (IntegerArray[i]))
 
    LOCALE void                    MarkNeededAtomicValues(void);
-   LOCALE void                    WriteNeededAtomicValues(FILE *);
-   LOCALE void                    ReadNeededAtomicValues(void);
-   LOCALE void                    InitAtomicValueNeededFlags(void);
-   LOCALE void                    FreeAtomicValueStorage(void);
-
-#ifndef _SYMBLBIN_SOURCE_
-   extern struct symbolHashNode      **SymbolArray;
-   extern struct floatHashNode       **FloatArray;
-   extern struct integerHashNode     **IntegerArray;
-   extern struct bitMapHashNode      **BitMapArray;
-#if FUZZY_DEFTEMPLATES  
-   extern struct fuzzyValueHashNode  **FuzzyValueArray;
+   LOCALE void                    WriteNeededAtomicValues(void *,FILE *);
+   LOCALE void                    ReadNeededAtomicValues(void *);
+   LOCALE void                    InitAtomicValueNeededFlags(void *);
+   LOCALE void                    FreeAtomicValueStorage(void *);
+   LOCALE void                    WriteNeededSymbols(void *,FILE *);
+   LOCALE void                    WriteNeededFloats(void *,FILE *);
+   LOCALE void                    WriteNeededIntegers(void *,FILE *);
+   LOCALE void                    ReadNeededSymbols(void *);
+   LOCALE void                    ReadNeededFloats(void *);
+   LOCALE void                    ReadNeededIntegers(void *);
+   
 #endif
-#endif
-
-#endif
-
-
-
-
 
 
 

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/cstrcpsr.h,v 1.3 2001/08/11 21:04:37 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*              CONSTRUCT PARSER MODULE                */
    /*******************************************************/
@@ -45,18 +43,22 @@
 #define LOCALE extern
 #endif
 
-   LOCALE int                            Load(char *);
-   LOCALE int                            LoadConstructsFromLogicalName(char *);
-   LOCALE int                            ParseConstruct(char *,char *);
-   LOCALE void                           RemoveConstructFromModule(struct constructHeader *);
-   LOCALE struct symbolHashNode         *GetConstructNameAndComment(char *,
-                                         struct token *,char *,void *(*)(char *),
-                                         int (*)(void *),char *,int,int,int);
-   LOCALE void                           ImportExportConflictMessage(char *,char *,char *,char *);
-
-#ifndef _CSTRCPSR_SOURCE_
-   extern int                         CheckSyntaxMode;
+#if ENVIRONMENT_API_ONLY
+#define Load(theEnv,a) EnvLoad(theEnv,a)
+#else
+#define Load(a) EnvLoad(GetCurrentEnvironment(),a)
 #endif
+
+   LOCALE int                            EnvLoad(void *,char *);
+   LOCALE int                            LoadConstructsFromLogicalName(void *,char *);
+   LOCALE int                            ParseConstruct(void *,char *,char *);
+   LOCALE void                           RemoveConstructFromModule(void *,struct constructHeader *);
+   LOCALE struct symbolHashNode         *GetConstructNameAndComment(void *,char *,
+                                         struct token *,char *,
+                                         void *(*)(void *,char *),
+                                         int (*)(void *,void *),
+                                         char *,int,int,int);
+   LOCALE void                           ImportExportConflictMessage(void *,char *,char *,char *,char *);
 
 #endif
 

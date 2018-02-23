@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/modulpsr.h,v 1.3 2001/08/11 21:06:54 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*             DEFMODULE PARSER HEADER FILE            */
    /*******************************************************/
@@ -23,6 +21,13 @@
 #ifndef _H_modulpsr
 #define _H_modulpsr
 
+struct portConstructItem
+  {
+   char *constructName;
+   int typeExpected;
+   struct portConstructItem *next;
+  };
+
 #ifndef _H_symbol
 #include "symbol.h"
 #endif
@@ -32,13 +37,6 @@
 #ifndef _H_moduldef
 #include "moduldef.h"
 #endif
-
-struct portConstructItem
-  {
-   char *constructName;
-   int typeExpected;
-   struct portConstructItem *next;
-  };
 
 #ifdef LOCALE
 #undef LOCALE
@@ -50,15 +48,14 @@ struct portConstructItem
 #define LOCALE extern
 #endif
 
-   LOCALE long                           GetNumberOfDefmodules(void);
-   LOCALE void                           SetNumberOfDefmodules(long);
-   LOCALE void                           AddAfterModuleDefinedFunction(char *,void (*)(void),int);
-   LOCALE int                            ParseDefmodule(char *);
-   LOCALE void                           AddPortConstructItem(char *,int);
-   LOCALE struct portConstructItem      *ValidPortConstructItem(char *);
-   LOCALE int                            FindImportExportConflict(char *,struct defmodule *,char *);
+   LOCALE long                           GetNumberOfDefmodules(void *);
+   LOCALE void                           SetNumberOfDefmodules(void *,long);
+   LOCALE void                           AddAfterModuleDefinedFunction(void *,char *,void (*)(void *),int);
+   LOCALE int                            ParseDefmodule(void *,char *);
+   LOCALE void                           AddPortConstructItem(void *,char *,int);
+   LOCALE struct portConstructItem      *ValidPortConstructItem(void *,char *);
+   LOCALE int                            FindImportExportConflict(void *,char *,struct defmodule *,char *);
 
 #endif
-
 
 

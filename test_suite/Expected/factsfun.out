@@ -1,0 +1,155 @@
+TRUE
+FuzzyCLIPS> (batch "factsfun.bat")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (defglobal ?*w* = (assert (a)))
+FuzzyCLIPS> (defglobal ?*x* = (assert (b)))
+FuzzyCLIPS> (defglobal ?*y* = (assert (c)))
+FuzzyCLIPS> (defglobal ?*z* = (assert (d)))
+FuzzyCLIPS> (retract 3 4)
+FuzzyCLIPS> (fact-existp ?*w*)
+TRUE
+FuzzyCLIPS> (fact-existp ?*x*)
+TRUE
+FuzzyCLIPS> (fact-existp ?*y*)
+FALSE
+FuzzyCLIPS> (fact-existp ?*z*)
+FALSE
+FuzzyCLIPS> (fact-existp 1)
+TRUE
+FuzzyCLIPS> (fact-existp 2)
+TRUE
+FuzzyCLIPS> (fact-existp 3)
+FALSE
+FuzzyCLIPS> (fact-existp 4)
+FALSE
+FuzzyCLIPS> (fact-existp 5)
+FALSE
+FuzzyCLIPS> (fact-existp -1)
+[ARGACCES5] Function fact-existp expected argument #1 to be of type fact-address or fact-index
+FALSE
+FuzzyCLIPS> (fact-existp a)
+[ARGACCES5] Function fact-existp expected argument #1 to be of type fact-address or fact-index
+FALSE
+FuzzyCLIPS> (fact-existp 1 2)
+[ARGACCES4] Function fact-existp expected exactly 1 argument(s)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (deftemplate foo (slot x) (slot y))
+FuzzyCLIPS> (defglobal ?*w* = (assert (foo (x 1) (y 2))))
+FuzzyCLIPS> (defglobal ?*x* = (assert (a)))
+FuzzyCLIPS> (fact-relation)
+[ARGACCES4] Function fact-relation expected exactly 1 argument(s)
+FuzzyCLIPS> (fact-relation a)
+[ARGACCES5] Function fact-relation expected argument #1 to be of type fact-address or fact-index
+FALSE
+FuzzyCLIPS> (fact-relation 2 3)
+[ARGACCES4] Function fact-relation expected exactly 1 argument(s)
+FuzzyCLIPS> (fact-relation ?*w*)
+foo
+FuzzyCLIPS> (fact-relation ?*x*)
+a
+FuzzyCLIPS> (fact-relation 1)
+foo
+FuzzyCLIPS> (fact-relation 2)
+a
+FuzzyCLIPS> (fact-relation 3)
+FALSE
+FuzzyCLIPS> (retract 1 2)
+FuzzyCLIPS> (fact-relation ?*w*)
+FALSE
+FuzzyCLIPS> (fact-relation ?*x*)
+FALSE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (deftemplate foo (slot x) (multislot y))
+FuzzyCLIPS> (defglobal ?*w1* = (assert (foo (x 1) (y))))
+FuzzyCLIPS> (defglobal ?*w2* = (assert (foo (x 1) (y 1))))
+FuzzyCLIPS> (defglobal ?*w3* = (assert (foo (x 1) (y 1 2))))
+FuzzyCLIPS> (defglobal ?*x1* = (assert (a)))
+FuzzyCLIPS> (defglobal ?*x2* = (assert (a b)))
+FuzzyCLIPS> (defglobal ?*x3* = (assert (a b c)))
+FuzzyCLIPS> (fact-slot-value)
+[ARGACCES4] Function fact-slot-value expected exactly 2 argument(s)
+FuzzyCLIPS> (fact-slot-value 1)
+[ARGACCES4] Function fact-slot-value expected exactly 2 argument(s)
+FuzzyCLIPS> (fact-slot-value ?*w1*)
+[ARGACCES4] Function fact-slot-value expected exactly 2 argument(s)
+FuzzyCLIPS> (fact-slot-value a)
+[ARGACCES4] Function fact-slot-value expected exactly 2 argument(s)
+FuzzyCLIPS> (fact-slot-value 1 2)
+[ARGACCES5] Function fact-slot-value expected argument #2 to be of type symbol
+FuzzyCLIPS> (fact-slot-value 1 x 3)
+[ARGACCES4] Function fact-slot-value expected exactly 2 argument(s)
+FuzzyCLIPS> (fact-slot-value 1 z)
+[TMPLTDEF1] Invalid slot z not defined in corresponding deftemplate foo.
+FALSE
+FuzzyCLIPS> (fact-slot-value 4 z)
+[TMPLTDEF1] Invalid slot z not defined in corresponding deftemplate a.
+FALSE
+FuzzyCLIPS> (fact-slot-value 1 x)
+1
+FuzzyCLIPS> (fact-slot-value ?*w2* x)
+1
+FuzzyCLIPS> (fact-slot-value 3 x)
+1
+FuzzyCLIPS> (fact-slot-value ?*w1* y)
+()
+FuzzyCLIPS> (fact-slot-value 2 y)
+(1)
+FuzzyCLIPS> (fact-slot-value ?*w3* y)
+(1 2)
+FuzzyCLIPS> (fact-slot-value 4 implied)
+()
+FuzzyCLIPS> (fact-slot-value ?*x2* implied)
+(b)
+FuzzyCLIPS> (fact-slot-value 6 implied)
+(b c)
+FuzzyCLIPS> (retract 1 4)
+FuzzyCLIPS> (fact-slot-value 1 x)
+[PRNTUTIL1] Unable to find fact f-1.
+FALSE
+FuzzyCLIPS> (fact-slot-value 4 implied)
+[PRNTUTIL1] Unable to find fact f-4.
+FALSE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (deftemplate foo1)
+FuzzyCLIPS> (deftemplate foo2 (slot x))
+FuzzyCLIPS> (deftemplate foo3 (slot x) (multislot y))
+FuzzyCLIPS> (deftemplate foo4 (slot x) (multislot y) (slot z))
+FuzzyCLIPS> (defglobal ?*w1* = (assert (foo1)))
+FuzzyCLIPS> (defglobal ?*w2* = (assert (foo2)))
+FuzzyCLIPS> (defglobal ?*w3* = (assert (foo3)))
+FuzzyCLIPS> (defglobal ?*w4* = (assert (foo4)))
+FuzzyCLIPS> (defglobal ?*x1* = (assert (a)))
+FuzzyCLIPS> (defglobal ?*x2* = (assert (b c)))
+FuzzyCLIPS> (fact-slot-names) 
+[ARGACCES4] Function fact-slot-names expected exactly 1 argument(s)
+FuzzyCLIPS> (fact-slot-names a)
+[ARGACCES5] Function fact-slot-names expected argument #1 to be of type fact-address or fact-index
+FALSE
+FuzzyCLIPS> (fact-slot-names 1 a)
+[ARGACCES4] Function fact-slot-names expected exactly 1 argument(s)
+FuzzyCLIPS> (fact-slot-names ?*w1*)
+()
+FuzzyCLIPS> (fact-slot-names 2)
+(x)
+FuzzyCLIPS> (fact-slot-names ?*w3*)
+(x y)
+FuzzyCLIPS> (fact-slot-names 4)
+(x y z)
+FuzzyCLIPS> (fact-slot-names ?*x1*)
+(implied)
+FuzzyCLIPS> (fact-slot-names 6)
+(implied)
+FuzzyCLIPS> (retract 1 5)
+FuzzyCLIPS> (fact-slot-names 1)
+[PRNTUTIL1] Unable to find fact f-1.
+FALSE
+FuzzyCLIPS> (fact-slot-names 5)
+[PRNTUTIL1] Unable to find fact f-5.
+FALSE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (dribble-off)

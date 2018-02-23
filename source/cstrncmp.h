@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/cstrncmp.h,v 1.3 2001/08/11 21:04:41 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*          CONSTRAINT CONSTRUCTS-TO-C HEADER          */
    /*******************************************************/
@@ -46,12 +44,9 @@
 #include <stdio.h>
 #endif
 
-   LOCALE void                           PrintConstraintReference(FILE *,CONSTRAINT_RECORD *,int,int);
+   LOCALE void                           PrintConstraintReference(void *,FILE *,CONSTRAINT_RECORD *,int,int);
    LOCALE void                           ConstraintRecordToCode(FILE *,CONSTRAINT_RECORD *);
-   LOCALE int                            ConstraintsToCode(char *,int,FILE *,int,int);
+   LOCALE int                            ConstraintsToCode(void *,char *,int,FILE *,int,int);
 
 #endif
-
-
-
 

@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/rulecom.c,v 1.3 2001/08/11 21:07:44 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*                RULE COMMANDS MODULE                 */
    /*******************************************************/
@@ -21,6 +19,12 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/rulecom.c,v 1.3 2001/08/11
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Removed CONFLICT_RESOLUTION_STRATEGIES         */
+/*            INCREMENTAL_RESET, and LOGICAL_DEPENDENCIES    */
+/*            compilation flags.                             */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
 /*************************************************************/
 
 #define _RULECOM_SOURCE_
@@ -33,30 +37,25 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/rulecom.c,v 1.3 2001/08/11
 
 #if DEFRULE_CONSTRUCT
 
+#include "argacces.h"
 #include "constant.h"
-#include "memalloc.h"
+#include "constrct.h"
+#include "crstrtgy.h"
+#include "engine.h"
+#include "envrnmnt.h"
 #include "evaluatn.h"
 #include "extnfunc.h"
-#include "engine.h"
-#include "watch.h"
-#include "crstrtgy.h"
-#include "constrct.h"
-#include "argacces.h"
-#include "router.h"
-#include "reteutil.h"
-#include "ruledlt.h"
+#include "incrrset.h"
+#include "lgcldpnd.h"
+#include "memalloc.h"
 #include "pattern.h"
+#include "reteutil.h"
+#include "router.h"
+#include "ruledlt.h"
+#include "watch.h"
 
 #if BLOAD || BLOAD_AND_BSAVE || BLOAD_ONLY
 #include "rulebin.h"
-#endif
-
-#if LOGICAL_DEPENDENCIES
-#include "lgcldpnd.h"
-#endif
-
-#if INCREMENTAL_RESET
-#include "incrrset.h"
 #endif
 
 #include "rulecom.h"
@@ -66,71 +65,63 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/rulecom.c,v 1.3 2001/08/11
 /***************************************/
 
 #if DEVELOPER
-   static void                    ShowJoins(void *);
-#endif
-
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-
-#if DEVELOPER && (! RUN_TIME) && (! BLOAD_ONLY)
-   static int                  WatchRuleAnalysis = OFF;
+   static void                    ShowJoins(void *,void *);
 #endif
 
 /****************************************************************/
 /* DefruleCommands: Initializes defrule commands and functions. */
 /****************************************************************/
-globle void DefruleCommands()
+globle void DefruleCommands(
+  void *theEnv)
   {
 #if ! RUN_TIME
-   DefineFunction2("run",'v', PTIF RunCommand,"RunCommand", "*1i");
-   DefineFunction2("halt",'v', PTIF HaltCommand,"HaltCommand","00");
-   DefineFunction2("focus",'b', PTIF FocusCommand,"FocusCommand", "1*w");
-   DefineFunction2("clear-focus-stack",'v',PTIF ClearFocusStackCommand,
+   EnvDefineFunction2(theEnv,"run",'v', PTIEF RunCommand,"RunCommand", "*1i");
+   EnvDefineFunction2(theEnv,"halt",'v', PTIEF HaltCommand,"HaltCommand","00");
+   EnvDefineFunction2(theEnv,"focus",'b', PTIEF FocusCommand,"FocusCommand", "1*w");
+   EnvDefineFunction2(theEnv,"clear-focus-stack",'v',PTIEF ClearFocusStackCommand,
                                        "ClearFocusStackCommand","00");
-   DefineFunction2("get-focus-stack",'m',PTIF GetFocusStackFunction,
+   EnvDefineFunction2(theEnv,"get-focus-stack",'m',PTIEF GetFocusStackFunction,
                                      "GetFocusStackFunction","00");
-   DefineFunction2("pop-focus",'w',PTIF PopFocusFunction,
+   EnvDefineFunction2(theEnv,"pop-focus",'w',PTIEF PopFocusFunction,
                                "PopFocusFunction","00");
-   DefineFunction2("get-focus",'w',PTIF GetFocusFunction,
+   EnvDefineFunction2(theEnv,"get-focus",'w',PTIEF GetFocusFunction,
                                "GetFocusFunction","00");
 #if DEBUGGING_FUNCTIONS
-   DefineFunction2("set-break",'v', PTIF SetBreakCommand,
+   EnvDefineFunction2(theEnv,"set-break",'v', PTIEF SetBreakCommand,
                                "SetBreakCommand","11w");
-   DefineFunction2("remove-break",'v', PTIF RemoveBreakCommand,
+   EnvDefineFunction2(theEnv,"remove-break",'v', PTIEF RemoveBreakCommand,
                                   "RemoveBreakCommand", "*1w");
-   DefineFunction2("show-breaks",'v', PTIF ShowBreaksCommand,
+   EnvDefineFunction2(theEnv,"show-breaks",'v', PTIEF ShowBreaksCommand,
                                  "ShowBreaksCommand", "01w");
-   DefineFunction2("matches",'v',PTIF MatchesCommand,"MatchesCommand","11w");
-   DefineFunction2("list-focus-stack",'v', PTIF ListFocusStackCommand,
+   EnvDefineFunction2(theEnv,"matches",'v',PTIEF MatchesCommand,"MatchesCommand","11w");
+   EnvDefineFunction2(theEnv,"list-focus-stack",'v', PTIEF ListFocusStackCommand,
                                       "ListFocusStackCommand", "00");
-#if LOGICAL_DEPENDENCIES
-   DefineFunction2("dependencies", 'v', PTIF DependenciesCommand,
+   EnvDefineFunction2(theEnv,"dependencies", 'v', PTIEF DependenciesCommand,
                                    "DependenciesCommand", "11h");
-   DefineFunction2("dependents",   'v', PTIF DependentsCommand,
+   EnvDefineFunction2(theEnv,"dependents",   'v', PTIEF DependentsCommand,
                                    "DependentsCommand", "11h");
-#endif /* LOGICAL_DEPENDENCIES */
-
 #endif /* DEBUGGING_FUNCTIONS */
 
-#if INCREMENTAL_RESET
-   DefineFunction2("get-incremental-reset",'b',
+   EnvDefineFunction2(theEnv,"get-incremental-reset",'b',
                    GetIncrementalResetCommand,"GetIncrementalResetCommand","00");
-   DefineFunction2("set-incremental-reset",'b',
+   EnvDefineFunction2(theEnv,"set-incremental-reset",'b',
                    SetIncrementalResetCommand,"SetIncrementalResetCommand","11");
-#endif /* INCREMENTAL_RESET */
 
-#if CONFLICT_RESOLUTION_STRATEGIES
-   DefineFunction2("get-strategy", 'w', PTIF GetStrategyCommand,  "GetStrategyCommand", "00");
-   DefineFunction2("set-strategy", 'w', PTIF SetStrategyCommand,  "SetStrategyCommand", "11w");
-#endif /* CONFLICT_RESOLUTION_STRATEGIES */
+   EnvDefineFunction2(theEnv,"get-strategy", 'w', PTIEF GetStrategyCommand,  "GetStrategyCommand", "00");
+   EnvDefineFunction2(theEnv,"set-strategy", 'w', PTIEF SetStrategyCommand,  "SetStrategyCommand", "11w");
 
 #if DEVELOPER && (! BLOAD_ONLY)
-   DefineFunction2("rule-complexity",'l', PTIF RuleComplexityCommand,"RuleComplexityCommand", "11w");
-   DefineFunction2("show-joins",   'v', PTIF ShowJoinsCommand,    "ShowJoinsCommand", "11w");
-   AddWatchItem("rule-analysis",0,&WatchRuleAnalysis,0,NULL,NULL);
+   EnvDefineFunction2(theEnv,"rule-complexity",'l', PTIEF RuleComplexityCommand,"RuleComplexityCommand", "11w");
+   EnvDefineFunction2(theEnv,"show-joins",   'v', PTIEF ShowJoinsCommand,    "ShowJoinsCommand", "11w");
+#if DEBUGGING_FUNCTIONS
+   //AddWatchItem(theEnv,"rule-analysis",0,&DefruleData(theEnv)->WatchRuleAnalysis,0,NULL,NULL);
+#endif
 #endif /* DEVELOPER && (! BLOAD_ONLY) */
 
+#else
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
+#endif
 #endif /* ! RUN_TIME */
   }
 
@@ -140,29 +131,31 @@ globle void DefruleCommands()
 /* MatchesCommand: H/L access routine   */
 /*   for the matches command.           */
 /****************************************/
-globle void MatchesCommand()
+globle void MatchesCommand(
+  void *theEnv)
   {
    char *ruleName;
    void *rulePtr;
 
-   ruleName = GetConstructName("matches","rule name");
+   ruleName = GetConstructName(theEnv,"matches","rule name");
    if (ruleName == NULL) return;
 
-   rulePtr = FindDefrule(ruleName);
+   rulePtr = EnvFindDefrule(theEnv,ruleName);
    if (rulePtr == NULL)
      {
-      CantFindItemErrorMessage("defrule",ruleName);
+      CantFindItemErrorMessage(theEnv,"defrule",ruleName);
       return;
      }
 
-   Matches(rulePtr);
+   EnvMatches(theEnv,rulePtr);
   }
 
-/*********************************/
-/* Matches: C access routine for */
-/*   the matches command.        */
-/*********************************/
-globle BOOLEAN Matches(
+/********************************/
+/* EnvMatches: C access routine */
+/*   for the matches command.   */
+/********************************/
+globle intBool EnvMatches(
+  void *theEnv,
   void *theRule)
   {
    struct defrule *rulePtr, *tmpPtr;
@@ -198,7 +191,7 @@ globle BOOLEAN Matches(
       /*=========================================*/
 
       theStorage = (struct partialMatch **)
-                   genalloc((unsigned) (depth * sizeof(struct partialMatch)));
+                   genalloc(theEnv,(unsigned) (depth * sizeof(struct partialMatch)));
 
       theJoin = lastJoin;
       i = depth - 1;
@@ -220,40 +213,40 @@ globle BOOLEAN Matches(
 
       for (i = 0; i < depth; i++)
         {
-         if (GetHaltExecution() == TRUE)
+         if (GetHaltExecution(theEnv) == TRUE)
            {
-            genfree(theStorage,(unsigned) (depth * sizeof(struct partialMatch)));
+            genfree(theEnv,theStorage,(unsigned) (depth * sizeof(struct partialMatch)));
             return(TRUE);
            }
 
-         PrintRouter(WDISPLAY,"Matches for Pattern ");
-         PrintLongInteger(WDISPLAY,(long int) i + 1);
-         PrintRouter(WDISPLAY,"\n");
+         EnvPrintRouter(theEnv,WDISPLAY,"Matches for Pattern ");
+         PrintLongInteger(theEnv,WDISPLAY,(long int) i + 1);
+         EnvPrintRouter(theEnv,WDISPLAY,"\n");
 
          listOfMatches = theStorage[i];
-         if (listOfMatches == NULL) PrintRouter(WDISPLAY," None\n");
+         if (listOfMatches == NULL) EnvPrintRouter(theEnv,WDISPLAY," None\n");
 
          while (listOfMatches != NULL)
            {
-            if (GetHaltExecution() == TRUE)
+            if (GetHaltExecution(theEnv) == TRUE)
               {
-               genfree(theStorage,(unsigned) (depth * sizeof(struct partialMatch)));
+               genfree(theEnv,theStorage,(unsigned) (depth * sizeof(struct partialMatch)));
                return(TRUE);
               }
-            PrintPartialMatch(WDISPLAY,listOfMatches);
-            PrintRouter(WDISPLAY,"\n");
+            PrintPartialMatch(theEnv,WDISPLAY,listOfMatches);
+            EnvPrintRouter(theEnv,WDISPLAY,"\n");
             listOfMatches = listOfMatches->next;
            }
         }
 
-      genfree(theStorage,(unsigned) (depth * sizeof(struct partialMatch)));
+      genfree(theEnv,theStorage,(unsigned) (depth * sizeof(struct partialMatch)));
 
       /*========================================*/
       /* Store the beta memory partial matches. */
       /*========================================*/
 
       depth = lastJoin->depth;
-      theStorage = (struct partialMatch **) genalloc((unsigned) (depth * sizeof(struct partialMatch)));
+      theStorage = (struct partialMatch **) genalloc(theEnv,(unsigned) (depth * sizeof(struct partialMatch)));
 
       theJoin = lastJoin;
       for (i = depth - 1; i >= 0; i--)
@@ -268,39 +261,39 @@ globle BOOLEAN Matches(
 
       for (i = 1; i < depth; i++)
         {
-         if (GetHaltExecution() == TRUE)
+         if (GetHaltExecution(theEnv) == TRUE)
            {
-            genfree(theStorage,(unsigned) (depth * sizeof(struct partialMatch)));
+            genfree(theEnv,theStorage,(unsigned) (depth * sizeof(struct partialMatch)));
             return(TRUE);
            }
 
          matchesDisplayed = 0;
-         PrintRouter(WDISPLAY,"Partial matches for CEs 1 - ");
-         PrintLongInteger(WDISPLAY,(long int) i + 1);
-         PrintRouter(WDISPLAY,"\n");
+         EnvPrintRouter(theEnv,WDISPLAY,"Partial matches for CEs 1 - ");
+         PrintLongInteger(theEnv,WDISPLAY,(long int) i + 1);
+         EnvPrintRouter(theEnv,WDISPLAY,"\n");
          listOfMatches = theStorage[i];
 
          while (listOfMatches != NULL)
            {
-            if (GetHaltExecution() == TRUE)
+            if (GetHaltExecution(theEnv) == TRUE)
               {
-               genfree(theStorage,(unsigned) (depth * sizeof(struct partialMatch)));
+               genfree(theEnv,theStorage,(unsigned) (depth * sizeof(struct partialMatch)));
                return(TRUE);
               }
 
             if (listOfMatches->counterf == FALSE)
               {
                matchesDisplayed++;
-               PrintPartialMatch(WDISPLAY,listOfMatches);
-               PrintRouter(WDISPLAY,"\n");
+               PrintPartialMatch(theEnv,WDISPLAY,listOfMatches);
+               EnvPrintRouter(theEnv,WDISPLAY,"\n");
               }
             listOfMatches = listOfMatches->next;
            }
 
-         if (matchesDisplayed == 0) { PrintRouter(WDISPLAY," None\n"); }
+         if (matchesDisplayed == 0) { EnvPrintRouter(theEnv,WDISPLAY," None\n"); }
         }
 
-      genfree(theStorage,(unsigned) (depth * sizeof(struct partialMatch)));
+      genfree(theEnv,theStorage,(unsigned) (depth * sizeof(struct partialMatch)));
      }
 
    /*===================*/
@@ -308,23 +301,23 @@ globle BOOLEAN Matches(
    /*===================*/
 
    rulePtr = tmpPtr;
-   PrintRouter(WDISPLAY,"Activations\n");
+   EnvPrintRouter(theEnv,WDISPLAY,"Activations\n");
    flag = 1;
-   for (agendaPtr = (struct activation *) GetNextActivation(NULL);
+   for (agendaPtr = (struct activation *) EnvGetNextActivation(theEnv,NULL);
         agendaPtr != NULL;
-        agendaPtr = (struct activation *) GetNextActivation(agendaPtr))
+        agendaPtr = (struct activation *) EnvGetNextActivation(theEnv,agendaPtr))
      {
-      if (GetHaltExecution() == TRUE) return(TRUE);
+      if (GetHaltExecution(theEnv) == TRUE) return(TRUE);
 
       if (((struct activation *) agendaPtr)->theRule->header.name == rulePtr->header.name)
         {
          flag = 0;
-         PrintPartialMatch(WDISPLAY,GetActivationBasis(agendaPtr));
-         PrintRouter(WDISPLAY,"\n");
+         PrintPartialMatch(theEnv,WDISPLAY,GetActivationBasis(agendaPtr));
+         EnvPrintRouter(theEnv,WDISPLAY,"\n");
         }
      }
 
-   if (flag) PrintRouter(WDISPLAY," None\n");
+   if (flag) EnvPrintRouter(theEnv,WDISPLAY," None\n");
 
    return(TRUE);
   }
@@ -336,18 +329,19 @@ globle BOOLEAN Matches(
 /* RuleComplexityCommand: H/L access routine   */
 /*   for the rule-complexity function.         */
 /***********************************************/
-globle long RuleComplexityCommand()
+globle long RuleComplexityCommand(
+  void *theEnv)
   {
    char *ruleName;
    struct defrule *rulePtr;
 
-   ruleName = GetConstructName("rule-complexity","rule name");
+   ruleName = GetConstructName(theEnv,"rule-complexity","rule name");
    if (ruleName == NULL) return(-1);
 
-   rulePtr = (struct defrule *) FindDefrule(ruleName);
+   rulePtr = (struct defrule *) EnvFindDefrule(theEnv,ruleName);
    if (rulePtr == NULL)
      {
-      CantFindItemErrorMessage("defrule",ruleName);
+      CantFindItemErrorMessage(theEnv,"defrule",ruleName);
       return(-1);
      }
 
@@ -358,22 +352,23 @@ globle long RuleComplexityCommand()
 /* ShowJoinsCommand: H/L access routine   */
 /*   for the show-joins command.          */
 /******************************************/
-globle void ShowJoinsCommand()
+globle void ShowJoinsCommand(
+  void *theEnv)
   {
    char *ruleName;
    void *rulePtr;
 
-   ruleName = GetConstructName("show-joins","rule name");
+   ruleName = GetConstructName(theEnv,"show-joins","rule name");
    if (ruleName == NULL) return;
 
-   rulePtr = FindDefrule(ruleName);
+   rulePtr = EnvFindDefrule(theEnv,ruleName);
    if (rulePtr == NULL)
      {
-      CantFindItemErrorMessage("defrule",ruleName);
+      CantFindItemErrorMessage(theEnv,"defrule",ruleName);
       return;
      }
 
-   ShowJoins(rulePtr);
+   ShowJoins(theEnv,rulePtr);
 
    return;
   }
@@ -383,6 +378,7 @@ globle void ShowJoinsCommand()
 /*   for the show-joins command. */
 /*********************************/
 static void ShowJoins(
+  void *theEnv,
   void *theRule)
   {
    struct defrule *rulePtr;
@@ -426,9 +422,9 @@ static void ShowJoins(
          sprintf(buffer,"%2d%c%c: ",(int) joinList[numberOfJoins]->depth,
                                      (joinList[numberOfJoins]->patternIsNegated) ? 'n' : ' ',
                                      (joinList[numberOfJoins]->logicalJoin) ? 'l' : ' ');
-         PrintRouter(WDISPLAY,buffer);
-         PrintExpression(WDISPLAY,joinList[numberOfJoins]->networkTest);
-         PrintRouter(WDISPLAY,"\n");
+         EnvPrintRouter(theEnv,WDISPLAY,buffer);
+         PrintExpression(theEnv,WDISPLAY,joinList[numberOfJoins]->networkTest);
+         EnvPrintRouter(theEnv,WDISPLAY,"\n");
          numberOfJoins--;
         };
 
@@ -437,7 +433,7 @@ static void ShowJoins(
       /*===============================*/
 
       rulePtr = rulePtr->disjunct;
-      if (rulePtr != NULL) PrintRouter(WDISPLAY,"\n");
+      if (rulePtr != NULL) EnvPrintRouter(theEnv,WDISPLAY,"\n");
      }
   }
 

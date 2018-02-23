@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/inherpsr.h,v 1.3 2001/08/11 21:06:26 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -39,9 +37,9 @@
 #define LOCALE extern
 #endif
 
-LOCALE PACKED_CLASS_LINKS *ParseSuperclasses(char *,SYMBOL_HN *);
-LOCALE PACKED_CLASS_LINKS *FindPrecedenceList(DEFCLASS *,PACKED_CLASS_LINKS *);
-LOCALE void PackClassLinks(PACKED_CLASS_LINKS *,CLASS_LINK *);
+LOCALE PACKED_CLASS_LINKS *ParseSuperclasses(void *,char *,SYMBOL_HN *);
+LOCALE PACKED_CLASS_LINKS *FindPrecedenceList(void *,DEFCLASS *,PACKED_CLASS_LINKS *);
+LOCALE void PackClassLinks(void *,PACKED_CLASS_LINKS *,CLASS_LINK *);
 
 #ifndef _INHERPSR_SOURCE_
 #endif
@@ -49,8 +47,6 @@ LOCALE void PackClassLinks(PACKED_CLASS_LINKS *,CLASS_LINK *);
 #endif
 
 #endif
-
-
 
 
 

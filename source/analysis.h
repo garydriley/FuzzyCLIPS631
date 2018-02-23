@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/analysis.h,v 1.3 2001/08/11 21:04:03 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*                ANALYSIS HEADER FILE                 */
    /*******************************************************/
@@ -20,6 +18,8 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -44,13 +44,12 @@
 #endif
 
 #if FUZZY_DEFTEMPLATES    
-   LOCALE unsigned int     FuzzySlotAnalysis(struct lhsParseNode *patternPtr,
-                                             int *numFuzzySlotsInNonNotPatterns
-                                            );
+   LOCALE unsigned int                   FuzzySlotAnalysis(void *theEnv,
+                                                           struct lhsParseNode *patternPtr,
+                                                           int *numFuzzySlotsInNonNotPatterns);
 #endif
 
-
-   LOCALE BOOLEAN                        VariableAnalysis(struct lhsParseNode *);
+   LOCALE intBool                        VariableAnalysis(void *,struct lhsParseNode *);
 
 #endif
 

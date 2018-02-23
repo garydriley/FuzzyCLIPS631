@@ -1,0 +1,345 @@
+TRUE
+FuzzyCLIPS> (batch "modlmisc.bat")
+TRUE
+FuzzyCLIPS> (clear) ;; import/export coordination
+FuzzyCLIPS> (defmodule A)
+FuzzyCLIPS> (deftemplate A::foo (slot x))
+FuzzyCLIPS> (defmodule B (import A ?ALL))
+
+[MODULPSR1] Module A does not export any constructs.
+
+ERROR:
+(defmodule B
+   (import A
+FuzzyCLIPS> (defrule B::rule1 (foo (x 3)) =>)
+[PRNTUTIL1] Unable to find defmodule B.
+
+ERROR:
+(defrule B::rule1
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defmodule A (export ?ALL))
+FuzzyCLIPS> (deftemplate A::foo (slot x))
+FuzzyCLIPS> (defmodule B (import A ?ALL))
+FuzzyCLIPS> (defrule B::rule1 (foo (x 3)) =>)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defmodule A (export deftemplate foo))
+FuzzyCLIPS> (deftemplate A::foo (slot x))
+FuzzyCLIPS> (defmodule B (import A ?ALL))
+FuzzyCLIPS> (defrule B::rule1 (foo (x 3)) =>)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defmodule A (export deftemplate bar))
+FuzzyCLIPS> (deftemplate A::foo (slot x))
+FuzzyCLIPS> (defmodule B (import A ?ALL))
+FuzzyCLIPS> (defrule B::rule1 (foo (x 3)) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule B::rule1
+   (foo (
+FuzzyCLIPS> (clear) ;; one level of importation
+FuzzyCLIPS> (defmodule A (export ?ALL))
+FuzzyCLIPS> (deftemplate A::foo (slot x))
+FuzzyCLIPS> (deftemplate A::bar (slot x))
+FuzzyCLIPS> (defmodule B)
+FuzzyCLIPS> (defrule B::rule1 (foo (x 3)) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule B::rule1
+   (foo (
+FuzzyCLIPS> (defrule B::rule2 (bar (x 3)) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule B::rule2
+   (bar (
+FuzzyCLIPS> (defmodule C (import A ?ALL))
+FuzzyCLIPS> (defrule C::rule1 (foo (x 3)) =>)
+FuzzyCLIPS> (defrule C::rule2 (bar (x 3)) =>)
+FuzzyCLIPS> (defmodule D (import A deftemplate ?ALL))
+FuzzyCLIPS> (defrule D::rule1 (foo (x 3)) =>)
+FuzzyCLIPS> (defrule D::rule2 (bar (x 3)) =>)
+FuzzyCLIPS> (defmodule E (import A deftemplate foo bar))
+FuzzyCLIPS> (defrule E::rule1 (foo (x 3)) =>)
+FuzzyCLIPS> (defrule E::rule2 (bar (x 3)) =>)
+FuzzyCLIPS> (defmodule F (import A deftemplate bar))
+FuzzyCLIPS> (defrule F::rule1 (foo (x 3)) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule F::rule1
+   (foo (
+FuzzyCLIPS> (defrule F::rule2 (bar (x 3)) =>)
+FuzzyCLIPS> (defmodule G (import A deftemplate foo))
+FuzzyCLIPS> (defrule G::rule1 (foo (x 3)) =>)
+FuzzyCLIPS> (defrule G::rule2 (bar (x 3)) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule G::rule2
+   (bar (
+FuzzyCLIPS> (clear) ;; two levels of importation
+FuzzyCLIPS> (defmodule A (export ?ALL))
+FuzzyCLIPS> (deftemplate A::foo (slot x))
+FuzzyCLIPS> (deftemplate A::bar (slot x))
+FuzzyCLIPS> (defmodule B1 (export ?ALL))
+FuzzyCLIPS> (defmodule B2 (import B1 ?ALL))
+FuzzyCLIPS> (defrule B2::rule1 (foo (x 3)) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule B2::rule1
+   (foo (
+FuzzyCLIPS> (defrule B2::rule2 (bar (x 3)) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule B2::rule2
+   (bar (
+FuzzyCLIPS> (defmodule C1 (import A ?ALL) (export ?ALL))
+FuzzyCLIPS> (defmodule C2 (import C1 deftemplate ?ALL))
+FuzzyCLIPS> (defrule C2::rule1 (foo (x 3)) =>)
+FuzzyCLIPS> (defrule C2::rule2 (bar (x 3)) =>)
+FuzzyCLIPS> (defmodule D1 (import A deftemplate ?ALL) (export ?ALL))
+FuzzyCLIPS> (defmodule D2 (import D1 deftemplate ?NONE))
+FuzzyCLIPS> (defrule D2::rule1 (foo (x 3)) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule D2::rule1
+   (foo (
+FuzzyCLIPS> (defrule D2::rule2 (bar (x 3)) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule D2::rule2
+   (bar (
+FuzzyCLIPS> (defmodule E1 (import A deftemplate foo bar) (export ?ALL))
+FuzzyCLIPS> (defmodule E2 (import E1 deftemplate foo bar))
+FuzzyCLIPS> (defrule E2::rule1 (foo (x 3)) =>)
+FuzzyCLIPS> (defrule E2::rule2 (bar (x 3)) =>)
+FuzzyCLIPS> (defmodule F1 (import A deftemplate bar) (export ?ALL))
+FuzzyCLIPS> (defmodule F2 (import F1 deftemplate foo))
+
+[MODULPSR1] Module F1 does not export the deftemplate foo.
+
+ERROR:
+(defmodule F2
+   (import F1 deftemplate foo)
+FuzzyCLIPS> (defrule F2::rule1 (foo (x 3)) =>)
+[PRNTUTIL1] Unable to find defmodule F2.
+
+ERROR:
+(defrule F2::rule1
+FuzzyCLIPS> (defrule F2::rule2 (bar (x 3)) =>)
+[PRNTUTIL1] Unable to find defmodule F2.
+
+ERROR:
+(defrule F2::rule2
+FuzzyCLIPS> (defmodule G1 (import A deftemplate foo) (export ?ALL))
+FuzzyCLIPS> (defmodule G2 (import G1 deftemplate foo))
+FuzzyCLIPS> (defrule G2::rule1 (foo (x 3)) =>)
+FuzzyCLIPS> (defrule G2::rule2 (bar (x 3)) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule G2::rule2
+   (bar (
+FuzzyCLIPS> (clear) ;; Redefining module
+FuzzyCLIPS> (deftemplate A::a)
+[PRNTUTIL1] Unable to find defmodule A.
+
+ERROR:
+(deftemplate A::a
+FuzzyCLIPS> (defmodule A)
+FuzzyCLIPS> (deftemplate A::a)
+FuzzyCLIPS> (clear) ;; Bad defmodule name
+FuzzyCLIPS> (defmodule)
+
+[CSTRCPSR2] Missing name for defmodule construct
+
+ERROR:
+(defmodule )
+FuzzyCLIPS> (defmodule ::)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(defmodule ::
+FuzzyCLIPS> (defmodule ::xy)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(defmodule ::xy
+FuzzyCLIPS> (defmodule zw::)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(defmodule zw::
+FuzzyCLIPS> (defmodule qrs::tu)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(defmodule qrs::tu
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defmodule X)
+FuzzyCLIPS> (list-defmodules)
+MAIN
+X
+For a total of 2 defmodules.
+FuzzyCLIPS> (clear) ;; Use of imported deftemplates on the LHS
+FuzzyCLIPS> (defmodule A (export ?ALL))
+FuzzyCLIPS> (deftemplate A::foo (slot x))
+FuzzyCLIPS> (defmodule B (import A ?ALL))
+FuzzyCLIPS> (deftemplate B::bar (slot y))
+FuzzyCLIPS> (defmodule C (import A ?ALL))
+FuzzyCLIPS> (deftemplate C::yak (slot z))
+FuzzyCLIPS> (defrule C::bad (bar (y 3)) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule C::bad
+   (bar (
+FuzzyCLIPS> (defrule C::good (foo (x 2)) (yak (z 4)) =>)
+FuzzyCLIPS> (defrule B::bad (yak (z 4)) =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defrule.
+
+ERROR:
+(defrule B::bad
+   (yak (
+FuzzyCLIPS> (defrule B::good (foo (x 2)) (bar (y 3)) =>)
+FuzzyCLIPS> (defrule A::bad1 (yak (z 4)) =>)
+
+[CSTRCPSR3] Cannot define implied deftemplate yak because of an import/export conflict.
+
+ERROR:
+(defrule A::bad1
+   (yak
+FuzzyCLIPS> (defrule A::bad2 (bar (y 3)) =>)
+
+[CSTRCPSR3] Cannot define implied deftemplate bar because of an import/export conflict.
+
+ERROR:
+(defrule A::bad2
+   (bar
+FuzzyCLIPS> (defrule A::good (foo (x 2)) =>)
+FuzzyCLIPS> (clear) ;; Conflicting Definitions
+FuzzyCLIPS> (defmodule A (export ?ALL))
+FuzzyCLIPS> (deftemplate A::foo)
+FuzzyCLIPS> (defmodule B (export ?ALL))
+FuzzyCLIPS> (deftemplate B::foo)
+FuzzyCLIPS> (defmodule C
+   (import A ?ALL)
+   (import B ?ALL))
+
+[CSTRCPSR3] Cannot define defmodule C because of an import/export conflict caused by the deftemplate foo.
+
+ERROR:
+(defmodule C
+   (import A ?ALL)
+   (import B ?ALL))
+FuzzyCLIPS> (defrule C::bar (foo) =>)
+[PRNTUTIL1] Unable to find defmodule C.
+
+ERROR:
+(defrule C::bar
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defmodule MAIN (export ?ALL))
+FuzzyCLIPS> (deftemplate MAIN::foo)
+FuzzyCLIPS> (defmodule A (import MAIN ?ALL) (export ?ALL))
+FuzzyCLIPS> (defmodule B (import MAIN ?ALL) (export ?ALL))
+FuzzyCLIPS> (defmodule C
+   (import A ?ALL)
+   (import B ?ALL))
+FuzzyCLIPS> (defrule C::bar (foo) =>)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defmodule A (export ?ALL))
+FuzzyCLIPS> (deftemplate A::foo)
+FuzzyCLIPS> (defmodule B (import A ?ALL))
+FuzzyCLIPS> (deftemplate B::foo)
+
+[CSTRCPSR3] Cannot define deftemplate foo because of an import/export conflict.
+
+ERROR:
+(deftemplate B::foo
+FuzzyCLIPS> (clear) ;; Port items bad syntax
+FuzzyCLIPS> (defmodule A)
+FuzzyCLIPS> (defmodule B import)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defmodule.
+
+ERROR:
+(defmodule B
+   import
+FuzzyCLIPS> (defmodule B (import))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defmodule import specification.
+
+ERROR:
+(defmodule B
+   (import )
+FuzzyCLIPS> (defmodule B (import C))
+[PRNTUTIL1] Unable to find defmodule C.
+
+ERROR:
+(defmodule B
+   (import C
+FuzzyCLIPS> (defmodule B (import A))
+
+[MODULPSR1] Module A does not export any constructs.
+
+ERROR:
+(defmodule B
+   (import A
+FuzzyCLIPS> (ppdefmodule B)
+[PRNTUTIL1] Unable to find defmodule B.
+FuzzyCLIPS> (defmodule B (import A C))
+
+[MODULPSR1] Module A does not export any constructs.
+
+ERROR:
+(defmodule B
+   (import A
+FuzzyCLIPS> (defmodule B (import A) (import MAIN))
+
+[MODULPSR1] Module A does not export any constructs.
+
+ERROR:
+(defmodule B
+   (import A
+FuzzyCLIPS> (ppdefmodule A)
+(defmodule A)
+FuzzyCLIPS> (ppdefmodule B)
+[PRNTUTIL1] Unable to find defmodule B.
+FuzzyCLIPS> (clear) ;; auto-focus
+FuzzyCLIPS> (defmodule MAIN (export ?ALL))
+FuzzyCLIPS> (defrule MAIN::bar 
+  (declare (auto-focus TRUE))
+  =>)
+FuzzyCLIPS> (defmodule A (import MAIN ?ALL))
+FuzzyCLIPS> (defrule A::foo 
+  (declare (auto-focus TRUE))
+  =>)
+FuzzyCLIPS> (watch focus)
+FuzzyCLIPS> (reset)
+<== Focus MAIN
+==> Focus MAIN
+==> Focus A from MAIN
+==> Focus MAIN from A
+FuzzyCLIPS> (unwatch focus)
+FuzzyCLIPS> (dribble-off)

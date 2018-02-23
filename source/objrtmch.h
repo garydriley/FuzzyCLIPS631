@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/objrtmch.h,v 1.3 2001/08/11 21:07:18 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.24  05/17/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -18,12 +16,17 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Converted INSTANCE_PATTERN_MATCHING to         */
+/*            DEFRULE_CONSTRUCT.                             */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_objrtmch
 #define _H_objrtmch
 
-#if INSTANCE_PATTERN_MATCHING
+#if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
 
 #define OBJECT_ASSERT  1
 #define OBJECT_RETRACT 2
@@ -54,7 +57,7 @@ typedef struct classBitMap
    char map[1];
   } CLASS_BITMAP;
 
-#define ClassBitMapSize(bmp) ((int) (sizeof(CLASS_BITMAP) + \
+#define ClassBitMapSize(bmp) ((sizeof(CLASS_BITMAP) + \
                                      (sizeof(char) * (bmp->maxid / BITS_PER_BYTE))))
 
 typedef struct slotBitMap
@@ -63,7 +66,7 @@ typedef struct slotBitMap
    char map[1];
   } SLOT_BITMAP;
 
-#define SlotBitMapSize(bmp) ((int) (sizeof(SLOT_BITMAP) + \
+#define SlotBitMapSize(bmp) ((sizeof(SLOT_BITMAP) + \
                                      (sizeof(char) * (bmp->maxid / BITS_PER_BYTE))))
 
 typedef struct objectAlphaNode OBJECT_ALPHA_NODE;
@@ -97,6 +100,14 @@ struct objectAlphaNode
    long bsaveID;
   };
 
+typedef struct objectMatchAction
+  {
+   int type;
+   INSTANCE_TYPE *ins;
+   SLOT_BITMAP *slotNameIDs;
+   struct objectMatchAction *nxt;
+  } OBJECT_MATCH_ACTION;
+
 #ifdef LOCALE
 #undef LOCALE
 #endif
@@ -107,21 +118,19 @@ struct objectAlphaNode
 #define LOCALE extern
 #endif
 
-LOCALE void ObjectMatchDelay(DATA_OBJECT *);
-LOCALE BOOLEAN SetDelayObjectPatternMatching(int);
-LOCALE BOOLEAN GetDelayObjectPatternMatching(void);
-LOCALE OBJECT_PATTERN_NODE *ObjectNetworkPointer(void);
-LOCALE OBJECT_ALPHA_NODE *ObjectNetworkTerminalPointer(void);
-LOCALE void SetObjectNetworkPointer(OBJECT_PATTERN_NODE *);
-LOCALE void SetObjectNetworkTerminalPointer(OBJECT_ALPHA_NODE *);
-LOCALE void ObjectNetworkAction(int,INSTANCE_TYPE *,int);
+   LOCALE void                  ObjectMatchDelay(void *,DATA_OBJECT *);
+   LOCALE intBool               SetDelayObjectPatternMatching(void *,int);
+   LOCALE intBool               GetDelayObjectPatternMatching(void *);
+   LOCALE OBJECT_PATTERN_NODE  *ObjectNetworkPointer(void *);
+   LOCALE OBJECT_ALPHA_NODE    *ObjectNetworkTerminalPointer(void *);
+   LOCALE void                  SetObjectNetworkPointer(void *,OBJECT_PATTERN_NODE *);
+   LOCALE void                  SetObjectNetworkTerminalPointer(void *,OBJECT_ALPHA_NODE *);
+   LOCALE void                  ObjectNetworkAction(void *,int,INSTANCE_TYPE *,int);
+   LOCALE void                  ResetObjectMatchTimeTags(void *);
 
 #endif
 
 #endif
-
-
-
 
 
 

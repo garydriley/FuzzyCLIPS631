@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/retract.c,v 1.3 2001/08/11 21:07:36 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*                   RETRACT MODULE                    */
    /*******************************************************/
@@ -20,6 +18,13 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/retract.c,v 1.3 2001/08/11
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Removed LOGICAL_DEPENDENCIES compilation flag. */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Rule with exists CE has incorrect activation.  */
+/*            DR0867                                         */
+/*                                                           */
 /*************************************************************/
 
 #define _RETRACT_SOURCE_
@@ -32,57 +37,37 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/retract.c,v 1.3 2001/08/11
 
 #if DEFRULE_CONSTRUCT
 
-#include "constant.h"
-#include "memalloc.h"
-#include "symbol.h"
-#include "argacces.h"
-#include "router.h"
-#include "network.h"
 #include "agenda.h"
-#include "match.h"
+#include "argacces.h"
+#include "constant.h"
 #include "drive.h"
-
-#if LOGICAL_DEPENDENCIES
+#include "engine.h"
+#include "envrnmnt.h"
 #include "lgcldpnd.h"
-#endif
+#include "match.h"
+#include "memalloc.h"
+#include "network.h"
+#include "reteutil.h"
+#include "router.h"
+#include "symbol.h"
 
 #include "retract.h"
 
-   static struct partialMatch    *RemovePartialMatches(struct alphaMatch *,
+/***************************************/
+/* LOCAL INTERNAL FUNCTION DEFINITIONS */
+/***************************************/
+
+   static struct partialMatch    *RemovePartialMatches(void *,struct alphaMatch *,
                                                       struct partialMatch *,
                                                       struct partialMatch **,int,
                                                       struct partialMatch **);
-   static void                    DeletePartialMatches(struct partialMatch *,int);
-   static void                    ReturnMarkers(struct multifieldMarker *);
-   static void                    DriveRetractions(void);
-   static BOOLEAN                 FindNextConflictingAlphaMatch(struct partialMatch *,
+   static void                    DeletePartialMatches(void *,struct partialMatch *,int);
+   static void                    ReturnMarkers(void *,struct multifieldMarker *);
+   static void                    DriveRetractions(void *);
+   static intBool                 FindNextConflictingAlphaMatch(void *,struct partialMatch *,
                                                                 struct partialMatch *,
                                                                 struct joinNode *);
-   static BOOLEAN                 PartialMatchDefunct(struct partialMatch *);
-
-/**************/
-/* STRUCTURES */
-/**************/
-
-struct rdriveinfo
-  {
-   struct partialMatch *link;
-   struct joinNode *jlist;
-   struct rdriveinfo *next;
-  };
-
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-
-   static struct rdriveinfo   *DriveRetractionList = NULL;
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle struct partialMatch *GarbagePartialMatches = NULL;
-   globle struct alphaMatch   *GarbageAlphaMatches = NULL;
+   static intBool                 PartialMatchDefunct(void *,struct partialMatch *);
 
 /************************************************************/
 /* NetworkRetract:  Retracts a data entity (such as a fact  */
@@ -98,6 +83,7 @@ struct rdriveinfo
 /*   removed.                                               */
 /************************************************************/
 globle void NetworkRetract(
+  void *theEnv,
   struct patternMatch *listOfMatchedPatterns)
   {
    struct patternMatch *tempMatch;
@@ -130,10 +116,10 @@ globle void NetworkRetract(
            joinPtr = joinPtr->rightMatchNode)
         {
          if (joinPtr->patternIsNegated == FALSE)
-           { PosEntryRetract(joinPtr,
+           { PosEntryRetract(theEnv,joinPtr,
                              listOfMatchedPatterns->theMatch->binds[0].gm.theMatch,
                              listOfMatchedPatterns->theMatch,
-                             (int) joinPtr->depth - 1,TRUE); }
+                             (int) joinPtr->depth - 1,listOfMatchedPatterns->theMatch->binds[0].gm.theMatch->matchingItem); }
         }
      }
 
@@ -158,11 +144,13 @@ globle void NetworkRetract(
            {
             if (joinPtr->firstJoin == TRUE)
               {
-               SystemError("RETRACT",3);
-               ExitRouter(EXIT_FAILURE);
+               SystemError(theEnv,"RETRACT",3);
+               EnvExitRouter(theEnv,EXIT_FAILURE);
               }
             else
-              { NegEntryRetract(joinPtr,listOfMatchedPatterns->theMatch,TRUE); }
+              { 
+               NegEntryRetract(theEnv,joinPtr,listOfMatchedPatterns->theMatch,listOfMatchedPatterns->theMatch->binds[0].gm.theMatch->matchingItem); 
+              }
            }
         }
 
@@ -172,15 +160,15 @@ globle void NetworkRetract(
 
       theLast = NULL;
       listOfMatchedPatterns->matchingPattern->alphaMemory =
-      RemovePartialMatches(listOfMatchedPatterns->theMatch->binds[0].gm.theMatch,
+      RemovePartialMatches(theEnv,listOfMatchedPatterns->theMatch->binds[0].gm.theMatch,
                                 listOfMatchedPatterns->matchingPattern->alphaMemory,
                                 &deletedMatches,0,&theLast);
       listOfMatchedPatterns->matchingPattern->endOfQueue = theLast;
 
-      DeletePartialMatches(deletedMatches,0);
+      DeletePartialMatches(theEnv,deletedMatches,0);
 
       tempMatch = listOfMatchedPatterns->next;
-      rtn_struct(patternMatch,listOfMatchedPatterns);
+      rtn_struct(theEnv,patternMatch,listOfMatchedPatterns);
       listOfMatchedPatterns = tempMatch;
      }
 
@@ -189,7 +177,7 @@ globle void NetworkRetract(
    /* retraction through the join network.    */
    /*=========================================*/
 
-   DriveRetractions();
+   DriveRetractions(theEnv);
   }
 
 /***************************************************************/
@@ -200,11 +188,12 @@ globle void NetworkRetract(
 /*    LHS entry, negative or positive RHS entry).              */
 /***************************************************************/
 globle void PosEntryRetract(
+  void *theEnv,
   struct joinNode *join,
   struct alphaMatch *theAlphaNode,
   struct partialMatch *theMatch,
   int position,
-  int duringRetract)
+  void *duringRetract)
   {
    struct partialMatch *deletedMatches;
    struct joinNode *joinPtr;
@@ -219,7 +208,7 @@ globle void PosEntryRetract(
 
       if (join->beta == NULL) return; /* optimize */
 
-      join->beta = RemovePartialMatches(theAlphaNode,join->beta,&deletedMatches,
+      join->beta = RemovePartialMatches(theEnv,theAlphaNode,join->beta,&deletedMatches,
                                         position,&theLast);
 
       /*===================================================*/
@@ -239,7 +228,7 @@ globle void PosEntryRetract(
       joinPtr = join->nextLevel;
       if (joinPtr == NULL)
         {
-         DeletePartialMatches(deletedMatches,1);
+         DeletePartialMatches(theEnv,deletedMatches,1);
          return;
         }
 
@@ -248,18 +237,18 @@ globle void PosEntryRetract(
          theMatch = deletedMatches;
          while (theMatch != NULL)
            {
-            NegEntryRetract(joinPtr,theMatch,duringRetract);
+            NegEntryRetract(theEnv,joinPtr,theMatch,duringRetract);
             theMatch = theMatch->next;
            }
 
-         DeletePartialMatches(deletedMatches,1);
+         DeletePartialMatches(theEnv,deletedMatches,1);
          return;
         }
 
-      DeletePartialMatches(deletedMatches,1);
+      DeletePartialMatches(theEnv,deletedMatches,1);
       while (joinPtr->rightDriveNode != NULL)
         {
-         PosEntryRetract(joinPtr,theAlphaNode,theMatch,position,duringRetract);
+         PosEntryRetract(theEnv,joinPtr,theAlphaNode,theMatch,position,duringRetract);
          joinPtr = joinPtr->rightDriveNode;
         }
 
@@ -273,9 +262,10 @@ globle void PosEntryRetract(
 /*    join.                                                      */
 /*****************************************************************/
 void NegEntryRetract(
+  void *theEnv,
   struct joinNode *theJoin,
   struct partialMatch *theMatch,
-  int duringRetract)
+  void *duringRetract)
   {
    struct partialMatch *theLHS;
    int result;
@@ -312,7 +302,7 @@ void NegEntryRetract(
       /*======================================================*/
 
       theLHS->binds[theLHS->bcount - 1].gm.theValue = NULL;
-      result = FindNextConflictingAlphaMatch(theLHS,theMatch->next,theJoin);
+      result = FindNextConflictingAlphaMatch(theEnv,theLHS,theMatch->next,theJoin);
 
       /*=========================================================*/
       /* If the LHS partial match now has no RHS partial matches */
@@ -328,7 +318,7 @@ void NegEntryRetract(
          /*===============================*/
 
          theLHS->counterf = FALSE;
-         tempAlpha = get_struct(alphaMatch);
+         tempAlpha = get_struct(theEnv,alphaMatch);
          tempAlpha->next = NULL;
          tempAlpha->matchingItem = NULL;
          tempAlpha->markers = NULL;
@@ -341,7 +331,7 @@ void NegEntryRetract(
          /*==============================================*/
 
          if (theJoin->ruleToActivate != NULL)
-           { AddActivation(theJoin->ruleToActivate,theLHS); }
+           { AddActivation(theEnv,theJoin->ruleToActivate,theLHS); }
 
          /*=======================================================*/
          /* Send the partial match to the list of joins following */
@@ -355,20 +345,23 @@ void NegEntryRetract(
          if (listOfJoins != NULL)
            {
             if (((struct joinNode *) (listOfJoins->rightSideEntryStructure)) == theJoin)
-              { NetworkAssert(theLHS,listOfJoins,RHS); }
+              { NetworkAssert(theEnv,theLHS,listOfJoins,RHS); }
             else
               {
-               if (duringRetract)
+               if (duringRetract != NULL)
                  {
-                  tempDR = get_struct(rdriveinfo);
-                  tempDR->link = theLHS;
-                  tempDR->jlist = theJoin->nextLevel;
-                  tempDR->next = DriveRetractionList;
-                  DriveRetractionList = tempDR;
+                  if (FindEntityInPartialMatch((struct patternEntity *) duringRetract,theLHS) == FALSE)
+                    {
+                     tempDR = get_struct(theEnv,rdriveinfo);
+                     tempDR->link = theLHS;
+                     tempDR->jlist = theJoin->nextLevel;
+                     tempDR->next = EngineData(theEnv)->DriveRetractionList;
+                     EngineData(theEnv)->DriveRetractionList = tempDR;
+                    }
                  }
                else while (listOfJoins != NULL)
                  {
-                  NetworkAssert(theLHS,listOfJoins,LHS);
+                  NetworkAssert(theEnv,theLHS,listOfJoins,LHS);
                   listOfJoins = listOfJoins->rightDriveNode;
                  }
               }
@@ -384,7 +377,8 @@ void NegEntryRetract(
 /*   match in the beta memory of the join from being          */
 /*   satisfied.                                               */
 /**************************************************************/
-static BOOLEAN FindNextConflictingAlphaMatch(
+static intBool FindNextConflictingAlphaMatch(
+  void *theEnv,
   struct partialMatch *theBind,
   struct partialMatch *possibleConflicts,
   struct joinNode *theJoin)
@@ -438,7 +432,7 @@ static BOOLEAN FindNextConflictingAlphaMatch(
        /* If so, the partial match must be ignored here.       */
        /*======================================================*/
 
-      else if (PartialMatchDefunct(possibleConflicts))
+      else if (PartialMatchDefunct(theEnv,possibleConflicts))
         { /* Do Nothing */ }
 
       /*==================================================*/
@@ -477,12 +471,12 @@ static BOOLEAN FindNextConflictingAlphaMatch(
 
       else
         {
-         result = EvaluateJoinExpression(theJoin->networkTest,theBind,
+         result = EvaluateJoinExpression(theEnv,theJoin->networkTest,theBind,
                                          possibleConflicts,theJoin);
-         if (EvaluationError)
+         if (EvaluationData(theEnv)->EvaluationError)
            {
             result = TRUE;
-            EvaluationError = FALSE;
+            EvaluationData(theEnv)->EvaluationError = FALSE;
            }
         }
 
@@ -514,17 +508,18 @@ static BOOLEAN FindNextConflictingAlphaMatch(
 /*   this partial match was generated. Assumes counterf is */
 /*   FALSE.                                                */
 /***********************************************************/
-static BOOLEAN PartialMatchDefunct(
+static intBool PartialMatchDefunct(
+  void *theEnv,
   struct partialMatch *thePM)
   {
-   register int i;
+   register unsigned i;
    register struct patternEntity * thePE;
 
    for (i = 0 ; i < thePM->bcount ; i++)
      {
       thePE = thePM->binds[i].gm.theMatch->matchingItem;
       if (thePE && thePE->theInfo->synchronized &&
-          !(*thePE->theInfo->synchronized)(thePE))
+          !(*thePE->theInfo->synchronized)(theEnv,thePE))
         return(TRUE);
      }
    return(FALSE);
@@ -536,6 +531,7 @@ static BOOLEAN PartialMatchDefunct(
 /*   specified data entity.                                  */
 /*************************************************************/
 static struct partialMatch *RemovePartialMatches(
+  void *theEnv,
   struct alphaMatch *theAlphaNode,
   struct partialMatch *listOfPMs,
   struct partialMatch **deleteHead,
@@ -544,7 +540,7 @@ static struct partialMatch *RemovePartialMatches(
   {
    struct partialMatch *head, *lastPM, *nextPM;
    struct partialMatch *lastDelete = NULL;
-
+   
    /*====================================================*/
    /* Initialize pointers used for creating the new list */
    /* of partial matches and the list of partial matches */
@@ -562,7 +558,7 @@ static struct partialMatch *RemovePartialMatches(
 
    while (listOfPMs != NULL)
      {
-      if ((listOfPMs->counterf == TRUE) && (position == (listOfPMs->bcount - 1)))
+      if ((listOfPMs->counterf == TRUE) && (position == ((int) (listOfPMs->bcount - 1))))
         {
          lastPM = listOfPMs;
          listOfPMs = listOfPMs->next;
@@ -584,7 +580,7 @@ static struct partialMatch *RemovePartialMatches(
 
          if ((listOfPMs->activationf) ?
              (listOfPMs->binds[listOfPMs->bcount].gm.theValue != NULL) : FALSE)
-           { RemoveActivation((struct activation *) listOfPMs->binds[listOfPMs->bcount].gm.theValue,TRUE,TRUE); }
+           { RemoveActivation(theEnv,(struct activation *) listOfPMs->binds[listOfPMs->bcount].gm.theValue,TRUE,TRUE); }
 
          /*==================================================*/
          /* If the partial match is at the head of the list  */
@@ -691,6 +687,7 @@ static struct partialMatch *RemovePartialMatches(
 /*   matches to the pool of free memory.           */
 /***************************************************/
 static void DeletePartialMatches(
+  void *theEnv,
   struct partialMatch *listOfPMs,
   int betaDelete)
   {
@@ -710,9 +707,7 @@ static void DeletePartialMatches(
       /* result of a logical CE.                        */
       /*================================================*/
 
-#if LOGICAL_DEPENDENCIES
-      if (listOfPMs->dependentsf) RemoveLogicalSupport(listOfPMs);
-#endif
+      if (listOfPMs->dependentsf) RemoveLogicalSupport(theEnv,listOfPMs);
 
       /*==========================================================*/
       /* If the partial match is being deleted from a beta memory */
@@ -729,11 +724,11 @@ static void DeletePartialMatches(
 
       if (betaDelete &&
           ((listOfPMs->notOriginf == FALSE) || (listOfPMs->counterf)))
-        { ReturnPartialMatch(listOfPMs); }
+        { ReturnPartialMatch(theEnv,listOfPMs); }
       else
         {
-         listOfPMs->next = GarbagePartialMatches;
-         GarbagePartialMatches = listOfPMs;
+         listOfPMs->next = EngineData(theEnv)->GarbagePartialMatches;
+         EngineData(theEnv)->GarbagePartialMatches = listOfPMs;
         }
 
       /*====================================*/
@@ -749,6 +744,7 @@ static void DeletePartialMatches(
 /*   with a partial match to the pool of free memory.         */
 /**************************************************************/
 globle void ReturnPartialMatch(
+  void *theEnv,
   struct partialMatch *waste)
   {
    /*==============================================*/
@@ -759,8 +755,8 @@ globle void ReturnPartialMatch(
 
    if (waste->busy)
      {
-      waste->next = GarbagePartialMatches;
-      GarbagePartialMatches = waste;
+      waste->next = EngineData(theEnv)->GarbagePartialMatches;
+      EngineData(theEnv)->GarbagePartialMatches = waste;
       return;
      }
 
@@ -774,8 +770,8 @@ globle void ReturnPartialMatch(
    if (waste->betaMemory == FALSE)
      {
       if (waste->binds[0].gm.theMatch->markers != NULL)
-        { ReturnMarkers(waste->binds[0].gm.theMatch->markers); }
-      rm(waste->binds[0].gm.theMatch,(int) sizeof(struct alphaMatch));
+        { ReturnMarkers(theEnv,waste->binds[0].gm.theMatch->markers); }
+      rm(theEnv,waste->binds[0].gm.theMatch,(int) sizeof(struct alphaMatch));
      }
 
    /*=================================================*/
@@ -784,15 +780,66 @@ globle void ReturnPartialMatch(
    /* the logical CE.                                 */
    /*=================================================*/
 
-#if LOGICAL_DEPENDENCIES
-   if (waste->dependentsf) RemovePMDependencies(waste);
-#endif
+   if (waste->dependentsf) RemovePMDependencies(theEnv,waste);
 
    /*======================================================*/
    /* Return the partial match to the pool of free memory. */
    /*======================================================*/
 
-   rtn_var_struct(partialMatch,(int) sizeof(struct genericMatch *) *
+   rtn_var_struct(theEnv,partialMatch,(int) sizeof(struct genericMatch *) *
+                  (waste->bcount + waste->activationf + waste->dependentsf - 1),
+                  waste);
+  }
+
+/***************************************************************/
+/* DestroyPartialMatch: Returns the data structures associated */
+/*   with a partial match to the pool of free memory.          */
+/***************************************************************/
+globle void DestroyPartialMatch(
+  void *theEnv,
+  struct partialMatch *waste)
+  {
+   /*======================================================*/
+   /* If we're dealing with an alpha memory partial match, */
+   /* then return the multifield markers associated with   */
+   /* the partial match (if any) along with the alphaMatch */
+   /* data structure.                                      */
+   /*======================================================*/
+
+   if (waste->betaMemory == FALSE)
+     {
+      if (waste->binds[0].gm.theMatch->markers != NULL)
+        { ReturnMarkers(theEnv,waste->binds[0].gm.theMatch->markers); }
+      rm(theEnv,waste->binds[0].gm.theMatch,(int) sizeof(struct alphaMatch));
+     }
+     
+   /*================================================*/
+   /* Remove the alpha match used to represent a not */
+   /* CE match in a beta memory partial match.       */
+   /*================================================*/
+   
+   if ((waste->notOriginf) && (waste->counterf == FALSE))
+     {
+      if (waste->binds[waste->bcount - 1].gm.theMatch != NULL)
+        {
+         rtn_struct(theEnv,alphaMatch,
+                    waste->binds[waste->bcount - 1].gm.theMatch);
+        }
+     }
+
+   /*=================================================*/
+   /* Remove any links between the partial match and  */
+   /* a data entity that were created with the use of */
+   /* the logical CE.                                 */
+   /*=================================================*/
+
+   if (waste->dependentsf) DestroyPMDependencies(theEnv,waste);
+
+   /*======================================================*/
+   /* Return the partial match to the pool of free memory. */
+   /*======================================================*/
+
+   rtn_var_struct(theEnv,partialMatch,(int) sizeof(struct genericMatch *) *
                   (waste->bcount + waste->activationf + waste->dependentsf - 1),
                   waste);
   }
@@ -803,6 +850,7 @@ globle void ReturnPartialMatch(
 /*   pattern to the pool of free memory.              */
 /******************************************************/
 static void ReturnMarkers(
+  void *theEnv,
   struct multifieldMarker *waste)
   {
    struct multifieldMarker *temp;
@@ -810,7 +858,7 @@ static void ReturnMarkers(
    while (waste != NULL)
      {
       temp = waste->next;
-      rtn_struct(multifieldMarker,waste);
+      rtn_struct(theEnv,multifieldMarker,waste);
       waste = temp;
      }
   }
@@ -820,109 +868,45 @@ static void ReturnMarkers(
 /*   matches created as a result of removing a   */
 /*   data entity through the join network.       */
 /*************************************************/
-static void DriveRetractions()
+static void DriveRetractions(
+  void *theEnv)
   {
    struct rdriveinfo *tempDR;
    struct joinNode *joinPtr;
 
-   while (DriveRetractionList != NULL)
+   while (EngineData(theEnv)->DriveRetractionList != NULL)
      {
-      for (joinPtr = DriveRetractionList->jlist;
+      for (joinPtr = EngineData(theEnv)->DriveRetractionList->jlist;
            joinPtr != NULL;
            joinPtr = joinPtr->rightDriveNode)
-        { NetworkAssert(DriveRetractionList->link,joinPtr,LHS); }
+        { NetworkAssert(theEnv,EngineData(theEnv)->DriveRetractionList->link,joinPtr,LHS); }
 
-      tempDR = DriveRetractionList->next;
-      rtn_struct(rdriveinfo,DriveRetractionList);
-      DriveRetractionList = tempDR;
+      tempDR = EngineData(theEnv)->DriveRetractionList->next;
+      rtn_struct(theEnv,rdriveinfo,EngineData(theEnv)->DriveRetractionList);
+      EngineData(theEnv)->DriveRetractionList = tempDR;
      }
   }
 
-/*************************************************************/
-/* FlushGarbagePartialMatches:  Returns partial matches and  */
-/*   associated structures that were removed as part of a    */
-/*   retraction. It is necessary to postpone returning these */
-/*   structures to memory because RHS actions retrieve their */
-/*   variable bindings directly from the fact and instance   */
-/*   data structures through the alpha memory bindings.      */
-/*************************************************************/
-globle void FlushGarbagePartialMatches()
-  {
-   struct partialMatch *pmPtr;
-   struct alphaMatch *amPtr;
-
-   /*===================================================*/
-   /* Return the garbage partial matches collected from */
-   /* the alpha memories of the pattern networks.       */
-   /*===================================================*/
-
-   while (GarbageAlphaMatches != NULL)
-     {
-      amPtr = GarbageAlphaMatches->next;
-      rtn_struct(alphaMatch,GarbageAlphaMatches);
-      GarbageAlphaMatches = amPtr;
-     }
-
-   /*==============================================*/
-   /* Return the garbage partial matches collected */
-   /* from the beta memories of the join networks. */
-   /*==============================================*/
-
-   while (GarbagePartialMatches != NULL)
-     {
-      /*=====================================================*/
-      /* Remember the next garbage partial match to process. */
-      /*=====================================================*/
-
-      pmPtr = GarbagePartialMatches->next;
-
-      /*=======================================================*/
-      /* If a "pseudo" data entity was created for the partial */
-      /* match (i.e. a not CE was satisfied), then dispose of  */
-      /* the pseudo data entity.                               */
-      /*=======================================================*/
-
-      if ((GarbagePartialMatches->notOriginf) &&
-          (GarbagePartialMatches->counterf == FALSE))
-        {
-         if (GarbagePartialMatches->binds[GarbagePartialMatches->bcount - 1].gm.theMatch != NULL)
-           {
-            rtn_struct(alphaMatch,
-                       GarbagePartialMatches->binds[GarbagePartialMatches->bcount - 1].gm.theMatch);
-           }
-        }
-
-      /*============================================*/
-      /* Dispose of the garbage partial match being */
-      /* examined and move on to the next one.      */
-      /*============================================*/
-
-      GarbagePartialMatches->busy = FALSE;
-      ReturnPartialMatch(GarbagePartialMatches);
-      GarbagePartialMatches = pmPtr;
-     }
-  }
-
-#endif /* DEFRULE_CONSTRUCT */
-
-/* Function added for DR0834 */
-
-globle void RetractCheckDriveRetractions(
+/*************************************************/
+/* RetractCheckDriveRetractions:       */
+/*************************************************/
+globle void RetractCheckDriveRetractions(  /* GDR 111599 #834 Begin */
+  void *theEnv,
   struct alphaMatch *theAlphaNode,
   int position)
   {
    struct rdriveinfo *tempDR, *theDR, *lastDR = NULL;
 
-   theDR = DriveRetractionList;
+   theDR = EngineData(theEnv)->DriveRetractionList;
    while (theDR != NULL)
      {
-      if ((position < theDR->link->bcount) &&
+      if ((position < (int) theDR->link->bcount) &&
           (theDR->link->binds[position].gm.theMatch == theAlphaNode))
         {
          tempDR = theDR->next;
-         rtn_struct(rdriveinfo,theDR);
+         rtn_struct(theEnv,rdriveinfo,theDR);
          if (lastDR == NULL)
-           { DriveRetractionList = tempDR; }
+           { EngineData(theEnv)->DriveRetractionList = tempDR; }
          else
            { lastDR->next = tempDR; }
          theDR = tempDR;
@@ -933,4 +917,73 @@ globle void RetractCheckDriveRetractions(
          theDR = theDR->next;
         }
      }
+  }                                        /* GDR 111599 #834 End */
+  
+/*************************************************************/
+/* FlushGarbagePartialMatches:  Returns partial matches and  */
+/*   associated structures that were removed as part of a    */
+/*   retraction. It is necessary to postpone returning these */
+/*   structures to memory because RHS actions retrieve their */
+/*   variable bindings directly from the fact and instance   */
+/*   data structures through the alpha memory bindings.      */
+/*************************************************************/
+globle void FlushGarbagePartialMatches(
+  void *theEnv)
+  {
+   struct partialMatch *pmPtr;
+   struct alphaMatch *amPtr;
+
+   /*===================================================*/
+   /* Return the garbage partial matches collected from */
+   /* the alpha memories of the pattern networks.       */
+   /*===================================================*/
+
+   while (EngineData(theEnv)->GarbageAlphaMatches != NULL)
+     {
+      amPtr = EngineData(theEnv)->GarbageAlphaMatches->next;
+      rtn_struct(theEnv,alphaMatch,EngineData(theEnv)->GarbageAlphaMatches);
+      EngineData(theEnv)->GarbageAlphaMatches = amPtr;
+     }
+
+   /*==============================================*/
+   /* Return the garbage partial matches collected */
+   /* from the beta memories of the join networks. */
+   /*==============================================*/
+
+   while (EngineData(theEnv)->GarbagePartialMatches != NULL)
+     {
+      /*=====================================================*/
+      /* Remember the next garbage partial match to process. */
+      /*=====================================================*/
+
+      pmPtr = EngineData(theEnv)->GarbagePartialMatches->next;
+
+      /*=======================================================*/
+      /* If a "pseudo" data entity was created for the partial */
+      /* match (i.e. a not CE was satisfied), then dispose of  */
+      /* the pseudo data entity.                               */
+      /*=======================================================*/
+
+      if ((EngineData(theEnv)->GarbagePartialMatches->notOriginf) &&
+          (EngineData(theEnv)->GarbagePartialMatches->counterf == FALSE))
+        {
+         if (EngineData(theEnv)->GarbagePartialMatches->binds[EngineData(theEnv)->GarbagePartialMatches->bcount - 1].gm.theMatch != NULL)
+           {
+            rtn_struct(theEnv,alphaMatch,
+                       EngineData(theEnv)->GarbagePartialMatches->binds[EngineData(theEnv)->GarbagePartialMatches->bcount - 1].gm.theMatch);
+           }
+        }
+
+      /*============================================*/
+      /* Dispose of the garbage partial match being */
+      /* examined and move on to the next one.      */
+      /*============================================*/
+
+      EngineData(theEnv)->GarbagePartialMatches->busy = FALSE;
+      ReturnPartialMatch(theEnv,EngineData(theEnv)->GarbagePartialMatches);
+      EngineData(theEnv)->GarbagePartialMatches = pmPtr;
+     }
   }
+
+#endif /* DEFRULE_CONSTRUCT */
+

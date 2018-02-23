@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/bmathfun.c,v 1.3 2001/08/11 21:04:07 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*             BASIC MATH FUNCTIONS MODULE             */
    /*******************************************************/
@@ -20,6 +18,9 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/bmathfun.c,v 1.3 2001/08/1
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -30,40 +31,49 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/bmathfun.c,v 1.3 2001/08/1
 
 #include "setup.h"
 
-#include "exprnpsr.h"
 #include "argacces.h"
+#include "envrnmnt.h"
+#include "exprnpsr.h"
 #include "router.h"
 
 #include "bmathfun.h"
 
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
+#define BMATHFUN_DATA 6
 
-   static BOOLEAN          AutoFloatDividend = TRUE;
+struct basicMathFunctionData
+  { 
+   intBool AutoFloatDividend;
+  };
+
+#define BasicMathFunctionData(theEnv) ((struct basicMathFunctionData *) GetEnvironmentData(theEnv,BMATHFUN_DATA))
 
 /***************************************************************/
 /* BasicMathFunctionDefinitions: Defines basic math functions. */
 /***************************************************************/
-globle void BasicMathFunctionDefinitions()
-  {
-#if ! RUN_TIME
-   DefineFunction2("+", 'n',PTIF AdditionFunction, "AdditionFunction", "2*n");
-   DefineFunction2("*", 'n', PTIF MultiplicationFunction, "MultiplicationFunction", "2*n");
-   DefineFunction2("-", 'n', PTIF SubtractionFunction, "SubtractionFunction", "2*n");
-   DefineFunction2("/", 'n', PTIF DivisionFunction, "DivisionFunction", "2*n");
-   DefineFunction2("div", 'l', PTIF DivFunction, "DivFunction", "2*n");
+globle void BasicMathFunctionDefinitions(
+  void *theEnv)
+  {   
+   AllocateEnvironmentData(theEnv,BMATHFUN_DATA,sizeof(struct basicMathFunctionData),NULL);
+   
+   BasicMathFunctionData(theEnv)->AutoFloatDividend = TRUE;
 
-   DefineFunction2("set-auto-float-dividend", 'b',
+#if ! RUN_TIME
+   EnvDefineFunction2(theEnv,"+", 'n',PTIEF AdditionFunction, "AdditionFunction", "2*n");
+   EnvDefineFunction2(theEnv,"*", 'n', PTIEF MultiplicationFunction, "MultiplicationFunction", "2*n");
+   EnvDefineFunction2(theEnv,"-", 'n', PTIEF SubtractionFunction, "SubtractionFunction", "2*n");
+    
+   EnvDefineFunction2(theEnv,"/", 'n', PTIEF DivisionFunction, "DivisionFunction", "2*n");
+   EnvDefineFunction2(theEnv,"div", 'l', PTIEF DivFunction, "DivFunction", "2*n");
+   EnvDefineFunction2(theEnv,"set-auto-float-dividend", 'b',
                    SetAutoFloatDividendCommand, "SetAutoFloatDividendCommand", "11");
-   DefineFunction2("get-auto-float-dividend", 'b',
+   EnvDefineFunction2(theEnv,"get-auto-float-dividend", 'b',
                   GetAutoFloatDividendCommand, "GetAutoFloatDividendCommand", "00");
 
-   DefineFunction2("integer", 'l', PTIF IntegerFunction, "IntegerFunction", "11n");
-   DefineFunction2("float", 'd', PTIF FloatFunction, "FloatFunction", "11n");
-   DefineFunction2("abs", 'n', PTIF AbsFunction, "AbsFunction", "11n");
-   DefineFunction2("min", 'n', PTIF MinFunction, "MinFunction", "2*n");
-   DefineFunction2("max", 'n', PTIF MaxFunction, "MaxFunction", "2*n");
+   EnvDefineFunction2(theEnv,"integer", 'l', PTIEF IntegerFunction, "IntegerFunction", "11n");
+   EnvDefineFunction2(theEnv,"float", 'd', PTIEF FloatFunction, "FloatFunction", "11n");
+   EnvDefineFunction2(theEnv,"abs", 'n', PTIEF AbsFunction, "AbsFunction", "11n");
+   EnvDefineFunction2(theEnv,"min", 'n', PTIEF MinFunction, "MinFunction", "2*n");
+   EnvDefineFunction2(theEnv,"max", 'n', PTIEF MaxFunction, "MaxFunction", "2*n");
 #endif
   }
 
@@ -72,11 +82,12 @@ globle void BasicMathFunctionDefinitions()
 /*   routine for the + function.  */
 /**********************************/
 globle void AdditionFunction(
+  void *theEnv,
   DATA_OBJECT_PTR returnValue)
   {
    double ftotal = 0.0;
    long ltotal = 0L;
-   BOOLEAN useFloatTotal = FALSE;
+   intBool useFloatTotal = FALSE;
    EXPRESSION *theExpression;
    DATA_OBJECT theArgument;
    int pos = 1;
@@ -92,7 +103,7 @@ globle void AdditionFunction(
 
    while (theExpression != NULL)
      {
-      if (! GetNumericArgument(theExpression,"+",&theArgument,useFloatTotal,pos)) theExpression = NULL;
+      if (! GetNumericArgument(theEnv,theExpression,"+",&theArgument,useFloatTotal,pos)) theExpression = NULL;
       else theExpression = GetNextArgument(theExpression);
 
       if (useFloatTotal)
@@ -119,12 +130,12 @@ globle void AdditionFunction(
    if (useFloatTotal)
      {
       returnValue->type = FLOAT;
-      returnValue->value = (void *) AddDouble(ftotal);
+      returnValue->value = (void *) EnvAddDouble(theEnv,ftotal);
      }
    else
      {
       returnValue->type = INTEGER;
-      returnValue->value = (void *) AddLong(ltotal);
+      returnValue->value = (void *) EnvAddLong(theEnv,ltotal);
      }
   }
 
@@ -133,11 +144,12 @@ globle void AdditionFunction(
 /*   routine for the * function.        */
 /****************************************/
 globle void MultiplicationFunction(
+  void *theEnv,
   DATA_OBJECT_PTR returnValue)
   {
    double ftotal = 1.0;
    long ltotal = 1L;
-   BOOLEAN useFloatTotal = FALSE;
+   intBool useFloatTotal = FALSE;
    EXPRESSION *theExpression;
    DATA_OBJECT theArgument;
    int pos = 1;
@@ -153,7 +165,7 @@ globle void MultiplicationFunction(
 
    while (theExpression != NULL)
      {
-      if (! GetNumericArgument(theExpression,"*",&theArgument,useFloatTotal,pos)) theExpression = NULL;
+      if (! GetNumericArgument(theEnv,theExpression,"*",&theArgument,useFloatTotal,pos)) theExpression = NULL;
       else theExpression = GetNextArgument(theExpression);
 
       if (useFloatTotal)
@@ -179,12 +191,12 @@ globle void MultiplicationFunction(
    if (useFloatTotal)
      {
       returnValue->type = FLOAT;
-      returnValue->value = (void *) AddDouble(ftotal);
+      returnValue->value = (void *) EnvAddDouble(theEnv,ftotal);
      }
    else
      {
       returnValue->type = INTEGER;
-      returnValue->value = (void *) AddLong(ltotal);
+      returnValue->value = (void *) EnvAddLong(theEnv,ltotal);
      }
   }
 
@@ -193,11 +205,12 @@ globle void MultiplicationFunction(
 /*   routine for the - function.     */
 /*************************************/
 globle void SubtractionFunction(
+  void *theEnv,
   DATA_OBJECT_PTR returnValue)
   {
    double ftotal = 0.0;
    long ltotal = 0L;
-   BOOLEAN useFloatTotal = FALSE;
+   intBool useFloatTotal = FALSE;
    EXPRESSION *theExpression;
    DATA_OBJECT theArgument;
    int pos = 1;
@@ -211,7 +224,7 @@ globle void SubtractionFunction(
    theExpression = GetFirstArgument();
    if (theExpression != NULL)
      {
-      if (! GetNumericArgument(theExpression,"-",&theArgument,useFloatTotal,pos)) theExpression = NULL;
+      if (! GetNumericArgument(theEnv,theExpression,"-",&theArgument,useFloatTotal,pos)) theExpression = NULL;
       else theExpression = GetNextArgument(theExpression);
 
       if (theArgument.type == INTEGER)
@@ -233,7 +246,7 @@ globle void SubtractionFunction(
 
    while (theExpression != NULL)
      {
-      if (! GetNumericArgument(theExpression,"-",&theArgument,useFloatTotal,pos)) theExpression = NULL;
+      if (! GetNumericArgument(theEnv,theExpression,"-",&theArgument,useFloatTotal,pos)) theExpression = NULL;
       else theExpression = GetNextArgument(theExpression);
 
       if (useFloatTotal)
@@ -259,12 +272,12 @@ globle void SubtractionFunction(
    if (useFloatTotal)
      {
       returnValue->type = FLOAT;
-      returnValue->value = (void *) AddDouble(ftotal);
+      returnValue->value = (void *) EnvAddDouble(theEnv,ftotal);
      }
    else
      {
       returnValue->type = INTEGER;
-      returnValue->value = (void *) AddLong(ltotal);
+      returnValue->value = (void *) EnvAddLong(theEnv,ltotal);
      }
   }
 
@@ -273,15 +286,18 @@ globle void SubtractionFunction(
 /*   routine for the / function.   */
 /***********************************/
 globle void DivisionFunction(
+  void *theEnv,
   DATA_OBJECT_PTR returnValue)
   {
    double ftotal = 1.0;
    long ltotal = 1L;
-   BOOLEAN useFloatTotal = AutoFloatDividend;
+   intBool useFloatTotal;
    EXPRESSION *theExpression;
    DATA_OBJECT theArgument;
    int pos = 1;
 
+   useFloatTotal = BasicMathFunctionData(theEnv)->AutoFloatDividend;
+   
    /*===================================================*/
    /* Get the first argument. This number which will be */
    /* the starting product from which all subsequent    */
@@ -293,7 +309,7 @@ globle void DivisionFunction(
    theExpression = GetFirstArgument();
    if (theExpression != NULL)
      {
-      if (! GetNumericArgument(theExpression,"/",&theArgument,useFloatTotal,pos)) theExpression = NULL;
+      if (! GetNumericArgument(theEnv,theExpression,"/",&theArgument,useFloatTotal,pos)) theExpression = NULL;
       else theExpression = GetNextArgument(theExpression);
 
       if (theArgument.type == INTEGER)
@@ -316,17 +332,17 @@ globle void DivisionFunction(
 
    while (theExpression != NULL)
      {
-      if (! GetNumericArgument(theExpression,"/",&theArgument,useFloatTotal,pos)) theExpression = NULL;
+      if (! GetNumericArgument(theEnv,theExpression,"/",&theArgument,useFloatTotal,pos)) theExpression = NULL;
       else theExpression = GetNextArgument(theExpression);
 
       if ((theArgument.type == INTEGER) ? (ValueToLong(theArgument.value) == 0L) :
                                  ((theArgument.type == FLOAT) ? ValueToDouble(theArgument.value) == 0.0 : FALSE))
         {
-         DivideByZeroErrorMessage("/");
-         SetHaltExecution(TRUE);
-         SetEvaluationError(TRUE);
+         DivideByZeroErrorMessage(theEnv,"/");
+         SetHaltExecution(theEnv,TRUE);
+         SetEvaluationError(theEnv,TRUE);
          returnValue->type = FLOAT;
-         returnValue->value = (void *) AddDouble(1.0);
+         returnValue->value = (void *) EnvAddDouble(theEnv,1.0);
          return;
         }
 
@@ -353,12 +369,12 @@ globle void DivisionFunction(
    if (useFloatTotal)
      {
       returnValue->type = FLOAT;
-      returnValue->value = (void *) AddDouble(ftotal);
+      returnValue->value = (void *) EnvAddDouble(theEnv,ftotal);
      }
    else
      {
       returnValue->type = INTEGER;
-      returnValue->value = (void *) AddLong(ltotal);
+      returnValue->value = (void *) EnvAddLong(theEnv,ltotal);
      }
   }
 
@@ -366,7 +382,8 @@ globle void DivisionFunction(
 /* DivFunction: H/L access routine   */
 /*   for the div function.           */
 /*************************************/
-globle long DivFunction()
+globle long DivFunction(
+  void *theEnv)
   {
    long total = 1L;
    EXPRESSION *theExpression;
@@ -383,7 +400,7 @@ globle long DivFunction()
    theExpression = GetFirstArgument();
    if (theExpression != NULL)
      {
-      if (! GetNumericArgument(theExpression,"div",&theArgument,FALSE,pos)) theExpression = NULL;
+      if (! GetNumericArgument(theEnv,theExpression,"div",&theArgument,FALSE,pos)) theExpression = NULL;
       else theExpression = GetNextArgument(theExpression);
 
       if (theArgument.type == INTEGER)
@@ -402,7 +419,7 @@ globle long DivFunction()
 
    while (theExpression != NULL)
      {
-      if (! GetNumericArgument(theExpression,"div",&theArgument,FALSE,pos)) theExpression = NULL;
+      if (! GetNumericArgument(theEnv,theExpression,"div",&theArgument,FALSE,pos)) theExpression = NULL;
       else theExpression = GetNextArgument(theExpression);
 
       if (theArgument.type == INTEGER) theNumber = ValueToLong(theArgument.value);
@@ -411,9 +428,9 @@ globle long DivFunction()
 
       if (theNumber == 0L)
         {
-         DivideByZeroErrorMessage("div");
-         SetHaltExecution(TRUE);
-         SetEvaluationError(TRUE);
+         DivideByZeroErrorMessage(theEnv,"div");
+         SetHaltExecution(theEnv,TRUE);
+         SetEvaluationError(theEnv,TRUE);
          return(1L);
         }
 
@@ -436,7 +453,8 @@ globle long DivFunction()
 /* SetAutoFloatDividendCommand: H/L access routine   */
 /*   for the set-auto-float-dividend command.        */
 /*****************************************************/
-globle int SetAutoFloatDividendCommand()
+globle int SetAutoFloatDividendCommand(
+  void *theEnv)
   {
    int oldValue;
    DATA_OBJECT theArgument;
@@ -445,25 +463,25 @@ globle int SetAutoFloatDividendCommand()
    /* Remember the present setting. */
    /*===============================*/
 
-   oldValue = AutoFloatDividend;
+   oldValue = BasicMathFunctionData(theEnv)->AutoFloatDividend;
 
    /*============================================*/
    /* Check for the correct number of arguments. */
    /*============================================*/
 
-   if (ArgCountCheck("set-auto-float-dividend",EXACTLY,1) == -1)
+   if (EnvArgCountCheck(theEnv,"set-auto-float-dividend",EXACTLY,1) == -1)
      { return(oldValue); }
 
-   RtnUnknown(1,&theArgument);
+   EnvRtnUnknown(theEnv,1,&theArgument);
 
    /*============================================================*/
    /* The symbol FALSE disables the auto float dividend feature. */
    /*============================================================*/
 
-   if ((theArgument.value == FalseSymbol) && (theArgument.type == SYMBOL))
-     { AutoFloatDividend = FALSE; }
+   if ((theArgument.value == EnvFalseSymbol(theEnv)) && (theArgument.type == SYMBOL))
+     { BasicMathFunctionData(theEnv)->AutoFloatDividend = FALSE; }
    else
-     { AutoFloatDividend = TRUE; }
+     { BasicMathFunctionData(theEnv)->AutoFloatDividend = TRUE; }
 
    /*======================================*/
    /* Return the old value of the feature. */
@@ -476,41 +494,44 @@ globle int SetAutoFloatDividendCommand()
 /* GetAutoFloatDividendCommand: H/L access routine   */
 /*   for the get-auto-float-dividend command.        */
 /*****************************************************/
-globle int GetAutoFloatDividendCommand()
+globle int GetAutoFloatDividendCommand(
+  void *theEnv)
   {
    /*============================================*/
    /* Check for the correct number of arguments. */
    /*============================================*/
 
-   ArgCountCheck("get-auto-float-dividend",EXACTLY,0);
+   EnvArgCountCheck(theEnv,"get-auto-float-dividend",EXACTLY,0);
 
    /*=============================*/
    /* Return the current setting. */
    /*=============================*/
 
-   return(AutoFloatDividend);
+   return(BasicMathFunctionData(theEnv)->AutoFloatDividend);
   }
 
-/**********************************************/
-/* GetAutoFloatDividend: C access routine for */
-/*   the get-auto-float-dividend command.     */
-/**********************************************/
-globle BOOLEAN GetAutoFloatDividend()
+/*************************************************/
+/* EnvGetAutoFloatDividend: C access routine for */
+/*   the get-auto-float-dividend command.        */
+/*************************************************/
+globle intBool EnvGetAutoFloatDividend(
+  void *theEnv)
   {
-   return(AutoFloatDividend);
+   return(BasicMathFunctionData(theEnv)->AutoFloatDividend);
   }
 
-/**********************************************/
-/* SetAutoFloatDividend: C access routine for */
-/*   the set-auto-float-dividend command.     */
-/**********************************************/
-globle BOOLEAN SetAutoFloatDividend(
+/*************************************************/
+/* EnvSetAutoFloatDividend: C access routine for */
+/*   the set-auto-float-dividend command.        */
+/*************************************************/
+globle intBool EnvSetAutoFloatDividend(
+  void *theEnv,
   int value)
   {
    int ov;
 
-   ov = AutoFloatDividend;
-   AutoFloatDividend = value;
+   ov = BasicMathFunctionData(theEnv)->AutoFloatDividend;
+   BasicMathFunctionData(theEnv)->AutoFloatDividend = value;
    return(ov);
   }
 
@@ -518,7 +539,8 @@ globle BOOLEAN SetAutoFloatDividend(
 /* IntegerFunction: H/L access routine   */
 /*   for the integer function.           */
 /*****************************************/
-globle long int IntegerFunction()
+globle long int IntegerFunction(
+  void *theEnv)
   {
    DATA_OBJECT valstruct;
 
@@ -526,7 +548,7 @@ globle long int IntegerFunction()
    /* Check for the correct number of arguments. */
    /*============================================*/
 
-   if (ArgCountCheck("integer",EXACTLY,1) == -1) return(0L);
+   if (EnvArgCountCheck(theEnv,"integer",EXACTLY,1) == -1) return(0L);
 
    /*================================================================*/
    /* Check for the correct type of argument. Note that ArgTypeCheck */
@@ -534,7 +556,7 @@ globle long int IntegerFunction()
    /* (which is the purpose of the integer function).                */
    /*================================================================*/
 
-   if (ArgTypeCheck("integer",1,INTEGER,&valstruct) == FALSE) return(0L);
+   if (EnvArgTypeCheck(theEnv,"integer",1,INTEGER,&valstruct) == FALSE) return(0L);
 
    /*===================================================*/
    /* Return the numeric value converted to an integer. */
@@ -547,7 +569,8 @@ globle long int IntegerFunction()
 /* FloatFunction: H/L access routine   */
 /*   for the float function.           */
 /***************************************/
-globle double FloatFunction()
+globle double FloatFunction(
+  void *theEnv)
   {
    DATA_OBJECT valstruct;
 
@@ -555,7 +578,7 @@ globle double FloatFunction()
    /* Check for the correct number of arguments. */
    /*============================================*/
 
-   if (ArgCountCheck("float",EXACTLY,1) == -1) return(0.0);
+   if (EnvArgCountCheck(theEnv,"float",EXACTLY,1) == -1) return(0.0);
 
    /*================================================================*/
    /* Check for the correct type of argument. Note that ArgTypeCheck */
@@ -563,7 +586,7 @@ globle double FloatFunction()
    /* (which is the purpose of the float function).                  */
    /*================================================================*/
 
-   if (ArgTypeCheck("float",1,FLOAT,&valstruct) == FALSE) return(0.0);
+   if (EnvArgTypeCheck(theEnv,"float",1,FLOAT,&valstruct) == FALSE) return(0.0);
 
    /*================================================*/
    /* Return the numeric value converted to a float. */
@@ -577,16 +600,17 @@ globle double FloatFunction()
 /*   for the abs function.           */
 /*************************************/
 globle void AbsFunction(
+  void *theEnv,
   DATA_OBJECT_PTR returnValue)
   {
    /*============================================*/
    /* Check for the correct number of arguments. */
    /*============================================*/
 
-   if (ArgCountCheck("abs",EXACTLY,1) == -1)
+   if (EnvArgCountCheck(theEnv,"abs",EXACTLY,1) == -1)
      {
       returnValue->type = INTEGER;
-      returnValue->value = (void *) AddLong(0L);
+      returnValue->value = (void *) EnvAddLong(theEnv,0L);
       return;
      }
 
@@ -594,10 +618,10 @@ globle void AbsFunction(
    /* Check that the argument is a number. */
    /*======================================*/
 
-   if (ArgTypeCheck("abs",1,INTEGER_OR_FLOAT,returnValue) == FALSE)
+   if (EnvArgTypeCheck(theEnv,"abs",1,INTEGER_OR_FLOAT,returnValue) == FALSE)
      {
       returnValue->type = INTEGER;
-      returnValue->value = (void *) AddLong(0L);
+      returnValue->value = (void *) EnvAddLong(theEnv,0L);
       return;
      }
 
@@ -608,10 +632,10 @@ globle void AbsFunction(
    if (returnValue->type == INTEGER)
      {
       if (ValueToLong(returnValue->value) < 0L)
-        { returnValue->value = (void *) AddLong(- ValueToLong(returnValue->value)); }
+        { returnValue->value = (void *) EnvAddLong(theEnv,- ValueToLong(returnValue->value)); }
      }
    else if (ValueToDouble(returnValue->value) < 0.0)
-     { returnValue->value = (void *) AddDouble(- ValueToDouble(returnValue->value)); }
+     { returnValue->value = (void *) EnvAddDouble(theEnv,- ValueToDouble(returnValue->value)); }
   }
 
 /*************************************/
@@ -619,6 +643,7 @@ globle void AbsFunction(
 /*   for the min function.           */
 /*************************************/
 globle void MinFunction(
+  void *theEnv,
   DATA_OBJECT_PTR returnValue)
   {
    DATA_OBJECT argValue;
@@ -628,10 +653,10 @@ globle void MinFunction(
    /* Check for the correct number of arguments. */
    /*============================================*/
 
-   if ((numberOfArguments = ArgCountCheck("min",AT_LEAST,1)) == -1)
+   if ((numberOfArguments = EnvArgCountCheck(theEnv,"min",AT_LEAST,1)) == -1)
      {
       returnValue->type = INTEGER;
-      returnValue->value = (void *) AddLong(0L);
+      returnValue->value = (void *) EnvAddLong(theEnv,0L);
       return;
      }
 
@@ -639,10 +664,10 @@ globle void MinFunction(
    /* Check that the first argument is a number. */
    /*============================================*/
 
-   if (ArgTypeCheck("min",1,INTEGER_OR_FLOAT,returnValue) == FALSE)
+   if (EnvArgTypeCheck(theEnv,"min",1,INTEGER_OR_FLOAT,returnValue) == FALSE)
      {
       returnValue->type = INTEGER;
-      returnValue->value = (void *) AddLong(0L);
+      returnValue->value = (void *) EnvAddLong(theEnv,0L);
       return;
      }
 
@@ -655,7 +680,7 @@ globle void MinFunction(
 
    for (i = 2 ; i <= numberOfArguments ; i++)
      {
-      if (ArgTypeCheck("min",i,INTEGER_OR_FLOAT,&argValue) == FALSE) return;
+      if (EnvArgTypeCheck(theEnv,"min",i,INTEGER_OR_FLOAT,&argValue) == FALSE) return;
 
       if (returnValue->type == INTEGER)
         {
@@ -707,6 +732,7 @@ globle void MinFunction(
 /*   for the max function.           */
 /*************************************/
 globle void MaxFunction(
+  void *theEnv,
   DATA_OBJECT_PTR returnValue)
   {
    DATA_OBJECT argValue;
@@ -716,10 +742,10 @@ globle void MaxFunction(
    /* Check for the correct number of arguments. */
    /*============================================*/
 
-   if ((numberOfArguments = ArgCountCheck("max",AT_LEAST,1)) == -1)
+   if ((numberOfArguments = EnvArgCountCheck(theEnv,"max",AT_LEAST,1)) == -1)
      {
       returnValue->type = INTEGER;
-      returnValue->value = (void *) AddLong(0L);
+      returnValue->value = (void *) EnvAddLong(theEnv,0L);
       return;
      }
 
@@ -727,10 +753,10 @@ globle void MaxFunction(
    /* Check that the first argument is a number. */
    /*============================================*/
 
-   if (ArgTypeCheck("max",1,INTEGER_OR_FLOAT,returnValue) == FALSE)
+   if (EnvArgTypeCheck(theEnv,"max",1,INTEGER_OR_FLOAT,returnValue) == FALSE)
      {
       returnValue->type = INTEGER;
-      returnValue->value = (void *) AddLong(0L);
+      returnValue->value = (void *) EnvAddLong(theEnv,0L);
       return;
      }
 
@@ -743,7 +769,7 @@ globle void MaxFunction(
 
    for (i = 2 ; i <= numberOfArguments ; i++)
      {
-      if (ArgTypeCheck("max",i,INTEGER_OR_FLOAT,&argValue) == FALSE) return;
+      if (EnvArgTypeCheck(theEnv,"max",i,INTEGER_OR_FLOAT,&argValue) == FALSE) return;
 
       if (returnValue->type == INTEGER)
         {

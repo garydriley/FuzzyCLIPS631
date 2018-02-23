@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/dffnxbin.h,v 1.3 2001/08/11 21:04:58 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -27,8 +25,6 @@
 
 #include "dffnxfun.h"
 
-#define DeffunctionPointer(i) (((i) == -1L) ? NULL : (DEFFUNCTION *) &deffunctionArray[i])
-
 #ifdef LOCALE
 #undef LOCALE
 #endif
@@ -39,12 +35,22 @@
 #define LOCALE extern
 #endif
 
-LOCALE void SetupDeffunctionsBload(void);
-LOCALE void *BloadDeffunctionModuleReference(int);
+LOCALE void SetupDeffunctionsBload(void *);
+LOCALE void *BloadDeffunctionModuleReference(void *,int);
 
-#ifndef _DFFNXBIN_SOURCE_
-extern DEFFUNCTION *deffunctionArray;
-#endif
+#define DFFNXBIN_DATA 24
+
+struct deffunctionBinaryData
+  { 
+   DEFFUNCTION *DeffunctionArray;
+   long DeffunctionCount;
+   long ModuleCount;
+   DEFFUNCTION_MODULE *ModuleArray;
+  };
+  
+#define DeffunctionBinaryData(theEnv) ((struct deffunctionBinaryData *) GetEnvironmentData(theEnv,DFFNXBIN_DATA))
+
+#define DeffunctionPointer(i) (((i) == -1L) ? NULL : (DEFFUNCTION *) &DeffunctionBinaryData(theEnv)->DeffunctionArray[i])
 
 #endif
 

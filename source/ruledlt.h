@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/ruledlt.h,v 1.3 2001/08/11 21:07:48 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*          RULE DELETION MODULE HEADER FILE           */
    /*******************************************************/
@@ -36,13 +34,8 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           ReturnDefrule(void *);
-
-#ifndef _RULEDLT_SOURCE_
-#if (! RUN_TIME) && (! BLOAD_ONLY) && DEBUGGING_FUNCTIONS
-   extern int                            DeletedRuleDebugFlags;
-#endif
-#endif
+   LOCALE void                           ReturnDefrule(void *,void *);
+   LOCALE void                           DestroyDefrule(void *,void *);
 
 #endif
 

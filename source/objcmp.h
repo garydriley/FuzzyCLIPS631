@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/objcmp.h,v 1.3 2001/08/11 21:07:08 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -28,9 +26,23 @@
 #define _STDIO_INCLUDED_
 #endif
 
+#ifndef _H_conscomp
+#include "conscomp.h"
+#endif
 #ifndef _H_object
 #include "object.h"
 #endif
+
+#define OBJECT_COMPILER_DATA 36
+
+struct objectCompilerData
+  { 
+#if CONSTRUCT_COMPILER && (! RUN_TIME)
+   struct CodeGeneratorItem *ObjectCodeItem;
+#endif
+  };
+
+#define ObjectCompilerData(theEnv) ((struct objectCompilerData *) GetEnvironmentData(theEnv,OBJECT_COMPILER_DATA))
 
 #ifdef LOCALE
 #undef LOCALE
@@ -42,9 +54,9 @@
 #define LOCALE extern
 #endif
 
-LOCALE void SetupObjectsCompiler(void);
-LOCALE void PrintClassReference(FILE *,DEFCLASS *,int,int);
-LOCALE void DefclassCModuleReference(FILE *,int,int,int);
+LOCALE void SetupObjectsCompiler(void *);
+LOCALE void PrintClassReference(void *,FILE *,DEFCLASS *,int,int);
+LOCALE void DefclassCModuleReference(void *,FILE *,int,int,int);
 
 #endif
 

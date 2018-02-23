@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/reorder.h,v 1.3 2001/08/11 21:07:34 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                 REORDER HEADER FILE                 */
    /*******************************************************/
@@ -60,7 +58,7 @@ struct lhsParseNode;
 /***********************************************************************/
 struct lhsParseNode
   {
-   int type;
+   unsigned short type;
    void *value;
    unsigned int negated : 1;
    unsigned int logical : 1;
@@ -71,17 +69,17 @@ struct lhsParseNode
    unsigned int whichCE : 7;
    unsigned int marked : 1;
    unsigned int withinMultifieldSlot : 1;
-   unsigned int multiFieldsBefore : 7;
-   unsigned int multiFieldsAfter : 7;
-   unsigned int singleFieldsBefore : 7;
-   unsigned int singleFieldsAfter : 7;
+   unsigned short multiFieldsBefore;
+   unsigned short multiFieldsAfter;
+   unsigned short singleFieldsBefore;
+   unsigned short singleFieldsAfter;
    struct constraintRecord *constraints;
    struct lhsParseNode *referringNode;
    struct patternParser *patternType;
-   int pattern;
-   int index;
+   short pattern;
+   short index;
    struct symbolHashNode *slot;
-   int slotNumber;
+   short slotNumber;
    int beginNandDepth;
    int endNandDepth;
    struct expr *networkTest;
@@ -91,20 +89,16 @@ struct lhsParseNode
    struct lhsParseNode *bottom;
   };
 
-LOCALE struct lhsParseNode           *ReorderPatterns(struct lhsParseNode *,int *);
-LOCALE struct lhsParseNode           *CopyLHSParseNodes(struct lhsParseNode *);
-LOCALE void                           CopyLHSParseNode(struct lhsParseNode *,struct lhsParseNode *,int);
-LOCALE struct lhsParseNode           *GetLHSParseNode(void);
-LOCALE void                           ReturnLHSParseNodes(struct lhsParseNode *);
-LOCALE struct lhsParseNode           *ExpressionToLHSParseNodes(struct expr *);
-LOCALE struct expr                   *LHSParseNodesToExpression(struct lhsParseNode *);
-LOCALE void                           AddInitialPatterns(struct lhsParseNode *);
+LOCALE struct lhsParseNode           *ReorderPatterns(void *,struct lhsParseNode *,int *);
+LOCALE struct lhsParseNode           *CopyLHSParseNodes(void *,struct lhsParseNode *);
+LOCALE void                           CopyLHSParseNode(void *,struct lhsParseNode *,struct lhsParseNode *,int);
+LOCALE struct lhsParseNode           *GetLHSParseNode(void *);
+LOCALE void                           ReturnLHSParseNodes(void *,struct lhsParseNode *);
+LOCALE struct lhsParseNode           *ExpressionToLHSParseNodes(void *,struct expr *);
+LOCALE struct expr                   *LHSParseNodesToExpression(void *,struct lhsParseNode *);
+LOCALE void                           AddInitialPatterns(void *,struct lhsParseNode *);
 
 #endif
-
-
-
-
 
 
 

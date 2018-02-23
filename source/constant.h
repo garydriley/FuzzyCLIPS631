@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/constant.h,v 1.5 2002/10/24 20:54:32 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  06/12/06            */
    /*                                                     */
    /*                CONSTANTS HEADER FILE                */
    /*******************************************************/
@@ -34,9 +32,6 @@
 #ifndef TRUE
 #define TRUE 1
 #endif
-
-#define CLIPS_FALSE 0
-#define CLIPS_TRUE 1
 
 #define EXACTLY       0
 #define AT_LEAST      1
@@ -75,15 +70,15 @@
 #endif
 
 #ifndef VERSION_STRING
-#define VERSION_STRING "6.10d"
+#define VERSION_STRING "6.24"
 #endif
 
 #ifndef CREATION_DATE_STRING
-#define CREATION_DATE_STRING "22 Oct 2004"
+#define CREATION_DATE_STRING "02/21/18"
 #endif
 
 #ifndef BANNER_STRING
-#define BANNER_STRING "        FuzzyCLIPS V6.10d (10/22/2004)\n"
+#define BANNER_STRING "        FuzzyCLIPS (V6.24 02/21/18)\n"
 #endif
 
 /*************************/
@@ -109,7 +104,6 @@
 /* FUZZY extensions */
 #define FUZZY_VALUE_NAME               "FUZZY-VALUE"
 
-
 /*************************************************************************/
 /* The values of these constants should not be changed.  They are set to */
 /* start after the primitive type codes in CONSTANT.H.  These codes are  */
@@ -117,23 +111,12 @@
 /* present or not.                                                       */
 /*************************************************************************/
 
-/*         OLD Values without FUZZY added
 #define OBJECT_TYPE_CODE                9
 #define PRIMITIVE_TYPE_CODE            10
 #define NUMBER_TYPE_CODE               11
 #define LEXEME_TYPE_CODE               12
 #define ADDRESS_TYPE_CODE              13
 #define INSTANCE_TYPE_CODE             14
-*/
-
-/* NEW values with FUZZY added */
-#define OBJECT_TYPE_CODE               10
-#define PRIMITIVE_TYPE_CODE            11
-#define NUMBER_TYPE_CODE               12
-#define LEXEME_TYPE_CODE               13
-#define ADDRESS_TYPE_CODE              14
-#define INSTANCE_TYPE_CODE             15
-
 
 /****************************************************/
 /* The first 9 primitive types need to retain their */
@@ -155,56 +138,55 @@
 /******************************************************/
 #define FUZZY_VALUE                     9   /* 1st number after original primitives */
 
+#define FCALL                          30
+#define GCALL                          31
+#define PCALL                          32
+#define GBL_VARIABLE                   33
+#define MF_GBL_VARIABLE                34
 
-#define FCALL                          10  
-#define GCALL                          11
-#define PCALL                          12
-#define GBL_VARIABLE                   13
-#define MF_GBL_VARIABLE                14
+#define SF_VARIABLE                    35
+#define MF_VARIABLE                    36
+#define SF_WILDCARD                    37
+#define MF_WILDCARD                    38
+#define BITMAPARRAY                    39
 
-#define SF_VARIABLE                    15
-#define MF_VARIABLE                    16
-#define SF_WILDCARD                    17
-#define MF_WILDCARD                    18
-#define BITMAPARRAY                    19
+#define FACT_PN_CMP1                   50
+#define FACT_JN_CMP1                   51
+#define FACT_JN_CMP2                   52
+#define FACT_SLOT_LENGTH               53
+#define FACT_PN_VAR1                   54
+#define FACT_PN_VAR2                   55
+#define FACT_PN_VAR3                   56
+#define FACT_JN_VAR1                   57
+#define FACT_JN_VAR2                   58
+#define FACT_JN_VAR3                   59
+#define FACT_PN_CONSTANT1              60
+#define FACT_PN_CONSTANT2              61
+#define FACT_STORE_MULTIFIELD          62
+#define DEFTEMPLATE_PTR                63
 
-#define FACT_PN_CMP1                   22
-#define FACT_JN_CMP1                   23
-#define FACT_JN_CMP2                   24
-#define FACT_SLOT_LENGTH               25
-#define FACT_PN_VAR1                   26
-#define FACT_PN_VAR2                   27
-#define FACT_PN_VAR3                   28
-#define FACT_JN_VAR1                   29
-#define FACT_JN_VAR2                   30
-#define FACT_JN_VAR3                   31
-#define FACT_PN_CONSTANT1              32
-#define FACT_PN_CONSTANT2              33
-#define FACT_STORE_MULTIFIELD          34
-#define DEFTEMPLATE_PTR                35 
+#define OBJ_GET_SLOT_PNVAR1            70
+#define OBJ_GET_SLOT_PNVAR2            71
+#define OBJ_GET_SLOT_JNVAR1            72
+#define OBJ_GET_SLOT_JNVAR2            73
+#define OBJ_SLOT_LENGTH                74
+#define OBJ_PN_CONSTANT                75
+#define OBJ_PN_CMP1                    76
+#define OBJ_JN_CMP1                    77
+#define OBJ_PN_CMP2                    78
+#define OBJ_JN_CMP2                    79
+#define OBJ_PN_CMP3                    80
+#define OBJ_JN_CMP3                    81
+#define DEFCLASS_PTR                   82
+#define HANDLER_GET                    83
+#define HANDLER_PUT                    84
 
-#define OBJ_GET_SLOT_PNVAR1            45
-#define OBJ_GET_SLOT_PNVAR2            46
-#define OBJ_GET_SLOT_JNVAR1            47
-#define OBJ_GET_SLOT_JNVAR2            48
-#define OBJ_SLOT_LENGTH                49
-#define OBJ_PN_CONSTANT                50
-#define OBJ_PN_CMP1                    51
-#define OBJ_JN_CMP1                    52
-#define OBJ_PN_CMP2                    53
-#define OBJ_JN_CMP2                    54
-#define OBJ_PN_CMP3                    55
-#define OBJ_JN_CMP3                    56
-#define DEFCLASS_PTR                   57
-#define HANDLER_GET                    58
-#define HANDLER_PUT                    59
+#define DEFGLOBAL_PTR                  90
 
-#define DEFGLOBAL_PTR                  60
-
-#define PROC_PARAM                     65
-#define PROC_WILD_PARAM                66
-#define PROC_GET_BIND                  67
-#define PROC_BIND                      68
+#define PROC_PARAM                     95
+#define PROC_WILD_PARAM                96
+#define PROC_GET_BIND                  97
+#define PROC_BIND                      98
 
 /*******************************************/
 /* FUZZY REASONING                         */
@@ -212,52 +194,46 @@
 /*     Added at NRCC                       */
 /*                                         */
 /*  NOTE next 5 values must be less than   */
-/*          PRIMITIVES_ARRAY_SIZE          */
+/*          MAXIMUM_PRIMITIVES             */
 /*       to fit in PrimitivesArray         */
 /*                                         */
-/*    In standard CLIPS use constant 70    */
+/*    In standard CLIPS use constant 150   */
 /*    for size of PrimitivesArray          */
 /*                                         */
 /*******************************************/
 
-#define SCALL_PN_FUZZY_VALUE           69
+#define SCALL_PN_FUZZY_VALUE          100
 
-#define SINGLETON_EXPRESSION           70
-#define S_FUNCTION                     71
-#define Z_FUNCTION                     72
-#define PI_FUNCTION                    73
+#define SINGLETON_EXPRESSION          101
+#define S_FUNCTION                    102
+#define Z_FUNCTION                    103
+#define PI_FUNCTION                   104
 
-#define PRIMITIVES_ARRAY_SIZE          75
+#define PATTERN_CE                    150
+#define AND_CE                        151
+#define OR_CE                         152
+#define NOT_CE                        153
+#define TEST_CE                       154
+#define NAND_CE                       155
+#define EXISTS_CE                     156
+#define FORALL_CE                     157
 
+#define NOT_CONSTRAINT                160
+#define AND_CONSTRAINT                161
+#define OR_CONSTRAINT                 162
+#define PREDICATE_CONSTRAINT          163
+#define RETURN_VALUE_CONSTRAINT       164
 
-#define PATTERN_CE                     80
-#define AND_CE                         81
-#define OR_CE                          82
-#define NOT_CE                         83
-#define TEST_CE                        84
-#define NAND_CE                        85
-#define EXISTS_CE                      86
-#define FORALL_CE                      87
+#define LPAREN                        170
+#define RPAREN                        171
+#define STOP                          172
+#define UNKNOWN_VALUE                 173
 
-#define NOT_CONSTRAINT                 90
-#define AND_CONSTRAINT                 91
-#define OR_CONSTRAINT                  92
-#define PREDICATE_CONSTRAINT           93
-#define RETURN_VALUE_CONSTRAINT        94
+#define RVOID                         175
 
-#define LPAREN                         100
-#define RPAREN                         101
-#define STOP                           102
-#define UNKNOWN_VALUE                  103
-
-#define RVOID                          105
-
-#define INTEGER_OR_FLOAT               110
-#define SYMBOL_OR_STRING               111
-#define INSTANCE_OR_INSTANCE_NAME      112
-
-
-    
+#define INTEGER_OR_FLOAT              180
+#define SYMBOL_OR_STRING              181
+#define INSTANCE_OR_INSTANCE_NAME     182
 
 /*******************************************/
 /* FUZZY REASONING and CERTAINTY FACTORS   */
@@ -269,18 +245,27 @@
 #define PRIMARY_TERM                   201
 #define MODIFIER                       202
 
-
 #define CRISP_LHS                      219
 #define FUZZY_LHS                      220
 
 #define MAXMIN  1
 #define MAXPROD 2
 
-
 #define FUZZY_TOLERANCE     0.00000001
-
 
 typedef long int FACT_ID;
 
+/*************************/
+/* Macintosh Definitions */
+/*************************/
+
+#define CREATOR_STRING "CLIS"
+#define CREATOR_CODE   'CLIS'
+
 #endif
+
+
+
+
+
 

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/rulecmp.h,v 1.3 2001/08/11 21:07:43 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*        DEFRULE CONSTRUCT COMPILER HEADER FILE       */
    /*******************************************************/
@@ -32,10 +30,10 @@
 #include "extnfunc.h"
 #endif
 
-#define JoinPrefix() ArbitraryPrefix(DefruleCodeItem,2)
+#define JoinPrefix() ArbitraryPrefix(DefruleData(theEnv)->DefruleCodeItem,2)
 
 #if FUZZY_DEFTEMPLATES  
-#define PatternFvPrefix() ArbitraryPrefix(DefruleCodeItem,3)
+#define PatternFvPrefix() ArbitraryPrefix(DefruleData(theEnv)->DefruleCodeItem,3)
 #endif
 
 #ifdef LOCALE
@@ -48,8 +46,8 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                     DefruleCompilerSetup(void);
-   LOCALE void                     DefruleCModuleReference(FILE *,int,int,int);
+   LOCALE void                     DefruleCompilerSetup(void *);
+   LOCALE void                     DefruleCModuleReference(void *,FILE *,int,int,int);
 
 #ifndef _RULECMP_SOURCE_
 extern struct CodeGeneratorItem *DefruleCodeItem;

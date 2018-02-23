@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/filertr.h,v 1.3 2001/08/11 21:05:50 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*             FILE I/O ROUTER HEADER FILE             */
    /*******************************************************/
@@ -29,6 +27,22 @@
 #include <stdio.h>
 #endif
 
+#define FILE_ROUTER_DATA 47
+   
+struct fileRouter
+  {
+   char *logicalName;
+   FILE *stream;
+   struct fileRouter *next;
+  };
+
+struct fileRouterData
+  { 
+   struct fileRouter *ListOfFileRouters;
+  };
+
+#define FileRouterData(theEnv) ((struct fileRouterData *) GetEnvironmentData(theEnv,FILE_ROUTER_DATA))
+
 #ifdef LOCALE
 #undef LOCALE
 #endif
@@ -39,12 +53,12 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           InitializeFileRouter(void);
-   LOCALE FILE                          *FindFptr(char *);
-   LOCALE int                            OpenAFile(char *,char *,char *);
-   LOCALE int                            CloseAllFiles(void);
-   LOCALE int                            CloseFile(char *);
-   LOCALE int                            FindFile(char *);
+   LOCALE void                           InitializeFileRouter(void *);
+   LOCALE FILE                          *FindFptr(void *,char *);
+   LOCALE int                            OpenAFile(void *,char *,char *,char *);
+   LOCALE int                            CloseAllFiles(void *);
+   LOCALE int                            CloseFile(void *,char *);
+   LOCALE int                            FindFile(void *,char *);
 
 #endif
 

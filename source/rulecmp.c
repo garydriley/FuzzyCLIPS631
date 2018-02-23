@@ -1,10 +1,8 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/rulecmp.c,v 1.3 2001/08/11 21:07:42 dave Exp $" ;
-
 
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*            DEFRULE CONSTRUCTS-TO-C MODULE           */
    /*******************************************************/
@@ -18,13 +16,14 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/rulecmp.c,v 1.3 2001/08/11
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*      Brian L. Donnell                                     */
-/* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
 /*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
 /*                  (Fuzzy reasoning extensions)             */
 /*                  (certainty factors for facts and rules)  */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Removed DYNAMIC_SALIENCE and                   */
+/*            LOGICAL_DEPENDENCIES compilation flags.        */
 /*                                                           */
 /*************************************************************/
 
@@ -38,45 +37,41 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/rulecmp.c,v 1.3 2001/08/11
 #define _STDIO_INCLUDED_
 #include <string.h>
 
+#include "envrnmnt.h"
 #include "factbld.h"
 #include "reteutil.h"
-
-#include "rulecmp.h"
 
 #if FUZZY_DEFTEMPLATES
 #include "fuzzyval.h"
 #include "prntutil.h"
 #endif
 
+#include "rulecmp.h"
+
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     ConstructToCode(char *,int,FILE *,int,int);
-   static void                    JoinToCode(FILE *,struct joinNode *,int,int);
-   static void                    DefruleModuleToCode(FILE *,struct defmodule *,int,int,int);
+   static int                     ConstructToCode(void *,char *,int,FILE *,int,int);
+   static void                    JoinToCode(void *,FILE *,struct joinNode *,int,int);
+   static void                    DefruleModuleToCode(void *,FILE *,struct defmodule *,int,int,int);
 #if FUZZY_DEFTEMPLATES  
-   static void                    DefruleToCode(FILE *,struct defrule *,int,int,int,int,int);
-   static void                    CloseDefruleFiles(FILE *,FILE *,FILE *,FILE *,int);
+   static void                    DefruleToCode(void *,FILE *,struct defrule *,int,int,int,int,int);
+   static void                    CloseDefruleFiles(void *,FILE *,FILE *,FILE *,FILE *,int);
 #else
-   static void                    DefruleToCode(FILE *,struct defrule *,int,int,int);
-   static void                    CloseDefruleFiles(FILE *,FILE *,FILE *,int);
+   static void                    DefruleToCode(void *,FILE *,struct defrule *,int,int,int);
+   static void                    CloseDefruleFiles(void *,FILE *,FILE *,FILE *,int);
 #endif
-   static void                    BeforeDefrulesCode(void);
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle struct CodeGeneratorItem *DefruleCodeItem;
+   static void                    BeforeDefrulesCode(void *);
 
 /***********************************************************/
 /* DefruleCompilerSetup: Initializes the defrule construct */
 /*   for use with the constructs-to-c command.             */
 /***********************************************************/
-globle void DefruleCompilerSetup()
+globle void DefruleCompilerSetup(
+  void *theEnv)
   {
-   DefruleCodeItem = AddCodeGeneratorItem("defrules",0,BeforeDefrulesCode,
+   DefruleData(theEnv)->DefruleCodeItem = AddCodeGeneratorItem(theEnv,"defrules",0,BeforeDefrulesCode,
 #if FUZZY_DEFTEMPLATES  
    /* extra file required for Fuzzy Values -- to hold ptrs to fuzzy values in patterns */
                                           NULL,ConstructToCode,4);
@@ -90,11 +85,12 @@ globle void DefruleCompilerSetup()
 /*   unique ID which will be used for pointer references when */
 /*   the data structures are written to a file as C code      */
 /**************************************************************/
-static void BeforeDefrulesCode()
+static void BeforeDefrulesCode(
+  void *theEnv)
   {
    long int moduleCount, ruleCount, joinCount;
 
-   TagRuleNetwork(&moduleCount,&ruleCount,&joinCount);
+   TagRuleNetwork(theEnv,&moduleCount,&ruleCount,&joinCount);
   }
 
 /*********************************************************/
@@ -102,6 +98,7 @@ static void BeforeDefrulesCode()
 /*   module created using the constructs-to-c function.  */
 /*********************************************************/
 static int ConstructToCode(
+  void *theEnv,
   char *fileName,
   int fileID,
   FILE *headerFP,
@@ -133,43 +130,44 @@ static int ConstructToCode(
    /* the join nodes writing their C code representation to   */
    /* the file as they are traversed.                         */
    /*=========================================================*/
+   
 #if FUZZY_DEFTEMPLATES  
    /*=========================================================*/
    /* ALSO write the patternFv arrays as required if Fuzzy    */
    /*=========================================================*/
 #endif
 
-   for (theModule = (struct defmodule *) GetNextDefmodule(NULL);
+   for (theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
         theModule != NULL;
-        theModule = (struct defmodule *) GetNextDefmodule(theModule))
+        theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule))
      {
       /*=========================*/
       /* Set the current module. */
       /*=========================*/
 
-      SetCurrentModule((void *) theModule);
+      EnvSetCurrentModule(theEnv,(void *) theModule);
 
       /*==========================*/
       /* Save the defrule module. */
       /*==========================*/
 
-      moduleFile = OpenFileIfNeeded(moduleFile,fileName,fileID,imageID,&fileCount,
+      moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,fileID,imageID,&fileCount,
                                     moduleArrayVersion,headerFP,
-                                    "struct defruleModule",ModulePrefix(DefruleCodeItem),
+                                    "struct defruleModule",ModulePrefix(DefruleData(theEnv)->DefruleCodeItem),
                                     FALSE,NULL);
 
       if (moduleFile == NULL)
         {
 #if FUZZY_DEFTEMPLATES  
-         CloseDefruleFiles(moduleFile,defruleFile,joinFile,patternFvFile,maxIndices);
+         CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,patternFvFile,maxIndices);
 #else
-         CloseDefruleFiles(moduleFile,defruleFile,joinFile,maxIndices);
+         CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,maxIndices);
 #endif
          return(0);
         }
 
-      DefruleModuleToCode(moduleFile,theModule,imageID,maxIndices,moduleCount);
-      moduleFile = CloseFileIfNeeded(moduleFile,&moduleArrayCount,&moduleArrayVersion,
+      DefruleModuleToCode(theEnv,moduleFile,theModule,imageID,maxIndices,moduleCount);
+      moduleFile = CloseFileIfNeeded(theEnv,moduleFile,&moduleArrayCount,&moduleArrayVersion,
                                      maxIndices,NULL,NULL);
 
       /*=========================================*/
@@ -177,7 +175,7 @@ static int ConstructToCode(
       /* their disjuncts) in the current module. */
       /*=========================================*/
 
-      theDefrule = (struct defrule *) GetNextDefrule(NULL);
+      theDefrule = (struct defrule *) EnvGetNextDefrule(theEnv,NULL);
 
       while (theDefrule != NULL)
         {
@@ -185,31 +183,31 @@ static int ConstructToCode(
          /* Save the defrule data structures. */
          /*===================================*/
 
-         defruleFile = OpenFileIfNeeded(defruleFile,fileName,fileID,imageID,&fileCount,
+         defruleFile = OpenFileIfNeeded(theEnv,defruleFile,fileName,fileID,imageID,&fileCount,
                                         defruleArrayVersion,headerFP,
-                                        "struct defrule",ConstructPrefix(DefruleCodeItem),
+                                        "struct defrule",ConstructPrefix(DefruleData(theEnv)->DefruleCodeItem),
                                         FALSE,NULL);
          if (defruleFile == NULL)
            {
 #if FUZZY_DEFTEMPLATES 
-            CloseDefruleFiles(moduleFile,defruleFile,joinFile,patternFvFile,maxIndices);
+            CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,patternFvFile,maxIndices);
 #else
-            CloseDefruleFiles(moduleFile,defruleFile,joinFile,maxIndices);
+            CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,maxIndices);
 #endif
             return(0);
            }
 
 #if FUZZY_DEFTEMPLATES 
-         DefruleToCode(defruleFile,theDefrule,imageID,maxIndices,
+         DefruleToCode(theEnv,defruleFile,theDefrule,imageID,maxIndices,
                         moduleCount, patternFvArrayCount, patternFvArrayVersion);
 #else
-         DefruleToCode(defruleFile,theDefrule,imageID,maxIndices,
+         DefruleToCode(theEnv,defruleFile,theDefrule,imageID,maxIndices,
                         moduleCount);
 #endif
          defruleArrayCount++;
-         defruleFile = CloseFileIfNeeded(defruleFile,&defruleArrayCount,&defruleArrayVersion,
+         defruleFile = CloseFileIfNeeded(theEnv,defruleFile,&defruleArrayCount,&defruleArrayVersion,
                                          maxIndices,NULL,NULL);
-
+                                         
 #if FUZZY_DEFTEMPLATES  
          /* write out the patternFv array of fzSlotLocator structs */
          thePatternFv = theDefrule->pattern_fv_arrayPtr;
@@ -218,12 +216,12 @@ static int ConstructToCode(
              int i;
              int numFzSlots = theDefrule->numberOfFuzzySlots;
 
-             patternFvFile = OpenFileIfNeeded(patternFvFile,fileName,fileID,imageID,&fileCount,
+             patternFvFile = OpenFileIfNeeded(theEnv,patternFvFile,fileName,fileID,imageID,&fileCount,
                                       patternFvArrayVersion,headerFP,
                                       "struct fzSlotLocator",PatternFvPrefix(),FALSE,NULL);
              if (patternFvFile == NULL)
                {
-                 CloseDefruleFiles(moduleFile,defruleFile,joinFile,patternFvFile,maxIndices);
+                 CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,patternFvFile,maxIndices);
                  return(0);
                 }
 
@@ -231,7 +229,7 @@ static int ConstructToCode(
                 {
                   fprintf(patternFvFile, "{%d, %d, ",
                           thePatternFv[i].patternNum, thePatternFv[i].slotNum);
-                  PrintFuzzyValueReference(patternFvFile,thePatternFv[i].fvhnPtr);
+                  PrintFuzzyValueReference(theEnv,patternFvFile,thePatternFv[i].fvhnPtr);
 
                   fprintf(patternFvFile, "}");
 
@@ -240,7 +238,7 @@ static int ConstructToCode(
                 }
 
              patternFvArrayCount += numFzSlots;
-             patternFvFile = CloseFileIfNeeded(patternFvFile,&patternFvArrayCount,&patternFvArrayVersion,
+             patternFvFile = CloseFileIfNeeded(theEnv,patternFvFile,&patternFvArrayCount,&patternFvArrayVersion,
                                             maxIndices,NULL,NULL);
            }
 #endif
@@ -255,22 +253,22 @@ static int ConstructToCode(
            {
             if (theJoin->marked)
               {
-               joinFile = OpenFileIfNeeded(joinFile,fileName,fileID,imageID,&fileCount,
+               joinFile = OpenFileIfNeeded(theEnv,joinFile,fileName,fileID,imageID,&fileCount,
                                         joinArrayVersion,headerFP,
                                        "struct joinNode",JoinPrefix(),FALSE,NULL);
                if (joinFile == NULL)
                  {
 #if FUZZY_DEFTEMPLATES   
-                  CloseDefruleFiles(moduleFile,defruleFile,joinFile,patternFvFile,maxIndices);
+                  CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,patternFvFile,maxIndices);
 #else
-                  CloseDefruleFiles(moduleFile,defruleFile,joinFile,maxIndices);
+                  CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,maxIndices);
 #endif
                   return(0);
                  }
 
-               JoinToCode(joinFile,theJoin,imageID,maxIndices);
+               JoinToCode(theEnv,joinFile,theJoin,imageID,maxIndices);
                joinArrayCount++;
-               joinFile = CloseFileIfNeeded(joinFile,&joinArrayCount,&joinArrayVersion,
+               joinFile = CloseFileIfNeeded(theEnv,joinFile,&joinArrayCount,&joinArrayVersion,
                                             maxIndices,NULL,NULL);
               }
            }
@@ -280,16 +278,17 @@ static int ConstructToCode(
          /*==========================================*/
 
          if (theDefrule->disjunct != NULL) theDefrule = theDefrule->disjunct;
-         else theDefrule = (struct defrule *) GetNextDefrule(theDefrule);
+         else theDefrule = (struct defrule *) EnvGetNextDefrule(theEnv,theDefrule);
         }
 
       moduleCount++;
       moduleArrayCount++;
      }
+
 #if FUZZY_DEFTEMPLATES  
-   CloseDefruleFiles(moduleFile,defruleFile,joinFile,patternFvFile,maxIndices);
+   CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,patternFvFile,maxIndices);
 #else
-   CloseDefruleFiles(moduleFile,defruleFile,joinFile,maxIndices);
+   CloseDefruleFiles(theEnv,moduleFile,defruleFile,joinFile,maxIndices);
 #endif
 
    return(1);
@@ -302,11 +301,13 @@ static int ConstructToCode(
 /********************************************************/
 static void CloseDefruleFiles(
 #if ! FUZZY_DEFTEMPLATES
+  void *theEnv,
   FILE *moduleFile,
   FILE *defruleFile,
   FILE *joinFile,
   int maxIndices)
 #else
+  void *theEnv,
   FILE *moduleFile,
   FILE *defruleFile,
   FILE *joinFile,
@@ -320,29 +321,28 @@ static void CloseDefruleFiles(
    if (joinFile != NULL)
      {
       count = maxIndices;
-      CloseFileIfNeeded(joinFile,&count,&arrayVersion,maxIndices,NULL,NULL);
+      CloseFileIfNeeded(theEnv,joinFile,&count,&arrayVersion,maxIndices,NULL,NULL);
      }
 
    if (defruleFile != NULL)
      {
       count = maxIndices;
-      CloseFileIfNeeded(defruleFile,&count,&arrayVersion,maxIndices,NULL,NULL);
+      CloseFileIfNeeded(theEnv,defruleFile,&count,&arrayVersion,maxIndices,NULL,NULL);
      }
 
    if (moduleFile != NULL)
      {
       count = maxIndices;
-      CloseFileIfNeeded(moduleFile,&count,&arrayVersion,maxIndices,NULL,NULL);
+      CloseFileIfNeeded(theEnv,moduleFile,&count,&arrayVersion,maxIndices,NULL,NULL);
      }
 
 #if FUZZY_DEFTEMPLATES 
    if (patternFvFile != NULL)
      {
       count = maxIndices;
-      patternFvFile = CloseFileIfNeeded(patternFvFile,&count,&arrayVersion,maxIndices,NULL,NULL);
+      patternFvFile = CloseFileIfNeeded(theEnv,patternFvFile,&count,&arrayVersion,maxIndices,NULL,NULL);
      }
 #endif
-
   }
 
 /*********************************************************/
@@ -353,19 +353,21 @@ static void CloseDefruleFiles(
 #pragma argsused
 #endif
 static void DefruleModuleToCode(
+  void *theEnv,
   FILE *theFile,
   struct defmodule *theModule,
   int imageID,
   int maxIndices,
   int moduleCount)
   {
-#if MAC_MPW || MAC_MCW || IBM_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(moduleCount)
 #endif
+
    fprintf(theFile,"{");
 
-   ConstructModuleToCode(theFile,theModule,imageID,maxIndices,
-                                  DefruleModuleIndex,ConstructPrefix(DefruleCodeItem));
+   ConstructModuleToCode(theEnv,theFile,theModule,imageID,maxIndices,
+                                  DefruleData(theEnv)->DefruleModuleIndex,ConstructPrefix(DefruleData(theEnv)->DefruleCodeItem));
 
    fprintf(theFile,",NULL}");
   }
@@ -376,12 +378,14 @@ static void DefruleModuleToCode(
 /**********************************************************/
 static void DefruleToCode(
 #if ! FUZZY_DEFTEMPLATES
+  void *theEnv,
   FILE *theFile,
   struct defrule *theDefrule,
   int imageID,
   int maxIndices,
   int moduleCount)
 #else
+  void *theEnv,
   FILE *theFile,
   struct defrule *theDefrule,
   int imageID,
@@ -390,7 +394,6 @@ static void DefruleToCode(
   int patternFvArrayCount,
   int patternFvArrayVersion)
 #endif
-
   {
    /*==================*/
    /* Construct Header */
@@ -398,9 +401,9 @@ static void DefruleToCode(
 
    fprintf(theFile,"{");
 
-   ConstructHeaderToCode(theFile,&theDefrule->header,imageID,maxIndices,
-                                  moduleCount,ModulePrefix(DefruleCodeItem),
-                                  ConstructPrefix(DefruleCodeItem));
+   ConstructHeaderToCode(theEnv,theFile,&theDefrule->header,imageID,maxIndices,
+                                  moduleCount,ModulePrefix(DefruleData(theEnv)->DefruleCodeItem),
+                                  ConstructPrefix(DefruleData(theEnv)->DefruleCodeItem));
 
    /*==========================*/
    /* Flags and Integer Values */
@@ -416,23 +419,20 @@ static void DefruleToCode(
    /* Dynamic Salience */
    /*==================*/
 
-#if DYNAMIC_SALIENCE
-      ExpressionToCode(theFile,theDefrule->dynamicSalience);
+      ExpressionToCode(theEnv,theFile,theDefrule->dynamicSalience);
       fprintf(theFile,",");
-#endif
 
    /*=============*/
    /* RHS Actions */
    /*=============*/
 
-   ExpressionToCode(theFile,theDefrule->actions);
+   ExpressionToCode(theEnv,theFile,theDefrule->actions);
    fprintf(theFile,",");
 
    /*=========================*/
    /* Logical Dependency Join */
    /*=========================*/
 
-#if LOGICAL_DEPENDENCIES
    if (theDefrule->logicalJoin != NULL)
      {
       fprintf(theFile,"&%s%d_%ld[%ld],",JoinPrefix(),
@@ -441,7 +441,6 @@ static void DefruleToCode(
      }
    else
      { fprintf(theFile,"NULL,"); }
-#endif
 
    /*===========*/
    /* Last Join */
@@ -455,7 +454,7 @@ static void DefruleToCode(
      }
    else
      { fprintf(theFile,"NULL,"); }
-
+     
 #if FUZZY_DEFTEMPLATES 
    /*===============*/
    /* Next Disjunct */
@@ -463,7 +462,7 @@ static void DefruleToCode(
 
    if (theDefrule->disjunct != NULL)
      {
-      fprintf(theFile,"&%s%d_%ld[%ld],",ConstructPrefix(DefruleCodeItem),
+      fprintf(theFile,"&%s%d_%ld[%ld],",ConstructPrefix(DefruleData(theEnv)->DefruleCodeItem),
                      imageID,(theDefrule->disjunct->header.bsaveID / maxIndices) + 1,
                              theDefrule->disjunct->header.bsaveID % maxIndices);
      }
@@ -475,9 +474,9 @@ static void DefruleToCode(
    /*====================================*/
 
 #if CERTAINTY_FACTORS  
-   fprintf(theFile,"%s,", FloatToString(theDefrule->CF));
+   fprintf(theFile,"%s,", FloatToString(theEnv,theDefrule->CF));
 
-   ExpressionToCode(theFile,theDefrule->dynamicCF);
+   ExpressionToCode(theEnv,theFile,theDefrule->dynamicCF);
 #endif
 
    /*====================================*/
@@ -506,7 +505,7 @@ static void DefruleToCode(
 
    if (theDefrule->disjunct != NULL)
      {
-      fprintf(theFile,"&%s%d_%ld[%ld]}",ConstructPrefix(DefruleCodeItem),
+      fprintf(theFile,"&%s%d_%ld[%ld]}",ConstructPrefix(DefruleData(theEnv)->DefruleCodeItem),
                      imageID,(theDefrule->disjunct->header.bsaveID / maxIndices) + 1,
                              theDefrule->disjunct->header.bsaveID % maxIndices);
      }
@@ -514,7 +513,6 @@ static void DefruleToCode(
      { fprintf(theFile,"NULL}"); }
 
 #endif  /* FUZZY_DEFTEMPLATES */
-
   }
 
 /***************************************************/
@@ -522,6 +520,7 @@ static void DefruleToCode(
 /*   a single join node to the specified file.     */
 /***************************************************/
 static void JoinToCode(
+  void *theEnv,
   FILE *theFile,
   struct joinNode *theJoin,
   int imageID,
@@ -554,7 +553,7 @@ static void JoinToCode(
    /* Network Expression */
    /*====================*/
 
-   PrintHashedExpressionReference(theFile,theJoin->networkTest,imageID,maxIndices);
+   PrintHashedExpressionReference(theEnv,theFile,theJoin->networkTest,imageID,maxIndices);
    fprintf(theFile,",");
 
    /*============================*/
@@ -565,12 +564,12 @@ static void JoinToCode(
      { fprintf(theFile,"NULL,"); }
    else if (theJoin->joinFromTheRight == FALSE)
      {
-      theParser = GetPatternParser((int) theJoin->rhsType);
+      theParser = GetPatternParser(theEnv,(int) theJoin->rhsType);
       if (theParser->codeReferenceFunction == NULL) fprintf(theFile,"NULL,");
       else
         {
          fprintf(theFile,"VS ");
-         (*theParser->codeReferenceFunction)(theJoin->rightSideEntryStructure,
+         (*theParser->codeReferenceFunction)(theEnv,theJoin->rightSideEntryStructure,
                                              theFile,imageID,maxIndices);
          fprintf(theFile,",");
         }
@@ -642,7 +641,7 @@ static void JoinToCode(
      { fprintf(theFile,"NULL}"); }
    else
      {
-      fprintf(theFile,"&%s%d_%ld[%ld]}",ConstructPrefix(DefruleCodeItem),imageID,
+      fprintf(theFile,"&%s%d_%ld[%ld]}",ConstructPrefix(DefruleData(theEnv)->DefruleCodeItem),imageID,
                                     (theJoin->ruleToActivate->header.bsaveID / maxIndices) + 1,
                                     theJoin->ruleToActivate->header.bsaveID % maxIndices);
      }
@@ -653,12 +652,13 @@ static void JoinToCode(
 /*   of a reference to a defrule module data structure.      */
 /*************************************************************/
 globle void DefruleCModuleReference(
+  void *theEnv,
   FILE *theFile,
   int count,
   int imageID,
   int maxIndices)
   {
-   fprintf(theFile,"MIHS &%s%d_%d[%d]",ModulePrefix(DefruleCodeItem),
+   fprintf(theFile,"MIHS &%s%d_%d[%d]",ModulePrefix(DefruleData(theEnv)->DefruleCodeItem),
                       imageID,
                       (count / maxIndices) + 1,
                       (count % maxIndices));

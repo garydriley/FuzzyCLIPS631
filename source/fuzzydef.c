@@ -1,5 +1,3 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/fuzzydef.c,v 1.3 2001/08/11 21:05:52 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
@@ -58,6 +56,8 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/fuzzydef.c,v 1.3 2001/08/1
 #include "fuzzypsr.h"
 #include "fuzzymod.h"
 
+#include "memalloc.h"
+
 #include <stdio.h>
 #define _CLIPS_STDIO_
 
@@ -75,7 +75,8 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/fuzzydef.c,v 1.3 2001/08/1
 /******************************************************************
     Local Internal Function Declarations
  ******************************************************************/
- 
+ static void DeallocateFuzzyData(void *theEnv);
+
 
 /******************************************************************
     Local Internal Variable Declarations
@@ -93,29 +94,43 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/fuzzydef.c,v 1.3 2001/08/1
     Global Internal Variable Declarations
  ******************************************************************/
 
-   globle int      FuzzyInferenceType;
-   globle int      FuzzyFloatPrecision;
-   globle double   FuzzyAlphaValue; 
-
 
 /******************************************************************
     FUNCTIONS THAT INITIALIZE FUZZY LOGIC CONSTRUCT 
 ******************************************************************/
 
 
-globle void InitializeFuzzy()
+globle void InitializeFuzzy(
+  void *theEnv)
 {
-  DeffuzzyCommands();       /* in fuzzycom.c */
-  Init_S_Z_PI_yvalues();    /* in fuzzypsr.c */
-  initFuzzyModifierList();  /* in fuzzymod.c */
+  AllocateEnvironmentData(theEnv,FUZZY_DATA,sizeof(struct fuzzyData),DeallocateFuzzyData);
+  FuzzyData(theEnv)->FuzzyInferenceType = MAXMIN;  /* inference type 'max-min' by default */
+  FuzzyData(theEnv)->FuzzyFloatPrecision = 4;      /* default precision for printing fuzzy set values */
+  FuzzyData(theEnv)->FuzzyAlphaValue = 0.0;        /* default alpha cut for pattern matching */
+  FuzzyData(theEnv)->is_last_defuzzify_valid = TRUE;
+  DeffuzzyCommands(theEnv);       /* in fuzzycom.c */
+  Init_S_Z_PI_yvalues(theEnv);    /* in fuzzypsr.c */
+  initFuzzyModifierList(theEnv);  /* in fuzzymod.c */
 
-  FuzzyInferenceType = MAXMIN;  /* inference type 'max-min' by default */
-  FuzzyFloatPrecision = 4;      /* default precision for printing fuzzy set values */
-  FuzzyAlphaValue = 0.0;        /* default alpha cut for pattern matching */
 }
 
-
-
-
-
+/************************************************/
+/* DeallocateFuzzyData: Deallocates environment */
+/*    data for symbols.                         */
+/************************************************/
+static void DeallocateFuzzyData(
+  void *theEnv)
+  {
+   struct modifierListItem *tmpPtr, *nextPtr;
+   
+   tmpPtr = FuzzyData(theEnv)->ListOfModifierFunctions;
+   while (tmpPtr != NULL)
+     {
+      nextPtr = tmpPtr->next;
+      rm(theEnv,tmpPtr->name,strlen(tmpPtr->name) + 1);
+      rtn_struct(theEnv,modifierListItem,tmpPtr);
+      tmpPtr = nextPtr;
+     }
+  }
+  
 #endif /* FUZZY_DEFTEMPLATES */

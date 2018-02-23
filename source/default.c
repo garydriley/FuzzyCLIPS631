@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/default.c,v 1.3 2001/08/11 21:04:46 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*               DEFAULT ATTRIBUTE MODULE              */
    /*******************************************************/
@@ -21,6 +19,9 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/default.c,v 1.3 2001/08/11
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Support for deftemplate-slot-default-value     */
+/*            function.                                      */ 
+/*                                                           */
 /*************************************************************/
 
 #define _DEFAULT_SOURCE_
@@ -33,8 +34,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/default.c,v 1.3 2001/08/11
 #include <string.h>
 
 #include "constant.h"
-/* #include "constrnt.h" */
-#include "tmpltdef.h"
+#include "constrnt.h"
 #include "cstrnchk.h"
 #include "multifld.h"
 #include "inscom.h"
@@ -43,6 +43,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/default.c,v 1.3 2001/08/11
 #include "router.h"
 #include "factmngr.h"
 #include "cstrnutl.h"
+#include "envrnmnt.h"
 
 #include "default.h"
 
@@ -50,19 +51,21 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/default.c,v 1.3 2001/08/11
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static void                    *FindDefaultValue(int,CONSTRAINT_RECORD *,void *);
+   static void                    *FindDefaultValue(void *,int,CONSTRAINT_RECORD *,void *);
 
 /********************************************************/
 /* DeriveDefaultFromConstraints: Returns an appropriate */
 /*   default value for the supplied constraints.        */
 /********************************************************/
 globle void DeriveDefaultFromConstraints(
+  void *theEnv,
   CONSTRAINT_RECORD *constraints,
   DATA_OBJECT *theDefault,
-  int multifield)
+  int multifield,
+  int garbageMultifield)
   {
-   short theType;
-   long minFields; /* 6.04 Bug Fix */
+   unsigned short theType;
+   unsigned long minFields;
    void *theValue;
 
    /*=============================================================*/
@@ -78,12 +81,13 @@ globle void DeriveDefaultFromConstraints(
          SetpType(theDefault,MULTIFIELD);
          SetpDOBegin(theDefault,1);
          SetpDOEnd(theDefault,0);
-         SetpValue(theDefault,(void *) CreateMultifield(0L));
+         if (garbageMultifield) SetpValue(theDefault,(void *) EnvCreateMultifield(theEnv,0L));
+         else SetpValue(theDefault,(void *) CreateMultifield2(theEnv,0L)); 
         }
       else
         {
          theDefault->type = SYMBOL;
-         theDefault->value = AddSymbol("nil");
+         theDefault->value = EnvAddSymbol(theEnv,"nil");
         }
 
       return;
@@ -96,44 +100,44 @@ globle void DeriveDefaultFromConstraints(
    if (constraints->anyAllowed || constraints->symbolsAllowed)
      {
       theType = SYMBOL;
-      theValue = FindDefaultValue(SYMBOL,constraints,AddSymbol("nil"));
+      theValue = FindDefaultValue(theEnv,SYMBOL,constraints,EnvAddSymbol(theEnv,"nil"));
      }
 
    else if (constraints->stringsAllowed)
      {
       theType = STRING;
-      theValue = FindDefaultValue(STRING,constraints,AddSymbol(""));
+      theValue = FindDefaultValue(theEnv,STRING,constraints,EnvAddSymbol(theEnv,""));
      }
 
    else if (constraints->integersAllowed)
      {
       theType = INTEGER;
-      theValue = FindDefaultValue(INTEGER,constraints,AddLong(0L));
+      theValue = FindDefaultValue(theEnv,INTEGER,constraints,EnvAddLong(theEnv,0L));
      }
 
    else if (constraints->floatsAllowed)
      {
       theType = FLOAT;
-      theValue = FindDefaultValue(FLOAT,constraints,AddDouble(0.0));
+      theValue = FindDefaultValue(theEnv,FLOAT,constraints,EnvAddDouble(theEnv,0.0));
      }
 #if OBJECT_SYSTEM
    else if (constraints->instanceNamesAllowed)
      {
       theType = INSTANCE_NAME;
-      theValue = FindDefaultValue(INSTANCE_NAME,constraints,AddSymbol("nil"));
+      theValue = FindDefaultValue(theEnv,INSTANCE_NAME,constraints,EnvAddSymbol(theEnv,"nil"));
      }
 
    else if (constraints->instanceAddressesAllowed)
      {
       theType = INSTANCE_ADDRESS;
-      theValue = (void *) &DummyInstance;
+      theValue = (void *) &InstanceData(theEnv)->DummyInstance;
      }
 #endif
 #if DEFTEMPLATE_CONSTRUCT
    else if (constraints->factAddressesAllowed)
      {
       theType = FACT_ADDRESS;
-      theValue = (void *) &DummyFact;
+      theValue = (void *) &FactData(theEnv)->DummyFact;
      }
 #endif
    else if (constraints->externalAddressesAllowed)
@@ -145,7 +149,7 @@ globle void DeriveDefaultFromConstraints(
    else
      {
       theType = SYMBOL;
-      theValue = AddSymbol("nil");
+      theValue = EnvAddSymbol(theEnv,"nil");
      }
 
    /*=========================================================*/
@@ -158,13 +162,14 @@ globle void DeriveDefaultFromConstraints(
    if (multifield)
      {
       if (constraints->minFields == NULL) minFields = 0;
-      else if (constraints->minFields->value == NegativeInfinity) minFields = 0;
-      else minFields = ValueToLong(constraints->minFields->value);
+      else if (constraints->minFields->value == SymbolData(theEnv)->NegativeInfinity) minFields = 0;
+      else minFields = (unsigned long) ValueToLong(constraints->minFields->value);
 
       SetpType(theDefault,MULTIFIELD);
       SetpDOBegin(theDefault,1);
-      SetpDOEnd(theDefault,minFields);
-      SetpValue(theDefault,(void *) CreateMultifield(minFields));
+      SetpDOEnd(theDefault,(long) minFields);
+      if (garbageMultifield) SetpValue(theDefault,(void *) EnvCreateMultifield(theEnv,minFields));
+      else SetpValue(theDefault,(void *) CreateMultifield2(theEnv,minFields));
 
       for (; minFields > 0; minFields--)
         {
@@ -190,6 +195,7 @@ globle void DeriveDefaultFromConstraints(
 /*   maximum value.                                                    */
 /************************************************************************/
 static void *FindDefaultValue(
+  void *theEnv,
   int theType,
   CONSTRAINT_RECORD *theConstraints,
   void *standardDefault)
@@ -220,22 +226,22 @@ static void *FindDefaultValue(
       if (theConstraints->minValue->type == INTEGER)
         { return(theConstraints->minValue->value); }
       else if (theConstraints->minValue->type == FLOAT)
-        { return(AddLong((long) ValueToDouble(theConstraints->minValue->value))); }
+        { return(EnvAddLong(theEnv,(long) ValueToDouble(theConstraints->minValue->value))); }
       else if (theConstraints->maxValue->type == INTEGER)
         { return(theConstraints->maxValue->value); }
       else if (theConstraints->maxValue->type == FLOAT)
-        { return(AddLong((long) ValueToDouble(theConstraints->maxValue->value))); }
+        { return(EnvAddLong(theEnv,(long) ValueToDouble(theConstraints->maxValue->value))); }
      }
    else if (theType == FLOAT)
      {
       if (theConstraints->minValue->type == FLOAT)
         { return(theConstraints->minValue->value); }
       else if (theConstraints->minValue->type == INTEGER)
-        { return(AddDouble((double) ValueToLong(theConstraints->minValue->value))); }
+        { return(EnvAddDouble(theEnv,(double) ValueToLong(theConstraints->minValue->value))); }
       else if (theConstraints->maxValue->type == FLOAT)
         { return(theConstraints->maxValue->value); }
       else if (theConstraints->maxValue->type == INTEGER)
-        { return(AddDouble((double) ValueToLong(theConstraints->maxValue->value))); }
+        { return(EnvAddDouble(theEnv,(double) ValueToLong(theConstraints->maxValue->value))); }
      }
 
    /*======================================*/
@@ -252,6 +258,7 @@ static void *FindDefaultValue(
 /* ParseDefault: Parses a default value list. */
 /**********************************************/
 globle struct expr *ParseDefault(
+  void *theEnv,
   char *readSource,
   int multifield,
   int dynamic,
@@ -270,8 +277,8 @@ globle struct expr *ParseDefault(
    *noneSpecified = FALSE;
    *deriveSpecified = FALSE;
 
-   SavePPBuffer(" ");
-   GetToken(readSource,&theToken);
+   SavePPBuffer(theEnv," ");
+   GetToken(theEnv,readSource,&theToken);
 
    /*===================================================*/
    /* Read the items contained in the default attribute */
@@ -284,10 +291,10 @@ globle struct expr *ParseDefault(
       /* Get the next item in the default list. */
       /*========================================*/
 
-      newItem = ParseAtomOrExpression(readSource,&theToken);
+      newItem = ParseAtomOrExpression(theEnv,readSource,&theToken);
       if (newItem == NULL)
         {
-         ReturnExpression(defaultList);
+         ReturnExpression(theEnv,defaultList);
          *error = TRUE;
          return(NULL);
         }
@@ -312,30 +319,30 @@ globle struct expr *ParseDefault(
              (specialVarCode == -1) ||
              ((specialVarCode != -1) && (defaultList != NULL)))
            {
-            if (dynamic) SyntaxErrorMessage("default-dynamic attribute");
-            else SyntaxErrorMessage("default attribute");
-            ReturnExpression(newItem);
-            ReturnExpression(defaultList);
+            if (dynamic) SyntaxErrorMessage(theEnv,"default-dynamic attribute");
+            else SyntaxErrorMessage(theEnv,"default attribute");
+            ReturnExpression(theEnv,newItem);
+            ReturnExpression(theEnv,defaultList);
             *error = TRUE;
             return(NULL);
            }
 
-         ReturnExpression(newItem);
+         ReturnExpression(theEnv,newItem);
 
          /*============================================*/
          /* Check for the closing right parenthesis of */
          /* the default or default dynamic attribute.  */
          /*============================================*/
 
-         GetToken(readSource,&theToken);
+         GetToken(theEnv,readSource,&theToken);
 
          if (theToken.type != RPAREN)
            {
-            if (dynamic) SyntaxErrorMessage("default-dynamic attribute");
-            else SyntaxErrorMessage("default attribute");
-            PPBackup();
-            SavePPBuffer(" ");
-            SavePPBuffer(theToken.printForm);
+            if (dynamic) SyntaxErrorMessage(theEnv,"default-dynamic attribute");
+            else SyntaxErrorMessage(theEnv,"default attribute");
+            PPBackup(theEnv);
+            SavePPBuffer(theEnv," ");
+            SavePPBuffer(theEnv,theToken.printForm);
             *error = TRUE;
            }
 
@@ -353,11 +360,11 @@ globle struct expr *ParseDefault(
 
       if (ExpressionContainsVariables(newItem,FALSE) == TRUE)
         {
-         ReturnExpression(defaultList);
-         ReturnExpression(newItem);
+         ReturnExpression(theEnv,defaultList);
+         ReturnExpression(theEnv,newItem);
          *error = TRUE;
-         if (dynamic) SyntaxErrorMessage("default-dynamic attribute");
-         else SyntaxErrorMessage("default attribute");
+         if (dynamic) SyntaxErrorMessage(theEnv,"default-dynamic attribute");
+         else SyntaxErrorMessage(theEnv,"default attribute");
          return(NULL);
         }
 
@@ -375,17 +382,17 @@ globle struct expr *ParseDefault(
       /* Begin parsing the next default value. */
       /*=======================================*/
 
-      SavePPBuffer(" ");
-      GetToken(readSource,&theToken);
+      SavePPBuffer(theEnv," ");
+      GetToken(theEnv,readSource,&theToken);
      }
 
    /*=====================================*/
    /* Fix up pretty print representation. */
    /*=====================================*/
 
-   PPBackup();
-   PPBackup();
-   SavePPBuffer(")");
+   PPBackup(theEnv);
+   PPBackup(theEnv);
+   SavePPBuffer(theEnv,")");
 
    /*=========================================*/
    /* A single field slot's default attribute */
@@ -400,17 +407,17 @@ globle struct expr *ParseDefault(
         { *error = TRUE; }
       else
         {
-         rv = ExpressionToConstraintRecord(defaultList);
+         rv = ExpressionToConstraintRecord(theEnv,defaultList);
          rv->multifieldsAllowed = FALSE;
          if (UnmatchableConstraint(rv)) *error = TRUE;
-         RemoveConstraint(rv);
+         RemoveConstraint(theEnv,rv);
         }
 
       if (*error)
         {
-         PrintErrorID("DEFAULT",1,TRUE);
-         PrintRouter(WERROR,"The default value for a single field slot must be a single field value\n");
-         ReturnExpression(defaultList);
+         PrintErrorID(theEnv,"DEFAULT",1,TRUE);
+         EnvPrintRouter(theEnv,WERROR,"The default value for a single field slot must be a single field value\n");
+         ReturnExpression(theEnv,defaultList);
          return(NULL);
         }
      }
@@ -429,34 +436,34 @@ globle struct expr *ParseDefault(
 
    while (newItem != NULL)
      {
-      SetEvaluationError(FALSE);
-      if (EvaluateExpression(newItem,&theValue)) *error = TRUE;
+      SetEvaluationError(theEnv,FALSE);
+      if (EvaluateExpression(theEnv,newItem,&theValue)) *error = TRUE;
 
       if ((theValue.type == MULTIFIELD) &&
           (multifield == FALSE) &&
           (*error == FALSE))
         {
-         PrintErrorID("DEFAULT",1,TRUE);
-         PrintRouter(WERROR,"The default value for a single field slot must be a single field value\n");
+         PrintErrorID(theEnv,"DEFAULT",1,TRUE);
+         EnvPrintRouter(theEnv,WERROR,"The default value for a single field slot must be a single field value\n");
          *error = TRUE;
         }
 
       if (*error)
         {
-         ReturnExpression(tmpItem);
-         ReturnExpression(defaultList);
+         ReturnExpression(theEnv,tmpItem);
+         ReturnExpression(theEnv,defaultList);
          *error = TRUE;
          return(NULL);
         }
 
-      lastDefault = ConvertValueToExpression(&theValue);
+      lastDefault = ConvertValueToExpression(theEnv,&theValue);
 
       defaultList = AppendExpressions(defaultList,lastDefault);
 
       newItem = newItem->nextArg;
      }
 
-   ReturnExpression(tmpItem);
+   ReturnExpression(theEnv,tmpItem);
 
    /*==========================*/
    /* Return the default list. */

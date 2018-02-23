@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factprt.c,v 1.3 2001/08/11 21:05:43 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.22  06/15/04            */
    /*                                                     */
    /*           FACT RETE PRINT FUNCTIONS MODULE          */
    /*******************************************************/
@@ -33,6 +31,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factprt.c,v 1.3 2001/08/11
 
 #if DEFTEMPLATE_CONSTRUCT && DEFRULE_CONSTRUCT
 
+#include "envrnmnt.h"
 #include "symbol.h"
 #include "router.h"
 #include "factgen.h"
@@ -47,6 +46,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/factprt.c,v 1.3 2001/08/11
 #pragma argsused
 #endif
 globle void PrintFactJNCompVars1(
+  void *theEnv,
   char *logicalName,
   void *theValue)
   {
@@ -54,17 +54,18 @@ globle void PrintFactJNCompVars1(
    struct factCompVarsJN1Call *hack;
 
    hack = (struct factCompVarsJN1Call *) ValueToBitMap(theValue);
-   PrintRouter(logicalName,"(fact-jn-cmp-vars1 ");
-   if (hack->pass) PrintRouter(logicalName,"p ");
-   else PrintRouter(logicalName,"n ");
-   PrintLongInteger(logicalName,(long) hack->slot1);
-   PrintRouter(logicalName," ");
-   PrintLongInteger(logicalName,(long) hack->pattern2);
-   PrintRouter(logicalName," ");
-   PrintLongInteger(logicalName,(long) hack->slot2);
-   PrintRouter(logicalName,")");
+   EnvPrintRouter(theEnv,logicalName,"(fact-jn-cmp-vars1 ");
+   if (hack->pass) EnvPrintRouter(theEnv,logicalName,"p ");
+   else EnvPrintRouter(theEnv,logicalName,"n ");
+   PrintLongInteger(theEnv,logicalName,(long) hack->slot1);
+   EnvPrintRouter(theEnv,logicalName," ");
+   PrintLongInteger(theEnv,logicalName,(long) hack->pattern2);
+   EnvPrintRouter(theEnv,logicalName," ");
+   PrintLongInteger(theEnv,logicalName,(long) hack->slot2);
+   EnvPrintRouter(theEnv,logicalName,")");
 #else
-#if MAC_MPW || MAC_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
 #endif
@@ -79,6 +80,7 @@ globle void PrintFactJNCompVars1(
 #pragma argsused
 #endif
 globle void PrintFactJNCompVars2(
+  void *theEnv,
   char *logicalName,
   void *theValue)
   {
@@ -86,37 +88,38 @@ globle void PrintFactJNCompVars2(
    struct factCompVarsJN2Call *hack;
 
    hack = (struct factCompVarsJN2Call *) ValueToBitMap(theValue);
-   PrintRouter(logicalName,"(fact-jn-cmp-vars2 ");
-   if (hack->pass) PrintRouter(logicalName,"p ");
-   else PrintRouter(logicalName,"n ");
+   EnvPrintRouter(theEnv,logicalName,"(fact-jn-cmp-vars2 ");
+   if (hack->pass) EnvPrintRouter(theEnv,logicalName,"p ");
+   else EnvPrintRouter(theEnv,logicalName,"n ");
 
-   PrintRouter(logicalName,"s");
-   PrintLongInteger(logicalName,(long) hack->slot1);
-   PrintRouter(logicalName," ");
+   EnvPrintRouter(theEnv,logicalName,"s");
+   PrintLongInteger(theEnv,logicalName,(long) hack->slot1);
+   EnvPrintRouter(theEnv,logicalName," ");
 
-   if (hack->fromBeginning1) PrintRouter(logicalName,"b ");
-   else PrintRouter(logicalName,"e ");
+   if (hack->fromBeginning1) EnvPrintRouter(theEnv,logicalName,"b ");
+   else EnvPrintRouter(theEnv,logicalName,"e ");
 
-   PrintRouter(logicalName,"f");
-   PrintLongInteger(logicalName,(long) hack->offset1);
-   PrintRouter(logicalName," ");
+   EnvPrintRouter(theEnv,logicalName,"f");
+   PrintLongInteger(theEnv,logicalName,(long) hack->offset1);
+   EnvPrintRouter(theEnv,logicalName," ");
 
-   PrintRouter(logicalName,"p");
-   PrintLongInteger(logicalName,(long) hack->pattern2);
-   PrintRouter(logicalName," ");
+   EnvPrintRouter(theEnv,logicalName,"p");
+   PrintLongInteger(theEnv,logicalName,(long) hack->pattern2);
+   EnvPrintRouter(theEnv,logicalName," ");
 
-   PrintRouter(logicalName,"s");
-   PrintLongInteger(logicalName,(long) hack->slot2);
-   PrintRouter(logicalName," ");
+   EnvPrintRouter(theEnv,logicalName,"s");
+   PrintLongInteger(theEnv,logicalName,(long) hack->slot2);
+   EnvPrintRouter(theEnv,logicalName," ");
 
-   if (hack->fromBeginning2) PrintRouter(logicalName,"b ");
-   else PrintRouter(logicalName,"e ");
+   if (hack->fromBeginning2) EnvPrintRouter(theEnv,logicalName,"b ");
+   else EnvPrintRouter(theEnv,logicalName,"e ");
 
-   PrintRouter(logicalName,"f");
-   PrintLongInteger(logicalName,(long) hack->offset2);
-   PrintRouter(logicalName,")");
+   EnvPrintRouter(theEnv,logicalName,"f");
+   PrintLongInteger(theEnv,logicalName,(long) hack->offset2);
+   EnvPrintRouter(theEnv,logicalName,")");
 #else
-#if MAC_MPW || MAC_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
 #endif
@@ -131,6 +134,7 @@ globle void PrintFactJNCompVars2(
 #pragma argsused
 #endif
 globle void PrintFactPNCompVars1(
+  void *theEnv,
   char *logicalName,
   void *theValue)
   {
@@ -138,15 +142,16 @@ globle void PrintFactPNCompVars1(
    struct factCompVarsPN1Call *hack;
 
    hack = (struct factCompVarsPN1Call *) ValueToBitMap(theValue);
-   PrintRouter(logicalName,"(fact-pn-cmp-vars ");
-   if (hack->pass) PrintRouter(logicalName,"p ");
-   else PrintRouter(logicalName,"n ");
-   PrintLongInteger(logicalName,(long) hack->field1);
-   PrintRouter(logicalName," ");
-   PrintLongInteger(logicalName,(long) hack->field2);
-   PrintRouter(logicalName,")");
+   EnvPrintRouter(theEnv,logicalName,"(fact-pn-cmp-vars ");
+   if (hack->pass) EnvPrintRouter(theEnv,logicalName,"p ");
+   else EnvPrintRouter(theEnv,logicalName,"n ");
+   PrintLongInteger(theEnv,logicalName,(long) hack->field1);
+   EnvPrintRouter(theEnv,logicalName," ");
+   PrintLongInteger(theEnv,logicalName,(long) hack->field2);
+   EnvPrintRouter(theEnv,logicalName,")");
 #else
-#if MAC_MPW || MAC_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
 #endif
@@ -161,6 +166,7 @@ globle void PrintFactPNCompVars1(
 #pragma argsused
 #endif
 globle void PrintFactSlotLength(
+  void *theEnv,
   char *logicalName,
   void *theValue)
   {
@@ -169,15 +175,16 @@ globle void PrintFactSlotLength(
 
    hack = (struct factCheckLengthPNCall *) ValueToBitMap(theValue);
 
-   PrintRouter(logicalName,"(slot-length ");
-   PrintLongInteger(logicalName,(long) hack->whichSlot);
-   PrintRouter(logicalName," ");
-   if (hack->exactly) PrintRouter(logicalName,"= ");
-   else PrintRouter(logicalName,">= ");
-   PrintLongInteger(logicalName,(long) hack->minLength);
-   PrintRouter(logicalName,")");
+   EnvPrintRouter(theEnv,logicalName,"(slot-length ");
+   PrintLongInteger(theEnv,logicalName,(long) hack->whichSlot);
+   EnvPrintRouter(theEnv,logicalName," ");
+   if (hack->exactly) EnvPrintRouter(theEnv,logicalName,"= ");
+   else EnvPrintRouter(theEnv,logicalName,">= ");
+   PrintLongInteger(theEnv,logicalName,(long) hack->minLength);
+   EnvPrintRouter(theEnv,logicalName,")");
 #else
-#if MAC_MPW || MAC_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
 #endif
@@ -192,6 +199,7 @@ globle void PrintFactSlotLength(
 #pragma argsused
 #endif
 globle void PrintFactJNGetVar1(
+  void *theEnv,
   char *logicalName,
   void *theValue)
   {
@@ -199,20 +207,21 @@ globle void PrintFactJNGetVar1(
    struct factGetVarJN1Call *hack;
 
    hack = (struct factGetVarJN1Call *) ValueToBitMap(theValue);
-   PrintRouter(logicalName,"(fact-jn-getvar-1 ");
-   if (hack->factAddress) PrintRouter(logicalName,"t ");
-   else PrintRouter(logicalName,"f ");
-   if (hack->allFields) PrintRouter(logicalName,"t ");
-   else PrintRouter(logicalName,"f ");
+   EnvPrintRouter(theEnv,logicalName,"(fact-jn-getvar-1 ");
+   if (hack->factAddress) EnvPrintRouter(theEnv,logicalName,"t ");
+   else EnvPrintRouter(theEnv,logicalName,"f ");
+   if (hack->allFields) EnvPrintRouter(theEnv,logicalName,"t ");
+   else EnvPrintRouter(theEnv,logicalName,"f ");
 
-   PrintLongInteger(logicalName,(long) hack->whichPattern);
-   PrintRouter(logicalName," ");
-   PrintLongInteger(logicalName,(long) hack->whichField);
-   PrintRouter(logicalName," ");
-   PrintLongInteger(logicalName,(long) hack->whichSlot);
-   PrintRouter(logicalName,")");
+   PrintLongInteger(theEnv,logicalName,(long) hack->whichPattern);
+   EnvPrintRouter(theEnv,logicalName," ");
+   PrintLongInteger(theEnv,logicalName,(long) hack->whichField);
+   EnvPrintRouter(theEnv,logicalName," ");
+   PrintLongInteger(theEnv,logicalName,(long) hack->whichSlot);
+   EnvPrintRouter(theEnv,logicalName,")");
 #else
-#if MAC_MPW || MAC_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
 #endif
@@ -227,6 +236,7 @@ globle void PrintFactJNGetVar1(
 #pragma argsused
 #endif
 globle void PrintFactJNGetVar2(
+  void *theEnv,
   char *logicalName,
   void *theValue)
   {
@@ -234,14 +244,15 @@ globle void PrintFactJNGetVar2(
    struct factGetVarJN2Call *hack;
 
    hack = (struct factGetVarJN2Call *) ValueToBitMap(theValue);
-   PrintRouter(logicalName,"(fact-jn-getvar-2 ");
+   EnvPrintRouter(theEnv,logicalName,"(fact-jn-getvar-2 ");
 
-   PrintLongInteger(logicalName,(long) hack->whichPattern);
-   PrintRouter(logicalName," ");
-   PrintLongInteger(logicalName,(long) hack->whichSlot);
-   PrintRouter(logicalName,")");
+   PrintLongInteger(theEnv,logicalName,(long) hack->whichPattern);
+   EnvPrintRouter(theEnv,logicalName," ");
+   PrintLongInteger(theEnv,logicalName,(long) hack->whichSlot);
+   EnvPrintRouter(theEnv,logicalName,")");
 #else
-#if MAC_MPW || MAC_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
 #endif
@@ -256,6 +267,7 @@ globle void PrintFactJNGetVar2(
 #pragma argsused
 #endif
 globle void PrintFactJNGetVar3(
+  void *theEnv,
   char *logicalName,
   void *theValue)
   {
@@ -263,20 +275,21 @@ globle void PrintFactJNGetVar3(
    struct factGetVarJN3Call *hack;
 
    hack = (struct factGetVarJN3Call *) ValueToBitMap(theValue);
-   PrintRouter(logicalName,"(fact-jn-getvar-3 ");
-   if (hack->fromBeginning) PrintRouter(logicalName,"t ");
-   else PrintRouter(logicalName,"f ");
-   if (hack->fromEnd) PrintRouter(logicalName,"t ");
-   else PrintRouter(logicalName,"f ");
+   EnvPrintRouter(theEnv,logicalName,"(fact-jn-getvar-3 ");
+   if (hack->fromBeginning) EnvPrintRouter(theEnv,logicalName,"t ");
+   else EnvPrintRouter(theEnv,logicalName,"f ");
+   if (hack->fromEnd) EnvPrintRouter(theEnv,logicalName,"t ");
+   else EnvPrintRouter(theEnv,logicalName,"f ");
 
-   PrintLongInteger(logicalName,(long) hack->beginOffset);
-   PrintRouter(logicalName," ");
-   PrintLongInteger(logicalName,(long) hack->endOffset);
-   PrintRouter(logicalName," ");
-   PrintLongInteger(logicalName,(long) hack->whichSlot);
-   PrintRouter(logicalName,")");
+   PrintLongInteger(theEnv,logicalName,(long) hack->beginOffset);
+   EnvPrintRouter(theEnv,logicalName," ");
+   PrintLongInteger(theEnv,logicalName,(long) hack->endOffset);
+   EnvPrintRouter(theEnv,logicalName," ");
+   PrintLongInteger(theEnv,logicalName,(long) hack->whichSlot);
+   EnvPrintRouter(theEnv,logicalName,")");
 #else
-#if MAC_MPW || MAC_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
 #endif
@@ -291,6 +304,7 @@ globle void PrintFactJNGetVar3(
 #pragma argsused
 #endif
 globle void PrintFactPNGetVar1(
+  void *theEnv,
   char *logicalName,
   void *theValue)
   {
@@ -298,18 +312,19 @@ globle void PrintFactPNGetVar1(
    struct factGetVarPN1Call *hack;
 
    hack = (struct factGetVarPN1Call *) ValueToBitMap(theValue);
-   PrintRouter(logicalName,"(fact-pn-getvar-1 ");
-   if (hack->factAddress) PrintRouter(logicalName,"t ");
-   else PrintRouter(logicalName,"f ");
-   if (hack->allFields) PrintRouter(logicalName,"t F");
-   else PrintRouter(logicalName,"f F");
+   EnvPrintRouter(theEnv,logicalName,"(fact-pn-getvar-1 ");
+   if (hack->factAddress) EnvPrintRouter(theEnv,logicalName,"t ");
+   else EnvPrintRouter(theEnv,logicalName,"f ");
+   if (hack->allFields) EnvPrintRouter(theEnv,logicalName,"t F");
+   else EnvPrintRouter(theEnv,logicalName,"f F");
 
-   PrintLongInteger(logicalName,(long) hack->whichField);
-   PrintRouter(logicalName," S");
-   PrintLongInteger(logicalName,(long) hack->whichSlot);
-   PrintRouter(logicalName,")");
+   PrintLongInteger(theEnv,logicalName,(long) hack->whichField);
+   EnvPrintRouter(theEnv,logicalName," S");
+   PrintLongInteger(theEnv,logicalName,(long) hack->whichSlot);
+   EnvPrintRouter(theEnv,logicalName,")");
 #else
-#if MAC_MPW || MAC_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
 #endif
@@ -324,6 +339,7 @@ globle void PrintFactPNGetVar1(
 #pragma argsused
 #endif
 globle void PrintFactPNGetVar2(
+  void *theEnv,
   char *logicalName,
   void *theValue)
   {
@@ -331,11 +347,12 @@ globle void PrintFactPNGetVar2(
    struct factGetVarPN2Call *hack;
 
    hack = (struct factGetVarPN2Call *) ValueToBitMap(theValue);;
-   PrintRouter(logicalName,"(fact-pn-getvar-2 S");
-   PrintLongInteger(logicalName,(long) hack->whichSlot);
-   PrintRouter(logicalName,")");
+   EnvPrintRouter(theEnv,logicalName,"(fact-pn-getvar-2 S");
+   PrintLongInteger(theEnv,logicalName,(long) hack->whichSlot);
+   EnvPrintRouter(theEnv,logicalName,")");
 #else
-#if MAC_MPW || MAC_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
 #endif
@@ -350,6 +367,7 @@ globle void PrintFactPNGetVar2(
 #pragma argsused
 #endif
 globle void PrintFactPNGetVar3(
+  void *theEnv,
   char *logicalName,
   void *theValue)
   {
@@ -357,21 +375,22 @@ globle void PrintFactPNGetVar3(
    struct factGetVarPN3Call *hack;
 
    hack = (struct factGetVarPN3Call *) ValueToBitMap(theValue);
-   PrintRouter(logicalName,"(fact-pn-getvar-3 ");
+   EnvPrintRouter(theEnv,logicalName,"(fact-pn-getvar-3 ");
 
-   if (hack->fromBeginning) PrintRouter(logicalName,"t ");
-   else PrintRouter(logicalName,"f ");
-   if (hack->fromEnd) PrintRouter(logicalName,"t B");
-   else PrintRouter(logicalName,"f B");
+   if (hack->fromBeginning) EnvPrintRouter(theEnv,logicalName,"t ");
+   else EnvPrintRouter(theEnv,logicalName,"f ");
+   if (hack->fromEnd) EnvPrintRouter(theEnv,logicalName,"t B");
+   else EnvPrintRouter(theEnv,logicalName,"f B");
 
-   PrintLongInteger(logicalName,(long) hack->beginOffset);
-   PrintRouter(logicalName," E");
-   PrintLongInteger(logicalName,(long) hack->endOffset);
-   PrintRouter(logicalName," S");
-   PrintLongInteger(logicalName,(long) hack->whichSlot);
-   PrintRouter(logicalName,")");
+   PrintLongInteger(theEnv,logicalName,(long) hack->beginOffset);
+   EnvPrintRouter(theEnv,logicalName," E");
+   PrintLongInteger(theEnv,logicalName,(long) hack->endOffset);
+   EnvPrintRouter(theEnv,logicalName," S");
+   PrintLongInteger(theEnv,logicalName,(long) hack->whichSlot);
+   EnvPrintRouter(theEnv,logicalName,")");
 #else
-#if MAC_MPW || MAC_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
 #endif
@@ -386,6 +405,7 @@ globle void PrintFactPNGetVar3(
 #pragma argsused
 #endif
 globle void PrintFactPNConstant1(
+  void *theEnv,
   char *logicalName,
   void *theValue)
   {
@@ -394,17 +414,18 @@ globle void PrintFactPNConstant1(
 
    hack = (struct factConstantPN1Call *) ValueToBitMap(theValue);
 
-   PrintRouter(logicalName,"(fact-pn-constant1 ");
+   EnvPrintRouter(theEnv,logicalName,"(fact-pn-constant1 ");
 
-   PrintLongInteger(logicalName,(long) hack->whichSlot);
+   PrintLongInteger(theEnv,logicalName,(long) hack->whichSlot);
 
-   if (hack->testForEquality) PrintRouter(logicalName," = ");
-   else PrintRouter(logicalName," != ");
+   if (hack->testForEquality) EnvPrintRouter(theEnv,logicalName," = ");
+   else EnvPrintRouter(theEnv,logicalName," != ");
 
-   PrintAtom(logicalName,GetFirstArgument()->type,GetFirstArgument()->value);
-   PrintRouter(logicalName,")");
+   PrintAtom(theEnv,logicalName,GetFirstArgument()->type,GetFirstArgument()->value);
+   EnvPrintRouter(theEnv,logicalName,")");
 #else
-#if MAC_MPW || MAC_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
 #endif
@@ -419,6 +440,7 @@ globle void PrintFactPNConstant1(
 #pragma argsused
 #endif
 globle void PrintFactPNConstant2(
+  void *theEnv,
   char *logicalName,
   void *theValue)
   {
@@ -427,21 +449,22 @@ globle void PrintFactPNConstant2(
 
    hack = (struct factConstantPN2Call *) ValueToBitMap(theValue);
 
-   PrintRouter(logicalName,"(fact-pn-constant2 ");
+   EnvPrintRouter(theEnv,logicalName,"(fact-pn-constant2 ");
 
-   PrintLongInteger(logicalName,(long) hack->whichSlot);
+   PrintLongInteger(theEnv,logicalName,(long) hack->whichSlot);
 
-   PrintRouter(logicalName," ");
+   EnvPrintRouter(theEnv,logicalName," ");
 
-   PrintLongInteger(logicalName,(long) hack->offset);
+   PrintLongInteger(theEnv,logicalName,(long) hack->offset);
 
-   if (hack->testForEquality) PrintRouter(logicalName," = ");
-   else PrintRouter(logicalName," != ");
+   if (hack->testForEquality) EnvPrintRouter(theEnv,logicalName," = ");
+   else EnvPrintRouter(theEnv,logicalName," != ");
 
-   PrintAtom(logicalName,GetFirstArgument()->type,GetFirstArgument()->value);
-   PrintRouter(logicalName,")");
+   PrintAtom(theEnv,logicalName,GetFirstArgument()->type,GetFirstArgument()->value);
+   EnvPrintRouter(theEnv,logicalName,")");
 #else
-#if MAC_MPW || MAC_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
 #pragma unused(logicalName)
 #pragma unused(theValue)
 #endif
@@ -457,15 +480,16 @@ globle void PrintFactPNConstant2(
 #pragma argsused
 #endif
 globle VOID PrintPNFUZZY_VALUE(
+  void *theEnv,
   char *logicalName,
-  VOID *theValue)
+  void *theValue)
   {
 #if DEVELOPER
 
-   PrintRouter(logicalName,"(fact-pn-fuzzy_value ");
+   EnvPrintRouter(theEnv,logicalName,"(fact-pn-fuzzy_value ");
 
    PrintAtom(logicalName,GetFirstArgument()->type,GetFirstArgument()->value);
-   PrintRouter(logicalName,")");
+   EnvPrintRouter(theEnv,logicalName,")");
 #else
 #if MAC_MPW
 #pragma unused(logicalName)
@@ -475,7 +499,6 @@ globle VOID PrintPNFUZZY_VALUE(
   }
 
 #endif
-
 
 #endif /* DEFTEMPLATE_CONSTRUCT && DEFRULE_CONSTRUCT */
 

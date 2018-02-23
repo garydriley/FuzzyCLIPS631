@@ -1,5 +1,3 @@
-/*  $Header: /dist/CVS/fzclips/src/fuzzyval.h,v 1.3 2001/08/11 21:06:02 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/parsefun.h,v 1.3 2001/08/11 21:07:19 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  03/24/96            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*            PARSING FUNCTIONS HEADER FILE            */
    /*******************************************************/
@@ -39,12 +37,11 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           ParseFunctionDefinitions(void);
-   LOCALE void                           CheckSyntaxFunction(DATA_OBJECT *);
-   LOCALE int                            CheckSyntax(char *,DATA_OBJECT_PTR);
+   LOCALE void                           ParseFunctionDefinitions(void *);
+   LOCALE void                           CheckSyntaxFunction(void *,DATA_OBJECT *);
+   LOCALE int                            CheckSyntax(void *,char *,DATA_OBJECT_PTR);
 
 #endif
-
 
 
 

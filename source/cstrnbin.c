@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrnbin.c,v 1.3 2001/08/11 21:04:38 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  07/01/05            */
    /*                                                     */
    /*            CONSTRAINT BLOAD/BSAVE MODULE            */
    /*******************************************************/
@@ -19,6 +17,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrnbin.c,v 1.3 2001/08/1
 /*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
+/*      6.24: Added allowed-classes slot facet.              */
 /*                                                           */
 /*************************************************************/
 
@@ -29,6 +28,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cstrnbin.c,v 1.3 2001/08/1
 #if (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) && (! RUN_TIME)
 
 #include "constant.h"
+#include "envrnmnt.h"
 #include "memalloc.h"
 #include "router.h"
 #include "bload.h"
@@ -64,9 +64,11 @@ struct bsaveConstraintRecord
    unsigned int numberRestriction : 1;
    unsigned int floatRestriction : 1;
    unsigned int integerRestriction : 1;
+   unsigned int classRestriction : 1;
    unsigned int instanceNameRestriction : 1;
    unsigned int multifieldsAllowed : 1;
    unsigned int singlefieldsAllowed : 1;
+   long classList;
    long restrictionList;
    long minValue;
    long maxValue;
@@ -81,21 +83,9 @@ typedef struct bsaveConstraintRecord BSAVE_CONSTRAINT_RECORD;
 /***************************************/
 
 #if BLOAD_AND_BSAVE
-   static void                    CopyToBsaveConstraintRecord(CONSTRAINT_RECORD *,BSAVE_CONSTRAINT_RECORD *);
+   static void                    CopyToBsaveConstraintRecord(void *,CONSTRAINT_RECORD *,BSAVE_CONSTRAINT_RECORD *);
 #endif
-   static void                    CopyFromBsaveConstraintRecord(void *,long);
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle struct constraintRecord *ConstraintArray;
-
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-
-   static long int                 NumberOfConstraints;
+   static void                    CopyFromBsaveConstraintRecord(void *,void *,long);
 
 #if BLOAD_AND_BSAVE
 
@@ -105,6 +95,7 @@ typedef struct bsaveConstraintRecord BSAVE_CONSTRAINT_RECORD;
 /*   currently being saved.                       */
 /**************************************************/
 globle void WriteNeededConstraints(
+  void *theEnv,
   FILE *fp)
   {
    int i;
@@ -123,7 +114,7 @@ globle void WriteNeededConstraints(
 
    for (i = 0; i < SIZE_CONSTRAINT_HASH; i++)
      {
-      for (tmpPtr = ConstraintHashtable[i];
+      for (tmpPtr = ConstraintData(theEnv)->ConstraintHashtable[i];
            tmpPtr != NULL;
            tmpPtr = tmpPtr->next)
         {
@@ -141,7 +132,7 @@ globle void WriteNeededConstraints(
    /* then no constraints are saved.              */
    /*=============================================*/
 
-   if ((! GetDynamicConstraintChecking()) && (numberOfUsedConstraints != 0))
+   if ((! EnvGetDynamicConstraintChecking(theEnv)) && (numberOfUsedConstraints != 0))
      {
 #if FUZZY_DEFTEMPLATES
       /* Fuzzy Value constraints MUST always be kept!! */
@@ -150,7 +141,7 @@ globle void WriteNeededConstraints(
       theIndex = 0;
       for (i = 0 ; i < SIZE_CONSTRAINT_HASH; i++)
         {
-         for (tmpPtr = ConstraintHashtable[i];
+         for (tmpPtr = ConstraintData(theEnv)->ConstraintHashtable[i];
               tmpPtr != NULL;
               tmpPtr = tmpPtr->next)
           {
@@ -159,27 +150,15 @@ globle void WriteNeededConstraints(
               else
                  tmpPtr->bsaveIndex = -1L;
           }
-        
-/*          tmpPtr = ConstraintHashtable[i];
-         while (tmpPtr != NULL)
-           {
-            if (tmpPtr->fuzzyValuesAllowed)
-               tmpPtr->bsaveIndex = theIndex++;
-            else
-               tmpPtr->bsaveIndex = -1L;
-            tmpPtr = tmpPtr->next;
-
-        
-           } */
         }
-#else
+#else      
       numberOfUsedConstraints = 0;
 #endif
-      PrintWarningID("CSTRNBIN",1,FALSE);
-      PrintRouter(WWARNING,"Constraints are not saved with a binary image\n");
-      PrintRouter(WWARNING,"  when dynamic constraint checking is disabled.\n");
+      PrintWarningID(theEnv,"CSTRNBIN",1,FALSE);
+      EnvPrintRouter(theEnv,WWARNING,"Constraints are not saved with a binary image\n");
+      EnvPrintRouter(theEnv,WWARNING,"  when dynamic constraint checking is disabled.\n");
 #if FUZZY_DEFTEMPLATES
-      PrintRouter(WWARNING,"  (except Fuzzy Value constraints are always saved)\n");
+      EnvPrintRouter(theEnv,WWARNING,"  (except Fuzzy Value constraints are always saved)\n");
 #endif
      }
 
@@ -194,7 +173,7 @@ globle void WriteNeededConstraints(
 
    for (i = 0 ; i < SIZE_CONSTRAINT_HASH; i++)
      {
-      for (tmpPtr = ConstraintHashtable[i];
+      for (tmpPtr = ConstraintData(theEnv)->ConstraintHashtable[i];
            tmpPtr != NULL;
            tmpPtr = tmpPtr->next)
         {
@@ -204,7 +183,8 @@ globle void WriteNeededConstraints(
             )
            {
 #endif
-         CopyToBsaveConstraintRecord(tmpPtr,&bsaveConstraints);
+
+         CopyToBsaveConstraintRecord(theEnv,tmpPtr,&bsaveConstraints);
          GenWrite(&bsaveConstraints,
                   (unsigned long) sizeof(BSAVE_CONSTRAINT_RECORD),fp);
 #if FUZZY_DEFTEMPLATES
@@ -220,6 +200,7 @@ globle void WriteNeededConstraints(
 /*   constraints in a binary image.                 */
 /****************************************************/
 static void CopyToBsaveConstraintRecord(
+  void *theEnv,
   CONSTRAINT_RECORD *constraints,
   BSAVE_CONSTRAINT_RECORD *bsaveConstraints)
   {
@@ -243,13 +224,15 @@ static void CopyToBsaveConstraintRecord(
    bsaveConstraints->stringRestriction = constraints->stringRestriction;
    bsaveConstraints->floatRestriction = constraints->floatRestriction;
    bsaveConstraints->integerRestriction = constraints->integerRestriction;
+   bsaveConstraints->classRestriction = constraints->classRestriction;
    bsaveConstraints->instanceNameRestriction = constraints->instanceNameRestriction;
 
-   bsaveConstraints->restrictionList = HashedExpressionIndex(constraints->restrictionList);
-   bsaveConstraints->minValue = HashedExpressionIndex(constraints->minValue);
-   bsaveConstraints->maxValue = HashedExpressionIndex(constraints->maxValue);
-   bsaveConstraints->minFields = HashedExpressionIndex(constraints->minFields);
-   bsaveConstraints->maxFields = HashedExpressionIndex(constraints->maxFields);
+   bsaveConstraints->restrictionList = HashedExpressionIndex(theEnv,constraints->restrictionList);
+   bsaveConstraints->classList = HashedExpressionIndex(theEnv,constraints->classList);
+   bsaveConstraints->minValue = HashedExpressionIndex(theEnv,constraints->minValue);
+   bsaveConstraints->maxValue = HashedExpressionIndex(theEnv,constraints->maxValue);
+   bsaveConstraints->minFields = HashedExpressionIndex(theEnv,constraints->minFields);
+   bsaveConstraints->maxFields = HashedExpressionIndex(theEnv,constraints->maxFields);
   }
 
 #endif /* BLOAD_AND_BSAVE */
@@ -258,17 +241,18 @@ static void CopyToBsaveConstraintRecord(
 /* ReadNeededConstraints: Reads in the constraints used */
 /*   by the binary image currently being loaded.        */
 /********************************************************/
-globle void ReadNeededConstraints()
+globle void ReadNeededConstraints(
+  void *theEnv)
   {
-   GenRead((void *) &NumberOfConstraints,(unsigned long)
+   GenReadBinary(theEnv,(void *) &ConstraintData(theEnv)->NumberOfConstraints,(unsigned long)
                                          sizeof(unsigned long int));
-   if (NumberOfConstraints == 0) return;
+   if (ConstraintData(theEnv)->NumberOfConstraints == 0) return;
 
-   ConstraintArray = (CONSTRAINT_RECORD *)
-           genlongalloc((unsigned long) (sizeof(CONSTRAINT_RECORD) *
-                                        NumberOfConstraints));
+   ConstraintData(theEnv)->ConstraintArray = (CONSTRAINT_RECORD *)
+           genlongalloc(theEnv,(unsigned long) (sizeof(CONSTRAINT_RECORD) *
+                                        ConstraintData(theEnv)->NumberOfConstraints));
 
-   BloadandRefresh(NumberOfConstraints,sizeof(BSAVE_CONSTRAINT_RECORD),
+   BloadandRefresh(theEnv,ConstraintData(theEnv)->NumberOfConstraints,sizeof(BSAVE_CONSTRAINT_RECORD),
                    CopyFromBsaveConstraintRecord);
   }
 
@@ -278,14 +262,15 @@ globle void ReadNeededConstraints()
 /*   for storing constraints in a binary image.      */
 /*****************************************************/
 static void CopyFromBsaveConstraintRecord(
+  void *theEnv,
   void *buf,
-  long index)
+  long theIndex)
   {
    BSAVE_CONSTRAINT_RECORD *bsaveConstraints;
    CONSTRAINT_RECORD *constraints;
 
    bsaveConstraints = (BSAVE_CONSTRAINT_RECORD *) buf;
-   constraints = (CONSTRAINT_RECORD *) &ConstraintArray[index];
+   constraints = (CONSTRAINT_RECORD *) &ConstraintData(theEnv)->ConstraintArray[theIndex];
 
    constraints->anyAllowed = bsaveConstraints->anyAllowed;
    constraints->symbolsAllowed = bsaveConstraints->symbolsAllowed;
@@ -308,9 +293,11 @@ static void CopyFromBsaveConstraintRecord(
    constraints->stringRestriction = bsaveConstraints->stringRestriction;
    constraints->floatRestriction = bsaveConstraints->floatRestriction;
    constraints->integerRestriction = bsaveConstraints->integerRestriction;
+   constraints->classRestriction = bsaveConstraints->classRestriction;
    constraints->instanceNameRestriction = bsaveConstraints->instanceNameRestriction;
 
    constraints->restrictionList = HashedExpressionPointer(bsaveConstraints->restrictionList);
+   constraints->classList = HashedExpressionPointer(bsaveConstraints->classList);
    constraints->minValue = HashedExpressionPointer(bsaveConstraints->minValue);
    constraints->maxValue = HashedExpressionPointer(bsaveConstraints->maxValue);
    constraints->minFields = HashedExpressionPointer(bsaveConstraints->minFields);
@@ -322,14 +309,15 @@ static void CopyFromBsaveConstraintRecord(
 /* ClearBloadedConstraints: Releases memory associated  */
 /*   with constraints loaded from binary image          */
 /********************************************************/
-globle void ClearBloadedConstraints()
+globle void ClearBloadedConstraints(
+  void *theEnv)
   {
-   if (NumberOfConstraints != 0)
+   if (ConstraintData(theEnv)->NumberOfConstraints != 0)
      {
-      genlongfree((void *) ConstraintArray,
+      genlongfree(theEnv,(void *) ConstraintData(theEnv)->ConstraintArray,
                   (unsigned long) (sizeof(CONSTRAINT_RECORD) *
-                                  NumberOfConstraints));
-      NumberOfConstraints = 0;
+                                  ConstraintData(theEnv)->NumberOfConstraints));
+      ConstraintData(theEnv)->NumberOfConstraints = 0;
      }
   }
 

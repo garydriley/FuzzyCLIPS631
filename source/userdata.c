@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/userdata.c,v 1.3 2001/08/11 21:08:20 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/28/98            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                  USER DATA MODULE                   */
    /*******************************************************/
@@ -25,14 +23,19 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/userdata.c,v 1.3 2001/08/1
 
 #include "setup.h"
 
+#include "envrnmnt.h"
+
 #include "userdata.h"
 
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-
-   static struct userDataRecord  *UserDataRecordArray[MAXIMUM_USER_DATA_RECORDS];
-   static unsigned short          UserDataRecordCount = 0;
+/*************************************************/
+/* InitializeUserDataData: Allocates environment */
+/*    data for user data routines.               */
+/*************************************************/
+globle void InitializeUserDataData(
+  void *theEnv)
+  {
+   AllocateEnvironmentData(theEnv,USER_DATA_DATA,sizeof(struct userDataData),NULL);
+  }
 
 /******************************************************/
 /* InstallUserDataRecord: Installs a user data record */
@@ -40,24 +43,26 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/userdata.c,v 1.3 2001/08/1
 /*   integer data ID associated with the record.      */
 /******************************************************/
 globle unsigned char InstallUserDataRecord(
+  void *theEnv,
   struct userDataRecord *theRecord)
   {
-   theRecord->dataID = UserDataRecordCount;
-   UserDataRecordArray[UserDataRecordCount] = theRecord;
-   return(UserDataRecordCount++);
+   theRecord->dataID = UserDataData(theEnv)->UserDataRecordCount;
+   UserDataData(theEnv)->UserDataRecordArray[UserDataData(theEnv)->UserDataRecordCount] = theRecord;
+   return(UserDataData(theEnv)->UserDataRecordCount++);
   }
-
+  
 /*****************************************************/
 /* FetchUserData: Searches for user data information */
 /*   from a list of user data structures. A new user */
 /*   data structure is created if one is not found.  */
 /*****************************************************/
 globle struct userData *FetchUserData(
+  void *theEnv,
   unsigned char userDataID,
   struct userData **theList)
   {
    struct userData *theData;
-   
+
    for (theData = *theList;
         theData != NULL;
         theData = theData->next)
@@ -66,7 +71,7 @@ globle struct userData *FetchUserData(
         { return(theData); }
      }
      
-   theData = (struct userData *) (*UserDataRecordArray[userDataID]->createUserData)();
+   theData = (struct userData *) (*UserDataData(theEnv)->UserDataRecordArray[userDataID]->createUserData)(theEnv);
    theData->dataID = userDataID;
    theData->next = *theList;
    *theList = theData;
@@ -101,6 +106,7 @@ globle struct userData *TestUserData(
 /* ClearUserDataList: Deallocates a linked list of user data.  */
 /***************************************************************/
 globle void ClearUserDataList(
+  void *theEnv,
   struct userData *theList)
   {
    struct userData *nextData;
@@ -108,7 +114,7 @@ globle void ClearUserDataList(
    while (theList != NULL)
      {
       nextData = theList->next;
-      (*UserDataRecordArray[theList->dataID]->deleteUserData)(theList);
+      (*UserDataData(theEnv)->UserDataRecordArray[theList->dataID]->deleteUserData)(theEnv,theList);
       theList = nextData;
      }
   }
@@ -118,6 +124,7 @@ globle void ClearUserDataList(
 /*   from a list of user data structures.        */
 /*************************************************/
 globle struct userData *DeleteUserData(
+  void *theEnv,
   unsigned char userDataID,
   struct userData *theList)
   {
@@ -134,7 +141,7 @@ globle struct userData *DeleteUserData(
          else
            { lastData->next = theData->next; }
             
-         (*UserDataRecordArray[userDataID]->deleteUserData)(theData);
+         (*UserDataData(theEnv)->UserDataRecordArray[userDataID]->deleteUserData)(theEnv,theData);
          return(theList);
         }
         
@@ -143,3 +150,4 @@ globle struct userData *DeleteUserData(
         
    return(theList);   
   }
+

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/generate.h,v 1.3 2001/08/11 21:06:03 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.20  01/31/02            */
    /*                                                     */
    /*                GENERATE HEADER FILE                 */
    /*******************************************************/
@@ -43,13 +41,10 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           FieldConversion(struct lhsParseNode *,struct lhsParseNode *);
-   LOCALE struct expr                   *GetvarReplace(struct lhsParseNode *);
+   LOCALE void                           FieldConversion(void *,struct lhsParseNode *,struct lhsParseNode *);
+   LOCALE struct expr                   *GetvarReplace(void *,struct lhsParseNode *);
 
 #endif
-
-
-
 
 
 

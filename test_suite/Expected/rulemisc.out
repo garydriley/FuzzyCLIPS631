@@ -1,0 +1,264 @@
+TRUE
+FuzzyCLIPS> (batch "rulemisc.bat")
+TRUE
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear) ; Test Thing #1
+FuzzyCLIPS> (defrule rule-1 (foo $?b ?x) =>)
+FuzzyCLIPS> (defrule rule-2 (foo $?y) =>)
+FuzzyCLIPS> (clear) ; Test Thing #2
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> (defrule foo (not (not (and (a) (b)))) =>)
+FuzzyCLIPS> (defrule bar (not (and (a) (b))) =>)
+FuzzyCLIPS> (reset)
+==> f-0     (initial-fact) CF 1.00 
+==> Activation 0      foo: f-0,
+==> Activation 0      bar: f-0,
+<== Activation 0      foo: f-0,
+FuzzyCLIPS> (assert (a))
+==> f-1     (a) CF 1.00 
+<Fact-1>
+FuzzyCLIPS> (assert (b))
+==> f-2     (b) CF 1.00 
+<== Activation 0      bar: f-0,
+==> Activation 0      foo: f-0,
+<Fact-2>
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear) ; Test Thing #3
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (defrule foo (initial-fact) (not (a)) =>)
+FuzzyCLIPS> (defrule bar (initial-fact) =>)
+FuzzyCLIPS> (agenda)
+0      bar: f-0
+0      foo: f-0,
+For a total of 2 activations.
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear) ; Test Thing #4
+FuzzyCLIPS> (defrule foo (logical (exists (a ?) (b ?))) => (assert (q)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (a 1) (b 1) (a 2) (b 2) (a 3))
+<Fact-5>
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (retract 1 2 3 4)
+<== f-1     (a 1) CF 1.00 
+<== f-2     (b 1) CF 1.00 
+<== f-3     (a 2) CF 1.00 
+<== f-4     (b 2) CF 1.00 
+<== f-6     (q) CF 1.00 
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear) ; Test Thing #5
+FuzzyCLIPS> (defrule rule-1 (a ?x) (not (b ?x)) =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (a 1) (a 2) (b 2))
+<Fact-3>
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (refresh rule-1)
+FuzzyCLIPS> (agenda)
+0      rule-1: f-1,
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Test Thing #6
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> (defrule all-players-practiced
+   (logical (forall (player ?name)
+                    (pitched ?name)
+                    (batted ?name)))
+   =>
+   (assert (all-players-have-practiced)))
+==> Activation 0      all-players-practiced: f-0,
+FuzzyCLIPS> (assert (player Gary) (pitched Gary) (batted Gary))
+==> f-1     (player Gary) CF 1.00 
+<== Activation 0      all-players-practiced: f-0,
+==> f-2     (pitched Gary) CF 1.00 
+==> f-3     (batted Gary) CF 1.00 
+==> Activation 0      all-players-practiced: f-0,
+<Fact-3>
+FuzzyCLIPS> (assert (pitched Brian) (player Brian) (batted Brian))
+==> f-4     (pitched Brian) CF 1.00 
+==> f-5     (player Brian) CF 1.00 
+<== Activation 0      all-players-practiced: f-0,
+==> f-6     (batted Brian) CF 1.00 
+==> Activation 0      all-players-practiced: f-0,
+<Fact-6>
+FuzzyCLIPS> (run)
+==> f-7     (all-players-have-practiced) CF 1.00 
+FuzzyCLIPS> (retract 3)
+<== f-3     (batted Gary) CF 1.00 
+<== f-7     (all-players-have-practiced) CF 1.00 
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear) ; Test Thing #7
+FuzzyCLIPS> (defrule rule-1
+  (team ?x)
+  (forall (player ?z ?x) (batted ?z) (pitched ?z))
+  =>)
+FuzzyCLIPS> (matches rule-1)
+Matches for Pattern 1
+ None
+Matches for Pattern 2
+ None
+Matches for Pattern 3
+ None
+Matches for Pattern 4
+ None
+Partial matches for CEs 1 - 2
+ None
+Activations
+ None
+FuzzyCLIPS> (assert (team Reds))
+<Fact-0>
+FuzzyCLIPS> (matches rule-1)
+Matches for Pattern 1
+f-0
+Matches for Pattern 2
+ None
+Matches for Pattern 3
+ None
+Matches for Pattern 4
+ None
+Partial matches for CEs 1 - 2
+f-0,
+Activations
+f-0,
+FuzzyCLIPS> (assert (player Gary Reds))
+<Fact-1>
+FuzzyCLIPS> (matches rule-1)
+Matches for Pattern 1
+f-0
+Matches for Pattern 2
+f-1
+Matches for Pattern 3
+ None
+Matches for Pattern 4
+ None
+Partial matches for CEs 1 - 2
+ None
+Activations
+ None
+FuzzyCLIPS> (assert (batted Gary))
+<Fact-2>
+FuzzyCLIPS> (matches rule-1)
+Matches for Pattern 1
+f-0
+Matches for Pattern 2
+f-1
+Matches for Pattern 3
+f-2
+Matches for Pattern 4
+ None
+Partial matches for CEs 1 - 2
+ None
+Activations
+ None
+FuzzyCLIPS> (assert (pitched Gary))
+<Fact-3>
+FuzzyCLIPS> (matches rule-1)
+Matches for Pattern 1
+f-0
+Matches for Pattern 2
+f-1
+Matches for Pattern 3
+f-2
+Matches for Pattern 4
+f-3
+Partial matches for CEs 1 - 2
+f-0,
+Activations
+f-0,
+FuzzyCLIPS> (clear) ; Test Thing #8 - Fact Addresses References
+FuzzyCLIPS> (defrule theRule 
+  ?f <- (this)
+  (that ?f)
+  =>)
+FuzzyCLIPS> (assert (that =(assert (this))))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+0      theRule: f-0,f-1
+For a total of 1 activation.
+FuzzyCLIPS> (defrule theRule
+  ?f <- (a)
+  ?f <- (b)
+  =>)
+
+[ANALYSIS1] Duplicate pattern-address ?f found in CE #2.
+
+ERROR:
+(defrule MAIN::theRule
+   ?f <- (a)
+   ?f <- (b)
+   =>)
+FuzzyCLIPS> (defrule theRule
+  (a ?f)
+  ?f <- (b)
+  =>)
+
+[ANALYSIS2] Pattern-address ?f used in CE #2 was previously bound within a pattern CE.
+
+ERROR:
+(defrule MAIN::theRule
+   (a ?f)
+   ?f <- (b)
+   =>)
+FuzzyCLIPS> (clear) ; Test Thing #9
+FuzzyCLIPS> (deffacts start (rule-2))
+FuzzyCLIPS> (defrule rule-1 (rule-2) (rule-2 green) =>)
+FuzzyCLIPS> (defrule rule-2 (rule-2 $?) =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+0      rule-2: f-1
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Test Thing #10
+FuzzyCLIPS> (defrule foo (a ?) (b ?) (c ?) =>)
+FuzzyCLIPS> (assert (a 1) (a 2) (b 1) (b 2) (c 1))
+<Fact-4>
+FuzzyCLIPS> (matches foo)
+Matches for Pattern 1
+f-0
+f-1
+Matches for Pattern 2
+f-2
+f-3
+Matches for Pattern 3
+f-4
+Partial matches for CEs 1 - 2
+f-0,f-3
+f-1,f-3
+f-0,f-2
+f-1,f-2
+Partial matches for CEs 1 - 3
+f-1,f-2,f-4
+f-0,f-2,f-4
+f-1,f-3,f-4
+f-0,f-3,f-4
+Activations
+f-1,f-2,f-4
+f-0,f-2,f-4
+f-1,f-3,f-4
+f-0,f-3,f-4
+FuzzyCLIPS> (clear) ; Test Thing #11
+FuzzyCLIPS> (defrule foo 
+   (exists (a ?x) (b ?x)) 
+   (exists (c ?x) (d ?x))
+   =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (a 1) (b 1) (c 2) (d 2))
+<Fact-4>
+FuzzyCLIPS> (matches foo)
+Matches for Pattern 1
+f-0
+Matches for Pattern 2
+f-1
+Matches for Pattern 3
+f-2
+Matches for Pattern 4
+f-3
+Matches for Pattern 5
+f-4
+Partial matches for CEs 1 - 2
+f-0,
+Partial matches for CEs 1 - 3
+f-0,,
+Activations
+f-0,,
+FuzzyCLIPS> (dribble-off)

@@ -1,0 +1,374 @@
+TRUE
+FuzzyCLIPS> (batch "drtest08.bat")
+TRUE
+FuzzyCLIPS> (reset)                   ; DR0675
+FuzzyCLIPS> (defrule foo (initial-fact) (test (> 4 3)) =>)
+FuzzyCLIPS> (agenda)
+0      foo: f-0
+For a total of 1 activation.
+FuzzyCLIPS> (assert (a))
+<Fact-1>
+FuzzyCLIPS> (defrule bar (initial-fact) (or (test (> 5 3)) (a)) =>)
+FuzzyCLIPS> (agenda)
+0      bar: f-0,f-1
+0      bar: f-0
+0      foo: f-0
+For a total of 3 activations.
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (a))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+0      bar: f-0,f-1
+0      foo: f-0
+0      bar: f-0
+For a total of 3 activations.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defmethod foo (?a)       ; DR0676
+  (bind ?b 10)
+  (call-next-method)
+  ?b)
+FuzzyCLIPS> (defmethod foo ($?any)
+  (bind ?b 20))
+FuzzyCLIPS> (foo bar)
+10
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (call-next-method 0)      ; DR0677
+[ARGACCES4] Function call-next-method expected exactly 0 argument(s)
+FuzzyCLIPS> (next-methodp 0)
+[ARGACCES4] Function next-methodp expected exactly 0 argument(s)
+FuzzyCLIPS> (preview-generic)
+[ARGACCES4] Function preview-generic expected at least 1 argument(s)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (delete-instance 0)       ; DR0678
+[ARGACCES4] Function delete-instance expected exactly 0 argument(s)
+FuzzyCLIPS> (init-slots 0)
+[ARGACCES4] Function init-slots expected exactly 0 argument(s)
+FuzzyCLIPS> (ppinstance 0)
+[ARGACCES4] Function ppinstance expected exactly 0 argument(s)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (print-region 1 2 3)      ; DR0679
+[ARGACCES5] Function print-region expected argument #1 to be of type symbol
+FuzzyCLIPS> (print-region t 2 3)
+[ARGACCES5] Function print-region expected argument #2 to be of type symbol or string
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defclass A (is-a USER))  ; DR0680
+FuzzyCLIPS> (class-superclasses A inherit)
+(USER OBJECT)
+FuzzyCLIPS> (defclass A (is-a USER))
+FuzzyCLIPS> (class-superclasses A inherit)
+(USER OBJECT)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> ;; DRs 0681, 0682 and 0683 involve recompiling CLIPS
+(while 1 do ?a)           ; DR0684
+[EVALUATN1] Variable a is unbound
+FALSE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (printout t ?a crlf)      ; DR0685
+[EVALUATN1] Variable a is unbound
+FuzzyCLIPS> (defrule foo =>
+   (printout t ?a)
+   (bind ?a 1))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+[PRCCODE5] Variable a unbound.
+[PRCCODE4] Execution halted during the actions of defrule foo.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (str-cat abc (eval "(+ abc)") def) ; DR0686
+[ARGACCES4] Function + expected at least 2 argument(s)
+""
+FuzzyCLIPS> (sym-cat abc (eval "(+ abc)") def)
+[ARGACCES4] Function + expected at least 2 argument(s)
+nil
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deffunction foo (?a))    ; DR0687
+FuzzyCLIPS> (foo (eval "(+ abc)"))
+[ARGACCES4] Function + expected at least 2 argument(s)
+[PRCCODE6] This error occurred while evaluating arguments for the deffunction foo.
+FALSE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defgeneric any-instancep) ; DR0688
+[GENRCPSR16] The system function any-instancep cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::any-instancep)
+FuzzyCLIPS> (defgeneric assert)
+[GENRCPSR16] The system function assert cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::assert)
+FuzzyCLIPS> (defgeneric bind)
+[GENRCPSR16] The system function bind cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::bind)
+FuzzyCLIPS> (defgeneric break)
+[GENRCPSR16] The system function break cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::break)
+FuzzyCLIPS> (defgeneric call-next-handler)
+[GENRCPSR16] The system function call-next-handler cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::call-next-handler)
+FuzzyCLIPS> (defgeneric call-next-method)
+[GENRCPSR16] The system function call-next-method cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::call-next-method)
+FuzzyCLIPS> (defgeneric delayed-do-for-all-instances)
+[GENRCPSR16] The system function delayed-do-for-all-instances cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::delayed-do-for-all-instances)
+FuzzyCLIPS> (defgeneric do-for-all-instances)
+[GENRCPSR16] The system function do-for-all-instances cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::do-for-all-instances)
+FuzzyCLIPS> (defgeneric do-for-instance)
+[GENRCPSR16] The system function do-for-instance cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::do-for-instance)
+FuzzyCLIPS> (defgeneric duplicate)
+[GENRCPSR16] The system function duplicate cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::duplicate)
+FuzzyCLIPS> (defgeneric expand$)
+[GENRCPSR16] The system function expand$ cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::expand$)
+FuzzyCLIPS> (defgeneric find-all-instances)
+[GENRCPSR16] The system function find-all-instances cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::find-all-instances)
+FuzzyCLIPS> (defgeneric find-instance)
+[GENRCPSR16] The system function find-instance cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::find-instance)
+FuzzyCLIPS> (defgeneric if)
+[GENRCPSR16] The system function if cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::if)
+FuzzyCLIPS> (defgeneric initialize-instance)
+[GENRCPSR16] The system function initialize-instance cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::initialize-instance)
+FuzzyCLIPS> (defgeneric make-instance)
+[GENRCPSR16] The system function make-instance cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::make-instance)
+FuzzyCLIPS> (defgeneric modify)
+[GENRCPSR16] The system function modify cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::modify)
+FuzzyCLIPS> (defgeneric next-handlerp)
+[GENRCPSR16] The system function next-handlerp cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::next-handlerp)
+FuzzyCLIPS> (defgeneric next-methodp)
+[GENRCPSR16] The system function next-methodp cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::next-methodp)
+FuzzyCLIPS> (defgeneric override-next-handler)
+[GENRCPSR16] The system function override-next-handler cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::override-next-handler)
+FuzzyCLIPS> (defgeneric progn)
+[GENRCPSR16] The system function progn cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::progn)
+FuzzyCLIPS> (defgeneric retract)
+FuzzyCLIPS> (defgeneric return)
+[GENRCPSR16] The system function return cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::return)
+FuzzyCLIPS> (defgeneric while)
+[GENRCPSR16] The system function while cannot be overloaded.
+
+ERROR:
+(defgeneric MAIN::while)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defmethod blah  ;; DR0689
+  ((?a (progn (undefmethod blah *) TRUE))))
+FuzzyCLIPS> (blah 1)
+[GENRCFUN1] Defgeneric blah cannot be modified while one of its methods is executing.
+FALSE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defgeneric foo)  ;; DR0690
+FuzzyCLIPS> (foo (progn (undefgeneric foo) 1))
+[PRNTUTIL4] Unable to delete defgeneric foo.
+[GENRCEXE1] No applicable methods for foo.
+FALSE
+FuzzyCLIPS> (deffunction bar (?a))
+FuzzyCLIPS> (bar (progn (undeffunction bar) 1))
+[PRNTUTIL4] Unable to delete deffunction bar.
+FALSE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (printout t (eval "(+ abc)") " OOPS " (eval "(+ abc)") crlf)  ;; DR0691
+[ARGACCES4] Function + expected at least 2 argument(s)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deftemplate foo             ;; DR0692
+  (multifield linkTagList))
+FuzzyCLIPS> (defrule foo
+   ?w<-(foo)
+   =>
+   (modify ?w (linkTagList ?linktag ?linktagx ?a $?b)))
+
+[PRCCODE3] Undefined variable linktag referenced in RHS of defrule.
+
+ERROR:
+(defrule MAIN::foo
+   ?w <- (foo)
+   =>
+   (modify ?w (linkTagList ?linktag ?linktagx ?a $?b)))
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (unwatch all)  ;; DR0693
+FuzzyCLIPS> (defrule foo (logical (not (a))) => (assert (b)))
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (reset)
+==> f-0     (initial-fact) CF 1.00 
+FuzzyCLIPS> (run)
+==> f-1     (b) CF 1.00 
+FuzzyCLIPS> (assert (a))
+==> f-2     (a) CF 1.00 
+<== f-1     (b) CF 1.00 
+<Fact-2>
+FuzzyCLIPS> (reset)
+<== f-0     (initial-fact) CF 1.00 
+<== f-2     (a) CF 1.00 
+==> f-0     (initial-fact) CF 1.00 
+FuzzyCLIPS> (defrule bar (declare (salience -1)) => (assert (a)))
+FuzzyCLIPS> (run)
+==> f-1     (b) CF 1.00 
+==> f-2     (a) CF 1.00 
+<== f-1     (b) CF 1.00 
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defclass A (is-a USER) (role concrete)
+  (slot foo (create-accessor read-write))
+  (multislot bar (create-accessor read-write))) ;; DR0697 and DR0700
+FuzzyCLIPS> (make-instance fribban of A)
+[fribban]
+FuzzyCLIPS> (make-instance quoxnar of A)
+[quoxnar]
+FuzzyCLIPS> (send [quoxnar] put-foo (instance-address [fribban]))
+<Instance-fribban>
+FuzzyCLIPS> (send [quoxnar] put-bar (mv-append))
+()
+FuzzyCLIPS> (unmake-instance [fribban])
+TRUE
+FuzzyCLIPS> (send (send [quoxnar] get-foo) print)
+[INSFUN4] Invalid instance-address in function send.
+FALSE
+FuzzyCLIPS> (save-instances "Temp//badfile.tmp")
+1
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (restore-instances "Temp//badfile.tmp")
+1
+FuzzyCLIPS> (send [quoxnar] print)
+[quoxnar] of A
+(foo [fribban])
+(bar)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defglobal ?*x* = 0) ;; DR0698 and DR0701
+FuzzyCLIPS> (deffunction create-number-2 ()
+  (bind ?*x* (nth 1 (str-explode "2.0")))
+  BOGUS)
+FuzzyCLIPS> (deffunction create-number ()
+  (create-number-2))
+FuzzyCLIPS> (deffunction force-garbage-collection ()
+  (bind ?i 0)      
+  (while (< ?i 10000) do
+    (gensym*)
+    (bind ?i (+ ?i 1))))
+FuzzyCLIPS> (mv-append (create-number) ?*x* (bind ?*x* 0)
+  (force-garbage-collection) (float (random))
+     (float (random)))
+(BOGUS 2.0 0 FALSE 29601.0 26138.0) ;; Last two fields can be different
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deffunction foo ()      ;; DR0699
+   (printout t Foo crlf))
+FuzzyCLIPS> (defmethod bar () (foo))
+FuzzyCLIPS> (bar)
+Foo
+FuzzyCLIPS> (undeffunction *)
+[DFFNXFUN1] WARNING: Deffunction foo only partially deleted due to usage by other constructs.
+FuzzyCLIPS> (bar)
+FALSE
+FuzzyCLIPS> (ppdeffunction foo)
+FuzzyCLIPS> (clear) ;; DR0700
+FuzzyCLIPS> (defclass A (is-a USER) (role concrete) (multislot foo (create-accessor read-write)))
+FuzzyCLIPS> (make-instance a of A (foo (mv-append)))
+[a]
+FuzzyCLIPS> (send [a] print)
+[a] of A
+(foo)
+FuzzyCLIPS> (save-instances "Temp//ins.tmp")
+1
+FuzzyCLIPS> (unmake-instance [a])
+TRUE
+FuzzyCLIPS> (load-instances "Temp//ins.tmp")
+1
+FuzzyCLIPS> (send [a] print)
+[a] of A
+(foo)
+FuzzyCLIPS> (clear) ;; DR0704
+FuzzyCLIPS> (defrule foo => (printout t [hdh] crlf))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+[hdh]
+FuzzyCLIPS> (bsave "Temp//foo.bin")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (bload "Temp//foo.bin")
+TRUE
+FuzzyCLIPS> (clear) ;; DR0705
+FuzzyCLIPS> (= 5 (read))
+Whatever
+[ARGACCES5] Function = expected argument #2 to be of type integer or float
+FALSE
+FuzzyCLIPS> (clear) ;; DR0707
+FuzzyCLIPS> (defclass A (is-a USER) (role concrete) (slot foo (create-accessor read-write)))
+FuzzyCLIPS> (make-instance a of A (foo "\"This is a string\""))
+[a]
+FuzzyCLIPS> (send [a] print)
+[a] of A
+(foo ""This is a string"")
+FuzzyCLIPS> (save-instances "Temp//bogus.tmp")
+1
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (instances)
+[initial-object] of INITIAL-OBJECT
+For a total of 1 instance.
+FuzzyCLIPS> (load-instances "Temp//bogus.tmp")
+1
+FuzzyCLIPS> (send [a] print)
+[a] of A
+(foo ""This is a string"")
+FuzzyCLIPS> (clear) ;; DR0713
+FuzzyCLIPS> 
+(defclass TEST
+  (is-a USER)
+  (role concrete)
+  (slot item (create-accessor write)))
+FuzzyCLIPS> (make-instance a of TEST)
+[a]
+FuzzyCLIPS> (message-modify-instance [a] (item 3))
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (dribble-off)

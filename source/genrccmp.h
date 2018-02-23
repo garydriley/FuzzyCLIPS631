@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/genrccmp.h,v 1.3 2001/08/11 21:06:06 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -40,9 +38,9 @@
 
 #include "genrcfun.h"
 
-LOCALE void SetupGenericsCompiler(void);
-LOCALE void PrintGenericFunctionReference(FILE *,DEFGENERIC *,int,int);
-LOCALE void DefgenericCModuleReference(FILE *,int,int,int);
+LOCALE void SetupGenericsCompiler(void *);
+LOCALE void PrintGenericFunctionReference(void *,FILE *,DEFGENERIC *,int,int);
+LOCALE void DefgenericCModuleReference(void *,FILE *,int,int,int);
 
 #endif
 

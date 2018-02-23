@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/developr.h,v 1.3 2001/08/11 21:04:50 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.10  04/13/98            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*                 DEVELOPER HEADER FILE               */
    /*******************************************************/
@@ -18,6 +16,9 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Converted INSTANCE_PATTERN_MATCHING to          */
+/*            DEFRULE_CONSTRUCT.                              */
+/*                                                            */
 /*************************************************************/
 
 #ifndef _H_developr
@@ -33,18 +34,22 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           DeveloperCommands(void);
-   LOCALE void                           PrimitiveTablesInfo(void);
+   LOCALE void                           DeveloperCommands(void *);
+   LOCALE void                           PrimitiveTablesInfo(void *);
+   LOCALE void                           PrimitiveTablesUsage(void *);
+   LOCALE void                           EnableGCHeuristics(void *);
+   LOCALE void                           DisableGCHeuristics(void *);
 
 #if DEFRULE_CONSTRUCT && DEFTEMPLATE_CONSTRUCT
-   LOCALE void                           ShowFactPatternNetwork(void);
+   LOCALE void                           ShowFactPatternNetwork(void *);
 #endif
-#if INSTANCE_PATTERN_MATCHING
-   LOCALE void                           PrintObjectPatternNetwork(void);
+#if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
+   LOCALE void                           PrintObjectPatternNetwork(void *);
+#endif
+#if OBJECT_SYSTEM
+   LOCALE void                           InstanceTableUsage(void *);
 #endif
 
 #endif
-
-
 
 

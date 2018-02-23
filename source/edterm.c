@@ -1,6 +1,24 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/edterm.c,v 1.3 2001/08/11 21:05:15 dave Exp $" ;
-
-/*   CLIPS Version 6.05  04/09/97 */
+   /*******************************************************/
+   /*      "C" Language Integrated Production System      */
+   /*                                                     */
+   /*              CLIPS Version 6.24  06/05/06           */
+   /*                                                     */
+   /*                                                     */
+   /*******************************************************/
+   
+/*************************************************************/
+/* Purpose:                                                  */
+/*                                                           */
+/* Principal Programmer(s):                                  */
+/*                                                           */
+/* Contributing Programmer(s):                               */
+/*                                                           */
+/* Revision History:                                         */
+/*                                                           */
+/*      6.24: Corrected code generating compilation          */
+/*            warnings.                                      */
+/*                                                           */
+/*************************************************************/
 
 #include "setup.h"
 
@@ -12,46 +30,49 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/edterm.c,v 1.3 2001/08/11 
 #include <stdlib.h>
 
 #if ANSI
-static VOID ansimove(int,int);
-static VOID ansieeol(void);
-static VOID ansieeop(void);
-static VOID ansibeep(void);
-static VOID ansiparm(int);
-static VOID ansiopen(void);
+static void ansimove(int,int);
+static void ansieeol(void);
+static void ansieeop(void);
+static void ansibeep(void);
+static void ansiparm(int);
+static void ansiopen(void);
 #endif
 
 #if VT52
-static VOID vt52move(int,int);
-static VOID vt52eeol(void);
-static VOID vt52eeop(void);
-static VOID vt52beep(void);
-static VOID vt52parm(int);
-static VOID vt52open(void);
+static void vt52move(int,int);
+static void vt52eeol(void);
+static void vt52eeop(void);
+static void vt52beep(void);
+static void vt52parm(int);
+static void vt52open(void);
 #endif
 
 #if IBM_PC
-static VOID pc_open(void);
+static void pc_open(void);
 static int scinit(int);
 static int getboard(void);
 static int pc_getc(void);
-static VOID pc_putc(int);
-static VOID pc_move(int,int);
-static VOID pc_eeol(void);
-static VOID pc_eeop(void);
-static VOID pc_beep(void);
+static void pc_putc(int);
+static void pc_move(int,int);
+static void pc_eeol(void);
+static void pc_eeop(void);
+static void pc_beep(void);
 #endif
 
 #if TERMCAP
+#include <termcap.h>
+/*
 extern int tgetent(char *,char *);
 extern char *tgoto(char *,int,int);
 extern int tputs(register char *,int,int (*)(int));
-
-static VOID tcapmove(int,int);
-static VOID tcapeeol(void);
-static VOID tcapeeop(void);
-static VOID tcapbeep(void);
-static VOID tcapopen(void);
-static VOID putpad(char *);
+extern char *tgetstr(char *,char **);
+*/
+static void tcapmove(int,int);
+static void tcapeeol(void);
+static void tcapeeop(void);
+static void tcapbeep(void);
+static void tcapopen(void);
+static void putpad(char *);
 #endif
 
 /* ==========================================================================
@@ -90,7 +111,7 @@ TERM    term    = {
         ansibeep
 };
 
-static VOID ansimove(
+static void ansimove(
 int row,
 int col)
 {
@@ -102,27 +123,27 @@ int col)
         ttputc('H');
 }
 
-static VOID ansieeol()
+static void ansieeol()
 {
         ttputc(ESC);
         ttputc('[');
         ttputc('K');
 }
 
-static VOID ansieeop()
+static void ansieeop()
 {
         ttputc(ESC);
         ttputc('[');
         ttputc('J');
 }
 
-static VOID ansibeep()
+static void ansibeep()
 {
         ttputc(BEL);
         ttflush();
 }
 
-static VOID ansiparm(
+static void ansiparm(
 int    n)
 {
         register int    q;
@@ -133,7 +154,7 @@ int    n)
         ttputc((n%10) + '0');
 }
 
-static VOID ansiopen()
+static void ansiopen()
 {
 #if     UNIX_7 || UNIX_V
         register char *cp;
@@ -194,7 +215,7 @@ globle TERM    term    = {
         vt52beep
 };
 
-static VOID vt52move(
+static void vt52move(
 int row,
 int col)
 {
@@ -204,19 +225,19 @@ int col)
         ttputc(col+BIAS);
 }
 
-static VOID vt52eeol()
+static void vt52eeol()
 {
         ttputc(ESC);
         ttputc('K');
 }
 
-static VOID vt52eeop()
+static void vt52eeop()
 {
         ttputc(ESC);
         ttputc('J');
 }
 
-static VOID vt52beep()
+static void vt52beep()
 {
 #ifdef  BEL
         ttputc(BEL);
@@ -224,7 +245,7 @@ static VOID vt52beep()
 #endif
 }
 
-static VOID vt52open()
+static void vt52open()
 {
 #if     UNIX_7 || UNIX_V
         register char *cp;
@@ -320,7 +341,7 @@ static unsigned int sline[NCOL];/* screen line image		*/
 
 static union REGS rg;
 
-static VOID pc_open()
+static void pc_open()
 {
  scinit(CDSENSE);
  ttopen();
@@ -444,7 +465,7 @@ static int pc_getc()
    }
 }
 
-static VOID pc_putc(
+static void pc_putc(
 int c)
 {
 	rg.h.ah = 14;		/* write char to screen with current attrs */
@@ -454,7 +475,7 @@ int c)
 	int86(0x10, &rg, &rg);
 }
 
-static VOID pc_move(
+static void pc_move(
 int row,
 int col)
 {
@@ -465,7 +486,7 @@ int col)
 	int86(0x10, &rg, &rg);
 }
 
-static VOID pc_eeol()
+static void pc_eeol()
 {
 	unsigned int attr;	/* attribute byte mask to place in RAM */
 #if IBM_ICB
@@ -511,7 +532,7 @@ static VOID pc_eeol()
 #endif
 }
 
-static VOID pc_eeop()
+static void pc_eeop()
 {
 	int attr;		/* attribute to fill screen with */
 
@@ -525,7 +546,7 @@ static VOID pc_eeop()
 	int86(0x10, &rg, &rg);
 }
 
-static VOID pc_beep()
+static void pc_beep()
 {
         pc_putc(BEL);
         ttflush();
@@ -558,10 +579,10 @@ static VOID pc_beep()
 #define TCAPSLEN 315
 
 static char tcapbuf[TCAPSLEN];
-static char    PC,
+static char    /*PC,*/
         *CM,
         *CE,
-        *UP,
+        /* *UP, */
         *CD;
 
 
@@ -579,9 +600,8 @@ globle TERM term = {
         tcapbeep
 };
 
-static VOID tcapopen()
+static void tcapopen()
 {
-        extern char *tgetstr(char *,char **);
         char *t, *p;
         char tcbuf[1024];
         char *tv_stype;
@@ -624,29 +644,30 @@ static VOID tcapopen()
         ttopen();
 }
 
-static VOID tcapmove(row, col)
-int row, col;
+static void tcapmove(
+  int row, 
+  int col)
 {
         putpad(tgoto(CM, col, row));
 }
 
-static VOID tcapeeol()
+static void tcapeeol()
 {
         putpad(CE);
 }
 
-static VOID tcapeeop()
+static void tcapeeop()
 {
         putpad(CD);
 }
 
-static VOID tcapbeep()
+static void tcapbeep()
 {
         ttputc(BEL);
 }
 
-static VOID putpad(str)
-char    *str;
+static void putpad(
+   char *str)
 {
         tputs(str, 1, (int (*)(int)) ttputc);
 }

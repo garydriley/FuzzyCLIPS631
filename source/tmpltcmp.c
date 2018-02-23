@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/tmpltcmp.c,v 1.3 2001/08/11 21:08:11 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.23  01/31/05            */
    /*                                                     */
    /*          DEFTEMPLATE CONSTRUCTS-TO-C MODULE         */
    /*******************************************************/
@@ -22,6 +20,8 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/tmpltcmp.c,v 1.3 2001/08/1
 /*                  (certainty factors for facts and rules)  */
 /*                                                           */
 /* Revision History:                                         */
+/*      6.23: Added support for templates maintaining their  */
+/*            own list of facts.                             */
 /*                                                           */
 /*************************************************************/
 
@@ -31,12 +31,12 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/tmpltcmp.c,v 1.3 2001/08/1
 
 #if DEFTEMPLATE_CONSTRUCT && CONSTRUCT_COMPILER && (! RUN_TIME)
 
-#define SlotPrefix() ArbitraryPrefix(DeftemplateCodeItem,2)
+#define SlotPrefix() ArbitraryPrefix(DeftemplateData(theEnv)->DeftemplateCodeItem,2)
 
 #if FUZZY_DEFTEMPLATES  
 /* add 2 more files to store the Fuzzy template definitions */
-#define LvUniversePrefix()  ArbitraryPrefix(DeftemplateCodeItem,3)
-#define PrimaryTermPrefix() ArbitraryPrefix(DeftemplateCodeItem,4)
+#define LvUniversePrefix()  ArbitraryPrefix(DeftemplateData(theEnv)->DeftemplateCodeItem,3)
+#define PrimaryTermPrefix() ArbitraryPrefix(DeftemplateData(theEnv)->DeftemplateCodeItem,4)
 #endif
 
 #include <stdio.h>
@@ -46,56 +46,50 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/tmpltcmp.c,v 1.3 2001/08/1
 #include "factcmp.h"
 #include "cstrncmp.h"
 #include "tmpltdef.h"
-
-#include "tmpltcmp.h"
+#include "envrnmnt.h"
 
 #if FUZZY_DEFTEMPLATES   
 #include "fuzzyval.h"
 #include "fuzzylv.h"
-#include "dffnxcmp.h"
 #include "prntutil.h"
 #endif
+
+#include "tmpltcmp.h"
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     ConstructToCode(char *,int,FILE *,int,int);
-   static void                    SlotToCode(FILE *,struct templateSlot *,int,int,int);
-   static void                    DeftemplateModuleToCode(FILE *,struct defmodule *,int,int,int);
+   static int                     ConstructToCode(void *,char *,int,FILE *,int,int);
+   static void                    SlotToCode(void *,FILE *,struct templateSlot *,int,int,int);
+   static void                    DeftemplateModuleToCode(void *,FILE *,struct defmodule *,int,int,int);
 #if FUZZY_DEFTEMPLATES   
-   static void                    DeftemplateToCode(FILE *,struct deftemplate *,
+   static void                    DeftemplateToCode(void *,FILE *,struct deftemplate *,
                                                  int,int,int,int,int,int);
-   static void                    CloseDeftemplateFiles(FILE *,FILE *,FILE *,FILE *,FILE *,int);
+   static void                    CloseDeftemplateFiles(void *,FILE *,FILE *,FILE *,FILE *,FILE *,int);
 #else
-   static void                    DeftemplateToCode(FILE *,struct deftemplate *,
+   static void                    DeftemplateToCode(void *,FILE *,struct deftemplate *,
                                                  int,int,int,int);
-   static void                    CloseDeftemplateFiles(FILE *,FILE *,FILE *,int);
+   static void                    CloseDeftemplateFiles(void *,FILE *,FILE *,FILE *,int);
 #endif
 #if FUZZY_DEFTEMPLATES    
-   static void                    LvUniverseToCode(FILE *,struct fuzzyLv *,
+   static void                    LvUniverseToCode(void *,FILE *,struct fuzzyLv *,
                                                  int,int,int,int);
-   static void                    primaryTermToCode(FILE *,struct primary_term *,
+   static void                    primaryTermToCode(void *,FILE *,struct primary_term *,
                                                  int,int,int *, int);
 #endif
-
-
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-
-   static struct CodeGeneratorItem *DeftemplateCodeItem;
 
 /*********************************************************/
 /* DeftemplateCompilerSetup: Initializes the deftemplate */
 /*   construct for use with the constructs-to-c command. */
 /*********************************************************/
-globle void DeftemplateCompilerSetup()
+globle void DeftemplateCompilerSetup(
+  void *theEnv)
   {
 #if FUZZY_DEFTEMPLATES    
-DeftemplateCodeItem = AddCodeGeneratorItem("deftemplate",0,NULL,NULL,ConstructToCode,5);
+   DeftemplateData(theEnv)->DeftemplateCodeItem = AddCodeGeneratorItem(theEnv,"deftemplate",0,NULL,NULL,ConstructToCode,5);
 #else
-   DeftemplateCodeItem = AddCodeGeneratorItem("deftemplate",0,NULL,NULL,ConstructToCode,3);
+   DeftemplateData(theEnv)->DeftemplateCodeItem = AddCodeGeneratorItem(theEnv,"deftemplate",0,NULL,NULL,ConstructToCode,3);
 #endif
   }
 
@@ -104,6 +98,7 @@ DeftemplateCodeItem = AddCodeGeneratorItem("deftemplate",0,NULL,NULL,ConstructTo
 /*   module created using the constructs-to-c function.      */
 /*************************************************************/
 static int ConstructToCode(
+  void *theEnv,
   char *fileName,
   int fileID,
   FILE *headerFP,
@@ -126,7 +121,6 @@ static int ConstructToCode(
    struct primary_term *primaryTermPtr;
 #endif
 
-
    /*==================================================*/
    /* Include the appropriate deftemplate header file. */
    /*==================================================*/
@@ -139,65 +133,65 @@ static int ConstructToCode(
    /* to the file as they are traversed.                          */
    /*=============================================================*/
 
-   theModule = (struct defmodule *) GetNextDefmodule(NULL);
+   theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
 
    while (theModule != NULL)
      {
-      SetCurrentModule((void *) theModule);
+      EnvSetCurrentModule(theEnv,(void *) theModule);
 
-      moduleFile = OpenFileIfNeeded(moduleFile,fileName,fileID,imageID,&fileCount,
+      moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,fileID,imageID,&fileCount,
                                     moduleArrayVersion,headerFP,
-                                    "struct deftemplateModule",ModulePrefix(DeftemplateCodeItem),
+                                    "struct deftemplateModule",ModulePrefix(DeftemplateData(theEnv)->DeftemplateCodeItem),
                                     FALSE,NULL);
 
       if (moduleFile == NULL)
         {
 #if FUZZY_DEFTEMPLATES   
-         CloseDeftemplateFiles(moduleFile,templateFile,slotFile,
+         CloseDeftemplateFiles(theEnv,moduleFile,templateFile,slotFile,
                                lvUniverseFile,primaryTermFile,maxIndices);
 #else
-         CloseDeftemplateFiles(moduleFile,templateFile,slotFile,maxIndices);
+         CloseDeftemplateFiles(theEnv,moduleFile,templateFile,slotFile,maxIndices);
 #endif
          return(0);
         }
 
-      DeftemplateModuleToCode(moduleFile,theModule,imageID,maxIndices,moduleCount);
-      moduleFile = CloseFileIfNeeded(moduleFile,&moduleArrayCount,&moduleArrayVersion,
+      DeftemplateModuleToCode(theEnv,moduleFile,theModule,imageID,maxIndices,moduleCount);
+      moduleFile = CloseFileIfNeeded(theEnv,moduleFile,&moduleArrayCount,&moduleArrayVersion,
                                      maxIndices,NULL,NULL);
 
       /*=======================================================*/
       /* Loop through each of the deftemplates in this module. */
       /*=======================================================*/
 
-      theTemplate = (struct deftemplate *) GetNextDeftemplate(NULL);
+      theTemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,NULL);
 
       while (theTemplate != NULL)
         {
-         templateFile = OpenFileIfNeeded(templateFile,fileName,fileID,imageID,&fileCount,
+         templateFile = OpenFileIfNeeded(theEnv,templateFile,fileName,fileID,imageID,&fileCount,
                                          templateArrayVersion,headerFP,
-                                         "struct deftemplate",ConstructPrefix(DeftemplateCodeItem),
+                                         "struct deftemplate",ConstructPrefix(DeftemplateData(theEnv)->DeftemplateCodeItem),
                                          FALSE,NULL);
          if (templateFile == NULL)
            {
 #if FUZZY_DEFTEMPLATES   
-            CloseDeftemplateFiles(moduleFile,templateFile,slotFile,
+            CloseDeftemplateFiles(theEnv,moduleFile,templateFile,slotFile,
                                   lvUniverseFile,primaryTermFile,maxIndices);
 #else
-            CloseDeftemplateFiles(moduleFile,templateFile,slotFile,maxIndices);
+            CloseDeftemplateFiles(theEnv,moduleFile,templateFile,slotFile,maxIndices);
 #endif
             return(0);
            }
 
 #if FUZZY_DEFTEMPLATES   
-         DeftemplateToCode(templateFile,theTemplate,imageID,maxIndices,
+         DeftemplateToCode(theEnv,templateFile,theTemplate,imageID,maxIndices,
                            moduleCount,slotCount,
                            lvUniverseArrayCount, lvUniverseArrayVersion);
 #else
-         DeftemplateToCode(templateFile,theTemplate,imageID,maxIndices,
+         DeftemplateToCode(theEnv,templateFile,theTemplate,imageID,maxIndices,
                         moduleCount,slotCount);
 #endif
          templateArrayCount++;
-         templateFile = CloseFileIfNeeded(templateFile,&templateArrayCount,&templateArrayVersion,
+         templateFile = CloseFileIfNeeded(theEnv,templateFile,&templateArrayCount,&templateArrayVersion,
                                           maxIndices,NULL,NULL);
 
 #if FUZZY_DEFTEMPLATES    
@@ -205,41 +199,41 @@ static int ConstructToCode(
          lvPtr = theTemplate->fuzzyTemplate;
          if (lvPtr != NULL)
            {
-             lvUniverseFile = OpenFileIfNeeded(lvUniverseFile,fileName,fileID,
+             lvUniverseFile = OpenFileIfNeeded(theEnv,lvUniverseFile,fileName,fileID,
                                                imageID,&fileCount,
                                                lvUniverseArrayVersion,headerFP,
                                                "struct fuzzyLv",
                                                LvUniversePrefix(),FALSE,NULL);
              if (lvUniverseFile == NULL)
                 {
-                 CloseDeftemplateFiles(moduleFile,templateFile,slotFile,
+                 CloseDeftemplateFiles(theEnv,moduleFile,templateFile,slotFile,
                                        lvUniverseFile,primaryTermFile,maxIndices);
                  return(0);
                 }
-              LvUniverseToCode(lvUniverseFile,lvPtr,imageID,maxIndices,
+              LvUniverseToCode(theEnv,lvUniverseFile,lvPtr,imageID,maxIndices,
                                primaryTermArrayCount,primaryTermArrayVersion);
               lvUniverseArrayCount++;
-              lvUniverseFile = CloseFileIfNeeded(lvUniverseFile,&lvUniverseArrayCount,
+              lvUniverseFile = CloseFileIfNeeded(theEnv,lvUniverseFile,&lvUniverseArrayCount,
                                                 &lvUniverseArrayVersion,
                                                 maxIndices,NULL,NULL);
 
               /* now write out the primaryTerm list*/
               primaryTermPtr = lvPtr->primary_term_list;
-              primaryTermFile = OpenFileIfNeeded(primaryTermFile,fileName,fileID,
+              primaryTermFile = OpenFileIfNeeded(theEnv,primaryTermFile,fileName,fileID,
                                                  imageID,&fileCount,
                                                  primaryTermArrayVersion,headerFP,
                                                  "struct primary_term",
                                                  PrimaryTermPrefix(),FALSE,NULL);
               if (primaryTermFile == NULL)
                 {
-                 CloseDeftemplateFiles(moduleFile,templateFile,slotFile,
+                 CloseDeftemplateFiles(theEnv,moduleFile,templateFile,slotFile,
                                        lvUniverseFile,primaryTermFile,maxIndices);
                  return(0);
                 }
 
-              primaryTermToCode(primaryTermFile,primaryTermPtr,imageID,maxIndices,
+              primaryTermToCode(theEnv,primaryTermFile,primaryTermPtr,imageID,maxIndices,
                                 &primaryTermArrayCount,primaryTermArrayVersion);
-              primaryTermFile = CloseFileIfNeeded(primaryTermFile,&primaryTermArrayCount,
+              primaryTermFile = CloseFileIfNeeded(theEnv,primaryTermFile,&primaryTermArrayCount,
                                                &primaryTermArrayVersion,maxIndices,NULL,NULL);
 
 
@@ -255,42 +249,42 @@ static int ConstructToCode(
          slotPtr = theTemplate->slotList;
          while (slotPtr != NULL)
            {
-            slotFile = OpenFileIfNeeded(slotFile,fileName,fileID,imageID,&fileCount,
+            slotFile = OpenFileIfNeeded(theEnv,slotFile,fileName,fileID,imageID,&fileCount,
                                         slotArrayVersion,headerFP,
                                        "struct templateSlot",SlotPrefix(),FALSE,NULL);
             if (slotFile == NULL)
               {
 #if FUZZY_DEFTEMPLATES   
-               CloseDeftemplateFiles(moduleFile,templateFile,slotFile,
+               CloseDeftemplateFiles(theEnv,moduleFile,templateFile,slotFile,
                                      lvUniverseFile,primaryTermFile,maxIndices);
 #else
-               CloseDeftemplateFiles(moduleFile,templateFile,slotFile,maxIndices);
+               CloseDeftemplateFiles(theEnv,moduleFile,templateFile,slotFile,maxIndices);
 #endif
                return(0);
               }
 
-            SlotToCode(slotFile,slotPtr,imageID,maxIndices,slotCount);
+            SlotToCode(theEnv,slotFile,slotPtr,imageID,maxIndices,slotCount);
             slotCount++;
             slotArrayCount++;
-            slotFile = CloseFileIfNeeded(slotFile,&slotArrayCount,&slotArrayVersion,
+            slotFile = CloseFileIfNeeded(theEnv,slotFile,&slotArrayCount,&slotArrayVersion,
                                          maxIndices,NULL,NULL);
             slotPtr = slotPtr->next;
            }
 
-         theTemplate = (struct deftemplate *) GetNextDeftemplate(theTemplate);
+         theTemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,theTemplate);
         }
 
-      theModule = (struct defmodule *) GetNextDefmodule(theModule);
+      theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule);
       moduleCount++;
       moduleArrayCount++;
 
      }
 
 #if FUZZY_DEFTEMPLATES    
-   CloseDeftemplateFiles(moduleFile,templateFile,slotFile,
+   CloseDeftemplateFiles(theEnv,moduleFile,templateFile,slotFile,
                          lvUniverseFile,primaryTermFile,maxIndices);
 #else 
-   CloseDeftemplateFiles(moduleFile,templateFile,slotFile,maxIndices);
+   CloseDeftemplateFiles(theEnv,moduleFile,templateFile,slotFile,maxIndices);
 #endif
 
    return(1);
@@ -302,6 +296,7 @@ static int ConstructToCode(
 /*   the deftemplates have all been written to the files.   */
 /************************************************************/
 static void CloseDeftemplateFiles(
+  void *theEnv,
   FILE *moduleFile,
   FILE *templateFile,
   FILE *slotFile,
@@ -310,7 +305,6 @@ static void CloseDeftemplateFiles(
   FILE *primaryTermFile,
 #endif
   int maxIndices)
-  
   {
    int count = maxIndices;
    int arrayVersion = 0;
@@ -318,38 +312,36 @@ static void CloseDeftemplateFiles(
    if (slotFile != NULL)
      {
       count = maxIndices;
-      CloseFileIfNeeded(slotFile,&count,&arrayVersion,maxIndices,NULL,NULL);
+      CloseFileIfNeeded(theEnv,slotFile,&count,&arrayVersion,maxIndices,NULL,NULL);
      }
 
    if (templateFile != NULL)
      {
       count = maxIndices;
-      CloseFileIfNeeded(templateFile,&count,&arrayVersion,maxIndices,NULL,NULL);
+      CloseFileIfNeeded(theEnv,templateFile,&count,&arrayVersion,maxIndices,NULL,NULL);
      }
 
    if (moduleFile != NULL)
      {
       count = maxIndices;
-      CloseFileIfNeeded(moduleFile,&count,&arrayVersion,maxIndices,NULL,NULL);
+      CloseFileIfNeeded(theEnv,moduleFile,&count,&arrayVersion,maxIndices,NULL,NULL);
      }
-
+     
 #if FUZZY_DEFTEMPLATES   
    if (lvUniverseFile != NULL)
      {
       count = maxIndices;
-      lvUniverseFile = CloseFileIfNeeded(lvUniverseFile,&count,&arrayVersion,maxIndices,NULL,NULL);
+      lvUniverseFile = CloseFileIfNeeded(theEnv,lvUniverseFile,&count,&arrayVersion,maxIndices,NULL,NULL);
      }
 
    if (primaryTermFile != NULL)
      {
       count = maxIndices;
-      primaryTermFile = CloseFileIfNeeded(primaryTermFile,&count,&arrayVersion,maxIndices,NULL,NULL);
+      primaryTermFile = CloseFileIfNeeded(theEnv,primaryTermFile,&count,&arrayVersion,maxIndices,NULL,NULL);
      }
-
 #endif
-
   }
-
+  
 #if FUZZY_DEFTEMPLATES   
 
 /* generate code for the fuzzy deftemplate definitions */
@@ -360,7 +352,8 @@ static void CloseDeftemplateFiles(
 #if IBM_TBC
 #pragma argsused
 #endif
-static VOID LvUniverseToCode(
+static void LvUniverseToCode(
+  void *theEnv,
   FILE *lvUniverseFile,
   struct fuzzyLv *lvPtr,
   int imageID,
@@ -372,17 +365,17 @@ static VOID LvUniverseToCode(
 #pragma unused(maxIndices)
 #endif
     fprintf(lvUniverseFile, "{%s, %s, ",
-            FloatToString(lvPtr->from), FloatToString(lvPtr->to));
-    PrintSymbolReference(lvUniverseFile,lvPtr->units);
+            FloatToString(theEnv,lvPtr->from), FloatToString(theEnv,lvPtr->to));
+    PrintSymbolReference(theEnv,lvUniverseFile,lvPtr->units);
     fprintf(lvUniverseFile, ", &%s%d_%d[%d] }",
             PrimaryTermPrefix(), imageID, primaryTermArrayVersion, primaryTermArrayCount);
   }
 
-
 /************************************************************/
 /* primaryTermToCode:                                       */
 /************************************************************/
-static VOID primaryTermToCode(
+static void primaryTermToCode(
+  void *theEnv,
   FILE *primaryTermFile,
   struct primary_term *primaryTermPtr,
   int imageID,
@@ -408,7 +401,7 @@ static VOID primaryTermToCode(
            }
 
          fprintf(primaryTermFile,"{");
-         PrintFuzzyValueReference( primaryTermFile, primaryTermPtr->fuzzy_value_description);
+         PrintFuzzyValueReference(theEnv, primaryTermFile, primaryTermPtr->fuzzy_value_description);
          if (nextPtr != NULL)
             fprintf(primaryTermFile,",&%s%d_%d[%d]}",
                     PrimaryTermPrefix(), imageID, arrayVersion, count);
@@ -424,9 +417,7 @@ static VOID primaryTermToCode(
        }
   }
 
-
 #endif
-
 
 /*************************************************************/
 /* DeftemplateModuleToCode: Writes the C code representation */
@@ -436,19 +427,21 @@ static VOID primaryTermToCode(
 #pragma argsused
 #endif
 static void DeftemplateModuleToCode(
+  void *theEnv,
   FILE *theFile,
   struct defmodule *theModule,
   int imageID,
   int maxIndices,
   int moduleCount)
   {
-#if MAC_MPW || MAC_MCW || IBM_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD
 #pragma unused(moduleCount)
 #endif
+
    fprintf(theFile,"{");
 
-   ConstructModuleToCode(theFile,theModule,imageID,maxIndices,
-                                  DeftemplateModuleIndex,ConstructPrefix(DeftemplateCodeItem));
+   ConstructModuleToCode(theEnv,theFile,theModule,imageID,maxIndices,
+                         DeftemplateData(theEnv)->DeftemplateModuleIndex,ConstructPrefix(DeftemplateData(theEnv)->DeftemplateCodeItem));
 
    fprintf(theFile,"}");
   }
@@ -458,6 +451,7 @@ static void DeftemplateModuleToCode(
 /*   single deftemplate construct to the specified file.    */
 /************************************************************/
 static void DeftemplateToCode(
+  void *theEnv,
   FILE *theFile,
   struct deftemplate *theTemplate,
   int imageID,
@@ -477,9 +471,9 @@ static void DeftemplateToCode(
 
    fprintf(theFile,"{");
 
-   ConstructHeaderToCode(theFile,&theTemplate->header,imageID,maxIndices,
-                                  moduleCount,ModulePrefix(DeftemplateCodeItem),
-                                  ConstructPrefix(DeftemplateCodeItem));
+   ConstructHeaderToCode(theEnv,theFile,&theTemplate->header,imageID,maxIndices,
+                                  moduleCount,ModulePrefix(DeftemplateData(theEnv)->DeftemplateCodeItem),
+                                  ConstructPrefix(DeftemplateData(theEnv)->DeftemplateCodeItem));
    fprintf(theFile,",");
 
    /*===========*/
@@ -510,7 +504,8 @@ static void DeftemplateToCode(
    if (theTemplate->patternNetwork == NULL)
      { fprintf(theFile,"NULL"); }
    else
-     { FactPatternNodeReference(theTemplate->patternNetwork,theFile,imageID,maxIndices); }
+     { FactPatternNodeReference(theEnv,theTemplate->patternNetwork,theFile,imageID,maxIndices); }
+
 #if FUZZY_DEFTEMPLATES  
 
    /*==========================================*/
@@ -528,7 +523,13 @@ static void DeftemplateToCode(
 
 #endif /* FUZZY_DEFTEMPLATES */
 
-   fprintf(theFile,"}");
+   /*============================================*/
+   /* Print the factList and lastFact references */
+   /* and close the structure.                   */
+   /*============================================*/
+   
+   fprintf(theFile,",NULL,NULL}");
+   
   }
 
 /*****************************************************/
@@ -536,6 +537,7 @@ static void DeftemplateToCode(
 /*   single deftemplate slot to the specified file.  */
 /*****************************************************/
 static void SlotToCode(
+  void *theEnv,
   FILE *theFile,
   struct templateSlot *theSlot,
   int imageID,
@@ -547,7 +549,7 @@ static void SlotToCode(
    /*===========*/
 
    fprintf(theFile,"{");
-   PrintSymbolReference(theFile,theSlot->slotName);
+   PrintSymbolReference(theEnv,theFile,theSlot->slotName);
 
    /*=============================*/
    /* Multislot and Default Flags */
@@ -560,14 +562,14 @@ static void SlotToCode(
    /* Constraints */
    /*=============*/
 
-   PrintConstraintReference(theFile,theSlot->constraints,imageID,maxIndices);
+   PrintConstraintReference(theEnv,theFile,theSlot->constraints,imageID,maxIndices);
 
    /*===============*/
    /* Default Value */
    /*===============*/
 
    fprintf(theFile,",");
-   PrintHashedExpressionReference(theFile,theSlot->defaultList,imageID,maxIndices);
+   PrintHashedExpressionReference(theEnv,theFile,theSlot->defaultList,imageID,maxIndices);
    fprintf(theFile,",");
 
    /*===========*/
@@ -589,12 +591,13 @@ static void SlotToCode(
 /*   of a reference to a deftemplate module data structure.      */
 /*****************************************************************/
 globle void DeftemplateCModuleReference(
+  void *theEnv,
   FILE *theFile,
   int count,
   int imageID,
   int maxIndices)
   {
-   fprintf(theFile,"MIHS &%s%d_%d[%d]",ModulePrefix(DeftemplateCodeItem),
+   fprintf(theFile,"MIHS &%s%d_%d[%d]",ModulePrefix(DeftemplateData(theEnv)->DeftemplateCodeItem),
                       imageID,
                       (count / maxIndices) + 1,
                       (count % maxIndices));
@@ -605,6 +608,7 @@ globle void DeftemplateCModuleReference(
 /*   of a reference to a deftemplate data structure.                */
 /********************************************************************/
 globle void DeftemplateCConstructReference(
+  void *theEnv,
   FILE *theFile,
   void *vTheTemplate,
   int imageID,
@@ -616,7 +620,7 @@ globle void DeftemplateCConstructReference(
      { fprintf(theFile,"NULL"); }
    else
      {
-      fprintf(theFile,"&%s%d_%ld[%ld]",ConstructPrefix(DeftemplateCodeItem),
+      fprintf(theFile,"&%s%d_%ld[%ld]",ConstructPrefix(DeftemplateData(theEnv)->DeftemplateCodeItem),
                       imageID,
                       (theTemplate->header.bsaveID / maxIndices) + 1,
                       theTemplate->header.bsaveID % maxIndices);

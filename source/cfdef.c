@@ -1,5 +1,3 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cfdef.c,v 1.5 2002/10/24 20:54:32 dave Exp $" ;
-
   /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
@@ -32,12 +30,8 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cfdef.c,v 1.5 2002/10/24 2
 
 #include "setup.h"
 
-
 #if CERTAINTY_FACTORS
 
-
-
- 
 #include "symbol.h"
 #include "cfdef.h"
 
@@ -59,51 +53,33 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/cfdef.c,v 1.5 2002/10/24 2
 #include "factmngr.h"
 #include "constrct.h"
 
-
 #include <math.h>
 #include <stdio.h>
 #define _CLIPS_STDIO_
-
-
-
-
-
-/******************************************************************
-    Local Global Variable Declarations
- ******************************************************************/
-
-   globle double                Threshold_CF;
-   
-/******************************************************************
-    Local Variable Declarations
- ******************************************************************/
-
-   int                rule_cf_calculation = TRUE;
-   
 
 /******************************************************************
     Local Internal Function Declarations
  ******************************************************************/
  
-   static struct fact *getFactPtr(struct expr *theArgument, char *functionName);
+   static struct fact *getFactPtr(void *,struct expr *theArgument, char *functionName);
 
-globle VOID InitializeCF()
+globle void InitializeCF(
+  void *theEnv)
 {
+  AllocateEnvironmentData(theEnv,CF_DATA,sizeof(struct certaintyFactorData),NULL);
  /* Variables and functions for CF and threshold value of CF */
- Threshold_CF = 0.0;   /* by default set this to 0.0 */
- 
+ CertaintyFactorData(theEnv)->Threshold_CF = 0.0;   /* by default set this to 0.0 */
+ CertaintyFactorData(theEnv)->rule_cf_calculation = TRUE;
+
 #if ! RUN_TIME  
- DefineFunction2("get-cf", 'd', PTIF getcf, "getcf", "11z");
- DefineFunction2("threshold", 'v', PTIF set_threshold, "set_threshold", "11n");
- DefineFunction2("set-threshold", 'v', PTIF set_threshold, "set_threshold", "11n");
- DefineFunction2("get-threshold", 'd', PTIF get_threshold, "get_threshold", "00");
- DefineFunction2("enable-rule-cf-calculation", 'v', PTIF enable_rule_cf_calculation, "enable_rule_cf_calculation", "00");
- DefineFunction2("disable-rule-cf-calculation", 'v', PTIF disable_rule_cf_calculation, "disable_rule_cf_calculation", "00");
+ EnvDefineFunction2(theEnv,"get-cf", 'd', PTIEF getcf, "getcf", "11z");
+ EnvDefineFunction2(theEnv,"threshold", 'v', PTIEF set_threshold, "set_threshold", "11n");
+ EnvDefineFunction2(theEnv,"set-threshold", 'v', PTIEF set_threshold, "set_threshold", "11n");
+ EnvDefineFunction2(theEnv,"get-threshold", 'd', PTIEF get_threshold, "get_threshold", "00");
+ EnvDefineFunction2(theEnv,"enable-rule-cf-calculation", 'v', PTIEF enable_rule_cf_calculation, "enable_rule_cf_calculation", "00");
+ EnvDefineFunction2(theEnv,"disable-rule-cf-calculation", 'v', PTIEF disable_rule_cf_calculation, "disable_rule_cf_calculation", "00");
 #endif
 }
-
-
-
 
 /***********************************************************************
     FUNCTIONS FOR PARSING CERTAINTY FACTORS
@@ -117,6 +93,7 @@ globle VOID InitializeCF()
 /*                                                              */
 /****************************************************************/
 globle struct expr *ParseDeclareUncertainty(
+  void *theEnv,
   char *readSource,
   char *ruleName,
   int *error,
@@ -130,9 +107,9 @@ globle struct expr *ParseDeclareUncertainty(
    /* Get the certainty factor expression. */
    /*======================================*/
 
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 
-   cfExpression = ParseAtomOrExpression(readSource,NULL);
+   cfExpression = ParseAtomOrExpression(theEnv,readSource,NULL);
    if (cfExpression == NULL)
      {
       *error = TRUE;
@@ -144,10 +121,10 @@ globle struct expr *ParseDeclareUncertainty(
    /* Evaluate the expression and determine if it is an integer or float. */
    /*=====================================================================*/
 
-   SetEvaluationError(FALSE);
-   if (EvaluateExpression(cfExpression,&cfValueDO))
+   SetEvaluationError(theEnv,FALSE);
+   if (EvaluateExpression(theEnv,cfExpression,&cfValueDO))
      {
-      cfInformationError(ruleName);
+      cfInformationError(theEnv,ruleName);
       *error = TRUE;
       *cfVALUE = 1.0;
       return(cfExpression);
@@ -155,7 +132,7 @@ globle struct expr *ParseDeclareUncertainty(
 
    if ( cfValueDO.type != INTEGER && cfValueDO.type != FLOAT)
      {
-      cfNonNumberError();
+      cfNonNumberError(theEnv);
       *error = TRUE;
       *cfVALUE = 1.0;
       return(cfExpression);
@@ -173,7 +150,7 @@ globle struct expr *ParseDeclareUncertainty(
        
    if ((cf > 1.0) || (cf < 0.0))
      {
-       cfRangeError();
+       cfRangeError(theEnv);
        *error = TRUE;
        *cfVALUE = 1.0;
      }
@@ -191,13 +168,14 @@ globle struct expr *ParseDeclareUncertainty(
 /* printCF: prints certainty factor                              */
 /*****************************************************************/  
 globle VOID printCF(
+  void *theEnv,
   char *logicalName,
   double cf)
   {
    char printSpace[20];
    
    sprintf(printSpace," CF %.2f ",cf);
-   PrintRouter(logicalName,printSpace);
+   EnvPrintRouter(theEnv,logicalName,printSpace);
    
   }
   
@@ -218,10 +196,11 @@ globle VOID printCF(
 /*             x       f1     f2                                  */
 /******************************************************************/
 globle double possibility(
+  void *theEnv,
   struct fuzzy_value *f1, 
   struct fuzzy_value *f2)
   {        
-    return( max_of_min ( f1, f2 ) );
+    return( max_of_min (theEnv, f1, f2 ) );
   }
 
 
@@ -232,17 +211,18 @@ globle double possibility(
 /* n(f1,f2) = 1 - p(f1,f2)                                          */
 /********************************************************************/
 globle double necessity(
+  void *theEnv,
   struct fuzzy_value *f1, 
   struct fuzzy_value *f2)
   {
    struct fuzzy_value *fc;
    double nc;
    
-   fc = CopyFuzzyValue(f1);
+   fc = CopyFuzzyValue(theEnv,f1);
    fcompliment(fc);
    
-   nc = 1.0 - possibility(fc,f2);
-   rtnFuzzyValue(fc);
+   nc = 1.0 - possibility(theEnv,fc,f2);
+   rtnFuzzyValue(theEnv,fc);
    
    return(nc);
   }
@@ -254,13 +234,14 @@ globle double necessity(
 /*     else  (n(f1,f2) + 0.5) * p(f1,f2)                         */       
 /*****************************************************************/
 globle double similarity(
+  void *theEnv,
   struct fuzzy_value *f1,
   struct fuzzy_value *f2)
   {
    double nec, poss;
 
-   nec = necessity(f1,f2);
-   poss = possibility(f1,f2);
+   nec = necessity(theEnv,f1,f2);
+   poss = possibility(theEnv,f1,f2);
    
    if (nec > 0.5)
      return( poss );
@@ -277,14 +258,15 @@ globle double similarity(
 
     Enables the calculation of the CF of facts generated on RHS of rule.
  ********************************************************************/
-globle void enable_rule_cf_calculation()
+globle void enable_rule_cf_calculation(
+  void *theEnv)
 {
-    if (ArgCountCheck("get-threshold",EXACTLY,0) == -1)
+    if (EnvArgCountCheck(theEnv,"get-threshold",EXACTLY,0) == -1)
       {     
-        SetEvaluationError(TRUE);
+        SetEvaluationError(theEnv,TRUE);
       }
       
-    rule_cf_calculation = TRUE;  
+    CertaintyFactorData(theEnv)->rule_cf_calculation = TRUE;  
     return;
 }
 
@@ -296,14 +278,15 @@ globle void enable_rule_cf_calculation()
     The CF will be the CF provided in the assert statement if any (else 1.0)
     if the Rule CF calculation is disabled.
  ********************************************************************/
-globle void disable_rule_cf_calculation()
+globle void disable_rule_cf_calculation(
+  void *theEnv)
 {
-    if (ArgCountCheck("get-threshold",EXACTLY,0) == -1)
+    if (EnvArgCountCheck(theEnv,"get-threshold",EXACTLY,0) == -1)
       {     
-        SetEvaluationError(TRUE);
+        SetEvaluationError(theEnv,TRUE);
       }
       
-    rule_cf_calculation = FALSE;  
+    CertaintyFactorData(theEnv)->rule_cf_calculation = FALSE;  
     return;
 }
 
@@ -326,6 +309,7 @@ globle void disable_rule_cf_calculation()
 
  ****************************************************************/
 globle double computeStdConclCF(
+  void *theEnv,
   double ruleCF,
   struct partialMatch *binds)
 {
@@ -344,7 +328,7 @@ globle double computeStdConclCF(
    */
    
    antecedent_binds = &(binds->binds[0]); 
-   jNode = ExecutingRule->lastJoin;
+   jNode = EngineData(theEnv)->ExecutingRule->lastJoin;
 
    /* We will walk through each fact that matched in the rule
       in the reverse order so that we can more easily check to 
@@ -400,6 +384,7 @@ globle double computeStdConclCF(
 #if FUZZY_DEFTEMPLATES
 
 globle double computeFuzzyCrispConclCF(
+  void *theEnv,
   struct defrule *theRule,
   struct partialMatch *binds)
 {
@@ -485,7 +470,7 @@ globle double computeFuzzyCrispConclCF(
                     fact_fv = (struct fuzzy_value *)
                         ValueToFuzzyValue((tmpFact->theProposition.theFields[slotNum].value));
                    
-                    simFactCF = similarity(antecedent_fv,fact_fv) * theFactCF;
+                    simFactCF = similarity(theEnv,antecedent_fv,fact_fv) * theFactCF;
 
                     /* keep the minimum of CFs over all fuzzy values in the fact */
                     if (simFactCF < fact_cf) 
@@ -527,14 +512,15 @@ globle double computeFuzzyCrispConclCF(
  ********************************************************************/
  
 globle VOID changeCFofNewFact(
+  void *theEnv,
   struct fact *newFact)
   {
     double ConcludingCFofExecutingRule;
 
-    if ((rule_cf_calculation) &&
-        (ExecutingRule != NULL) &&
-        (ExecutingRule->executing) &&
-        (!ResetInProgress)
+    if ((CertaintyFactorData(theEnv)->rule_cf_calculation) &&
+        (EngineData(theEnv)->ExecutingRule != NULL) &&
+        (EngineData(theEnv)->ExecutingRule->executing) &&
+        (! ConstructData(theEnv)->ResetInProgress)
        ) 
       {
         /* Fuzzy facts always use StdConcludingCF -- Crisp Facts do too
@@ -544,11 +530,11 @@ globle VOID changeCFofNewFact(
         if (newFact->whichDeftemplate->hasFuzzySlots)
            {
 #endif
-             ConcludingCFofExecutingRule = theCurrentActivation->StdConcludingCF;
+             ConcludingCFofExecutingRule = EngineData(theEnv)->TheCurrentActivation->StdConcludingCF;
              if (ConcludingCFofExecutingRule < 0) /* not yet calculated if -1.0 */
-                theCurrentActivation->StdConcludingCF
+                EngineData(theEnv)->TheCurrentActivation->StdConcludingCF
                     = ConcludingCFofExecutingRule
-                    = computeStdConclCF(theCurrentActivation->CF, theCurrentActivation->basis);
+                    = computeStdConclCF(theEnv,EngineData(theEnv)->TheCurrentActivation->CF,EngineData(theEnv)->TheCurrentActivation->basis);
 #if FUZZY_DEFTEMPLATES
            }
         else
@@ -556,21 +542,21 @@ globle VOID changeCFofNewFact(
              /* Crisp facts use StdConcludingCF if LHS of Rule is Crisp and
                 use FuzzyCrispConcludingCF when fuzzy patterns on LHS of rule
              */
-             if (ExecutingRule->lhsRuleType == FUZZY_LHS)
+             if (EngineData(theEnv)->ExecutingRule->lhsRuleType == FUZZY_LHS)
                 {
-                  ConcludingCFofExecutingRule = theCurrentActivation->FuzzyCrispConcludingCF;
+                  ConcludingCFofExecutingRule = EngineData(theEnv)->TheCurrentActivation->FuzzyCrispConcludingCF;
                   if (ConcludingCFofExecutingRule < 0) /* not yet calculated if -1.0 */
-                     theCurrentActivation->FuzzyCrispConcludingCF
+                     EngineData(theEnv)->TheCurrentActivation->FuzzyCrispConcludingCF
                          = ConcludingCFofExecutingRule
-                         = computeFuzzyCrispConclCF(ExecutingRule, theCurrentActivation->basis);
+                         = computeFuzzyCrispConclCF(theEnv,EngineData(theEnv)->ExecutingRule, EngineData(theEnv)->TheCurrentActivation->basis);
                 }
              else
                 {
-                  ConcludingCFofExecutingRule = theCurrentActivation->StdConcludingCF;
+                  ConcludingCFofExecutingRule = EngineData(theEnv)->TheCurrentActivation->StdConcludingCF;
                   if (ConcludingCFofExecutingRule < 0) /* not yet calculated if -1.0 */
-                     theCurrentActivation->StdConcludingCF
+                     EngineData(theEnv)->TheCurrentActivation->StdConcludingCF
                          = ConcludingCFofExecutingRule
-                         = computeStdConclCF(theCurrentActivation->CF, theCurrentActivation->basis);
+                         = computeStdConclCF(theEnv,EngineData(theEnv)->TheCurrentActivation->CF, EngineData(theEnv)->TheCurrentActivation->basis);
                 }
            }
 #endif
@@ -593,6 +579,7 @@ globle VOID changeCFofNewFact(
     returns a ptr to a fact or NULL if error occurred
 ************************************************************/
 static struct fact *getFactPtr(
+  void *theEnv,
   struct expr *theArgument,
   char *functionName)
 {
@@ -601,7 +588,7 @@ static struct fact *getFactPtr(
    DATA_OBJECT  theResult;
    struct fact *factPtr;
 
-	EvaluateExpression(theArgument,&theResult);
+	EvaluateExpression(theEnv,theArgument,&theResult);
 
 	if ((theResult.type == INTEGER) || (theResult.type == FACT_ADDRESS))
      {
@@ -610,11 +597,11 @@ static struct fact *getFactPtr(
 			  factIndex = ValueToLong(theResult.value);
 			  if (factIndex < 0)
              {            
-               ExpectedTypeError1(functionName,1,"fact-index must be positive");
+               ExpectedTypeError1(theEnv,functionName,1,"fact-index must be positive");
                return(NULL);
              }
            found_fact = FALSE;
-           factPtr = (struct fact *) GetNextFact(NULL);
+           factPtr = (struct fact *) EnvGetNextFact(theEnv,NULL);
            while (factPtr != NULL)
              {
                if (factPtr->factIndex == factIndex)
@@ -629,7 +616,7 @@ static struct fact *getFactPtr(
              {
                char tempBuffer[20];
                sprintf(tempBuffer,"f-%ld",factIndex);
-               CantFindItemErrorMessage("fact",tempBuffer);
+               CantFindItemErrorMessage(theEnv,"fact",tempBuffer);
                return(NULL);
              }
           }
@@ -640,7 +627,7 @@ static struct fact *getFactPtr(
         return( factPtr );
      }
    
-   ExpectedTypeError1(functionName,1,"fact-index or fact-address");
+   ExpectedTypeError1(theEnv,functionName,1,"fact-index or fact-address");
    return( NULL );
 }
 
@@ -651,18 +638,19 @@ static struct fact *getFactPtr(
     returns the certainty factor of a single fact in
     NUMBER format; if the certainty factor is a TFN,
     the peak value is returned.
-/************************************************************/
-globle double getcf()
+ ************************************************************/
+globle double getcf(
+  void *theEnv)
   {
     struct fact *factPtr;
     struct expr *theArgument;
 
-	 if (ArgCountCheck("get-cf",EXACTLY,1) != -1)
+	 if (EnvArgCountCheck(theEnv,"get-cf",EXACTLY,1) != -1)
       {     
 		  theArgument = GetFirstArgument();
         if (theArgument != NULL)
           {
-            factPtr = getFactPtr(theArgument, "get-cf");
+            factPtr = getFactPtr(theEnv,theArgument, "get-cf");
        
             if (factPtr != NULL)
               {
@@ -671,7 +659,7 @@ globle double getcf()
           }
 		}
         
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
 	 return(0.0);
   }
 
@@ -687,14 +675,15 @@ globle double getcf()
     Sets the threshold cf to desired CRISP value and changes
     threshold_on to TRUE.
  *******************************************************************/
-globle VOID set_threshold()
+globle VOID set_threshold(
+  void *theEnv)
   {
     DATA_OBJECT theArgument;
     double theThreshold;
 
-    if (ArgCountCheck("set-threshold",EXACTLY,1) != -1)
+    if (EnvArgCountCheck(theEnv,"set-threshold",EXACTLY,1) != -1)
       {     
-        if (ArgTypeCheck("set-threshold",1,INTEGER_OR_FLOAT,&theArgument) != 0)
+        if (EnvArgTypeCheck(theEnv,"set-threshold",1,INTEGER_OR_FLOAT,&theArgument) != 0)
           {
             if (GetType(theArgument) == INTEGER)
               {
@@ -706,17 +695,17 @@ globle VOID set_threshold()
               }
             if (theThreshold < 0.0 || theThreshold > 1.0)
               {
-                cfRangeError();
+                cfRangeError(theEnv);
               }
             else
               {
-                Threshold_CF = theThreshold;
+                CertaintyFactorData(theEnv)->Threshold_CF = theThreshold;
                 return;
               }
           }
       }
         
-    SetEvaluationError(TRUE);
+    SetEvaluationError(theEnv,TRUE);
   }
 
 
@@ -725,14 +714,15 @@ globle VOID set_threshold()
 
     Returns the CRISP threshold value.
  ********************************************************************/
-globle double get_threshold()
+globle double get_threshold(
+  void *theEnv)
 {
-    if (ArgCountCheck("get-threshold",EXACTLY,0) == -1)
+    if (EnvArgCountCheck(theEnv,"get-threshold",EXACTLY,0) == -1)
       {     
-        SetEvaluationError(TRUE);
+        SetEvaluationError(theEnv,TRUE);
       }
         
-    return( Threshold_CF );
+    return( CertaintyFactorData(theEnv)->Threshold_CF );
 }
 
 
@@ -758,6 +748,7 @@ globle double get_threshold()
 
  *******************************************************************/
 globle VOID changeCFofExistingFact(
+  void *theEnv,
   struct fact *newFact,
   struct fact *oldFact)
   {
@@ -766,14 +757,14 @@ globle VOID changeCFofExistingFact(
         oldFact->factCF = newFact->factCF;
            
         /* fact has changed - set flag to say so */
-        SetFactListChanged(TRUE);
+        EnvSetFactListChanged(theEnv,TRUE);
 
 #if DEBUGGING_FUNCTIONS
         if (oldFact->whichDeftemplate->watch)
           {
-            PrintRouter(WTRACE,"~CF ");
-            PrintFactWithIdentifier(WTRACE,oldFact);
-            PrintRouter(WTRACE,"\n");
+            EnvPrintRouter(theEnv,WTRACE,"~CF ");
+            PrintFactWithIdentifier(theEnv,WTRACE,oldFact);
+            EnvPrintRouter(theEnv,WTRACE,"\n");
           }
 #endif
       }
@@ -815,36 +806,38 @@ globle VOID changeCFofNewVsExistingFact(
     
  *******************************************************************/
 
-globle VOID   cfInformationError(
-
+globle void cfInformationError(
+  void *theEnv,
   char *name)
 {
-   PrintErrorID("Certainty Factors ",901,TRUE);
-   PrintRouter(WERROR,"This error occurred while evaluating a Certainty Factor");
+   PrintErrorID(theEnv,"Certainty Factors ",901,TRUE);
+   EnvPrintRouter(theEnv,WERROR,"This error occurred while evaluating a Certainty Factor");
    if (name != NULL)
      {
-      PrintRouter(WERROR," for rule ");
-      PrintRouter(WERROR,name);
+      EnvPrintRouter(theEnv,WERROR," for rule ");
+      EnvPrintRouter(theEnv,WERROR,name);
      }
-   PrintRouter(WERROR,".\n");
+   EnvPrintRouter(theEnv,WERROR,".\n");
 }
 
 
-globle VOID   cfRangeError()
+globle VOID   cfRangeError(
+  void *theEnv)
 
 {
-   PrintErrorID("Certainty Factors ",902,TRUE);
-   PrintRouter(WERROR,"Expected Value in Range 0.0 to 1.0");
-   PrintRouter(WERROR,".\n");
+   PrintErrorID(theEnv,"Certainty Factors ",902,TRUE);
+   EnvPrintRouter(theEnv,WERROR,"Expected Value in Range 0.0 to 1.0");
+   EnvPrintRouter(theEnv,WERROR,".\n");
 }
 
 
-globle VOID   cfNonNumberError()
+globle VOID   cfNonNumberError(
+  void *theEnv)
 
 {
-   PrintErrorID("Certainty Factors ",903,TRUE);
-   PrintRouter(WERROR,"Expected Integer or Float Value");
-   PrintRouter(WERROR,".\n");
+   PrintErrorID(theEnv,"Certainty Factors ",903,TRUE);
+   EnvPrintRouter(theEnv,WERROR,"Expected Integer or Float Value");
+   EnvPrintRouter(theEnv,WERROR,".\n");
 }
 
 

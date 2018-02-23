@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/rulelhs.c,v 1.3 2001/08/11 21:07:49 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.22  06/15/04            */
    /*                                                     */
    /*             DEFRULE LHS PARSING MODULE              */
    /*******************************************************/
@@ -31,56 +29,44 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/rulelhs.c,v 1.3 2001/08/11
 #define _STDIO_INCLUDED_
 #include <string.h>
 
-#include "constant.h"
-#include "symbol.h"
-#include "memalloc.h"
-#include "exprnpsr.h"
+#include "agenda.h"
 #include "argacces.h"
-#include "scanner.h"
+#include "constant.h"
+#include "constrct.h"
+#include "constrnt.h"
+#include "cstrnchk.h"
+#include "envrnmnt.h"
+#include "exprnpsr.h"
+#include "memalloc.h"
+#include "pattern.h"
 #include "reorder.h"
 #include "router.h"
 #include "ruledef.h"
-#include "constrct.h"
-#include "cstrnchk.h"
-#include "constrnt.h"
-#include "pattern.h"
-#include "agenda.h"
-#include "rulelhs.h"
+#include "scanner.h"
+#include "symbol.h"
 
 #if CERTAINTY_FACTORS   /* added 03-12-96 */
 #include "cfdef.h"
 #endif
 
-   static struct lhsParseNode    *RuleBodyParse(char *,struct token *,char *,int *);
-   static void                    DeclarationParse(char *,char *,int *);
-   static struct lhsParseNode    *LHSPattern(char *,int,char *,int *,int,
+#include "rulelhs.h"
+
+/***************************************/
+/* LOCAL INTERNAL FUNCTION DEFINITIONS */
+/***************************************/
+
+   static struct lhsParseNode    *RuleBodyParse(void *,char *,struct token *,char *,int *);
+   static void                    DeclarationParse(void *,char *,char *,int *);
+   static struct lhsParseNode    *LHSPattern(void *,char *,int,char *,int *,int,
                                              struct token *,char *);
-   static struct lhsParseNode    *ConnectedPatternParse(char *,struct token *,int *);
-   static struct lhsParseNode    *GroupPatterns(char *,int,char *,int *);
-   static struct lhsParseNode    *TestPattern(char *,int *);
-   static struct lhsParseNode    *AssignmentParse(char *,SYMBOL_HN *,int *);
+   static struct lhsParseNode    *ConnectedPatternParse(void *,char *,struct token *,int *);
+   static struct lhsParseNode    *GroupPatterns(void *,char *,int,char *,int *);
+   static struct lhsParseNode    *TestPattern(void *,char *,int *);
+   static struct lhsParseNode    *AssignmentParse(void *,char *,SYMBOL_HN *,int *);
    static void                    TagLHSLogicalNodes(struct lhsParseNode *);
-   static struct lhsParseNode    *SimplePatternParse(char *,struct token *,int *);
-   static void                    ParseSalience(char *,char *,int *);
-   static void                    ParseAutoFocus(char *,int *);
-
-/****************************/
-/* LOCAL INTERNAL VARIABLES */
-/****************************/
-
-   static int                    WithinNotCE = FALSE;
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle int                GlobalSalience;
-   globle int                GlobalAutoFocus;
-   globle struct expr       *SalienceExpression = NULL;
-#if CERTAINTY_FACTORS     /* added 03-12-96 */
-   globle double             GlobalCF;
-   globle struct expr       *CFExpression = NULL;
-#endif
+   static struct lhsParseNode    *SimplePatternParse(void *,char *,struct token *,int *);
+   static void                    ParseSalience(void *,char *,char *,int *);
+   static void                    ParseAutoFocus(void *,char *,int *);
 
 /*******************************************************************/
 /* ParseRuleLHS: Coordinates all the actions necessary for parsing */
@@ -88,6 +74,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/rulelhs.c,v 1.3 2001/08/11
 /*   conditional elements to conform with the KB Rete topology.    */
 /*******************************************************************/
 globle struct lhsParseNode *ParseRuleLHS(
+  void *theEnv,
   char *readSource,
   struct token *theToken,
   char *ruleName)
@@ -100,25 +87,25 @@ globle struct lhsParseNode *ParseRuleLHS(
    /* Initialize salience parsing variables. */
    /*========================================*/
 
-   GlobalSalience = 0;
-   GlobalAutoFocus = FALSE;
-   SalienceExpression = NULL;
+   PatternData(theEnv)->GlobalSalience = 0;
+   PatternData(theEnv)->GlobalAutoFocus = FALSE;
+   PatternData(theEnv)->SalienceExpression = NULL;
 #if CERTAINTY_FACTORS    /* added 03-12-96 */
-   GlobalCF = 1.0;
-   CFExpression = NULL;
+   PatternData(theEnv)->GlobalCF = 1.0;
+   PatternData(theEnv)->CFExpression = NULL;
 #endif
 
    /*============================*/
    /* Set the indentation depth. */
    /*============================*/
 
-   SetIndentDepth(3);
+   SetIndentDepth(theEnv,3);
 
    /*=====================================================*/
    /* Get the raw representation for the LHS of the rule. */
    /*=====================================================*/
 
-   theLHS = RuleBodyParse(readSource,theToken,ruleName,&error);
+   theLHS = RuleBodyParse(theEnv,readSource,theToken,ruleName,&error);
 
    if (error) return(NULL);
 
@@ -128,7 +115,7 @@ globle struct lhsParseNode *ParseRuleLHS(
    /* or more AND CEs.                                   */
    /*====================================================*/
 
-   theLHS = ReorderPatterns(theLHS,&result);
+   theLHS = ReorderPatterns(theEnv,theLHS,&result);
 
    /*================================*/
    /* Return the LHS representation. */
@@ -147,6 +134,7 @@ globle struct lhsParseNode *ParseRuleLHS(
 /*                 =>                                    */
 /*********************************************************/
 static struct lhsParseNode *RuleBodyParse(
+  void *theEnv,
   char *readSource,
   struct token *theToken,
   char *ruleName,
@@ -174,25 +162,25 @@ static struct lhsParseNode *RuleBodyParse(
    /* (the declare statement is allowed).       */
    /*===========================================*/
 
-   theNode = LHSPattern(readSource,SYMBOL,"=>",error,TRUE,theToken,ruleName);
+   theNode = LHSPattern(theEnv,readSource,SYMBOL,"=>",error,TRUE,theToken,ruleName);
 
    if (*error == TRUE)
      {
-      ReturnLHSParseNodes(theNode);
+      ReturnLHSParseNodes(theEnv,theNode);
       return(NULL);
      }
 
-   PPCRAndIndent();
+   PPCRAndIndent(theEnv);
 
    /*======================================*/
    /* Parse the other patterns in the LHS. */
    /*======================================*/
 
-   otherNodes = GroupPatterns(readSource,SYMBOL,"=>",error);
+   otherNodes = GroupPatterns(theEnv,readSource,SYMBOL,"=>",error);
 
    if (*error == TRUE)
      {
-      ReturnLHSParseNodes(theNode);
+      ReturnLHSParseNodes(theEnv,theNode);
       return(NULL);
      }
 
@@ -222,6 +210,7 @@ static struct lhsParseNode *RuleBodyParse(
 /* <rule-property> ::= (auto-focus TRUE | FALSE)        */
 /********************************************************/
 static void DeclarationParse(
+  void *theEnv,
   char *readSource,
   char *ruleName,
   int *error)
@@ -238,12 +227,12 @@ static void DeclarationParse(
    /* Next token must be a '('. */
    /*===========================*/
 
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 
-   GetToken(readSource,&theToken);
+   GetToken(theEnv,readSource,&theToken);
    if (theToken.type != LPAREN)
      {
-      SyntaxErrorMessage("declare statement");
+      SyntaxErrorMessage(theEnv,"declare statement");
       *error = TRUE;
       return;
      }
@@ -258,18 +247,17 @@ static void DeclarationParse(
       /*=============================================*/
       /* The name of a rule property must be symbol. */
       /*=============================================*/
-
+      
 #if CERTAINTY_FACTORS  /* added 03-12-96 */
      /*==============================================*/
      /* OR if certainty factors allowed then "CF     */
      /*==============================================*/
 #endif
 
-
-      GetToken(readSource,&theToken);
+      GetToken(theEnv,readSource,&theToken);
       if (theToken.type != SYMBOL)
         {
-         SyntaxErrorMessage("declare statement");
+         SyntaxErrorMessage(theEnv,"declare statement");
          *error = TRUE;
         }
 
@@ -281,12 +269,12 @@ static void DeclarationParse(
         {
          if (salienceParsed)
            {
-            AlreadyParsedErrorMessage("salience declaration",NULL);
+            AlreadyParsedErrorMessage(theEnv,"salience declaration",NULL);
             *error = TRUE;
            }
          else
            {
-            ParseSalience(readSource,ruleName,error);
+            ParseSalience(theEnv,readSource,ruleName,error);
             salienceParsed = TRUE;
            }
         }
@@ -301,28 +289,28 @@ static void DeclarationParse(
         {
          if (autoFocusParsed)
            {
-            AlreadyParsedErrorMessage("auto-focus declaration",NULL);
+            AlreadyParsedErrorMessage(theEnv,"auto-focus declaration",NULL);
             *error = TRUE;
            }
          else
            {
-            ParseAutoFocus(readSource,error);
+            ParseAutoFocus(theEnv,readSource,error);
             autoFocusParsed = TRUE;
            }
          }
-
+         
 #if CERTAINTY_FACTORS    /* added 03-12-96 */
       else if ((strcmp(ValueToString(theToken.value),"cf") == 0) ||
                    (strcmp(ValueToString(theToken.value),"CF") == 0))
         {
          if (CFParsed)
            {
-            AlreadyParsedErrorMessage("certainty factor declaration",NULL);
+            AlreadyParsedErrorMessage(theEnv,"certainty factor declaration",NULL);
             *error = TRUE;
            }
          else
            {
-            CFExpression = ParseDeclareUncertainty(readSource,ruleName,error,&GlobalCF);
+            PatternData(theEnv)->CFExpression = ParseDeclareUncertainty(theEnv,readSource,ruleName,error,&PatternData(theEnv)->GlobalCF);
             CFParsed = TRUE;
            }
          }
@@ -335,7 +323,7 @@ static void DeclarationParse(
 
        else
         {
-         SyntaxErrorMessage("declare statement");
+         SyntaxErrorMessage(theEnv,"declare statement");
          *error = TRUE;
         }
 
@@ -345,11 +333,11 @@ static void DeclarationParse(
 
       if (*error)
         {
-         ReturnExpression(SalienceExpression);
-         SalienceExpression = NULL;
+         ReturnExpression(theEnv,PatternData(theEnv)->SalienceExpression);
+         PatternData(theEnv)->SalienceExpression = NULL;
 #if CERTAINTY_FACTORS    /* added 03-12-96 */
-         ReturnExpression(CFExpression);
-         CFExpression = NULL;
+         ReturnExpression(theEnv,PatternData(theEnv)->CFExpression);
+         PatternData(theEnv)->CFExpression = NULL;
 #endif
          return;
         }
@@ -359,19 +347,19 @@ static void DeclarationParse(
       /* properties are closed with a ')'.     */
       /*=======================================*/
 
-      GetToken(readSource,&theToken);
+      GetToken(theEnv,readSource,&theToken);
       if (theToken.type != RPAREN)
         {
-         PPBackup();
-         SavePPBuffer(" ");
-         SavePPBuffer(theToken.printForm);
-         ReturnExpression(SalienceExpression);
-         SalienceExpression = NULL;
+         PPBackup(theEnv);
+         SavePPBuffer(theEnv," ");
+         SavePPBuffer(theEnv,theToken.printForm);
+         ReturnExpression(theEnv,PatternData(theEnv)->SalienceExpression);
+         PatternData(theEnv)->SalienceExpression = NULL;
 #if CERTAINTY_FACTORS    /* added 03-12-96 */
-         ReturnExpression(CFExpression);
-         CFExpression = NULL;
+         ReturnExpression(theEnv,PatternData(theEnv)->CFExpression);
+         PatternData(theEnv)->CFExpression = NULL;
 #endif
-         SyntaxErrorMessage("declare statement");
+         SyntaxErrorMessage(theEnv,"declare statement");
          *error = TRUE;
          return;
         }
@@ -380,24 +368,24 @@ static void DeclarationParse(
       /* The declare statement is closed with a ')'. */
       /*=============================================*/
 
-      GetToken(readSource,&theToken);
+      GetToken(theEnv,readSource,&theToken);
       if (theToken.type == RPAREN) notDone = FALSE;
       else if (theToken.type != LPAREN)
         {
-         ReturnExpression(SalienceExpression);
-         SalienceExpression = NULL;
+         ReturnExpression(theEnv,PatternData(theEnv)->SalienceExpression);
+         PatternData(theEnv)->SalienceExpression = NULL;
 #if CERTAINTY_FACTORS    /* added 03-12-96 */
-         ReturnExpression(CFExpression);
-         CFExpression = NULL;
+         ReturnExpression(theEnv,PatternData(theEnv)->CFExpression);
+         PatternData(theEnv)->CFExpression = NULL;
 #endif
-         SyntaxErrorMessage("declare statement");
+         SyntaxErrorMessage(theEnv,"declare statement");
          *error = TRUE;
          return;
         }
       else
         {
-         PPBackup();
-         SavePPBuffer(" (");
+         PPBackup(theEnv);
+         SavePPBuffer(theEnv," (");
         }
      }
 
@@ -406,13 +394,13 @@ static void DeclarationParse(
    /* the global variable SalienceExpression.  */
    /*==========================================*/
 
-   packPtr = PackExpression(SalienceExpression);
-   ReturnExpression(SalienceExpression);
-   SalienceExpression = packPtr;
+   packPtr = PackExpression(theEnv,PatternData(theEnv)->SalienceExpression);
+   ReturnExpression(theEnv,PatternData(theEnv)->SalienceExpression);
+   PatternData(theEnv)->SalienceExpression = packPtr;
 #if CERTAINTY_FACTORS    /* added 03-12-96 */
-   packPtr = PackExpression(CFExpression);
-   ReturnExpression(CFExpression);
-   CFExpression = packPtr;
+   packPtr = PackExpression(theEnv,PatternData(theEnv)->CFExpression);
+   ReturnExpression(theEnv,PatternData(theEnv)->CFExpression);
+   PatternData(theEnv)->CFExpression = packPtr;
 #endif
    return;
   }
@@ -422,6 +410,7 @@ static void DeclarationParse(
 /*   declaration once the salience keyword has been parsed. */
 /************************************************************/
 static void ParseSalience(
+  void *theEnv,
   char *readSource,
   char *ruleName,
   int *error)
@@ -433,10 +422,10 @@ static void ParseSalience(
    /* Get the salience expression. */
    /*==============================*/
 
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 
-   SalienceExpression = ParseAtomOrExpression(readSource,NULL);
-   if (SalienceExpression == NULL)
+   PatternData(theEnv)->SalienceExpression = ParseAtomOrExpression(theEnv,readSource,NULL);
+   if (PatternData(theEnv)->SalienceExpression == NULL)
      {
       *error = TRUE;
       return;
@@ -446,17 +435,17 @@ static void ParseSalience(
    /* Evaluate the expression and determine if it is an integer. */
    /*============================================================*/
 
-   SetEvaluationError(FALSE);
-   if (EvaluateExpression(SalienceExpression,&salienceValue))
+   SetEvaluationError(theEnv,FALSE);
+   if (EvaluateExpression(theEnv,PatternData(theEnv)->SalienceExpression,&salienceValue))
      {
-      SalienceInformationError("defrule",ruleName);
+      SalienceInformationError(theEnv,"defrule",ruleName);
       *error = TRUE;
       return;
      }
 
    if (salienceValue.type != INTEGER)
      {
-      SalienceNonIntegerError();
+      SalienceNonIntegerError(theEnv);
       *error = TRUE;
       return;
      }
@@ -469,7 +458,7 @@ static void ParseSalience(
 
    if ((salience > MAX_DEFRULE_SALIENCE) || (salience < MIN_DEFRULE_SALIENCE))
      {
-      SalienceRangeError(MIN_DEFRULE_SALIENCE,MAX_DEFRULE_SALIENCE);
+      SalienceRangeError(theEnv,MIN_DEFRULE_SALIENCE,MAX_DEFRULE_SALIENCE);
       *error = TRUE;
       return;
      }
@@ -479,13 +468,13 @@ static void ParseSalience(
    /* don't bother storing the expression.     */
    /*==========================================*/
 
-   if (SalienceExpression->type == INTEGER)
+   if (PatternData(theEnv)->SalienceExpression->type == INTEGER)
      {
-      ReturnExpression(SalienceExpression);
-      SalienceExpression = NULL;
+      ReturnExpression(theEnv,PatternData(theEnv)->SalienceExpression);
+      PatternData(theEnv)->SalienceExpression = NULL;
      }
 
-   GlobalSalience = salience;
+   PatternData(theEnv)->GlobalSalience = salience;
   }
 
 /**************************************************************/
@@ -493,6 +482,7 @@ static void ParseSalience(
 /*   declaration once the auto-focus keyword has been parsed. */
 /**************************************************************/
 static void ParseAutoFocus(
+  void *theEnv,
   char *readSource,
   int *error)
   {
@@ -502,12 +492,12 @@ static void ParseAutoFocus(
    /* The auto-focus value must be a symbol. */
    /*========================================*/
 
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 
-   GetToken(readSource,&theToken);
+   GetToken(theEnv,readSource,&theToken);
    if (theToken.type != SYMBOL)
      {
-      SyntaxErrorMessage("auto-focus statement");
+      SyntaxErrorMessage(theEnv,"auto-focus statement");
       *error = TRUE;
       return;
      }
@@ -519,12 +509,12 @@ static void ParseAutoFocus(
    /*====================================================*/
 
    if (strcmp(ValueToString(theToken.value),"TRUE") == 0)
-     { GlobalAutoFocus = TRUE; }
+     { PatternData(theEnv)->GlobalAutoFocus = TRUE; }
    else if (strcmp(ValueToString(theToken.value),"FALSE") == 0)
-     { GlobalAutoFocus = FALSE; }
+     { PatternData(theEnv)->GlobalAutoFocus = FALSE; }
    else
      {
-      SyntaxErrorMessage("auto-focus statement");
+      SyntaxErrorMessage(theEnv,"auto-focus statement");
       *error = TRUE;
      }
   }
@@ -542,6 +532,7 @@ static void ParseAutoFocus(
 /*                           <forall-CE> | <exists-CE>           */
 /*****************************************************************/
 static struct lhsParseNode *LHSPattern(
+  void *theEnv,
   char *readSource,
   int terminator,
   char *terminatorString,
@@ -558,7 +549,7 @@ static struct lhsParseNode *LHSPattern(
    /* This should only occur for the first pattern in a rule. */
    /*=========================================================*/
 
-   if (firstToken == NULL) GetToken(readSource,&theToken);
+   if (firstToken == NULL) GetToken(theEnv,readSource,&theToken);
    else CopyToken(&theToken,firstToken);
 
    /*=====================================================*/
@@ -571,10 +562,10 @@ static struct lhsParseNode *LHSPattern(
       /* The first field of a pattern must be a symbol. */
       /*================================================*/
 
-      GetToken(readSource,&theToken);
+      GetToken(theEnv,readSource,&theToken);
       if (theToken.type != SYMBOL)
         {
-         SyntaxErrorMessage("the first field of a pattern");
+         SyntaxErrorMessage(theEnv,"the first field of a pattern");
          *error = TRUE;
          return(NULL);
         }
@@ -587,8 +578,8 @@ static struct lhsParseNode *LHSPattern(
       if (allowDeclaration &&
           (strcmp(ValueToString(theToken.value),"declare") == 0))
         {
-         if (ruleName == NULL) SystemError("RULELHS",1);
-         DeclarationParse(readSource,ruleName,error);
+         if (ruleName == NULL) SystemError(theEnv,"RULELHS",1);
+         DeclarationParse(theEnv,readSource,ruleName,error);
          theNode = NULL;
         }
 
@@ -597,7 +588,7 @@ static struct lhsParseNode *LHSPattern(
       /*==================================*/
 
       else if (strcmp(ValueToString(theToken.value),"test") == 0)
-        { theNode = TestPattern(readSource,error); }
+        { theNode = TestPattern(theEnv,readSource,error); }
 
       /*============================================*/
       /* Otherwise check for an *and*, *or*, *not*, */
@@ -610,14 +601,14 @@ static struct lhsParseNode *LHSPattern(
                (strcmp(ValueToString(theToken.value),"exists") == 0) ||
                (strcmp(ValueToString(theToken.value),"forall") == 0) ||
                (strcmp(ValueToString(theToken.value),"or") == 0))
-        { theNode = ConnectedPatternParse(readSource,&theToken,error); }
+        { theNode = ConnectedPatternParse(theEnv,readSource,&theToken,error); }
 
       /*=================================*/
       /* Otherwise parse a *pattern* CE. */
       /*=================================*/
 
       else
-        { theNode = SimplePatternParse(readSource,&theToken,error); }
+        { theNode = SimplePatternParse(theEnv,readSource,&theToken,error); }
      }
 
    /*=======================================*/
@@ -625,7 +616,7 @@ static struct lhsParseNode *LHSPattern(
    /*=======================================*/
 
    else if (theToken.type == SF_VARIABLE)
-     { theNode = AssignmentParse(readSource,(SYMBOL_HN *) theToken.value,error); }
+     { theNode = AssignmentParse(theEnv,readSource,(SYMBOL_HN *) theToken.value,error); }
 
    /*=================================================*/
    /* Check for the group terminator (either a "=>"   */
@@ -643,7 +634,7 @@ static struct lhsParseNode *LHSPattern(
 
    else
      {
-      SyntaxErrorMessage("defrule");
+      SyntaxErrorMessage(theEnv,"defrule");
       *error = TRUE;
       return(NULL);
      }
@@ -655,7 +646,7 @@ static struct lhsParseNode *LHSPattern(
 
    if (*error == TRUE)
      {
-      ReturnLHSParseNodes(theNode);
+      ReturnLHSParseNodes(theEnv,theNode);
       return(NULL);
      }
 
@@ -690,13 +681,14 @@ static struct lhsParseNode *LHSPattern(
 /*                           <conditional-element>+)                 */
 /*********************************************************************/
 static struct lhsParseNode *ConnectedPatternParse(
+  void *theEnv,
   char *readSource,
   struct token *theToken,
   int *error)
   {
-   int connectorValue = 0;
+   unsigned short connectorValue = 0;
    struct lhsParseNode *theNode, *tempNode, *theGroup;
-   char *errorCE;
+   char *errorCE = NULL;
    int logical = FALSE;
    int tempValue;
 
@@ -704,53 +696,53 @@ static struct lhsParseNode *ConnectedPatternParse(
    /* Use appropriate spacing for pretty printing of the rule. */
    /*==========================================================*/
 
-   IncrementIndentDepth(5);
+   IncrementIndentDepth(theEnv,5);
    if (strcmp(ValueToString(theToken->value),"or") == 0)
      {
       connectorValue = OR_CE;
       errorCE = "the or conditional element";
-      SavePPBuffer("  ");
+      SavePPBuffer(theEnv,"  ");
      }
    else if (strcmp(ValueToString(theToken->value),"and") == 0)
      {
       connectorValue = AND_CE;
       errorCE = "the and conditional element";
-      SavePPBuffer(" ");
+      SavePPBuffer(theEnv," ");
      }
    else if (strcmp(ValueToString(theToken->value),"not") == 0)
      {
       connectorValue = NOT_CE;
       errorCE = "the not conditional element";
-      SavePPBuffer(" ");
+      SavePPBuffer(theEnv," ");
      }
    else if (strcmp(ValueToString(theToken->value),"exists") == 0)
      {
       connectorValue = EXISTS_CE;
       errorCE = "the exists conditional element";
-      PPCRAndIndent();
+      PPCRAndIndent(theEnv);
      }
    else if (strcmp(ValueToString(theToken->value),"forall") == 0)
      {
       connectorValue = FORALL_CE;
       errorCE = "the forall conditional element";
-      PPCRAndIndent();
+      PPCRAndIndent(theEnv);
      }
    else if (strcmp(ValueToString(theToken->value),"logical") == 0)
      {
       connectorValue = AND_CE;
       errorCE = "the logical conditional element";
       logical = TRUE;
-      PPCRAndIndent();
+      PPCRAndIndent(theEnv);
      }
 
    /*=====================================================*/
    /* The logical CE cannot be contained within a not CE. */
    /*=====================================================*/
 
-   if (WithinNotCE && logical)
+   if (PatternData(theEnv)->WithinNotCE && logical)
      {
-      PrintErrorID("RULELHS",1,TRUE);
-      PrintRouter(WERROR,"The logical CE cannot be used within a not/exists/forall CE.\n");
+      PrintErrorID(theEnv,"RULELHS",1,TRUE);
+      EnvPrintRouter(theEnv,WERROR,"The logical CE cannot be used within a not/exists/forall CE.\n");
       *error = TRUE;
       return(NULL);
      }
@@ -760,26 +752,26 @@ static struct lhsParseNode *ConnectedPatternParse(
    /* then check to see if we're entering a new *not* CE. */
    /*=====================================================*/
 
-      tempValue = WithinNotCE;
+      tempValue = PatternData(theEnv)->WithinNotCE;
    if ((connectorValue == NOT_CE) ||
        (connectorValue == EXISTS_CE) ||
        (connectorValue == FORALL_CE))
-     { WithinNotCE = TRUE; }
+     { PatternData(theEnv)->WithinNotCE = TRUE; }
 
    /*===========================================*/
    /* Parse all of the CEs contained with the   */
    /* CE. A ) will terminate the end of the CE. */
    /*===========================================*/
 
-   theGroup = GroupPatterns(readSource,RPAREN,")",error);
+   theGroup = GroupPatterns(theEnv,readSource,RPAREN,")",error);
 
    /*====================================*/
    /* Restore the "with a *not* CE" flag */
    /* and reset the indentation depth.   */
    /*====================================*/
 
-   WithinNotCE = tempValue;
-   DecrementIndentDepth(5);
+   PatternData(theEnv)->WithinNotCE = tempValue;
+   DecrementIndentDepth(theEnv,5);
 
    /*============================================*/
    /* If an error occured while parsing, return. */
@@ -787,7 +779,7 @@ static struct lhsParseNode *ConnectedPatternParse(
 
    if (*error == TRUE)
      {
-      ReturnLHSParseNodes(theGroup);
+      ReturnLHSParseNodes(theEnv,theGroup);
       return(NULL);
      }
 
@@ -804,7 +796,7 @@ static struct lhsParseNode *ConnectedPatternParse(
 
    if (theGroup == NULL)
      {
-      SyntaxErrorMessage(errorCE);
+      SyntaxErrorMessage(theEnv,errorCE);
       *error = TRUE;
       return(NULL);
      }
@@ -815,8 +807,8 @@ static struct lhsParseNode *ConnectedPatternParse(
 
    if ((connectorValue == NOT_CE) && (theGroup->bottom != NULL))
      {
-      SyntaxErrorMessage(errorCE);
-      ReturnLHSParseNodes(theGroup);
+      SyntaxErrorMessage(theEnv,errorCE);
+      ReturnLHSParseNodes(theEnv,theGroup);
       *error = TRUE;
       return(NULL);
      }
@@ -827,8 +819,8 @@ static struct lhsParseNode *ConnectedPatternParse(
 
    if ((connectorValue == FORALL_CE) && (theGroup->bottom == NULL))
      {
-      SyntaxErrorMessage(errorCE);
-      ReturnLHSParseNodes(theGroup);
+      SyntaxErrorMessage(theEnv,errorCE);
+      ReturnLHSParseNodes(theEnv,theGroup);
       *error = TRUE;
       return(NULL);
      }
@@ -848,7 +840,7 @@ static struct lhsParseNode *ConnectedPatternParse(
    /* Create the top most node which connects the CEs together. */
    /*===========================================================*/
 
-   theNode = GetLHSParseNode();
+   theNode = GetLHSParseNode(theEnv);
    theNode->logical = logical;
 
    /*======================================================*/
@@ -871,13 +863,13 @@ static struct lhsParseNode *ConnectedPatternParse(
      {
       theNode->type = NOT_CE;
 
-      theNode->right = GetLHSParseNode();
+      theNode->right = GetLHSParseNode(theEnv);
       theNode->right->type = NOT_CE;
       theNode->right->logical = logical;
 
       if (theGroup->bottom != NULL)
         {
-         theNode->right->right = GetLHSParseNode();
+         theNode->right->right = GetLHSParseNode(theEnv);
          theNode->right->right->type = AND_CE;
          theNode->right->right->logical = logical;
          theNode->right->right->right = theGroup;
@@ -898,14 +890,14 @@ static struct lhsParseNode *ConnectedPatternParse(
       tempNode = theGroup->bottom;
       theGroup->bottom = NULL;
 
-      theNode->right = GetLHSParseNode();
+      theNode->right = GetLHSParseNode(theEnv);
       theNode->right->type = AND_CE;
       theNode->right->logical = logical;
       theNode->right->right = theGroup;
 
       theGroup = tempNode;
 
-      theNode->right->right->bottom = GetLHSParseNode();
+      theNode->right->right->bottom = GetLHSParseNode(theEnv);
       theNode->right->right->bottom->type = NOT_CE;
       theNode->right->right->bottom->logical = logical;
 
@@ -915,7 +907,7 @@ static struct lhsParseNode *ConnectedPatternParse(
         { tempNode->right = theGroup; }
       else
         {
-         tempNode->right = GetLHSParseNode();
+         tempNode->right = GetLHSParseNode(theEnv);
          tempNode->right->type = AND_CE;
          tempNode->right->logical = logical;
          tempNode->right->right = theGroup;
@@ -934,6 +926,7 @@ static struct lhsParseNode *ConnectedPatternParse(
 /*   conditional elements together.            */
 /***********************************************/
 static struct lhsParseNode *GroupPatterns(
+  void *theEnv,
   char *readSource,
   int terminator,
   char *terminatorString,
@@ -949,7 +942,7 @@ static struct lhsParseNode *GroupPatterns(
       /* Get the next CE. */
       /*==================*/
 
-      newNode = LHSPattern(readSource,terminator,terminatorString,
+      newNode = LHSPattern(theEnv,readSource,terminator,terminatorString,
                            error,FALSE,NULL,NULL);
 
       /*=======================================================*/
@@ -959,7 +952,7 @@ static struct lhsParseNode *GroupPatterns(
 
       if (*error)
         {
-         ReturnLHSParseNodes(theNode);
+         ReturnLHSParseNodes(theEnv,theNode);
          return(NULL);
         }
 
@@ -971,14 +964,14 @@ static struct lhsParseNode *GroupPatterns(
 
       if (newNode == NULL)
         {
-         PPBackup();
-         PPBackup();
+         PPBackup(theEnv);
+         PPBackup(theEnv);
          if (terminator == RPAREN)
-           { SavePPBuffer(terminatorString); }
+           { SavePPBuffer(theEnv,terminatorString); }
          else
            {
-            PPCRAndIndent();
-            SavePPBuffer(terminatorString);
+            PPCRAndIndent(theEnv);
+            SavePPBuffer(theEnv,terminatorString);
            }
 
          return(theNode);
@@ -1000,7 +993,7 @@ static struct lhsParseNode *GroupPatterns(
       /* Fix the pretty print representation. */
       /*======================================*/
 
-      PPCRAndIndent();
+      PPCRAndIndent(theEnv);
      }
   }
 
@@ -1010,6 +1003,7 @@ static struct lhsParseNode *GroupPatterns(
 /* <test-CE> ::= (test <function-call>)                       */
 /**************************************************************/
 static struct lhsParseNode *TestPattern(
+  void *theEnv,
   char *readSource,
   int *error)
   {
@@ -1021,17 +1015,17 @@ static struct lhsParseNode *TestPattern(
    /* Create the data specification for the test CE. */
    /*================================================*/
 
-   SavePPBuffer(" ");
-   theNode = GetLHSParseNode();
+   SavePPBuffer(theEnv," ");
+   theNode = GetLHSParseNode(theEnv);
    theNode->type = TEST_CE;
-   theExpression = Function0Parse(readSource);
-   theNode->expression = ExpressionToLHSParseNodes(theExpression);
-   ReturnExpression(theExpression);
+   theExpression = Function0Parse(theEnv,readSource);
+   theNode->expression = ExpressionToLHSParseNodes(theEnv,theExpression);
+   ReturnExpression(theEnv,theExpression);
 
    if (theNode->expression == NULL)
      {
       *error = TRUE;
-      ReturnLHSParseNodes(theNode);
+      ReturnLHSParseNodes(theEnv,theNode);
       return(NULL);
      }
 
@@ -1039,12 +1033,12 @@ static struct lhsParseNode *TestPattern(
    /* Check for the closing right parenthesis of the test CE. */
    /*=========================================================*/
 
-   GetToken(readSource,&theToken);
+   GetToken(theEnv,readSource,&theToken);
    if (theToken.type != RPAREN)
      {
-      SyntaxErrorMessage("test conditional element");
+      SyntaxErrorMessage(theEnv,"test conditional element");
       *error = TRUE;
-      ReturnLHSParseNodes(theNode);
+      ReturnLHSParseNodes(theEnv,theNode);
       return(NULL);
      }
 
@@ -1062,6 +1056,7 @@ static struct lhsParseNode *TestPattern(
 /* <assigned-pattern-CE> ::= ?<variable-symbol> <- <pattern-CE> */
 /****************************************************************/
 static struct lhsParseNode *AssignmentParse(
+  void *theEnv,
   char *readSource,
   SYMBOL_HN *factAddress,
   int *error)
@@ -1073,10 +1068,10 @@ static struct lhsParseNode *AssignmentParse(
    /* Patterns cannot be bound if they are with a not CE. */
    /*=====================================================*/
 
-   if (WithinNotCE)
+   if (PatternData(theEnv)->WithinNotCE)
      {
-      PrintErrorID("RULELHS",2,TRUE);
-      PrintRouter(WERROR,"A pattern CE cannot be bound to a pattern-address within a not CE\n");
+      PrintErrorID(theEnv,"RULELHS",2,TRUE);
+      EnvPrintRouter(theEnv,WERROR,"A pattern CE cannot be bound to a pattern-address within a not CE\n");
       *error = TRUE;
       return(NULL);
      }
@@ -1085,28 +1080,28 @@ static struct lhsParseNode *AssignmentParse(
    /* Check for binder token, "<-", after variable. */
    /*===============================================*/
 
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 
-   GetToken(readSource,&theToken);
+   GetToken(theEnv,readSource,&theToken);
 
    if ((theToken.type == SYMBOL) ? (strcmp(ValueToString(theToken.value),"<-") != 0) :
                                    TRUE)
      {
-      SyntaxErrorMessage("binding patterns");
+      SyntaxErrorMessage(theEnv,"binding patterns");
       *error = TRUE;
       return(NULL);
      }
 
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 
    /*================================================*/
    /* Check for opening left parenthesis of pattern. */
    /*================================================*/
 
-   GetToken(readSource,&theToken);
+   GetToken(theEnv,readSource,&theToken);
    if (theToken.type != LPAREN)
      {
-      SyntaxErrorMessage("binding patterns");
+      SyntaxErrorMessage(theEnv,"binding patterns");
       *error = TRUE;
       return(NULL);
      }
@@ -1115,13 +1110,13 @@ static struct lhsParseNode *AssignmentParse(
    /* Parse the pattern and return the data specification. */
    /*======================================================*/
 
-   GetToken(readSource,&theToken);
+   GetToken(theEnv,readSource,&theToken);
 
-   theNode = SimplePatternParse(readSource,&theToken,error);
+   theNode = SimplePatternParse(theEnv,readSource,&theToken,error);
 
    if (*error == TRUE)
      {
-      ReturnLHSParseNodes(theNode);
+      ReturnLHSParseNodes(theEnv,theNode);
       return(NULL);
      }
 
@@ -1162,6 +1157,7 @@ static void TagLHSLogicalNodes(
 /*                  <template-pattern-CE>                  */
 /***********************************************************/
 static struct lhsParseNode *SimplePatternParse(
+  void *theEnv,
   char *readSource,
   struct token *theToken,
   int *error)
@@ -1177,14 +1173,14 @@ static struct lhsParseNode *SimplePatternParse(
 
    if (theToken->type != SYMBOL)
      {
-      SyntaxErrorMessage("the first field of a pattern");
+      SyntaxErrorMessage(theEnv,"the first field of a pattern");
       *error = TRUE;
       return(NULL);
      }
    else if ((strcmp(ValueToString(theToken->value),"=") == 0) ||
             (strcmp(ValueToString(theToken->value),":") == 0))
      {
-      SyntaxErrorMessage("the field field of a pattern");
+      SyntaxErrorMessage(theEnv,"the field field of a pattern");
       *error = TRUE;
       return(NULL);
      }
@@ -1193,7 +1189,7 @@ static struct lhsParseNode *SimplePatternParse(
    /* Construct the topmost node of the pattern CE. */
    /*===============================================*/
 
-   theNode = GetLHSParseNode();
+   theNode = GetLHSParseNode(theEnv);
    theNode->type = PATTERN_CE;
    theNode->negated = FALSE;
 
@@ -1201,18 +1197,18 @@ static struct lhsParseNode *SimplePatternParse(
    /* Search for a pattern parser that claims the pattern. */
    /*======================================================*/
 
-   for (tempParser = ListOfPatternParsers;
+   for (tempParser = PatternData(theEnv)->ListOfPatternParsers;
         tempParser != NULL;
         tempParser = tempParser->next)
      {
       if ((*tempParser->recognizeFunction)((SYMBOL_HN *) theToken->value))
         {
          theNode->patternType = tempParser;
-         theNode->right = (*tempParser->parseFunction)(readSource,theToken);
+         theNode->right = (*tempParser->parseFunction)(theEnv,readSource,theToken);
          if (theNode->right == NULL)
            {
             *error = TRUE;
-            ReturnLHSParseNodes(theNode);
+            ReturnLHSParseNodes(theEnv,theNode);
             return(NULL);
            }
 
@@ -1227,8 +1223,8 @@ static struct lhsParseNode *SimplePatternParse(
    /*=================================*/
 
    *error = TRUE;
-   SyntaxErrorMessage("the field field of a pattern");
-   ReturnLHSParseNodes(theNode);
+   SyntaxErrorMessage(theEnv,"the field field of a pattern");
+   ReturnLHSParseNodes(theEnv,theNode);
    return(NULL);
   }
 

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/msgpsr.h,v 1.3 2001/08/11 21:07:01 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -41,12 +39,8 @@
 #define LOCALE extern
 #endif
 
-LOCALE int ParseDefmessageHandler(char *);
-LOCALE void CreateGetAndPutHandlers(SLOT_DESC *);
-
-#ifndef _MSGPSR_SOURCE_
-extern SYMBOL_HN *SELF_SYMBOL;
-#endif
+LOCALE int ParseDefmessageHandler(void *,char *);
+LOCALE void CreateGetAndPutHandlers(void *,SLOT_DESC *);
 
 #endif
 

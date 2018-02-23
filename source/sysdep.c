@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /data/CVS/fzclips/src/sysdep.c,v 1.3 2001/08/11 21:08:05 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  05/17/06            */
    /*                                                     */
    /*               SYSTEM DEPENDENT MODULE               */
    /*******************************************************/
@@ -13,15 +11,30 @@ static char rcsid[] = "$Header: /data/CVS/fzclips/src/sysdep.c,v 1.3 2001/08/11 
 /*                                                           */
 /* Principal Programmer(s):                                  */
 /*      Gary D. Riley                                        */
+/*                                                           */
+/* Contributing Programmer(s):                               */
+/*      Brian L. Donnell                                     */
 /*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
 /*                  (Fuzzy reasoning extensions)             */
 /*                  (certainty factors for facts and rules)  */
 /*                  (extensions to run command)              */
 /*                                                           */
-/* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
-/*                                                           */
 /* Revision History:                                         */
+/*      6.23: Modified GenOpen to check the file length      */
+/*            against the system constant FILENAME_MAX.      */
+/*                                                           */
+/*      6.24: Support for run-time programs directly passing */
+/*            the hash tables for initialization.            */
+/*                                                           */
+/*            Made gensystem functional for Xcode.           */ 
+/*                                                           */
+/*            Added BeforeOpenFunction and AfterOpenFunction */
+/*            hooks.                                         */
+/*                                                           */
+/*            Added environment parameter to GenClose.       */
+/*            Added environment parameter to GenOpen.        */
+/*                                                           */
+/*            Updated UNIX_V gentime functionality.          */
 /*                                                           */
 /*************************************************************/
 
@@ -46,21 +59,18 @@ extern int LIB$SPAWN();
 #endif
 
 #if MAC
-#include <Events.h>
-#include <Menus.h>
-#include <Devices.h>
-#include <Types.h>
-#include <Files.h>
-#include <Timer.h>
+
+#if MAC_MCW || MAC_XCD
+#include <Carbon/Carbon.h> 
+#endif
+
 #define kTwoPower32 (4294967296.0)      /* 2^32 */
-#if MAC_MPW || MAC_MCW
+#if MAC_MCW || MAC_XCD
 #include <strings.h>
-#else
-#include <pascal.h>
 #endif
 #endif
 
-#if MAC_MCW
+#if MAC_MCW || IBM_MCW || MAC_XCD 
 #include <unistd.h>
 #endif
 
@@ -82,7 +92,6 @@ extern int LIB$SPAWN();
 #include <fcntl.h>
 #include <limits.h>
 #include <process.h>
-#include <dos.h>
 #endif
 
 #if   IBM_TBC
@@ -90,13 +99,6 @@ extern int LIB$SPAWN();
 #include <io.h>
 #include <fcntl.h>
 #include <limits.h>
-#if WINDOW_INTERFACE
-#undef BOOLEAN
-#undef VOID
-#include <windows.h>
-#undef BOOLEAN
-#define BOOLEAN int
-#endif
 #endif
 
 #if IBM_MCW
@@ -121,21 +123,26 @@ extern int LIB$SPAWN();
 
 #if   UNIX_V
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/times.h>
+#include <unistd.h>
 #include <signal.h>
 #endif
 
 #include "argacces.h"
 #include "bmathfun.h"
+#include "commline.h"
 #include "conscomp.h"
 #include "constrnt.h"
 #include "constrct.h"
 #include "cstrcpsr.h"
 #include "emathfun.h"
+#include "envrnmnt.h"
 #include "filecom.h"
 #include "iofun.h"
 #include "memalloc.h"
 #include "miscfun.h"
+#include "multifld.h"
 #include "multifun.h"
 #include "parsefun.h"
 #include "prccode.h"
@@ -175,19 +182,20 @@ extern int LIB$SPAWN();
 #include "tmpltdef.h"
 #endif
 
-#if FUZZY_DEFTEMPLATES    
+#if FUZZY_DEFTEMPLATES || CERTAINTY_FACTORS 
 #include "cfdef.h"
-#endif
-
-#if CERTAINTY_FACTORS   
 #include "fuzzydef.h"
 #endif
 
 #if OBJECT_SYSTEM
-#include "extobj.h"
+#include "classini.h"
 #endif
 
 #include "moduldef.h"
+
+#if EMACS_EDITOR
+#include "ed.h"
+#endif
 
 #if DEVELOPER
 #include "developr.h"
@@ -202,26 +210,64 @@ extern int LIB$SPAWN();
 #define BATCH_STAR_SWITCH 2
 #define LOAD_SWITCH       3
 
+/********************/
+/* ENVIRONMENT DATA */
+/********************/
+
+#define SYSTEM_DEPENDENT_DATA 58
+
+struct systemDependentData
+  { 
+   void (*RedrawScreenFunction)(void *);
+   void (*PauseEnvFunction)(void *);
+   void (*ContinueEnvFunction)(void *,int);
+#if ! WINDOW_INTERFACE
+#if IBM_TBC
+   void interrupt (*OldCtrlC)(void);
+   void interrupt (*OldBreak)(void);
+#endif
+#if IBM_MSC
+   void (interrupt *OldCtrlC)(void);
+   void (interrupt *OldBreak)(void);
+#endif
+#if   IBM_ICB
+#pragma interrupt (OldCtrlC,OldBreak)
+   void (*OldCtrlC)(void);
+   void (*OldBreak)(void);
+#endif
+#endif
+#if IBM_TBC || IBM_MSC || IBM_ICB /* || IBM_MCW || IBM_ZTC */
+   int BinaryFileHandle;
+#endif
+#if (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) /*  && (! IBM_MCW) && (! IBM_ZTC) */
+   FILE *BinaryFP;
+#endif
+   int (*BeforeOpenFunction)(void *);
+   int (*AfterOpenFunction)(void *);
+  };
+
+#define SystemDependentData(theEnv) ((struct systemDependentData *) GetEnvironmentData(theEnv,SYSTEM_DEPENDENT_DATA))
+
 /****************************************/
 /* GLOBAL EXTERNAL FUNCTION DEFINITIONS */
 /****************************************/
 
    extern void                    UserFunctions(void);
+   extern void                    EnvUserFunctions(void *);
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-#if ! RUN_TIME
-   static void                    SystemFunctionDefinitions(void);
-#endif
-   static void                    InitializeKeywords(void);
-   static void                    InitializeNonportableFeatures(void);
+   static void                    InitializeSystemDependentData(void *);
+   static void                    SystemFunctionDefinitions(void *);
+   static void                    InitializeKeywords(void *);
+   static void                    InitializeNonportableFeatures(void *);
 #if   (VAX_VMS || UNIX_V || UNIX_7 || IBM_GCC) && (! WINDOW_INTERFACE)
    static void                    CatchCtrlC(int);
 #endif
 #if   (IBM_TBC || IBM_MSC) && (! WINDOW_INTERFACE)
-	static void /*interrupt*/          CatchCtrlC(void);
+   static void interrupt          CatchCtrlC(void);
    static void                    RestoreInterruptVectors(void);
 #endif
 #if   IBM_ICB && (! WINDOW_INTERFACE)
@@ -232,128 +278,138 @@ extern int LIB$SPAWN();
 #if   (IBM_ZTC || IBM_SC) && (! WINDOW_INTERFACE)
    static void _cdecl             CatchCtrlC(void);
 #endif
-#if MAC
+#if MAC && (! WINDOW_INTERFACE)
    static void                    CallSystemTask(void);
 #endif
 
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-
-#if ! WINDOW_INTERFACE
-#if IBM_TBC
-	static void /*interrupt*/  (*OldCtrlC)(void);
-	static void /*interrupt*/  (*OldBreak)(void);
-#endif
-#if IBM_MSC
-   static void  /*interrupt*/ (*OldCtrlC)(void);
-   static void  /*interrupt*/ (*OldBreak)(void);
-#endif
-#if   IBM_ICB
-#pragma interrupt (OldCtrlC,OldBreak)
-   void         (*OldCtrlC)(void);
-   void         (*OldBreak)(void);
-#endif
-#endif
-
-#if  MAC
-   static short int        BinaryRefNum;
-#endif
-
-#if IBM_TBC || IBM_MSC || IBM_ICB || IBM_MCW /* || IBM_ZTC */
-   static int              BinaryFileHandle;
-#endif
-
-#if (! MAC) && (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) && (! IBM_MCW) /* && (! IBM_ZTC) */
-   static FILE            *BinaryFP;
-#endif
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-   globle void             (*RedrawScreenFunction)(void) = NULL;
-   globle void             (*PauseEnvFunction)(void) = NULL;
-   globle void             (*ContinueEnvFunction)(int) = NULL;
+/********************************************************/
+/* InitializeSystemDependentData: Allocates environment */
+/*    data for system dependent routines.               */
+/********************************************************/
+static void InitializeSystemDependentData(
+  void *theEnv)
+  {
+   AllocateEnvironmentData(theEnv,SYSTEM_DEPENDENT_DATA,sizeof(struct systemDependentData),NULL);
+  }
 
 /**************************************************/
 /* InitializeEnvironment: Performs initialization */
 /*   of the KB environment.                       */
 /**************************************************/
+#if (! ENVIRONMENT_API_ONLY) && ALLOW_ENVIRONMENT_GLOBALS
 globle void InitializeEnvironment()
-  {
-   static BOOLEAN alreadyInitialized = FALSE;
+   {
+    if (GetCurrentEnvironment() == NULL)
+      { CreateEnvironment(); }
+   }
+#endif
 
+/*****************************************************/
+/* EnvInitializeEnvironment: Performs initialization */
+/*   of the KB environment.                          */
+/*****************************************************/
+globle void EnvInitializeEnvironment(
+  void *vtheEnvironment,
+  struct symbolHashNode **symbolTable,
+  struct floatHashNode **floatTable,
+  struct integerHashNode **integerTable,
+  struct bitMapHashNode **bitmapTable)
+  {
+   struct environmentData *theEnvironment = (struct environmentData *) vtheEnvironment;
+   
    /*================================================*/
    /* Don't allow the initialization to occur twice. */
    /*================================================*/
 
-   if (alreadyInitialized) return;
-
+   if (theEnvironment->initialized) return;
+     
    /*================================*/
    /* Initialize the memory manager. */
    /*================================*/
 
-   InitializeMemory();
+   InitializeMemory(theEnvironment);
 
+   /*===================================================*/
+   /* Initialize environment data for various features. */
+   /*===================================================*/
+   
+   InitializeCommandLineData(theEnvironment);
+#if CONSTRUCT_COMPILER && (! RUN_TIME)
+   InitializeConstructCompilerData(theEnvironment);
+#endif
+   InitializeConstructData(theEnvironment);
+   InitializeEvaluationData(theEnvironment);
+   InitializeExternalFunctionData(theEnvironment);
+   InitializeMultifieldData(theEnvironment);
+   InitializePrettyPrintData(theEnvironment);
+   InitializePrintUtilityData(theEnvironment);
+   InitializeScannerData(theEnvironment);
+   InitializeSystemDependentData(theEnvironment);
+   InitializeUserDataData(theEnvironment);
+   InitializeUtilityData(theEnvironment);
+#if DEBUGGING_FUNCTIONS
+   InitializeWatchData(theEnvironment);
+#endif
+   
    /*===============================================*/
    /* Initialize the hash tables for atomic values. */
    /*===============================================*/
 
-#if ! RUN_TIME
-   InitializeAtomTables();
-#endif
+   InitializeAtomTables(theEnvironment,symbolTable,floatTable,integerTable,bitmapTable);
 
    /*=========================================*/
    /* Initialize file and string I/O routers. */
    /*=========================================*/
 
-   InitializeDefaultRouters();
+   InitializeDefaultRouters(theEnvironment);
 
    /*=========================================================*/
    /* Initialize some system dependent features such as time. */
    /*=========================================================*/
 
-   InitializeNonportableFeatures();
+   InitializeNonportableFeatures(theEnvironment);
 
    /*=============================================*/
    /* Register system and user defined functions. */
    /*=============================================*/
 
-#if ! RUN_TIME
-   SystemFunctionDefinitions();
+   SystemFunctionDefinitions(theEnvironment);
    UserFunctions();
-#endif
+   EnvUserFunctions(theEnvironment);
 
    /*====================================*/
    /* Initialize the constraint manager. */
    /*====================================*/
 
-   InitializeConstraints();
+   InitializeConstraints(theEnvironment);
 
    /*==========================================*/
    /* Initialize the expression hash table and */
    /* pointers to specific functions.          */
    /*==========================================*/
 
-#if ! RUN_TIME
-   InitExpressionData();
-#endif
+   InitExpressionData(theEnvironment);
 
    /*===================================*/
    /* Initialize the construct manager. */
    /*===================================*/
 
 #if ! RUN_TIME
-   InitializeConstructs();
+   InitializeConstructs(theEnvironment);
 #endif
+
+   /*=====================================*/
+   /* Initialize the defmodule construct. */
+   /*=====================================*/
+
+   AllocateDefmoduleGlobals(theEnvironment);
 
    /*===================================*/
    /* Initialize the defrule construct. */
    /*===================================*/
 
 #if DEFRULE_CONSTRUCT
-   InitializeDefrules();
+   InitializeDefrules(theEnvironment);
 #endif
 
    /*====================================*/
@@ -361,7 +417,7 @@ globle void InitializeEnvironment()
    /*====================================*/
 
 #if DEFFACTS_CONSTRUCT
-   InitializeDeffacts();
+   InitializeDeffacts(theEnvironment);
 #endif
 
    /*=====================================================*/
@@ -369,7 +425,7 @@ globle void InitializeEnvironment()
    /*=====================================================*/
 
 #if DEFGENERIC_CONSTRUCT
-   SetupGenericFunctions();
+   SetupGenericFunctions(theEnvironment);
 #endif
 
    /*=======================================*/
@@ -377,7 +433,7 @@ globle void InitializeEnvironment()
    /*=======================================*/
 
 #if DEFFUNCTION_CONSTRUCT
-   SetupDeffunctions();
+   SetupDeffunctions(theEnvironment);
 #endif
 
    /*=====================================*/
@@ -385,7 +441,7 @@ globle void InitializeEnvironment()
    /*=====================================*/
 
 #if DEFGLOBAL_CONSTRUCT
-   InitializeDefglobals();
+   InitializeDefglobals(theEnvironment);
 #endif
 
    /*=======================================*/
@@ -393,7 +449,7 @@ globle void InitializeEnvironment()
    /*=======================================*/
 
 #if DEFTEMPLATE_CONSTRUCT
-   InitializeDeftemplates();
+   InitializeDeftemplates(theEnvironment);
 #endif
 
    /*=====================================*/
@@ -401,16 +457,15 @@ globle void InitializeEnvironment()
 	/*=====================================*/
 
 #if FUZZY_DEFTEMPLATES 
-   InitializeFuzzy();
+   InitializeFuzzy(theEnvironment);
 #endif
-
 
    /*=====================================*/
    /* Initialize the certainty factors. */
    /*=====================================*/
 
 #if CERTAINTY_FACTORS   
-	InitializeCF();
+	InitializeCF(theEnvironment);
 #endif
 
    /*=============================*/
@@ -418,21 +473,21 @@ globle void InitializeEnvironment()
    /*=============================*/
 
 #if OBJECT_SYSTEM
-   SetupObjectSystem();
+   SetupObjectSystem(theEnvironment);
 #endif
 
    /*=====================================*/
    /* Initialize the defmodule construct. */
    /*=====================================*/
 
-   InitializeDefmodules();
+   InitializeDefmodules(theEnvironment);
 
    /*======================================================*/
    /* Register commands and functions for development use. */
    /*======================================================*/
 
 #if DEVELOPER
-   DeveloperCommands();
+   DeveloperCommands(theEnvironment);
 #endif
 
    /*=========================================*/
@@ -440,26 +495,26 @@ globle void InitializeEnvironment()
    /* used by procedural code in constructs.  */
    /*=========================================*/
 
-   InstallProcedurePrimitives();
+   InstallProcedurePrimitives(theEnvironment);
 
    /*==============================================*/
    /* Install keywords in the symbol table so that */
    /* they are available for command completion.   */
    /*==============================================*/
 
-   InitializeKeywords();
+   InitializeKeywords(theEnvironment);
 
    /*========================*/
    /* Issue a clear command. */
    /*========================*/
-
-   Clear();
+   
+   EnvClear(theEnvironment);
 
    /*=============================*/
    /* Initialization is complete. */
    /*=============================*/
 
-   alreadyInitialized = TRUE;
+   theEnvironment->initialized = TRUE;
   }
 
 /******************************************************/
@@ -468,9 +523,10 @@ globle void InitializeEnvironment()
 /*   overwritten by execution of a command.           */
 /******************************************************/
 globle void SetRedrawFunction(
-  void (*theFunction)(void))
+  void *theEnv,
+  void (*theFunction)(void *))
   {
-   RedrawScreenFunction = theFunction;
+   SystemDependentData(theEnv)->RedrawScreenFunction = theFunction;
   }
 
 /******************************************************/
@@ -478,9 +534,10 @@ globle void SetRedrawFunction(
 /*   which puts terminal in a normal state.           */
 /******************************************************/
 globle void SetPauseEnvFunction(
-  void (*theFunction)(void))
+  void *theEnv,
+  void (*theFunction)(void *))
   {
-   PauseEnvFunction = theFunction;
+   SystemDependentData(theEnv)->PauseEnvFunction = theFunction;
   }
 
 /*********************************************************/
@@ -489,9 +546,35 @@ globle void SetPauseEnvFunction(
 /*   screen interface state.                             */
 /*********************************************************/
 globle void SetContinueEnvFunction(
-   void (*theFunction)(int))
+  void *theEnv,
+  void (*theFunction)(void *,int))
   {
-   ContinueEnvFunction = theFunction;
+   SystemDependentData(theEnv)->ContinueEnvFunction = theFunction;
+  }
+
+/*******************************************************/
+/* GetRedrawFunction: Gets the redraw screen function. */
+/*******************************************************/
+globle void (*GetRedrawFunction(void *theEnv))(void *)
+  {
+   return SystemDependentData(theEnv)->RedrawScreenFunction;
+  }
+
+/*****************************************************/
+/* GetPauseEnvFunction: Gets the normal state function. */
+/*****************************************************/
+globle void (*GetPauseEnvFunction(void *theEnv))(void *)
+  {
+   return SystemDependentData(theEnv)->PauseEnvFunction;
+  }
+
+/*********************************************/
+/* GetContinueEnvFunction: Gets the continue */
+/*   environment function.                   */
+/*********************************************/
+globle void (*GetContinueEnvFunction(void *theEnv))(void *,int)
+  {
+   return SystemDependentData(theEnv)->ContinueEnvFunction;
   }
 
 /*************************************************/
@@ -500,8 +583,9 @@ globle void SetContinueEnvFunction(
 /*   argc and arv command line options.          */
 /*************************************************/
 globle void RerouteStdin(
-   int argc,
-   char *argv[])
+  void *theEnv,
+  int argc,
+  char *argv[])
   {
    int i;
    int theSwitch = NO_SWITCH;
@@ -533,103 +617,106 @@ globle void RerouteStdin(
 #endif
       else if (theSwitch == NO_SWITCH)
         {
-         PrintErrorID("SYSDEP",2,FALSE);
-         PrintRouter(WERROR,"Invalid option\n");
+         PrintErrorID(theEnv,"SYSDEP",2,FALSE);
+         EnvPrintRouter(theEnv,WERROR,"Invalid option\n");
         }
 
       if (i > (argc-1))
         {
-         PrintErrorID("SYSDEP",1,FALSE);
-         PrintRouter(WERROR,"No file found for ");
+         PrintErrorID(theEnv,"SYSDEP",1,FALSE);
+         EnvPrintRouter(theEnv,WERROR,"No file found for ");
 
          switch(theSwitch)
            {
             case BATCH_SWITCH:
-               PrintRouter(WERROR,"-f");
+               EnvPrintRouter(theEnv,WERROR,"-f");
                break;
 
             case BATCH_STAR_SWITCH:
-               PrintRouter(WERROR,"-f2");
+               EnvPrintRouter(theEnv,WERROR,"-f2");
                break;
 
             case LOAD_SWITCH:
-               PrintRouter(WERROR,"-l");
+               EnvPrintRouter(theEnv,WERROR,"-l");
            }
 
-         PrintRouter(WERROR," option\n");
+         EnvPrintRouter(theEnv,WERROR," option\n");
          return;
         }
 
       switch(theSwitch)
         {
          case BATCH_SWITCH:
-            OpenBatch(argv[++i],TRUE);
+            OpenBatch(theEnv,argv[++i],TRUE);
             break;
 
-#if ! RUN_TIME
+#if (! RUN_TIME) && (! BLOAD_ONLY)
          case BATCH_STAR_SWITCH:
-            BatchStar(argv[++i]);
+            EnvBatchStar(theEnv,argv[++i]);
             break;
 
          case LOAD_SWITCH:
-            Load(argv[++i]);
+            EnvLoad(theEnv,argv[++i]);
             break;
 #endif
         }
      }
   }
 
-#if ! RUN_TIME
 /**************************************************/
 /* SystemFunctionDefinitions: Sets up definitions */
 /*   of system defined functions.                 */
 /**************************************************/
-static void SystemFunctionDefinitions()
+static void SystemFunctionDefinitions(
+  void *theEnv)
   {
-   ProceduralFunctionDefinitions();
-   MiscFunctionDefinitions();
-   IOFunctionDefinitions();
-   PredicateFunctionDefinitions();
-   BasicMathFunctionDefinitions();
-   FileCommandDefinitions();
-   SortFunctionDefinitions();
+   ProceduralFunctionDefinitions(theEnv);
+   MiscFunctionDefinitions(theEnv);
+
+#if BASIC_IO || EXT_IO
+   IOFunctionDefinitions(theEnv);
+#endif
+
+   PredicateFunctionDefinitions(theEnv);
+   BasicMathFunctionDefinitions(theEnv);
+   FileCommandDefinitions(theEnv);
+   SortFunctionDefinitions(theEnv);
 
 #if DEBUGGING_FUNCTIONS
-   WatchFunctionDefinitions();
+   WatchFunctionDefinitions(theEnv);
 #endif
 
 #if MULTIFIELD_FUNCTIONS
-   MultifieldFunctionDefinitions();
+   MultifieldFunctionDefinitions(theEnv);
 #endif
 
 #if STRING_FUNCTIONS
-   StringFunctionDefinitions();
+   StringFunctionDefinitions(theEnv);
 #endif
 
 #if EX_MATH
-   ExtendedMathFunctionDefinitions();
+   ExtendedMathFunctionDefinitions(theEnv);
 #endif
 
 #if TEXTPRO_FUNCTIONS || HELP_FUNCTIONS
-   HelpFunctionDefinitions();
+   HelpFunctionDefinitions(theEnv);
 #endif
 
 #if EMACS_EDITOR
-   EditorFunctionDefinition();
+   EditorFunctionDefinition(theEnv);
 #endif
 
-#if CONSTRUCT_COMPILER
-   ConstructsToCCommandDefinition();
+#if CONSTRUCT_COMPILER && (! RUN_TIME)
+   ConstructsToCCommandDefinition(theEnv);
 #endif
 
 #if PROFILING_FUNCTIONS
-   ConstructProfilingFunctionDefinitions();
+   ConstructProfilingFunctionDefinitions(theEnv);
 #endif
 
-   ParseFunctionDefinitions();
+   ParseFunctionDefinitions(theEnv);
   }
-#endif
-
+  
 /*********************************************************/
 /* gentime: A function to return a floating point number */
 /*   which indicates the present time. Used internally   */
@@ -643,25 +730,40 @@ globle double gentime()
    Microseconds(&result);
 
    return(((((double) result.hi) * kTwoPower32) + result.lo) / 1000000.0);
-#endif
 
-#if IBM_MCW || (IBM_TBC && WINDOW_INTERFACE)
+#elif IBM_MCW
    unsigned long int result;
 
    result = GetTickCount();
 
    return((double) result / 1000.0);
-#endif
 
-#if   IBM_TBC && (! WINDOW_INTERFACE)
+#elif   IBM_TBC && (! WINDOW_INTERFACE)
    unsigned long int result;
 
-   result = /*biostime(0,(long int) 0)*/ 0;
+   result = biostime(0,(long int) 0);
 
    return((double) result / 18.2);
+
+#elif UNIX_V
+#if defined(_POSIX_TIMERS) && (_POSIX_TIMERS > 0)
+   struct timespec now;
+   clock_gettime(
+
+#if defined(_POSIX_MONOTONIC_CLOCK)
+       CLOCK_MONOTONIC,
+#else
+       CLOCK_REALTIME,
+#endif
+       &now);
+  return (now.tv_nsec / 1000000000.0) + now.tv_sec;
+#else
+   struct timeval now;
+   gettimeofday(&now, 0);
+   return (now.tv_usec / 1000000.0) + now.tv_sec;
 #endif
 
-#if GENERIC || ((! MAC) && (! IBM_TBC)) 
+#else
    return((double) clock() / (double) CLOCKS_PER_SEC);
 #endif
   }
@@ -670,11 +772,12 @@ globle double gentime()
 /* gensystem: Generic routine for passing a string   */
 /*   representing a command to the operating system. */
 /*****************************************************/
-globle void gensystem()
+globle void gensystem(
+  void *theEnv)
   {
    char *commandBuffer = NULL;
    int bufferPosition = 0;
-   int bufferMaximum = 0;
+   unsigned bufferMaximum = 0;
    int numa, i;
    DATA_OBJECT tempValue;
    char *theString;
@@ -683,7 +786,7 @@ globle void gensystem()
    /* Check for the corret number of arguments. */
    /*===========================================*/
 
-   if ((numa = ArgCountCheck("system",AT_LEAST,1)) == -1) return;
+   if ((numa = EnvArgCountCheck(theEnv,"system",AT_LEAST,1)) == -1) return;
 
    /*============================================================*/
    /* Concatenate the arguments together to form a single string */
@@ -692,19 +795,19 @@ globle void gensystem()
 
    for (i = 1 ; i <= numa; i++)
      {
-      RtnUnknown(i,&tempValue);
+      EnvRtnUnknown(theEnv,i,&tempValue);
       if ((GetType(tempValue) != STRING) &&
           (GetType(tempValue) != SYMBOL))
         {
-         SetHaltExecution(TRUE);
-         SetEvaluationError(TRUE);
-         ExpectedTypeError2("system",i);
+         SetHaltExecution(theEnv,TRUE);
+         SetEvaluationError(theEnv,TRUE);
+         ExpectedTypeError2(theEnv,"system",i);
          return;
         }
 
      theString = DOToString(tempValue);
 
-     commandBuffer = AppendToString(theString,commandBuffer,&bufferPosition,&bufferMaximum);
+     commandBuffer = AppendToString(theEnv,theString,commandBuffer,&bufferPosition,&bufferMaximum);
     }
 
    if (commandBuffer == NULL) return;
@@ -714,22 +817,22 @@ globle void gensystem()
    /*=======================================*/
 
 #if VAX_VMS
-   if (PauseEnvFunction != NULL) (*PauseEnvFunction)();
+   if (SystemDependentData(theEnv)->PauseEnvFunction != NULL) (*SystemDependentData(theEnv)->PauseEnvFunction)(theEnv);
    VMSSystem(commandBuffer);
    putchar('\n');
-   if (ContinueEnvFunction != NULL) (*ContinueEnvFunction)(1);
-   if (RedrawScreenFunction != NULL) (*RedrawScreenFunction)();
+   if (SystemDependentData(theEnv)->ContinueEnvFunction != NULL) (*SystemDependentData(theEnv)->ContinueEnvFunction)(theEnv,1);
+   if (SystemDependentData(theEnv)->RedrawScreenFunction != NULL) (*SystemDependentData(theEnv)->RedrawScreenFunction)(theEnv);
 #endif
 
-#if   UNIX_7 || UNIX_V || IBM_MSC || IBM_TBC || IBM_ICB || IBM_ZTC || IBM_SC || IBM_MCW || IBM_GCC
-   if (PauseEnvFunction != NULL) (*PauseEnvFunction)();
+#if   UNIX_7 || UNIX_V || IBM_MSC || IBM_TBC || IBM_ICB || IBM_ZTC || IBM_SC || IBM_MCW || IBM_GCC || MAC_XCD
+   if (SystemDependentData(theEnv)->PauseEnvFunction != NULL) (*SystemDependentData(theEnv)->PauseEnvFunction)(theEnv);
    system(commandBuffer);
-   if (ContinueEnvFunction != NULL) (*ContinueEnvFunction)(1);
-   if (RedrawScreenFunction != NULL) (*RedrawScreenFunction)();
+   if (SystemDependentData(theEnv)->ContinueEnvFunction != NULL) (*SystemDependentData(theEnv)->ContinueEnvFunction)(theEnv,1);
+   if (SystemDependentData(theEnv)->RedrawScreenFunction != NULL) (*SystemDependentData(theEnv)->RedrawScreenFunction)(theEnv);
 #else
 
 #if ! VAX_VMS
-   PrintRouter(WDIALOG,
+   EnvPrintRouter(theEnv,WDIALOG,
             "System function not fully defined for this system.\n");
 #endif
 
@@ -739,7 +842,7 @@ globle void gensystem()
    /* Return the string buffer containing the command. */
    /*==================================================*/
 
-   rm(commandBuffer,bufferMaximum);
+   rm(theEnv,commandBuffer,bufferMaximum);
 
    return;
   }
@@ -770,8 +873,15 @@ globle void VMSSystem(
 /*   requiring initialization is the interrupt handler     */
 /*   which allows execution to be halted.                  */
 /***********************************************************/
-static void InitializeNonportableFeatures()
+#if IBM_TBC
+#pragma argsused
+#endif
+static void InitializeNonportableFeatures(
+  void *theEnv)
   {
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
+#endif
 #if ! WINDOW_INTERFACE
 
 #if MAC
@@ -783,19 +893,19 @@ static void InitializeNonportableFeatures()
 #endif
 
 #if IBM_TBC
- /*  OldCtrlC = getvect(0x23);
-	OldBreak = getvect(0x1b);
+   SystemDependentData(theEnv)->OldCtrlC = getvect(0x23);
+   SystemDependentData(theEnv)->OldBreak = getvect(0x1b);
    setvect(0x23,CatchCtrlC);
    setvect(0x1b,CatchCtrlC);
-	atexit(RestoreInterruptVectors);  */
+   atexit(RestoreInterruptVectors);
 #endif
 
 #if IBM_MSC || IBM_ICB
-/*   OldCtrlC = _dos_getvect(0x23);
-   OldBreak = _dos_getvect(0x1b);
+   SystemDependentData(theEnv)->OldCtrlC = _dos_getvect(0x23);
+   SystemDependentData(theEnv)->OldBreak = _dos_getvect(0x1b);
    _dos_setvect(0x23,CatchCtrlC);
    _dos_setvect(0x1b,CatchCtrlC);
-   atexit(RestoreInterruptVectors);   */
+   atexit(RestoreInterruptVectors);
 #endif
 
 #if IBM_ZTC || IBM_SC
@@ -841,8 +951,10 @@ static void CallSystemTask()
 static void CatchCtrlC(
   int sgnl)
   {
-   SetHaltExecution(TRUE);
-   CloseAllBatchSources();
+#if ALLOW_ENVIRONMENT_GLOBALS
+   SetHaltExecution(GetCurrentEnvironment(),TRUE);
+   CloseAllBatchSources(GetCurrentEnvironment());
+#endif
    signal(SIGINT,CatchCtrlC);
   }
 #endif
@@ -852,10 +964,12 @@ static void CatchCtrlC(
 /* CatchCtrlC: IBM Microsoft C and Borland Turbo C    */
 /*   specific function to allow control-c interrupts. */
 /******************************************************/
-static void /*interrupt*/ CatchCtrlC()
+static void interrupt CatchCtrlC()
   {
-   SetHaltExecution(TRUE);
-   CloseAllBatchSources();
+#if ALLOW_ENVIRONMENT_GLOBALS
+   SetHaltExecution(GetCurrentEnvironment(),TRUE);
+   CloseAllBatchSources(GetCurrentEnvironment());
+#endif
   }
 
 /**************************************************************/
@@ -864,12 +978,18 @@ static void /*interrupt*/ CatchCtrlC()
 /**************************************************************/
 static void RestoreInterruptVectors()
   {
+#if ALLOW_ENVIRONMENT_GLOBALS
+   void *theEnv;
+   
+   theEnv = GetCurrentEnvironment();
+
 #if IBM_TBC
- /*  setvect(0x23,OldCtrlC);
-	setvect(0x1b,OldBreak);   */
+   setvect(0x23,SystemDependentData(theEnv)->OldCtrlC);
+   setvect(0x1b,SystemDependentData(theEnv)->OldBreak);
 #else
- /*	_dos_setvect(0x23,OldCtrlC);
-	_dos_setvect(0x1b,OldBreak);  */
+   _dos_setvect(0x23,SystemDependentData(theEnv)->OldCtrlC);
+   _dos_setvect(0x1b,SystemDependentData(theEnv)->OldBreak);
+#endif
 #endif
   }
 #endif
@@ -881,8 +1001,10 @@ static void RestoreInterruptVectors()
 /***********************************************/
 static void _cdecl CatchCtrlC()
   {
-   SetHaltExecution(TRUE);
-   CloseAllBatchSources();
+#if ALLOW_ENVIRONMENT_GLOBALS
+   SetHaltExecution(GetCurrentEnvironment(),TRUE);
+   CloseAllBatchSources(GetCurrentEnvironment());
+#endif
   }
 #endif
 
@@ -893,12 +1015,14 @@ static void _cdecl CatchCtrlC()
 /*************************************************/
 static void CatchCtrlC()
   {
+#if ALLOW_ENVIRONMENT_GLOBALS
    _XSTACK *sf;                        /* Real-mode interrupt handler stack frame. */
 
    sf = (_XSTACK *) _get_stk_frame();  /* Get pointer to V86 _XSTACK frame. */
-   SetHaltExecution(TRUE);             /* Terminate execution and */
-   CloseAllBatchSources();             /* return to the command prompt.        */
+   SetHaltExecution(GetCurrentEnvironment(),TRUE);             /* Terminate execution and */
+   CloseAllBatchSources(GetCurrentEnvironment());             /* return to the command prompt.        */
    sf->opts |= _STK_NOINT;             /* Set _ST_NOINT to prevent V86 call. */
+#endif
   }
 
 /********************************************************/
@@ -907,8 +1031,14 @@ static void CatchCtrlC()
 /********************************************************/
 static void RestoreInterruptVectors()
   {
-   _dos_setvect(0x23,OldCtrlC);
-   _dos_setvect(0x1b,OldBreak);
+#if ALLOW_ENVIRONMENT_GLOBALS
+   void *theEnv;
+   
+   theEnv = GetCurrentEnvironment();
+
+   _dos_setvect(0x23,SystemDependentData(theEnv)->OldCtrlC);
+   _dos_setvect(0x1b,SystemDependentData(theEnv)->OldBreak);
+#endif
   }
 #endif
 
@@ -940,6 +1070,26 @@ globle void genseed(
    srand((unsigned) seed);
   }
 
+/*********************************************/
+/* gengetcwd: Generic function for returning */
+/*   the current directory.                  */
+/*********************************************/
+#if IBM_TBC
+#pragma argsused
+#endif
+globle char *gengetcwd(
+  char *buffer,
+  int buflength)
+  {
+#if MAC_MCW || IBM_MCW || MAC_XCD
+   return(getcwd(buffer,buflength));
+#endif
+
+   if (buffer != NULL)
+     { buffer[0] = 0; }
+   return(buffer);
+  }
+
 /****************************************************/
 /* genremove: Generic function for removing a file. */
 /****************************************************/
@@ -963,97 +1113,154 @@ globle int genrename(
    return(TRUE);
   }
 
-/*****************************************************************/
-/* GenOpen: Generic and machine specific code for opening a file */
-/*   for binary access. Only one file may be open at a time when */
-/*   using this function since the file pointer is stored in a   */
-/*   global variable.                                            */
-/*****************************************************************/
-globle int GenOpen(
+/**************************************/
+/* EnvSetBeforeOpenFunction: Sets the */
+/*  value of BeforeOpenFunction.      */
+/**************************************/
+globle int (*EnvSetBeforeOpenFunction(void *theEnv,
+                                      int (*theFunction)(void *)))(void *)
+  {
+   int (*tempFunction)(void *);
+
+   tempFunction = SystemDependentData(theEnv)->BeforeOpenFunction;
+   SystemDependentData(theEnv)->BeforeOpenFunction = theFunction;
+   return(tempFunction);
+  }
+
+/*************************************/
+/* EnvSetAfterOpenFunction: Sets the */
+/*  value of AfterOpenFunction.      */
+/*************************************/
+globle int (*EnvSetAfterOpenFunction(void *theEnv,
+                                     int (*theFunction)(void *)))(void *)
+  {
+   int (*tempFunction)(void *);
+
+   tempFunction = SystemDependentData(theEnv)->AfterOpenFunction;
+   SystemDependentData(theEnv)->AfterOpenFunction = theFunction;
+   return(tempFunction);
+  }
+
+/*********************************************/
+/* GenOpen: Trap routine for opening a file. */
+/*********************************************/
+globle FILE *GenOpen(
+  void *theEnv,
+  char *fileName,
+  char *accessType)
+  {
+   FILE *theFile;
+   
+   if (strlen(fileName) > FILENAME_MAX)
+     { return(NULL); }
+
+   if (SystemDependentData(theEnv)->BeforeOpenFunction != NULL)
+     { (*SystemDependentData(theEnv)->BeforeOpenFunction)(theEnv); }
+
+   theFile = fopen(fileName,accessType);
+   
+   if (SystemDependentData(theEnv)->AfterOpenFunction != NULL)
+     { (*SystemDependentData(theEnv)->AfterOpenFunction)(theEnv); }
+     
+   return theFile;
+  }
+  
+/**********************************************/
+/* GenClose: Trap routine for closing a file. */
+/**********************************************/
+globle int GenClose(
+  void *theEnv,
+  FILE *theFile)
+  {
+   int rv;
+   
+   if (SystemDependentData(theEnv)->BeforeOpenFunction != NULL)
+     { (*SystemDependentData(theEnv)->BeforeOpenFunction)(theEnv); }
+
+   rv = fclose(theFile);
+
+   if (SystemDependentData(theEnv)->AfterOpenFunction != NULL)
+     { (*SystemDependentData(theEnv)->AfterOpenFunction)(theEnv); }
+   
+   return rv;
+  }
+  
+/************************************************************/
+/* GenOpenReadBinary: Generic and machine specific code for */
+/*   opening a file for binary access. Only one file may be */
+/*   open at a time when using this function since the file */
+/*   pointer is stored in a global variable.                */
+/************************************************************/
+globle int GenOpenReadBinary(
+  void *theEnv,
   char *funcName,
   char *fileName)
   {
-#if  MAC
-   Str255 tempName;
-   OSErr resultCode;
-   Str255 volName;
-   short int vRefNum;
+   if (SystemDependentData(theEnv)->BeforeOpenFunction != NULL)
+     { (*SystemDependentData(theEnv)->BeforeOpenFunction)(theEnv); }
 
-   resultCode = GetVol(volName,&vRefNum);
-   if (resultCode != noErr)
+#if IBM_TBC || IBM_MSC || IBM_ICB
+
+   SystemDependentData(theEnv)->BinaryFileHandle = open(fileName,O_RDONLY | O_BINARY);
+   if (SystemDependentData(theEnv)->BinaryFileHandle == -1)
      {
-      OpenErrorMessage(funcName,fileName);
-      return(0);
-     }
-   strcpy((char *) tempName,fileName);
-#if MAC_SC7 || MAC_SC8
-   C2PStr((char *) tempName);
-#else
-   c2pstr((char *) tempName);
-#endif
-
-   resultCode = FSOpen(tempName,vRefNum,&BinaryRefNum);
-   if (resultCode != noErr)
-     {
-      OpenErrorMessage(funcName,fileName);
-      return(FALSE);
-     }
-
-#endif
-
-#if IBM_TBC || IBM_MSC || IBM_ICB || IBM_MCW /* || IBM_ZTC */
-   BinaryFileHandle = open(fileName,O_RDONLY | O_BINARY);
-   if (BinaryFileHandle == -1)
-     {
-      OpenErrorMessage(funcName,fileName);
+      if (SystemDependentData(theEnv)->AfterOpenFunction != NULL)
+        { (*SystemDependentData(theEnv)->AfterOpenFunction)(theEnv); }
+      OpenErrorMessage(theEnv,funcName,fileName);
       return(FALSE);
      }
 #endif
 
-#if (! MAC) && (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) && (! IBM_MCW) /* && (! IBM_ZTC) */
-   if ((BinaryFP = fopen(fileName,"rb")) == NULL)
+#if (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB)
+
+   if ((SystemDependentData(theEnv)->BinaryFP = fopen(fileName,"rb")) == NULL)
      {
-      OpenErrorMessage(funcName,fileName);
+      if (SystemDependentData(theEnv)->AfterOpenFunction != NULL)
+        { (*SystemDependentData(theEnv)->AfterOpenFunction)(theEnv); }
+      OpenErrorMessage(theEnv,funcName,fileName);
       return(FALSE);
      }
 #endif
+
+   if (SystemDependentData(theEnv)->AfterOpenFunction != NULL)
+     { (*SystemDependentData(theEnv)->AfterOpenFunction)(theEnv); }
 
    return(TRUE);
   }
 
-/*****************************************/
-/* GenRead: Generic and machine specific */
-/*   code for reading from a file.       */
-/*****************************************/
-globle void GenRead(
+/***********************************************/
+/* GenReadBinary: Generic and machine specific */
+/*   code for reading from a file.             */
+/***********************************************/
+globle void GenReadBinary(
+  void *theEnv,
   void *dataPtr,
   unsigned long size)
   {
+/*
 #if MAC
    long dataSize;
 
-   dataSize = size;
-   FSRead(BinaryRefNum,&dataSize,dataPtr);
+   dataSize = (long) size;
+   FSRead(SystemDependentData(theEnv)->BinaryRefNum,&dataSize,dataPtr);
 #endif
-
-#if IBM_TBC || IBM_MSC || IBM_ICB || IBM_MCW /* || IBM_ZTC */
+*/
+#if IBM_TBC || IBM_MSC || IBM_ICB /* || IBM_MCW */
    char *tempPtr;
 
    tempPtr = (char *) dataPtr;
    while (size > INT_MAX)
      {
-      /* read(BinaryFileHandle,(void *) tempPtr,(unsigned int) INT_MAX); */
-      read(BinaryFileHandle,tempPtr,INT_MAX);
+      read(SystemDependentData(theEnv)->BinaryFileHandle,tempPtr,INT_MAX);
       size -= INT_MAX;
       tempPtr = tempPtr + INT_MAX;
      }
 
    if (size > 0) 
-     { read(BinaryFileHandle,tempPtr,(int) size); }
-     /* { read(BinaryFileHandle,(void *) tempPtr,(unsigned int) size); } */
+     { read(SystemDependentData(theEnv)->BinaryFileHandle,tempPtr,(STD_SIZE) size); }
 #endif
 
-#if (! MAC) && (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) && (! IBM_MCW) /* && (! IBM_ZTC) */
+#if (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) /* && (! IBM_MCW) && (! IBM_ZTC) */
    unsigned int temp, number_of_reads, read_size;
 
    if (sizeof(int) == sizeof(long))
@@ -1065,51 +1272,123 @@ globle void GenRead(
 
    while (number_of_reads > 0)
      {
-      fread(dataPtr,(STD_SIZE) read_size,1,BinaryFP);
+      fread(dataPtr,(STD_SIZE) read_size,1,SystemDependentData(theEnv)->BinaryFP); 
       dataPtr = ((char *) dataPtr) + read_size;
       number_of_reads--;
      }
 
-   fread(dataPtr,(STD_SIZE) temp,1,BinaryFP);
+   fread(dataPtr,(STD_SIZE) temp,1,SystemDependentData(theEnv)->BinaryFP); 
 #endif
   }
 
-/*******************************************/
-/* GenSeek:  Generic and machine specific */
-/*   code for closing a file.              */
-/*******************************************/
-globle void GenSeek(
+/***************************************************/
+/* GetSeekCurBinary:  Generic and machine specific */
+/*   code for seeking a position in a file.        */
+/***************************************************/
+globle void GetSeekCurBinary(
+  void *theEnv,
   long offset)
   {
+/*
 #if  MAC
-   SetFPos(BinaryRefNum,3,offset);
+   SetFPos(SystemDependentData(theEnv)->BinaryRefNum,fsFromMark,offset);
+#endif
+*/
+#if IBM_TBC || IBM_MSC || IBM_ICB /* || IBM_MCW || IBM_ZTC */
+   lseek(SystemDependentData(theEnv)->BinaryFileHandle,offset,SEEK_CUR);
 #endif
 
-#if IBM_TBC || IBM_MSC || IBM_ICB || IBM_MCW /* || IBM_ZTC */
-   lseek(BinaryFileHandle,offset,SEEK_CUR);
+#if (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) /* && (! IBM_MCW) && (! IBM_ZTC) */
+   fseek(SystemDependentData(theEnv)->BinaryFP,offset,SEEK_CUR);
+#endif
+  }
+  
+/***************************************************/
+/* GetSeekSetBinary:  Generic and machine specific */
+/*   code for seeking a position in a file.        */
+/***************************************************/
+globle void GetSeekSetBinary(
+  void *theEnv,
+  long offset)
+  {
+/*
+#if  MAC
+   SetFPos(SystemDependentData(theEnv)->BinaryRefNum,fsFromStart,offset);
+#endif
+*/
+#if IBM_TBC || IBM_MSC || IBM_ICB /* || IBM_MCW || IBM_ZTC */
+   lseek(SystemDependentData(theEnv)->BinaryFileHandle,offset,SEEK_SET);
 #endif
 
-#if (! MAC) && (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) && (! IBM_MCW) /* && (! IBM_ZTC) */
-   fseek(BinaryFP,offset,SEEK_CUR);
+#if (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) /* && (! IBM_MCW) && (! IBM_ZTC) */
+   fseek(SystemDependentData(theEnv)->BinaryFP,offset,SEEK_SET);
 #endif
   }
 
-/*******************************************/
-/* GenClose:  Generic and machine specific */
-/*   code for closing a file.              */
-/*******************************************/
-globle void GenClose()
+/************************************************/
+/* GenTellBinary:  Generic and machine specific */
+/*   code for telling a position in a file.     */
+/************************************************/
+globle void GenTellBinary(
+  void *theEnv,
+  long *offset)
   {
+/*
 #if  MAC
-   FSClose(BinaryRefNum);
+   GetFPos(SystemDependentData(theEnv)->BinaryRefNum,offset);
+#endif
+*/
+#if IBM_TBC || IBM_MSC || IBM_ICB /* || IBM_MCW || IBM_ZTC */
+   *offset = lseek(SystemDependentData(theEnv)->BinaryFileHandle,0,SEEK_CUR);
 #endif
 
-#if IBM_TBC || IBM_MSC || IBM_ICB || IBM_MCW /* || IBM_ZTC */
-   close(BinaryFileHandle);
+#if (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) /* && (! IBM_MCW) && (! IBM_ZTC) */
+   *offset = ftell(SystemDependentData(theEnv)->BinaryFP);
+#endif
+  }
+
+/****************************************/
+/* GenCloseBinary:  Generic and machine */
+/*   specific code for closing a file.  */
+/****************************************/
+globle void GenCloseBinary(
+  void *theEnv)
+  {
+/*
+#if  MAC
+   FSClose(SystemDependentData(theEnv)->BinaryRefNum);
+#endif
+*/
+   
+   if (SystemDependentData(theEnv)->BeforeOpenFunction != NULL)
+     { (*SystemDependentData(theEnv)->BeforeOpenFunction)(theEnv); }
+
+#if IBM_TBC || IBM_MSC || IBM_ICB /* || IBM_MCW */
+   close(SystemDependentData(theEnv)->BinaryFileHandle);
 #endif
 
-#if (! MAC) && (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) && (! IBM_MCW) /* && (! IBM_ZTC) */
-   fclose(BinaryFP);
+#if (! IBM_TBC) && (! IBM_MSC) && (! IBM_ICB) /* && (! IBM_MCW) */
+   fclose(SystemDependentData(theEnv)->BinaryFP);
+#endif
+
+   if (SystemDependentData(theEnv)->AfterOpenFunction != NULL)
+     { (*SystemDependentData(theEnv)->AfterOpenFunction)(theEnv); }
+  }
+  
+/***********************************************/
+/* GenWrite: Generic routine for writing to a  */
+/*   file. No machine specific code as of yet. */
+/***********************************************/
+globle void GenWrite(
+  void *dataPtr,
+  unsigned long size,
+  FILE *fp)
+  {
+   if (size == 0) return;
+#if UNIX_7
+   fwrite(dataPtr,(STD_SIZE) size,1,fp);
+#else
+   fwrite(dataPtr,(STD_SIZE) size,1,fp);
 #endif
   }
 
@@ -1118,7 +1397,8 @@ globle void GenClose()
 /*   symbol table so that they are available */
 /*   for command completion.                 */
 /*********************************************/
-static void InitializeKeywords()
+static void InitializeKeywords(
+  void *theEnv)
   {
 #if (! RUN_TIME) && WINDOW_INTERFACE
    void *ts;
@@ -1127,111 +1407,111 @@ static void InitializeKeywords()
    /* construct keywords */
    /*====================*/
 
-   ts = AddSymbol("defrule");
+   ts = EnvAddSymbol(theEnv,"defrule");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("defglobal");
+   ts = EnvAddSymbol(theEnv,"defglobal");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("deftemplate");
+   ts = EnvAddSymbol(theEnv,"deftemplate");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("deffacts");
+   ts = EnvAddSymbol(theEnv,"deffacts");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("deffunction");
+   ts = EnvAddSymbol(theEnv,"deffunction");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("defmethod");
+   ts = EnvAddSymbol(theEnv,"defmethod");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("defgeneric");
+   ts = EnvAddSymbol(theEnv,"defgeneric");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("defclass");
+   ts = EnvAddSymbol(theEnv,"defclass");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("defmessage-handler");
+   ts = EnvAddSymbol(theEnv,"defmessage-handler");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("definstances");
+   ts = EnvAddSymbol(theEnv,"definstances");
    IncrementSymbolCount(ts);
 
    /*=======================*/
    /* set-strategy keywords */
    /*=======================*/
 
-   ts = AddSymbol("depth");
+   ts = EnvAddSymbol(theEnv,"depth");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("breadth");
+   ts = EnvAddSymbol(theEnv,"breadth");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("lex");
+   ts = EnvAddSymbol(theEnv,"lex");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("mea");
+   ts = EnvAddSymbol(theEnv,"mea");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("simplicity");
+   ts = EnvAddSymbol(theEnv,"simplicity");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("complexity");
+   ts = EnvAddSymbol(theEnv,"complexity");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("random");
+   ts = EnvAddSymbol(theEnv,"random");
    IncrementSymbolCount(ts);
 
    /*==================================*/
    /* set-salience-evaluation keywords */
    /*==================================*/
 
-   ts = AddSymbol("when-defined");
+   ts = EnvAddSymbol(theEnv,"when-defined");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("when-activated");
+   ts = EnvAddSymbol(theEnv,"when-activated");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("every-cycle");
+   ts = EnvAddSymbol(theEnv,"every-cycle");
    IncrementSymbolCount(ts);
 
    /*======================*/
    /* deftemplate keywords */
    /*======================*/
 
-   ts = AddSymbol("field");
+   ts = EnvAddSymbol(theEnv,"field");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("multifield");
+   ts = EnvAddSymbol(theEnv,"multifield");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("default");
+   ts = EnvAddSymbol(theEnv,"default");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("type");
+   ts = EnvAddSymbol(theEnv,"type");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("allowed-symbols");
+   ts = EnvAddSymbol(theEnv,"allowed-symbols");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("allowed-strings");
+   ts = EnvAddSymbol(theEnv,"allowed-strings");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("allowed-numbers");
+   ts = EnvAddSymbol(theEnv,"allowed-numbers");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("allowed-integers");
+   ts = EnvAddSymbol(theEnv,"allowed-integers");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("allowed-floats");
+   ts = EnvAddSymbol(theEnv,"allowed-floats");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("allowed-values");
+   ts = EnvAddSymbol(theEnv,"allowed-values");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("min-number-of-elements");
+   ts = EnvAddSymbol(theEnv,"min-number-of-elements");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("max-number-of-elements");
+   ts = EnvAddSymbol(theEnv,"max-number-of-elements");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("NONE");
+   ts = EnvAddSymbol(theEnv,"NONE");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("VARIABLE");
+   ts = EnvAddSymbol(theEnv,"VARIABLE");
    IncrementSymbolCount(ts);
 
    /*==================*/
    /* defrule keywords */
    /*==================*/
 
-   ts = AddSymbol("declare");
+   ts = EnvAddSymbol(theEnv,"declare");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("salience");
+   ts = EnvAddSymbol(theEnv,"salience");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("test");
+   ts = EnvAddSymbol(theEnv,"test");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("or");
+   ts = EnvAddSymbol(theEnv,"or");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("and");
+   ts = EnvAddSymbol(theEnv,"and");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("not");
+   ts = EnvAddSymbol(theEnv,"not");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("logical");
+   ts = EnvAddSymbol(theEnv,"logical");
    IncrementSymbolCount(ts);
-
+   
 #if CERTAINTY_FACTORS
-   ts = AddSymbol("cf");   /* certainty factors */
+   ts = EnvAddSymbol(theEnv,"cf");   /* certainty factors */
    IncrementSymbolCount(ts);
 #endif
 
@@ -1239,117 +1519,121 @@ static void InitializeKeywords()
    /* COOL keywords */
    /*===============*/
 
-   ts = AddSymbol("is-a");
+   ts = EnvAddSymbol(theEnv,"is-a");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("role");
+   ts = EnvAddSymbol(theEnv,"role");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("abstract");
+   ts = EnvAddSymbol(theEnv,"abstract");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("concrete");
+   ts = EnvAddSymbol(theEnv,"concrete");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("pattern-match");
+   ts = EnvAddSymbol(theEnv,"pattern-match");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("reactive");
+   ts = EnvAddSymbol(theEnv,"reactive");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("non-reactive");
+   ts = EnvAddSymbol(theEnv,"non-reactive");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("slot");
+   ts = EnvAddSymbol(theEnv,"slot");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("field");
+   ts = EnvAddSymbol(theEnv,"field");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("multiple");
+   ts = EnvAddSymbol(theEnv,"multiple");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("single");
+   ts = EnvAddSymbol(theEnv,"single");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("storage");
+   ts = EnvAddSymbol(theEnv,"storage");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("shared");
+   ts = EnvAddSymbol(theEnv,"shared");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("local");
+   ts = EnvAddSymbol(theEnv,"local");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("access");
+   ts = EnvAddSymbol(theEnv,"access");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("read");
+   ts = EnvAddSymbol(theEnv,"read");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("write");
+   ts = EnvAddSymbol(theEnv,"write");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("read-only");
+   ts = EnvAddSymbol(theEnv,"read-only");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("read-write");
+   ts = EnvAddSymbol(theEnv,"read-write");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("initialize-only");
+   ts = EnvAddSymbol(theEnv,"initialize-only");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("propagation");
+   ts = EnvAddSymbol(theEnv,"propagation");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("inherit");
+   ts = EnvAddSymbol(theEnv,"inherit");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("no-inherit");
+   ts = EnvAddSymbol(theEnv,"no-inherit");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("source");
+   ts = EnvAddSymbol(theEnv,"source");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("composite");
+   ts = EnvAddSymbol(theEnv,"composite");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("exclusive");
+   ts = EnvAddSymbol(theEnv,"exclusive");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("allowed-lexemes");
+   ts = EnvAddSymbol(theEnv,"allowed-lexemes");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("allowed-instances");
+   ts = EnvAddSymbol(theEnv,"allowed-instances");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("around");
+   ts = EnvAddSymbol(theEnv,"around");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("before");
+   ts = EnvAddSymbol(theEnv,"before");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("primary");
+   ts = EnvAddSymbol(theEnv,"primary");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("after");
+   ts = EnvAddSymbol(theEnv,"after");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("of");
+   ts = EnvAddSymbol(theEnv,"of");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("self");
+   ts = EnvAddSymbol(theEnv,"self");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("visibility");
+   ts = EnvAddSymbol(theEnv,"visibility");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("override-message");
+   ts = EnvAddSymbol(theEnv,"override-message");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("private");
+   ts = EnvAddSymbol(theEnv,"private");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("public");
+   ts = EnvAddSymbol(theEnv,"public");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("create-accessor");
+   ts = EnvAddSymbol(theEnv,"create-accessor");
    IncrementSymbolCount(ts);
 
    /*================*/
    /* watch keywords */
    /*================*/
 
-   ts = AddSymbol("compilations");
+   ts = EnvAddSymbol(theEnv,"compilations");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("deffunctions");
+   ts = EnvAddSymbol(theEnv,"deffunctions");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("globals");
+   ts = EnvAddSymbol(theEnv,"globals");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("rules");
+   ts = EnvAddSymbol(theEnv,"rules");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("activations");
+   ts = EnvAddSymbol(theEnv,"activations");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("statistics");
+   ts = EnvAddSymbol(theEnv,"statistics");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("facts");
+   ts = EnvAddSymbol(theEnv,"facts");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("generic-functions");
+   ts = EnvAddSymbol(theEnv,"generic-functions");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("methods");
+   ts = EnvAddSymbol(theEnv,"methods");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("instances");
+   ts = EnvAddSymbol(theEnv,"instances");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("slots");
+   ts = EnvAddSymbol(theEnv,"slots");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("messages");
+   ts = EnvAddSymbol(theEnv,"messages");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("message-handlers");
+   ts = EnvAddSymbol(theEnv,"message-handlers");
    IncrementSymbolCount(ts);
-   ts = AddSymbol("focus");
+   ts = EnvAddSymbol(theEnv,"focus");
    IncrementSymbolCount(ts);
+#else
+#if MAC_MCW || IBM_MCW || MAC_XCD
+#pragma unused(theEnv)
+#endif
 #endif
   }
 

@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/genrcpsr.h,v 1.3 2001/08/11 21:06:12 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.24  06/05/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -17,6 +15,8 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -37,12 +37,12 @@
 #define LOCALE extern
 #endif
 
-LOCALE BOOLEAN ParseDefgeneric(char *);
-LOCALE BOOLEAN ParseDefmethod(char *);
-LOCALE DEFMETHOD *AddMethod(DEFGENERIC *,DEFMETHOD *,int,unsigned,EXPRESSION *,
+LOCALE intBool ParseDefgeneric(void *,char *);
+LOCALE intBool ParseDefmethod(void *,char *);
+LOCALE DEFMETHOD *AddMethod(void *,DEFGENERIC *,DEFMETHOD *,int,unsigned,EXPRESSION *,
                             int,int,SYMBOL_HN *,EXPRESSION *,char *,int);
-LOCALE void PackRestrictionTypes(RESTRICTION *,EXPRESSION *);
-LOCALE void DeleteTempRestricts(EXPRESSION *);
+LOCALE void PackRestrictionTypes(void *,RESTRICTION *,EXPRESSION *);
+LOCALE void DeleteTempRestricts(void *,EXPRESSION *);
 LOCALE DEFMETHOD *FindMethodByRestrictions(DEFGENERIC *,EXPRESSION *,int,
                                            SYMBOL_HN *,int *);
 
@@ -52,7 +52,6 @@ LOCALE DEFMETHOD *FindMethodByRestrictions(DEFGENERIC *,EXPRESSION *,int,
 #endif
 
 #endif
-
 
 
 

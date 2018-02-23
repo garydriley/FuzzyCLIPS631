@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/objrtgen.h,v 1.3 2001/08/11 21:07:16 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.24  05/17/06          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -18,12 +16,15 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Converted INSTANCE_PATTERN_MATCHING to         */
+/*            DEFRULE_CONSTRUCT.                             */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_objrtgen
 #define _H_objrtgen
 
-#if INSTANCE_PATTERN_MATCHING && (! RUN_TIME) && (! BLOAD_ONLY)
+#if DEFRULE_CONSTRUCT && OBJECT_SYSTEM && (! RUN_TIME) && (! BLOAD_ONLY)
 
 #ifndef _H_expressn
 #include "expressn.h"
@@ -42,21 +43,19 @@
 #define LOCALE extern
 #endif
 
-LOCALE void ReplaceGetJNObjectValue(EXPRESSION *,struct lhsParseNode *);
-LOCALE EXPRESSION *GenGetJNObjectValue(struct lhsParseNode *);
-LOCALE EXPRESSION *ObjectJNVariableComparison(struct lhsParseNode *,struct lhsParseNode *);
-LOCALE EXPRESSION *GenObjectPNConstantCompare(struct lhsParseNode *);
-LOCALE void ReplaceGetPNObjectValue(EXPRESSION *,struct lhsParseNode *);
-LOCALE EXPRESSION *GenGetPNObjectValue(struct lhsParseNode *);
-LOCALE EXPRESSION *ObjectPNVariableComparison(struct lhsParseNode *,struct lhsParseNode *);
-LOCALE void GenObjectLengthTest(struct lhsParseNode *);
-LOCALE void GenObjectZeroLengthTest(struct lhsParseNode *);
+   LOCALE void             ReplaceGetJNObjectValue(void *,EXPRESSION *,struct lhsParseNode *);
+   LOCALE EXPRESSION      *GenGetJNObjectValue(void *,struct lhsParseNode *);
+   LOCALE EXPRESSION      *ObjectJNVariableComparison(void *,struct lhsParseNode *,struct lhsParseNode *);
+   LOCALE EXPRESSION      *GenObjectPNConstantCompare(void *,struct lhsParseNode *);
+   LOCALE void             ReplaceGetPNObjectValue(void *,EXPRESSION *,struct lhsParseNode *);
+   LOCALE EXPRESSION      *GenGetPNObjectValue(void *,struct lhsParseNode *); 
+   LOCALE EXPRESSION      *ObjectPNVariableComparison(void *,struct lhsParseNode *,struct lhsParseNode *);
+   LOCALE void             GenObjectLengthTest(void *,struct lhsParseNode *);
+   LOCALE void             GenObjectZeroLengthTest(void *,struct lhsParseNode *);
 
 #endif
 
 #endif
-
-
 
 
 

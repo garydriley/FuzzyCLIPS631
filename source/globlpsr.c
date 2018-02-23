@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/globlpsr.c,v 1.3 2001/08/11 21:06:21 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*              DEFGLOBAL PARSER MODULE                */
    /*******************************************************/
@@ -18,6 +16,11 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/globlpsr.c,v 1.3 2001/08/1
 /*      Brian L. Donnell                                     */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Made the construct redefinition message more   */
+/*            prominent.                                     */
 /*                                                           */
 /*************************************************************/
 
@@ -43,6 +46,7 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/globlpsr.c,v 1.3 2001/08/1
 #include "cstrcpsr.h"
 #include "globldef.h"
 #include "globlbsc.h"
+#include "envrnmnt.h"
 
 #if BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE
 #include "bload.h"
@@ -55,20 +59,21 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/globlpsr.c,v 1.3 2001/08/1
 /***************************************/
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   static BOOLEAN                 GetVariableDefinition(char *,int *,int,struct token *);
-   static void                    AddDefglobal(SYMBOL_HN *,DATA_OBJECT_PTR,struct expr *);
+   static intBool                 GetVariableDefinition(void *,char *,int *,int,struct token *);
+   static void                    AddDefglobal(void *,SYMBOL_HN *,DATA_OBJECT_PTR,struct expr *);
 #endif
 
 /*********************************************************************/
 /* ParseDefglobal: Coordinates all actions necessary for the parsing */
 /*   and creation of a defglobal into the current environment.       */
 /*********************************************************************/
-globle BOOLEAN ParseDefglobal(
+globle intBool ParseDefglobal(
+  void *theEnv,
   char *readSource)
   {
    int defglobalError = FALSE;
-#if (MAC_MPW || MAC_MCW) && (RUN_TIME || BLOAD_ONLY)
-#pragma unused(readSource)
+#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
+#pragma unused(theEnv,readSource)
 #endif
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
@@ -81,10 +86,10 @@ globle BOOLEAN ParseDefglobal(
    /* Pretty print buffer initialization. */
    /*=====================================*/
 
-   SetPPBufferStatus(ON);
-   FlushPPBuffer();
-   SetIndentDepth(3);
-   SavePPBuffer("(defglobal ");
+   SetPPBufferStatus(theEnv,ON);
+   FlushPPBuffer(theEnv);
+   SetIndentDepth(theEnv,3);
+   SavePPBuffer(theEnv,"(defglobal ");
 
    /*=================================================*/
    /* Individual defglobal constructs can't be parsed */
@@ -92,9 +97,9 @@ globle BOOLEAN ParseDefglobal(
    /*=================================================*/
 
 #if BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE
-   if ((Bloaded() == TRUE) && (! CheckSyntaxMode))
+   if ((Bloaded(theEnv) == TRUE) && (! ConstructData(theEnv)->CheckSyntaxMode))
      {
-      CannotLoadWithBloadMessage("defglobal");
+      CannotLoadWithBloadMessage(theEnv,"defglobal");
       return(TRUE);
      }
 #endif
@@ -103,7 +108,7 @@ globle BOOLEAN ParseDefglobal(
    /* Look for the module name. */
    /*===========================*/
 
-   GetToken(readSource,&theToken);
+   GetToken(theEnv,readSource,&theToken);
    if (theToken.type == SYMBOL)
      {
       /*=================================================*/
@@ -116,7 +121,7 @@ globle BOOLEAN ParseDefglobal(
       tokenRead = FALSE;
       if (FindModuleSeparator(ValueToString(theToken.value)))
         {
-         SyntaxErrorMessage("defglobal");
+         SyntaxErrorMessage(theEnv,"defglobal");
          return(TRUE);
         }
 
@@ -124,10 +129,10 @@ globle BOOLEAN ParseDefglobal(
       /* Determine if the module exists. */
       /*=================================*/
 
-      theModule = (struct defmodule *) FindDefmodule(ValueToString(theToken.value));
+      theModule = (struct defmodule *) EnvFindDefmodule(theEnv,ValueToString(theToken.value));
       if (theModule == NULL)
         {
-         CantFindItemErrorMessage("defmodule",ValueToString(theToken.value));
+         CantFindItemErrorMessage(theEnv,"defmodule",ValueToString(theToken.value));
          return(TRUE);
         }
 
@@ -136,8 +141,8 @@ globle BOOLEAN ParseDefglobal(
       /* current module to the specified module. */
       /*=========================================*/
 
-      SavePPBuffer(" ");
-      SetCurrentModule((void *) theModule);
+      SavePPBuffer(theEnv," ");
+      EnvSetCurrentModule(theEnv,(void *) theModule);
      }
 
    /*===========================================*/
@@ -148,24 +153,24 @@ globle BOOLEAN ParseDefglobal(
 
    else
      {
-      PPBackup();
-      SavePPBuffer(GetDefmoduleName(((struct defmodule *) GetCurrentModule())));
-      SavePPBuffer(" ");
-      SavePPBuffer(theToken.printForm);
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv,EnvGetDefmoduleName(theEnv,((struct defmodule *) EnvGetCurrentModule(theEnv))));
+      SavePPBuffer(theEnv," ");
+      SavePPBuffer(theEnv,theToken.printForm);
      }
 
    /*======================*/
    /* Parse the variables. */
    /*======================*/
 
-   while (GetVariableDefinition(readSource,&defglobalError,tokenRead,&theToken))
+   while (GetVariableDefinition(theEnv,readSource,&defglobalError,tokenRead,&theToken))
      {
       tokenRead = FALSE;
 
-      FlushPPBuffer();
-      SavePPBuffer("(defglobal ");
-      SavePPBuffer(GetDefmoduleName(((struct defmodule *) GetCurrentModule())));
-      SavePPBuffer(" ");
+      FlushPPBuffer(theEnv);
+      SavePPBuffer(theEnv,"(defglobal ");
+      SavePPBuffer(theEnv,EnvGetDefmoduleName(theEnv,((struct defmodule *) EnvGetCurrentModule(theEnv))));
+      SavePPBuffer(theEnv," ");
      }
 
 #endif
@@ -187,7 +192,8 @@ globle BOOLEAN ParseDefglobal(
 /*   defglobal construct) or an error occurs. The error status */
 /*   flag is also set if an error occurs.                      */
 /***************************************************************/
-static BOOLEAN GetVariableDefinition(
+static intBool GetVariableDefinition(
+  void *theEnv,
   char *readSource,
   int *defglobalError,
   int tokenRead,
@@ -202,50 +208,54 @@ static BOOLEAN GetVariableDefinition(
    /* a closing parenthesis or a variable.   */
    /*========================================*/
 
-   if (! tokenRead) GetToken(readSource,theToken);
+   if (! tokenRead) GetToken(theEnv,readSource,theToken);
    if (theToken->type == RPAREN) return(FALSE);
 
    if (theToken->type == SF_VARIABLE)
      {
-      SyntaxErrorMessage("defglobal");
+      SyntaxErrorMessage(theEnv,"defglobal");
       *defglobalError = TRUE;
       return(FALSE);
      }
    else if (theToken->type != GBL_VARIABLE)
      {
-      SyntaxErrorMessage("defglobal");
+      SyntaxErrorMessage(theEnv,"defglobal");
       *defglobalError = TRUE;
       return(FALSE);
      }
 
    variableName = (SYMBOL_HN *) theToken->value;
 
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 
    /*================================*/
    /* Print out compilation message. */
    /*================================*/
 
 #if DEBUGGING_FUNCTIONS
-   if ((GetWatchItem("compilations") == ON) && GetPrintWhileLoading())
+   if ((EnvGetWatchItem(theEnv,"compilations") == ON) && GetPrintWhileLoading(theEnv))
      {
-      if (QFindDefglobal(variableName) != NULL) PrintRouter(WDIALOG,"Redefining defglobal: ?");
-      else PrintRouter(WDIALOG,"Defining defglobal: ");
-      PrintRouter(WDIALOG,ValueToString(variableName));
-      PrintRouter(WDIALOG,"\n");
+      if (QFindDefglobal(theEnv,variableName) != NULL) 
+        {
+         PrintWarningID(theEnv,"CSTRCPSR",1,TRUE);
+         EnvPrintRouter(theEnv,WDIALOG,"Redefining defglobal: ");
+        }
+      else EnvPrintRouter(theEnv,WDIALOG,"Defining defglobal: ");
+      EnvPrintRouter(theEnv,WDIALOG,ValueToString(variableName));
+      EnvPrintRouter(theEnv,WDIALOG,"\n");
      }
    else
 #endif
-     { if (GetPrintWhileLoading()) PrintRouter(WDIALOG,":"); }
+     { if (GetPrintWhileLoading(theEnv)) EnvPrintRouter(theEnv,WDIALOG,":"); }
 
    /*==================================================================*/
    /* Check for import/export conflicts from the construct definition. */
    /*==================================================================*/
 
 #if DEFMODULE_CONSTRUCT
-   if (FindImportExportConflict("defglobal",((struct defmodule *) GetCurrentModule()),ValueToString(variableName)))
+   if (FindImportExportConflict(theEnv,"defglobal",((struct defmodule *) EnvGetCurrentModule(theEnv)),ValueToString(variableName)))
      {
-      ImportExportConflictMessage("defglobal",ValueToString(variableName),NULL,NULL);
+      ImportExportConflictMessage(theEnv,"defglobal",ValueToString(variableName),NULL,NULL);
       *defglobalError = TRUE;
       return(FALSE);
      }
@@ -255,21 +265,21 @@ static BOOLEAN GetVariableDefinition(
    /* The next token must be an =. */
    /*==============================*/
 
-   GetToken(readSource,theToken);
+   GetToken(theEnv,readSource,theToken);
    if (strcmp(theToken->printForm,"=") != 0)
      {
-      SyntaxErrorMessage("defglobal");
+      SyntaxErrorMessage(theEnv,"defglobal");
       *defglobalError = TRUE;
       return(FALSE);
      }
 
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 
    /*======================================================*/
    /* Parse the expression to be assigned to the variable. */
    /*======================================================*/
 
-   assignPtr = ParseAtomOrExpression(readSource,NULL);
+   assignPtr = ParseAtomOrExpression(theEnv,readSource,NULL);
    if (assignPtr == NULL)
      {
       *defglobalError = TRUE;
@@ -280,27 +290,27 @@ static BOOLEAN GetVariableDefinition(
    /* Evaluate the expression. */
    /*==========================*/
 
-   if (! CheckSyntaxMode)
+   if (! ConstructData(theEnv)->CheckSyntaxMode)
      {
-      SetEvaluationError(FALSE);
-      if (EvaluateExpression(assignPtr,&assignValue))
+      SetEvaluationError(theEnv,FALSE);
+      if (EvaluateExpression(theEnv,assignPtr,&assignValue))
         {
-         ReturnExpression(assignPtr);
+         ReturnExpression(theEnv,assignPtr);
          *defglobalError = TRUE;
          return(FALSE);
         }
      }
    else
-     { ReturnExpression(assignPtr); }
+     { ReturnExpression(theEnv,assignPtr); }
 
-   SavePPBuffer(")");
+   SavePPBuffer(theEnv,")");
 
    /*======================================*/
    /* Add the variable to the global list. */
    /*======================================*/
 
-   if (! CheckSyntaxMode)
-     { AddDefglobal(variableName,&assignValue,assignPtr); }
+   if (! ConstructData(theEnv)->CheckSyntaxMode)
+     { AddDefglobal(theEnv,variableName,&assignValue,assignPtr); }
 
    /*==================================================*/
    /* Return TRUE to indicate that the global variable */
@@ -314,12 +324,13 @@ static BOOLEAN GetVariableDefinition(
 /* AddDefglobal: Adds a defglobal to the current module. */
 /*********************************************************/
 static void AddDefglobal(
+  void *theEnv,
   SYMBOL_HN *name,
   DATA_OBJECT_PTR vPtr,
   struct expr *ePtr)
   {
    struct defglobal *defglobalPtr;
-   BOOLEAN newGlobal = FALSE;
+   intBool newGlobal = FALSE;
 #if DEBUGGING_FUNCTIONS
    int GlobalHadWatch = FALSE;
 #endif
@@ -330,15 +341,15 @@ static void AddDefglobal(
    /* been defined, then create a new data structure.        */
    /*========================================================*/
 
-   defglobalPtr = QFindDefglobal(name);
+   defglobalPtr = QFindDefglobal(theEnv,name);
    if (defglobalPtr == NULL)
      {
       newGlobal = TRUE;
-      defglobalPtr = get_struct(defglobal);
+      defglobalPtr = get_struct(theEnv,defglobal);
      }
    else
      {
-      DeinstallConstructHeader(&defglobalPtr->header);
+      DeinstallConstructHeader(theEnv,&defglobalPtr->header);
 #if DEBUGGING_FUNCTIONS
       GlobalHadWatch = defglobalPtr->watch;
 #endif
@@ -350,11 +361,11 @@ static void AddDefglobal(
 
    if (newGlobal == FALSE)
      {
-      ValueDeinstall(&defglobalPtr->current);
+      ValueDeinstall(theEnv,&defglobalPtr->current);
       if (defglobalPtr->current.type == MULTIFIELD)
-        { ReturnMultifield((struct multifield *) defglobalPtr->current.value); }
+        { ReturnMultifield(theEnv,(struct multifield *) defglobalPtr->current.value); }
 
-      RemoveHashedExpression(defglobalPtr->initial);
+      RemoveHashedExpression(theEnv,defglobalPtr->initial);
      }
 
    /*=======================================*/
@@ -363,12 +374,12 @@ static void AddDefglobal(
 
    defglobalPtr->current.type = vPtr->type;
    if (vPtr->type != MULTIFIELD) defglobalPtr->current.value = vPtr->value;
-   else DuplicateMultifield(&defglobalPtr->current,vPtr);
-   ValueInstall(&defglobalPtr->current);
+   else DuplicateMultifield(theEnv,&defglobalPtr->current,vPtr);
+   ValueInstall(theEnv,&defglobalPtr->current);
 
-   defglobalPtr->initial = AddHashedExpression(ePtr);
-   ReturnExpression(ePtr);
-   ChangeToGlobals = TRUE;
+   defglobalPtr->initial = AddHashedExpression(theEnv,ePtr);
+   ReturnExpression(theEnv,ePtr);
+   DefglobalData(theEnv)->ChangeToGlobals = TRUE;
 
    /*=================================*/
    /* Restore the old watch value to  */
@@ -387,11 +398,11 @@ static void AddDefglobal(
    defglobalPtr->header.usrData = NULL;
    IncrementSymbolCount(name);
 
-   SavePPBuffer("\n");
-   if (GetConserveMemory() == TRUE)
+   SavePPBuffer(theEnv,"\n");
+   if (EnvGetConserveMemory(theEnv) == TRUE)
      { defglobalPtr->header.ppForm = NULL; }
    else
-     { defglobalPtr->header.ppForm = CopyPPBuffer(); }
+     { defglobalPtr->header.ppForm = CopyPPBuffer(theEnv); }
 
    defglobalPtr->inScope = TRUE;
 
@@ -407,7 +418,7 @@ static void AddDefglobal(
 
    defglobalPtr->busyCount = 0;
    defglobalPtr->header.whichModule = (struct defmoduleItemHeader *)
-                               GetModuleItem(NULL,FindModuleItem("defglobal")->moduleIndex);
+                               GetModuleItem(theEnv,NULL,FindModuleItem(theEnv,"defglobal")->moduleIndex);
 
    /*=============================================*/
    /* Add the defglobal to the list of defglobals */
@@ -422,7 +433,8 @@ static void AddDefglobal(
 /*   expression with the appropriate primitive data type which   */
 /*   can later be used to retrieve the global variable's value.  */
 /*****************************************************************/
-globle BOOLEAN ReplaceGlobalVariable(
+globle intBool ReplaceGlobalVariable(
+  void *theEnv,
   struct expr *ePtr)
   {
    struct defglobal *theGlobal;
@@ -433,7 +445,7 @@ globle BOOLEAN ReplaceGlobalVariable(
    /*=================================*/
 
    theGlobal = (struct defglobal *)
-               FindImportedConstruct("defglobal",NULL,ValueToString(ePtr->value),
+               FindImportedConstruct(theEnv,"defglobal",NULL,ValueToString(ePtr->value),
                                      &count,TRUE,NULL);
 
    /*=============================================*/
@@ -442,7 +454,7 @@ globle BOOLEAN ReplaceGlobalVariable(
 
    if (theGlobal == NULL)
      {
-      GlobalReferenceErrorMessage(ValueToString(ePtr->value));
+      GlobalReferenceErrorMessage(theEnv,ValueToString(ePtr->value));
       return(FALSE);
      }
 
@@ -454,7 +466,7 @@ globle BOOLEAN ReplaceGlobalVariable(
 
    if (count > 1)
      {
-      AmbiguousReferenceErrorMessage("defglobal",ValueToString(ePtr->value));
+      AmbiguousReferenceErrorMessage(theEnv,"defglobal",ValueToString(ePtr->value));
       return(FALSE);
      }
 
@@ -474,12 +486,13 @@ globle BOOLEAN ReplaceGlobalVariable(
 /*   symbolic reference to a global variable cannot be resolved. */
 /*****************************************************************/
 globle void GlobalReferenceErrorMessage(
+  void *theEnv,
   char *variableName)
   {
-   PrintErrorID("GLOBLPSR",1,TRUE);
-   PrintRouter(WERROR,"\nGlobal variable ?*");
-   PrintRouter(WERROR,variableName);
-   PrintRouter(WERROR,"* was referenced, but is not defined.\n");
+   PrintErrorID(theEnv,"GLOBLPSR",1,TRUE);
+   EnvPrintRouter(theEnv,WERROR,"\nGlobal variable ?*");
+   EnvPrintRouter(theEnv,WERROR,variableName);
+   EnvPrintRouter(theEnv,WERROR,"* was referenced, but is not defined.\n");
   }
 
 #endif /* (! RUN_TIME) && (! BLOAD_ONLY) */

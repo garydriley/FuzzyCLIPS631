@@ -1,9 +1,7 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/prcdrpsr.c,v 1.3 2001/08/11 21:07:28 dave Exp $" ;
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.05  04/09/97            */
+   /*             CLIPS Version 6.24  06/05/06            */
    /*                                                     */
    /*          PROCEDURAL FUNCTIONS PARSER MODULE         */
    /*******************************************************/
@@ -18,6 +16,11 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/prcdrpsr.c,v 1.3 2001/08/1
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*      6.23: Changed name of variable exp to theExp         */
+/*            because of Unix compiler warnings of shadowed  */
+/*            definitions.                                   */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*************************************************************/
 
@@ -28,18 +31,19 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/prcdrpsr.c,v 1.3 2001/08/1
 
 #include "setup.h"
 
-#include "memalloc.h"
-#include "router.h"
 #include "argacces.h"
 #include "constrnt.h"
 #include "cstrnchk.h"
 #include "cstrnops.h"
-#include "multifld.h"
+#include "cstrnutl.h"
+#include "envrnmnt.h"
 #include "exprnpsr.h"
+#include "memalloc.h"
+#include "modulutl.h"
+#include "multifld.h"
+#include "router.h"
 #include "scanner.h"
 #include "utility.h"
-#include "modulutl.h"
-#include "cstrnutl.h"
 
 #include "prcdrpsr.h"
 
@@ -48,88 +52,98 @@ static char rcsid[] = "$Header: /dist/CVS/fzclips/src/prcdrpsr.c,v 1.3 2001/08/1
 #include "globlpsr.h"
 #endif
 
+#if ! RUN_TIME
+#define PRCDRPSR_DATA 12
+
+struct procedureParserData
+  { 
+   struct BindInfo *ListOfParsedBindNames;
+  };
+
+#define ProcedureParserData(theEnv) ((struct procedureParserData *) GetEnvironmentData(theEnv,PRCDRPSR_DATA))
+#endif
+
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   static struct expr            *WhileParse(struct expr *,char *);
-   static struct expr            *LoopForCountParse(struct expr *,char *);
-   static void                    ReplaceLoopCountVars(SYMBOL_HN *,EXPRESSION *,int);
-   static struct expr            *IfParse(struct expr *,char *);
-   static struct expr            *PrognParse(struct expr *,char *);
-   static struct expr            *BindParse(struct expr *,char *);
-   static int                     AddBindName(struct symbolHashNode *,CONSTRAINT_RECORD *);
-   static struct expr            *ReturnParse(struct expr *,char *);
-   static struct expr            *BreakParse(struct expr *,char *);
-   static struct expr            *SwitchParse(struct expr *,char *);
-#endif
-
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-
-#if (! RUN_TIME)
-   static struct BindInfo   *ListOfParsedBindNames;
+   static struct expr            *WhileParse(void *,struct expr *,char *);
+   static struct expr            *LoopForCountParse(void *,struct expr *,char *);
+   static void                    ReplaceLoopCountVars(void *,SYMBOL_HN *,EXPRESSION *,int);
+   static struct expr            *IfParse(void *,struct expr *,char *);
+   static struct expr            *PrognParse(void *,struct expr *,char *);
+   static struct expr            *BindParse(void *,struct expr *,char *);
+   static int                     AddBindName(void *,struct symbolHashNode *,CONSTRAINT_RECORD *);
+   static struct expr            *ReturnParse(void *,struct expr *,char *);
+   static struct expr            *BreakParse(void *,struct expr *,char *);
+   static struct expr            *SwitchParse(void *,struct expr *,char *);
 #endif
 
 #if ! RUN_TIME
 /*******************************************/
 /* ProceduralFunctionParsers        */
 /*******************************************/
-globle void ProceduralFunctionParsers()
+globle void ProceduralFunctionParsers(
+  void *theEnv)
   {
+   AllocateEnvironmentData(theEnv,PRCDRPSR_DATA,sizeof(struct procedureParserData),NULL);
+
 #if (! BLOAD_ONLY)
-   AddFunctionParser("bind",BindParse);
-   AddFunctionParser("progn",PrognParse);
-   AddFunctionParser("if",IfParse);
-   AddFunctionParser("while",WhileParse);
-   AddFunctionParser("loop-for-count",LoopForCountParse);
-   AddFunctionParser("return",ReturnParse);
-   AddFunctionParser("break",BreakParse);
-   AddFunctionParser("switch",SwitchParse);
+   AddFunctionParser(theEnv,"bind",BindParse);
+   AddFunctionParser(theEnv,"progn",PrognParse);
+   AddFunctionParser(theEnv,"if",IfParse);
+   AddFunctionParser(theEnv,"while",WhileParse);
+   AddFunctionParser(theEnv,"loop-for-count",LoopForCountParse);
+   AddFunctionParser(theEnv,"return",ReturnParse);
+   AddFunctionParser(theEnv,"break",BreakParse);
+   AddFunctionParser(theEnv,"switch",SwitchParse);
 #endif
   }
 
 /********************************************************/
 /* GetParsedBindNames:                                      */
 /********************************************************/
-globle struct BindInfo *GetParsedBindNames()
+globle struct BindInfo *GetParsedBindNames(
+  void *theEnv)
   {
-   return(ListOfParsedBindNames);
+   return(ProcedureParserData(theEnv)->ListOfParsedBindNames);
   }
 
 /********************************************************/
 /* SetParsedBindNames:                                      */
 /********************************************************/
 globle void SetParsedBindNames(
+  void *theEnv,
   struct BindInfo *newValue)
   {
-   ListOfParsedBindNames = newValue;
+   ProcedureParserData(theEnv)->ListOfParsedBindNames = newValue;
   }
 
 /********************************************************/
 /* ClearParsedBindNames:                                     */
 /********************************************************/
-globle void ClearParsedBindNames()
+globle void ClearParsedBindNames(
+  void *theEnv)
   {
    struct BindInfo *temp_bind;
 
-   while (ListOfParsedBindNames != NULL)
+   while (ProcedureParserData(theEnv)->ListOfParsedBindNames != NULL)
      {
-      temp_bind = ListOfParsedBindNames->next;
-      RemoveConstraint(ListOfParsedBindNames->constraints);
-      rtn_struct(BindInfo,ListOfParsedBindNames);
-      ListOfParsedBindNames = temp_bind;
+      temp_bind = ProcedureParserData(theEnv)->ListOfParsedBindNames->next;
+      RemoveConstraint(theEnv,ProcedureParserData(theEnv)->ListOfParsedBindNames->constraints);
+      rtn_struct(theEnv,BindInfo,ProcedureParserData(theEnv)->ListOfParsedBindNames);
+      ProcedureParserData(theEnv)->ListOfParsedBindNames = temp_bind;
      }
   }
 
 /********************************************************/
 /* ParsedBindNamesEmpty:                                     */
 /********************************************************/
-globle BOOLEAN ParsedBindNamesEmpty()
+globle intBool ParsedBindNamesEmpty(
+  void *theEnv)
   {
-   if (ListOfParsedBindNames != NULL) return(FALSE);
+   if (ProcedureParserData(theEnv)->ListOfParsedBindNames != NULL) return(FALSE);
 
    return(TRUE);
   }
@@ -142,6 +156,7 @@ globle BOOLEAN ParsedBindNamesEmpty()
 /*   Syntax: (while <expression> do <action>+)           */
 /*********************************************************/
 static struct expr *WhileParse(
+  void *theEnv,
   struct expr *parse,
   char *infile)
   {
@@ -152,12 +167,12 @@ static struct expr *WhileParse(
    /* Process the while expression. */
    /*===============================*/
 
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 
-   parse->argList = ParseAtomOrExpression(infile,NULL);
+   parse->argList = ParseAtomOrExpression(theEnv,infile,NULL);
    if (parse->argList == NULL)
      {
-      ReturnExpression(parse);
+      ReturnExpression(theEnv,parse);
       return(NULL);
      }
 
@@ -165,47 +180,47 @@ static struct expr *WhileParse(
    /* Process the do keyword if present. */
    /*====================================*/
 
-   GetToken(infile,&theToken);
+   GetToken(theEnv,infile,&theToken);
    if ((theToken.type == SYMBOL) && (strcmp(ValueToString(theToken.value),"do") == 0))
      {
       read_first_paren = TRUE;
-      PPBackup();
-      SavePPBuffer(" ");
-      SavePPBuffer(theToken.printForm);
-      IncrementIndentDepth(3);
-      PPCRAndIndent();
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv," ");
+      SavePPBuffer(theEnv,theToken.printForm);
+      IncrementIndentDepth(theEnv,3);
+      PPCRAndIndent(theEnv);
      }
    else if (theToken.type == LPAREN)
      {
       read_first_paren = FALSE;
-      PPBackup();
-      IncrementIndentDepth(3);
-      PPCRAndIndent();
-      SavePPBuffer(theToken.printForm);
+      PPBackup(theEnv);
+      IncrementIndentDepth(theEnv,3);
+      PPCRAndIndent(theEnv);
+      SavePPBuffer(theEnv,theToken.printForm);
      }
    else
      {
-      SyntaxErrorMessage("while function");
-      ReturnExpression(parse);
+      SyntaxErrorMessage(theEnv,"while function");
+      ReturnExpression(theEnv,parse);
       return(NULL);
      }
 
    /*============================*/
    /* Process the while actions. */
    /*============================*/
-   if (svContexts->rtn == TRUE)
-     ReturnContext = TRUE;
-   BreakContext = TRUE;
-   parse->argList->nextArg = GroupActions(infile,&theToken,read_first_paren,NULL,FALSE);
+   if (ExpressionData(theEnv)->svContexts->rtn == TRUE)
+     ExpressionData(theEnv)->ReturnContext = TRUE;
+   ExpressionData(theEnv)->BreakContext = TRUE;
+   parse->argList->nextArg = GroupActions(theEnv,infile,&theToken,read_first_paren,NULL,FALSE);
 
    if (parse->argList->nextArg == NULL)
      {
-      ReturnExpression(parse);
+      ReturnExpression(theEnv,parse);
       return(NULL);
      }
-   PPBackup();
-   PPBackup();
-   SavePPBuffer(theToken.printForm);
+   PPBackup(theEnv);
+   PPBackup(theEnv);
+   SavePPBuffer(theEnv,theToken.printForm);
 
    /*=======================================================*/
    /* Check for the closing right parenthesis of the while. */
@@ -213,12 +228,12 @@ static struct expr *WhileParse(
 
    if (theToken.type != RPAREN)
      {
-      SyntaxErrorMessage("while function");
-      ReturnExpression(parse);
+      SyntaxErrorMessage(theEnv,"while function");
+      ReturnExpression(theEnv,parse);
       return(NULL);
      }
 
-   DecrementIndentDepth(3);
+   DecrementIndentDepth(theEnv,3);
 
    return(parse);
   }
@@ -230,6 +245,7 @@ static struct expr *WhileParse(
 /*           <range> ::= (<sf-var> [<start-integer-expression>] <end-integer-expression>) */
 /******************************************************************************************/
 static struct expr *LoopForCountParse(
+  void *theEnv,
   struct expr *parse,
   char *infile)
   {
@@ -243,34 +259,34 @@ static struct expr *LoopForCountParse(
    /* Process the loop counter expression. */
    /*======================================*/
 
-   SavePPBuffer(" ");
-   GetToken(infile,&theToken);
+   SavePPBuffer(theEnv," ");
+   GetToken(theEnv,infile,&theToken);
 
    /* ==========================================
       Simple form: loop-for-count <end> [do] ...
       ========================================== */
    if (theToken.type != LPAREN)
      {
-      parse->argList = GenConstant(INTEGER,AddLong(1L));
-      parse->argList->nextArg = ParseAtomOrExpression(infile,&theToken);
+      parse->argList = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,1L));
+      parse->argList->nextArg = ParseAtomOrExpression(theEnv,infile,&theToken);
       if (parse->argList->nextArg == NULL)
         {
-         ReturnExpression(parse);
+         ReturnExpression(theEnv,parse);
          return(NULL);
         }
      }
    else
      {
-      GetToken(infile,&theToken);
+      GetToken(theEnv,infile,&theToken);
       if (theToken.type != SF_VARIABLE)
         {
          if (theToken.type != SYMBOL)
            goto LoopForCountParseError;
-         parse->argList = GenConstant(INTEGER,AddLong(1L));
-         parse->argList->nextArg = Function2Parse(infile,ValueToString(theToken.value));
+         parse->argList = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,1L));
+         parse->argList->nextArg = Function2Parse(theEnv,infile,ValueToString(theToken.value));
          if (parse->argList->nextArg == NULL)
            {
-            ReturnExpression(parse);
+            ReturnExpression(theEnv,parse);
             return(NULL);
            }
         }
@@ -281,66 +297,66 @@ static struct expr *LoopForCountParse(
       else
         {
          loopVar = (SYMBOL_HN *) theToken.value;
-         SavePPBuffer(" ");
-         parse->argList = ParseAtomOrExpression(infile,NULL);
+         SavePPBuffer(theEnv," ");
+         parse->argList = ParseAtomOrExpression(theEnv,infile,NULL);
          if (parse->argList == NULL)
            {
-            ReturnExpression(parse);
+            ReturnExpression(theEnv,parse);
             return(NULL);
            }
-         if (CheckArgumentAgainstRestriction(parse->argList,(int) 'i'))
+         if (CheckArgumentAgainstRestriction(theEnv,parse->argList,(int) 'i'))
            goto LoopForCountParseError;
-         SavePPBuffer(" ");
-         GetToken(infile,&theToken);
+         SavePPBuffer(theEnv," ");
+         GetToken(theEnv,infile,&theToken);
          if (theToken.type == RPAREN)
            {
-            PPBackup();
-            PPBackup();
-            SavePPBuffer(theToken.printForm);
-            tmpexp = GenConstant(INTEGER,AddLong(1L));
+            PPBackup(theEnv);
+            PPBackup(theEnv);
+            SavePPBuffer(theEnv,theToken.printForm);
+            tmpexp = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,1L));
             tmpexp->nextArg = parse->argList;
             parse->argList = tmpexp;
            }
          else
           {
-            parse->argList->nextArg = ParseAtomOrExpression(infile,&theToken);
+            parse->argList->nextArg = ParseAtomOrExpression(theEnv,infile,&theToken);
             if (parse->argList->nextArg == NULL)
               {
-               ReturnExpression(parse);
+               ReturnExpression(theEnv,parse);
                return(NULL);
               }
-            GetToken(infile,&theToken);
+            GetToken(theEnv,infile,&theToken);
             if (theToken.type != RPAREN)
               goto LoopForCountParseError;
            }
-         SavePPBuffer(" ");
+         SavePPBuffer(theEnv," ");
         }
      }
 
-   if (CheckArgumentAgainstRestriction(parse->argList->nextArg,(int) 'i'))
+   if (CheckArgumentAgainstRestriction(theEnv,parse->argList->nextArg,(int) 'i'))
      goto LoopForCountParseError;
 
    /*====================================*/
    /* Process the do keyword if present. */
    /*====================================*/
 
-   GetToken(infile,&theToken);
+   GetToken(theEnv,infile,&theToken);
    if ((theToken.type == SYMBOL) && (strcmp(ValueToString(theToken.value),"do") == 0))
      {
       read_first_paren = TRUE;
-      PPBackup();
-      SavePPBuffer(" ");
-      SavePPBuffer(theToken.printForm);
-      IncrementIndentDepth(3);
-      PPCRAndIndent();
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv," ");
+      SavePPBuffer(theEnv,theToken.printForm);
+      IncrementIndentDepth(theEnv,3);
+      PPCRAndIndent(theEnv);
      }
    else if (theToken.type == LPAREN)
      {
       read_first_paren = FALSE;
-      PPBackup();
-      IncrementIndentDepth(3);
-      PPCRAndIndent();
-      SavePPBuffer(theToken.printForm);
+      PPBackup(theEnv);
+      IncrementIndentDepth(theEnv,3);
+      PPCRAndIndent(theEnv);
+      SavePPBuffer(theEnv,theToken.printForm);
      }
    else
      goto LoopForCountParseError;
@@ -348,46 +364,46 @@ static struct expr *LoopForCountParse(
    /*=====================================*/
    /* Process the loop-for-count actions. */
    /*=====================================*/
-   if (svContexts->rtn == TRUE)
-     ReturnContext = TRUE;
-   BreakContext = TRUE;
-   oldBindList = GetParsedBindNames();
-   SetParsedBindNames(NULL);
+   if (ExpressionData(theEnv)->svContexts->rtn == TRUE)
+     ExpressionData(theEnv)->ReturnContext = TRUE;
+   ExpressionData(theEnv)->BreakContext = TRUE;
+   oldBindList = GetParsedBindNames(theEnv);
+   SetParsedBindNames(theEnv,NULL);
    parse->argList->nextArg->nextArg =
-      GroupActions(infile,&theToken,read_first_paren,NULL,FALSE);
+      GroupActions(theEnv,infile,&theToken,read_first_paren,NULL,FALSE);
 
    if (parse->argList->nextArg->nextArg == NULL)
      {
-      SetParsedBindNames(oldBindList);
-      ReturnExpression(parse);
+      SetParsedBindNames(theEnv,oldBindList);
+      ReturnExpression(theEnv,parse);
       return(NULL);
      }
-   newBindList = GetParsedBindNames();
+   newBindList = GetParsedBindNames(theEnv);
    prev = NULL;
    while (newBindList != NULL)
      {
       if ((loopVar == NULL) ? FALSE :
           (strcmp(ValueToString(newBindList->name),ValueToString(loopVar)) == 0))
         {
-         ClearParsedBindNames();
-         SetParsedBindNames(oldBindList);
-         PrintErrorID("PRCDRPSR",1,TRUE);
-         PrintRouter(WERROR,"Cannot rebind loop variable in function loop-for-count.\n");
-         ReturnExpression(parse);
+         ClearParsedBindNames(theEnv);
+         SetParsedBindNames(theEnv,oldBindList);
+         PrintErrorID(theEnv,"PRCDRPSR",1,TRUE);
+         EnvPrintRouter(theEnv,WERROR,"Cannot rebind loop variable in function loop-for-count.\n");
+         ReturnExpression(theEnv,parse);
          return(NULL);
         }
       prev = newBindList;
       newBindList = newBindList->next;
      }
    if (prev == NULL)
-     SetParsedBindNames(oldBindList);
+     SetParsedBindNames(theEnv,oldBindList);
    else
      prev->next = oldBindList;
    if (loopVar != NULL)
-     ReplaceLoopCountVars(loopVar,parse->argList->nextArg->nextArg,0);
-   PPBackup();
-   PPBackup();
-   SavePPBuffer(theToken.printForm);
+     ReplaceLoopCountVars(theEnv,loopVar,parse->argList->nextArg->nextArg,0);
+   PPBackup(theEnv);
+   PPBackup(theEnv);
+   SavePPBuffer(theEnv,theToken.printForm);
 
    /*================================================================*/
    /* Check for the closing right parenthesis of the loop-for-count. */
@@ -395,18 +411,18 @@ static struct expr *LoopForCountParse(
 
    if (theToken.type != RPAREN)
      {
-      SyntaxErrorMessage("loop-for-count function");
-      ReturnExpression(parse);
+      SyntaxErrorMessage(theEnv,"loop-for-count function");
+      ReturnExpression(theEnv,parse);
       return(NULL);
      }
 
-   DecrementIndentDepth(3);
+   DecrementIndentDepth(theEnv,3);
 
    return(parse);
 
 LoopForCountParseError:
-   SyntaxErrorMessage("loop-for-count function");
-   ReturnExpression(parse);
+   SyntaxErrorMessage(theEnv,"loop-for-count function");
+   ReturnExpression(theEnv,parse);
    return(NULL);
   }
 
@@ -414,28 +430,29 @@ LoopForCountParseError:
 /* ReplaceLoopCountVars                            */
 /***************************************************/
 static void ReplaceLoopCountVars(
+  void *theEnv,
   SYMBOL_HN *loopVar,
-  EXPRESSION *exp,
+  EXPRESSION *theExp,
   int depth)
   {
-   while (exp != NULL)
+   while (theExp != NULL)
      {
-      if ((exp->type != SF_VARIABLE) ? FALSE :
-          (strcmp(ValueToString(exp->value),ValueToString(loopVar)) == 0))
+      if ((theExp->type != SF_VARIABLE) ? FALSE :
+          (strcmp(ValueToString(theExp->value),ValueToString(loopVar)) == 0))
         {
-         exp->type = FCALL;
-         exp->value = (void *) FindFunction("(get-loop-count)");
-         exp->argList = GenConstant(INTEGER,AddLong((long) depth));
+         theExp->type = FCALL;
+         theExp->value = (void *) FindFunction(theEnv,"(get-loop-count)");
+         theExp->argList = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,(long) depth));
         }
-      else if (exp->argList != NULL)
+      else if (theExp->argList != NULL)
         {
-         if ((exp->type != FCALL) ? FALSE :
-             (exp->value == (void *) FindFunction("loop-for-count")))
-           ReplaceLoopCountVars(loopVar,exp->argList,depth+1);
+         if ((theExp->type != FCALL) ? FALSE :
+             (theExp->value == (void *) FindFunction(theEnv,"loop-for-count")))
+           ReplaceLoopCountVars(theEnv,loopVar,theExp->argList,depth+1);
          else
-           ReplaceLoopCountVars(loopVar,exp->argList,depth);
+           ReplaceLoopCountVars(theEnv,loopVar,theExp->argList,depth);
         }
-      exp = exp->nextArg;
+      theExp = theExp->nextArg;
      }
   }
 
@@ -446,6 +463,7 @@ static void ReplaceLoopCountVars(
 /*               [ else <action>+ ] )                    */
 /*********************************************************/
 static struct expr *IfParse(
+  void *theEnv,
   struct expr *top,
   char *infile)
   {
@@ -455,13 +473,13 @@ static struct expr *IfParse(
    /* Process the if expression. */
    /*============================*/
 
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 
-   top->argList = ParseAtomOrExpression(infile,NULL);
+   top->argList = ParseAtomOrExpression(theEnv,infile,NULL);
 
    if (top->argList == NULL)
      {
-      ReturnExpression(top);
+      ReturnExpression(theEnv,top);
       return(NULL);
      }
 
@@ -469,14 +487,14 @@ static struct expr *IfParse(
    /* Keyword 'then' must follow expression. */
    /*========================================*/
 
-   IncrementIndentDepth(3);
-   PPCRAndIndent();
+   IncrementIndentDepth(theEnv,3);
+   PPCRAndIndent(theEnv);
 
-   GetToken(infile,&theToken);
+   GetToken(theEnv,infile,&theToken);
    if ((theToken.type != SYMBOL) || (strcmp(ValueToString(theToken.value),"then") != 0))
      {
-      SyntaxErrorMessage("if function");
-      ReturnExpression(top);
+      SyntaxErrorMessage(theEnv,"if function");
+      ReturnExpression(theEnv,top);
       return(NULL);
      }
 
@@ -484,18 +502,20 @@ static struct expr *IfParse(
    /* Process the if then actions. */
    /*==============================*/
 
-   PPCRAndIndent();
-   if (svContexts->rtn == TRUE)
-     ReturnContext = TRUE;
-   if (svContexts->brk == TRUE)
-     BreakContext = TRUE;
-   top->argList->nextArg = GroupActions(infile,&theToken,TRUE,"else",FALSE);
+   PPCRAndIndent(theEnv);
+   if (ExpressionData(theEnv)->svContexts->rtn == TRUE)
+     ExpressionData(theEnv)->ReturnContext = TRUE;
+   if (ExpressionData(theEnv)->svContexts->brk == TRUE)
+     ExpressionData(theEnv)->BreakContext = TRUE;
+   top->argList->nextArg = GroupActions(theEnv,infile,&theToken,TRUE,"else",FALSE);
 
    if (top->argList->nextArg == NULL)
      {
-      ReturnExpression(top);
+      ReturnExpression(theEnv,top);
       return(NULL);
      }
+
+   top->argList->nextArg = RemoveUnneededProgn(theEnv,top->argList->nextArg);
 
    /*===========================================*/
    /* A ')' signals an if then without an else. */
@@ -503,10 +523,10 @@ static struct expr *IfParse(
 
    if (theToken.type == RPAREN)
      {
-      DecrementIndentDepth(3);
-      PPBackup();
-      PPBackup();
-      SavePPBuffer(theToken.printForm);
+      DecrementIndentDepth(theEnv,3);
+      PPBackup(theEnv);
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv,theToken.printForm);
       return(top);
      }
 
@@ -516,8 +536,8 @@ static struct expr *IfParse(
 
    if ((theToken.type != SYMBOL) || (strcmp(ValueToString(theToken.value),"else") != 0))
      {
-      SyntaxErrorMessage("if function");
-      ReturnExpression(top);
+      SyntaxErrorMessage(theEnv,"if function");
+      ReturnExpression(theEnv,top);
       return(NULL);
      }
 
@@ -525,14 +545,16 @@ static struct expr *IfParse(
    /* Process the if else actions. */
    /*==============================*/
 
-   PPCRAndIndent();
-   top->argList->nextArg->nextArg = GroupActions(infile,&theToken,TRUE,NULL,FALSE);
+   PPCRAndIndent(theEnv);
+   top->argList->nextArg->nextArg = GroupActions(theEnv,infile,&theToken,TRUE,NULL,FALSE);
 
    if (top->argList->nextArg->nextArg == NULL)
      {
-      ReturnExpression(top);
+      ReturnExpression(theEnv,top);
       return(NULL);
      }
+
+   top->argList->nextArg->nextArg = RemoveUnneededProgn(theEnv,top->argList->nextArg->nextArg);
 
    /*======================================================*/
    /* Check for the closing right parenthesis of the if. */
@@ -540,8 +562,8 @@ static struct expr *IfParse(
 
    if (theToken.type != RPAREN)
      {
-      SyntaxErrorMessage("if function");
-      ReturnExpression(top);
+      SyntaxErrorMessage(theEnv,"if function");
+      ReturnExpression(theEnv,top);
       return(NULL);
      }
 
@@ -549,10 +571,10 @@ static struct expr *IfParse(
    /* A ')' signals an if then without an else. */
    /*===========================================*/
 
-   PPBackup();
-   PPBackup();
-   SavePPBuffer(")");
-   DecrementIndentDepth(3);
+   PPBackup(theEnv);
+   PPBackup(theEnv);
+   SavePPBuffer(theEnv,")");
+   DecrementIndentDepth(theEnv,3);
    return(top);
   }
 
@@ -562,22 +584,23 @@ static struct expr *IfParse(
 /*   Syntax:  (progn <expression>*)                     */
 /********************************************************/
 static struct expr *PrognParse(
+  void *theEnv,
   struct expr *top,
   char *infile)
   {
    struct token tkn;
    struct expr *tmp;
 
-   ReturnExpression(top);
-   BreakContext = svContexts->brk;
-   ReturnContext = svContexts->rtn;
-   IncrementIndentDepth(3);
-   PPCRAndIndent();
-   tmp = GroupActions(infile,&tkn,TRUE,NULL,FALSE);
-   DecrementIndentDepth(3);
-   PPBackup();
-   PPBackup();
-   SavePPBuffer(tkn.printForm);
+   ReturnExpression(theEnv,top);
+   ExpressionData(theEnv)->BreakContext = ExpressionData(theEnv)->svContexts->brk;
+   ExpressionData(theEnv)->ReturnContext = ExpressionData(theEnv)->svContexts->rtn;
+   IncrementIndentDepth(theEnv,3);
+   PPCRAndIndent(theEnv);
+   tmp = GroupActions(theEnv,infile,&tkn,TRUE,NULL,FALSE);
+   DecrementIndentDepth(theEnv,3);
+   PPBackup(theEnv);
+   PPBackup(theEnv);
+   SavePPBuffer(theEnv,tkn.printForm);
    return(tmp);
   }
 
@@ -587,6 +610,7 @@ static struct expr *PrognParse(
 /*   Syntax:  (bind ?var <expression>)                     */
 /***********************************************************/
 static struct expr *BindParse(
+  void *theEnv,
   struct expr *top,
   char *infile)
   {
@@ -599,20 +623,20 @@ static struct expr *BindParse(
    int count;
 #endif
 
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 
    /*=============================================*/
    /* Next token must be the name of the variable */
    /* to be bound.                                */
    /*=============================================*/
 
-   GetToken(infile,&theToken);
+   GetToken(theEnv,infile,&theToken);
    if ((theToken.type != SF_VARIABLE) && (theToken.type != GBL_VARIABLE))
      {
-      if ((theToken.type != MF_VARIABLE) || SequenceOpMode)
+      if ((theToken.type != MF_VARIABLE) || ExpressionData(theEnv)->SequenceOpMode)
         {
-         SyntaxErrorMessage("bind function");
-         ReturnExpression(top);
+         SyntaxErrorMessage(theEnv,"bind function");
+         ReturnExpression(theEnv,top);
          return(NULL);
         }
      }
@@ -621,13 +645,13 @@ static struct expr *BindParse(
    /* Process the bind expression. */
    /*==============================*/
 
-   top->argList = GenConstant(SYMBOL,theToken.value);
+   top->argList = GenConstant(theEnv,SYMBOL,theToken.value);
    variableName = (SYMBOL_HN *) theToken.value;
 
 #if DEFGLOBAL_CONSTRUCT
    if ((theToken.type == GBL_VARIABLE) ?
        ((theGlobal = (struct defglobal *)
-                     FindImportedConstruct("defglobal",NULL,ValueToString(variableName),
+                     FindImportedConstruct(theEnv,"defglobal",NULL,ValueToString(variableName),
                                            &count,TRUE,FALSE)) != NULL) :
        FALSE)
      {
@@ -636,31 +660,31 @@ static struct expr *BindParse(
      }
    else if (theToken.type == GBL_VARIABLE)
      {
-      GlobalReferenceErrorMessage(ValueToString(variableName));
-      ReturnExpression(top);
+      GlobalReferenceErrorMessage(theEnv,ValueToString(variableName));
+      ReturnExpression(theEnv,top);
       return(NULL);
      }
 #endif
 
-   texp = get_struct(expr);
+   texp = get_struct(theEnv,expr);
    texp->argList = texp->nextArg = NULL;
-   if (CollectArguments(texp,infile) == NULL)
+   if (CollectArguments(theEnv,texp,infile) == NULL)
      {
-      ReturnExpression(top);
+      ReturnExpression(theEnv,top);
       return(NULL);
      }
 
    top->argList->nextArg = texp->argList;
-   rtn_struct(expr,texp);
+   rtn_struct(theEnv,expr,texp);
 
 #if DEFGLOBAL_CONSTRUCT
    if (top->argList->type == DEFGLOBAL_PTR) return(top);
 #endif
 
    if (top->argList->nextArg != NULL)
-     { theConstraint = ExpressionToConstraintRecord(top->argList->nextArg); }
+     { theConstraint = ExpressionToConstraintRecord(theEnv,top->argList->nextArg); }
 
-   AddBindName(variableName,theConstraint);
+   AddBindName(theEnv,variableName,theConstraint);
 
    return(top);
   }
@@ -669,50 +693,51 @@ static struct expr *BindParse(
 /* ReturnParse: Parses the return function. */
 /********************************************/
 static struct expr *ReturnParse(
+  void *theEnv,
   struct expr *top,
   char *infile)
   {
    int error_flag = FALSE;
    struct token theToken;
 
-   if (svContexts->rtn == TRUE)
-     ReturnContext = TRUE;
-   if (ReturnContext == FALSE)
+   if (ExpressionData(theEnv)->svContexts->rtn == TRUE)
+     ExpressionData(theEnv)->ReturnContext = TRUE;
+   if (ExpressionData(theEnv)->ReturnContext == FALSE)
      {
-      PrintErrorID("PRCDRPSR",2,TRUE);
-      PrintRouter(WERROR,"The return function is not valid in this context.\n");
-      ReturnExpression(top);
+      PrintErrorID(theEnv,"PRCDRPSR",2,TRUE);
+      EnvPrintRouter(theEnv,WERROR,"The return function is not valid in this context.\n");
+      ReturnExpression(theEnv,top);
       return(NULL);
      }
-   ReturnContext = FALSE;
+   ExpressionData(theEnv)->ReturnContext = FALSE;
 
-   SavePPBuffer(" ");
+   SavePPBuffer(theEnv," ");
 
-   top->argList = ArgumentParse(infile,&error_flag);
+   top->argList = ArgumentParse(theEnv,infile,&error_flag);
    if (error_flag)
      {
-      ReturnExpression(top);
+      ReturnExpression(theEnv,top);
       return(NULL);
      }
    else if (top->argList == NULL)
      {
-      PPBackup();
-      PPBackup();
-      SavePPBuffer(")");
+      PPBackup(theEnv);
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv,")");
      }
    else
      {
-      SavePPBuffer(" ");
-      GetToken(infile,&theToken);
+      SavePPBuffer(theEnv," ");
+      GetToken(theEnv,infile,&theToken);
       if (theToken.type != RPAREN)
         {
-         SyntaxErrorMessage("return function");
-         ReturnExpression(top);
+         SyntaxErrorMessage(theEnv,"return function");
+         ReturnExpression(theEnv,top);
          return(NULL);
         }
-      PPBackup();
-      PPBackup();
-      SavePPBuffer(")");
+      PPBackup(theEnv);
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv,")");
      }
    return(top);
   }
@@ -721,30 +746,31 @@ static struct expr *ReturnParse(
 /* BreakParse:                                */
 /**********************************************/
 static struct expr *BreakParse(
+  void *theEnv,
   struct expr *top,
   char *infile)
   {
    struct token theToken;
 
-   if (svContexts->brk == FALSE)
+   if (ExpressionData(theEnv)->svContexts->brk == FALSE)
      {
-      PrintErrorID("PRCDRPSR",2,TRUE);
-      PrintRouter(WERROR,"The break function not valid in this context.\n");
-      ReturnExpression(top);
+      PrintErrorID(theEnv,"PRCDRPSR",2,TRUE);
+      EnvPrintRouter(theEnv,WERROR,"The break function not valid in this context.\n");
+      ReturnExpression(theEnv,top);
       return(NULL);
      }
 
-   SavePPBuffer(" ");
-   GetToken(infile,&theToken);
+   SavePPBuffer(theEnv," ");
+   GetToken(theEnv,infile,&theToken);
    if (theToken.type != RPAREN)
      {
-      SyntaxErrorMessage("break function");
-      ReturnExpression(top);
+      SyntaxErrorMessage(theEnv,"break function");
+      ReturnExpression(theEnv,top);
       return(NULL);
      }
-   PPBackup();
-   PPBackup();
-   SavePPBuffer(")");
+   PPBackup(theEnv);
+   PPBackup(theEnv);
+   SavePPBuffer(theEnv,")");
    return(top);
   }
 
@@ -752,101 +778,98 @@ static struct expr *BreakParse(
 /* SwitchParse:                               */
 /**********************************************/
 static struct expr *SwitchParse(
+  void *theEnv,
   struct expr *top,
   char *infile)
   {
    struct token theToken;
-   EXPRESSION *exp,*chk;
-   int case_count = 0,default_count = 0;
+   EXPRESSION *theExp,*chk;
+   int default_count = 0;
 
    /*============================*/
    /* Process the switch value   */
    /*============================*/
-   IncrementIndentDepth(3);
-   SavePPBuffer(" ");
-   top->argList = exp = ParseAtomOrExpression(infile,NULL);
-   if (exp == NULL)
+   IncrementIndentDepth(theEnv,3);
+   SavePPBuffer(theEnv," ");
+   top->argList = theExp = ParseAtomOrExpression(theEnv,infile,NULL);
+   if (theExp == NULL)
      goto SwitchParseError;
 
    /*========================*/
    /* Parse case statements. */
    /*========================*/
-   GetToken(infile,&theToken);
+   GetToken(theEnv,infile,&theToken);
    while (theToken.type != RPAREN)
      {
-      PPBackup();
-      PPCRAndIndent();
-      SavePPBuffer(theToken.printForm);
+      PPBackup(theEnv);
+      PPCRAndIndent(theEnv);
+      SavePPBuffer(theEnv,theToken.printForm);
       if (theToken.type != LPAREN)
         goto SwitchParseErrorAndMessage;
-      GetToken(infile,&theToken);
-      SavePPBuffer(" ");
+      GetToken(theEnv,infile,&theToken);
+      SavePPBuffer(theEnv," ");
       if ((theToken.type == SYMBOL) &&
           (strcmp(ValueToString(theToken.value),"case") == 0))
         {
          if (default_count != 0)
            goto SwitchParseErrorAndMessage;
-         exp->nextArg = ParseAtomOrExpression(infile,NULL);
-         SavePPBuffer(" ");
-         if (exp->nextArg == NULL)
+         theExp->nextArg = ParseAtomOrExpression(theEnv,infile,NULL);
+         SavePPBuffer(theEnv," ");
+         if (theExp->nextArg == NULL)
            goto SwitchParseError;
-         for (chk = top->argList->nextArg ; chk != exp->nextArg ; chk = chk->nextArg)
+         for (chk = top->argList->nextArg ; chk != theExp->nextArg ; chk = chk->nextArg)
            {
-            if ((chk->type == exp->nextArg->type) &&
-                (chk->value == exp->nextArg->value) &&
-                IdenticalExpression(chk->argList,exp->nextArg->argList))
+            if ((chk->type == theExp->nextArg->type) &&
+                (chk->value == theExp->nextArg->value) &&
+                IdenticalExpression(chk->argList,theExp->nextArg->argList))
               {
-               PrintErrorID("PRCDRPSR",3,TRUE);
-               PrintRouter(WERROR,"Duplicate case found in switch function.\n");
+               PrintErrorID(theEnv,"PRCDRPSR",3,TRUE);
+               EnvPrintRouter(theEnv,WERROR,"Duplicate case found in switch function.\n");
                goto SwitchParseError;
               }
            }
-         GetToken(infile,&theToken);
+         GetToken(theEnv,infile,&theToken);
          if ((theToken.type != SYMBOL) ? TRUE :
              (strcmp(ValueToString(theToken.value),"then") != 0))
            goto SwitchParseErrorAndMessage;
-         case_count++;
         }
       else if ((theToken.type == SYMBOL) &&
                (strcmp(ValueToString(theToken.value),"default") == 0))
         {
-         if ((case_count < 2) || default_count)
+         if (default_count)
            goto SwitchParseErrorAndMessage;
-         exp->nextArg = GenConstant(RVOID,NULL);
+         theExp->nextArg = GenConstant(theEnv,RVOID,NULL);
          default_count = 1;
         }
       else
         goto SwitchParseErrorAndMessage;
-      exp = exp->nextArg;
-      if (svContexts->rtn == TRUE)
-        ReturnContext = TRUE;
-      if (svContexts->brk == TRUE)
-        BreakContext = TRUE;
-      IncrementIndentDepth(3);
-      PPCRAndIndent();
-      exp->nextArg = GroupActions(infile,&theToken,TRUE,NULL,FALSE);
-      DecrementIndentDepth(3);
-      ReturnContext = FALSE;
-      BreakContext = FALSE;
-      if (exp->nextArg == NULL)
+      theExp = theExp->nextArg;
+      if (ExpressionData(theEnv)->svContexts->rtn == TRUE)
+        ExpressionData(theEnv)->ReturnContext = TRUE;
+      if (ExpressionData(theEnv)->svContexts->brk == TRUE)
+        ExpressionData(theEnv)->BreakContext = TRUE;
+      IncrementIndentDepth(theEnv,3);
+      PPCRAndIndent(theEnv);
+      theExp->nextArg = GroupActions(theEnv,infile,&theToken,TRUE,NULL,FALSE);
+      DecrementIndentDepth(theEnv,3);
+      ExpressionData(theEnv)->ReturnContext = FALSE;
+      ExpressionData(theEnv)->BreakContext = FALSE;
+      if (theExp->nextArg == NULL)
         goto SwitchParseError;
-      exp = exp->nextArg;
-      PPBackup();
-      PPBackup();
-      SavePPBuffer(theToken.printForm);
-      GetToken(infile,&theToken);
+      theExp = theExp->nextArg;
+      PPBackup(theEnv);
+      PPBackup(theEnv);
+      SavePPBuffer(theEnv,theToken.printForm);
+      GetToken(theEnv,infile,&theToken);
      }
-   if (case_count >= 2)
-     {
-      DecrementIndentDepth(3);
-      return(top);
-     }
+   DecrementIndentDepth(theEnv,3);
+   return(top);
 
 SwitchParseErrorAndMessage:
-   SyntaxErrorMessage("switch function");
+   SyntaxErrorMessage(theEnv,"switch function");
 SwitchParseError:
-   ReturnExpression(top);
-   DecrementIndentDepth(3);
+   ReturnExpression(theEnv,top);
+   DecrementIndentDepth(theEnv,3);
    return(NULL);
   }
 
@@ -854,18 +877,19 @@ SwitchParseError:
 /* SearchParsedBindNames:                               */
 /********************************************************/
 globle int SearchParsedBindNames(
+  void *theEnv,
   SYMBOL_HN *name_sought)
   {
    struct BindInfo *var_ptr;
-   int index = 1;
+   int theIndex = 1;
 
-   var_ptr = ListOfParsedBindNames;
+   var_ptr = ProcedureParserData(theEnv)->ListOfParsedBindNames;
    while (var_ptr != NULL)
      {
       if (var_ptr->name == name_sought)
-        { return(index); }
+        { return(theIndex); }
       var_ptr = var_ptr->next;
-      index++;
+      theIndex++;
      }
 
    return(0);
@@ -875,11 +899,12 @@ globle int SearchParsedBindNames(
 /* FindBindConstraints:                               */
 /********************************************************/
 globle struct constraintRecord *FindBindConstraints(
+  void *theEnv,
   SYMBOL_HN *nameSought)
   {
    struct BindInfo *theVariable;
 
-   theVariable = ListOfParsedBindNames;
+   theVariable = ProcedureParserData(theEnv)->ListOfParsedBindNames;
    while (theVariable != NULL)
      {
       if (theVariable->name == nameSought)
@@ -895,19 +920,20 @@ globle struct constraintRecord *FindBindConstraints(
 /*   names that have been bound using the bind function */
 /*   in the current context (e.g. the RHS of a rule).   */
 /********************************************************/
-globle int CountParsedBindNames()
+globle int CountParsedBindNames(
+  void *theEnv)
   {
    struct BindInfo *theVariable;
-   int index = 0;
+   int theIndex = 0;
 
-   theVariable = ListOfParsedBindNames;
+   theVariable = ProcedureParserData(theEnv)->ListOfParsedBindNames;
    while (theVariable != NULL)
      {
       theVariable = theVariable->next;
-      index++;
+      theIndex++;
      }
 
-   return(index);
+   return(theIndex);
   }
 
 /****************************************************************/
@@ -916,12 +942,13 @@ globle int CountParsedBindNames()
 /*   within the current semantic context (e.g. RHS of a rule).  */
 /****************************************************************/
 static int AddBindName(
+  void *theEnv,
   SYMBOL_HN *variableName,
   CONSTRAINT_RECORD *theConstraint)
   {
    CONSTRAINT_RECORD *tmpConstraint;
    struct BindInfo *currentBind, *lastBind;
-   int index = 1;
+   int theIndex = 1;
 
    /*=========================================================*/
    /* Look for the variable name in the list of bind variable */
@@ -931,7 +958,7 @@ static int AddBindName(
    /*=========================================================*/
 
    lastBind = NULL;
-   currentBind = ListOfParsedBindNames;
+   currentBind = ProcedureParserData(theEnv)->ListOfParsedBindNames;
    while (currentBind != NULL)
      {
       if (currentBind->name == variableName)
@@ -939,16 +966,16 @@ static int AddBindName(
          if (theConstraint != NULL)
            {
             tmpConstraint = currentBind->constraints;
-            currentBind->constraints = UnionConstraints(theConstraint,currentBind->constraints);
-            RemoveConstraint(tmpConstraint);
-            RemoveConstraint(theConstraint);
+            currentBind->constraints = UnionConstraints(theEnv,theConstraint,currentBind->constraints);
+            RemoveConstraint(theEnv,tmpConstraint);
+            RemoveConstraint(theEnv,theConstraint);
            }
 
-         return(index);
+         return(theIndex);
         }
       lastBind = currentBind;
       currentBind = currentBind->next;
-      index++;
+      theIndex++;
      }
 
    /*===============================================================*/
@@ -956,27 +983,28 @@ static int AddBindName(
    /* variable names and store the constraint information with it.  */
    /*===============================================================*/
 
-   currentBind = get_struct(BindInfo);
+   currentBind = get_struct(theEnv,BindInfo);
    currentBind->name = variableName;
    currentBind->constraints = theConstraint;
    currentBind->next = NULL;
 
-   if (lastBind == NULL) ListOfParsedBindNames = currentBind;
+   if (lastBind == NULL) ProcedureParserData(theEnv)->ListOfParsedBindNames = currentBind;
    else lastBind->next = currentBind;
 
-   return(index);
+   return(theIndex);
   }
 
 /********************************************************/
 /* RemoveParsedBindName:                                     */
 /********************************************************/
 globle void RemoveParsedBindName(
+  void *theEnv,
   struct symbolHashNode *bname)
   {
    struct BindInfo *prv,*tmp;
 
    prv = NULL;
-   tmp = ListOfParsedBindNames;
+   tmp = ProcedureParserData(theEnv)->ListOfParsedBindNames;
    while ((tmp != NULL) ? (tmp->name != bname) : FALSE)
      {
       prv = tmp;
@@ -985,12 +1013,12 @@ globle void RemoveParsedBindName(
    if (tmp != NULL)
      {
       if (prv == NULL)
-        ListOfParsedBindNames = tmp->next;
+        ProcedureParserData(theEnv)->ListOfParsedBindNames = tmp->next;
       else
         prv->next = tmp->next;
 
-      RemoveConstraint(tmp->constraints);
-      rtn_struct(BindInfo,tmp);
+      RemoveConstraint(theEnv,tmp->constraints);
+      rtn_struct(theEnv,BindInfo,tmp);
      }
   }
 

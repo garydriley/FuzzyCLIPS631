@@ -1,6 +1,27 @@
-static char rcsid[] = "$Header: /dist/CVS/fzclips/src/edmisc.c,v 1.3 2001/08/11 21:05:13 dave Exp $" ;
-
-/*   CLIPS Version 6.05  04/09/97 */
+   /*******************************************************/
+   /*      "C" Language Integrated Production System      */
+   /*                                                     */
+   /*              CLIPS Version 6.24  06/05/06           */
+   /*                                                     */
+   /*                                                     */
+   /*******************************************************/
+   
+/*************************************************************/
+/* Purpose:                                                  */
+/*                                                           */
+/* Principal Programmer(s):                                  */
+/*                                                           */
+/* Contributing Programmer(s):                               */
+/*                                                           */
+/* Revision History:                                         */
+/*      6.23: Changed name of variable log to logName        */
+/*            because of Unix compiler warnings of shadowed  */
+/*            definitions.                                   */
+/*                                                           */
+/*      6.24: Corrected code generating compilation          */
+/*            warnings.                                      */
+/*                                                           */
+/*************************************************************/
 
 /*
  * This file contains the command processing functions for a number of
@@ -40,8 +61,10 @@ extern  short   iochan;                          /* In "termio.c"        */
 #endif
 
 #if     UNIX_7 || UNIX_V
-extern VOID sleep(int);
-
+/*
+extern void sleep(int);
+*/
+#include        <unistd.h>
 #include        <signal.h>
 #endif
 
@@ -68,9 +91,10 @@ static int CompileLineIndex = 0;
 #pragma argsused
 #endif
 globle int compile_region(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
     register int    s;
     REGION   region;
 
@@ -86,7 +110,7 @@ int n)
    if (( s = getregion(&region)) != TRUE)
       return(s);
    if ((lastflag&CFKILL) == 0)
-     kdelete();
+     kdelete(theEnv);
    thisflag |= CFKILL;
    linep = region.r_linep;
    loffs = region.r_offset;
@@ -101,17 +125,17 @@ int n)
 
    /* Create IO router for the region (CLIPS.C) */
 
-   AddRouter("emacs_region",90,region_fnd,
+   EnvAddRouter(theEnv,"emacs_region",90,region_fnd,
 		NULL,region_getc,region_ungetc,NULL);
 
    /* COMPILE */
 
-   if (get_compile("emacs_region","Emacs_region") == 0)
+   if (get_compile(theEnv,"emacs_region","Emacs_region") == 0)
      mlwrite("Error while forming compilation buffer!");
    else
      mlwrite("Compilation done.");
    return (TRUE);
-}
+  }
 
 
 /*****************************************************
@@ -122,9 +146,10 @@ int n)
 #pragma argsused
 #endif
 globle int compile_file(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
    if (curbp == CompileBufferp)
      {
       mlwrite("Cannot compile this buffer!");
@@ -138,53 +163,54 @@ int n)
 
    /*  Create a IO router for the file   (CLIPS.C)  */
 
-   AddRouter("emacs_file",90,buffer_fnd,
+   EnvAddRouter(theEnv,"emacs_file",90,buffer_fnd,
 		NULL,buffer_getc,buffer_ungetc,NULL);
 
    /*   COMPILE   */
 
-   if (get_compile("emacs_file","Emacs_buffer") == 0)
+   if (get_compile(theEnv,"emacs_file","Emacs_buffer") == 0)
      mlwrite("Error while forming compilation buffer!");
    else
      mlwrite("Compilation done.");
    return (TRUE);
-}
+  }
 
 
 /**********************************************************
  *  Compiles the whole buffer or just a region of a buffer*
  **********************************************************/
 globle int get_compile(
-char *str1,
-char *str2)
-{
+  void *theEnv,
+  char *str1,
+  char *str2)
+  {
 #if (! RUN_TIME) && (! BLOAD_ONLY)
    register WINDOW *wp;
    register BUFFER *bp;
 
    CompileSuccess = 1;
    CompileBufferp->b_flag &= ~BFCHG;           /* Don't complain!      */
-   if (bclear(CompileBufferp) != TRUE)         /* Blow old text away   */
+   if (bclear(theEnv,CompileBufferp) != TRUE)         /* Blow old text away   */
      return (0);
    CompileLineIndex = 0;
    CompileLine[0] = '\0';
 
-   ActivateRouter(str1);	
-   ActivateRouter("cmp_router");
-   SetPrintWhileLoading(TRUE);
-   LoadConstructsFromLogicalName(str2);
-   DestroyPPBuffer();
+   EnvActivateRouter(theEnv,str1);	
+   EnvActivateRouter(theEnv,"cmp_router");
+   SetPrintWhileLoading(theEnv,TRUE);
+   LoadConstructsFromLogicalName(theEnv,str2);
+   DestroyPPBuffer(theEnv);
    /* Flush last diagnostic line (if any) to buffer */
    if (CompileLineIndex != 0)
-     addline(CompileBufferp,CompileLine);
-   DeactivateRouter(str1);	
-   DeactivateRouter("cmp_router");
-   SetPrintWhileLoading(FALSE);
-   DeleteRouter(str1);
+     addline(theEnv,CompileBufferp,CompileLine);
+   EnvDeactivateRouter(theEnv,str1);	
+   EnvDeactivateRouter(theEnv,"cmp_router");
+   SetPrintWhileLoading(theEnv,FALSE);
+   EnvDeleteRouter(theEnv,str1);
 
    strcpy(CompileBufferp->b_fname, "");
    if (CompileBufferp->b_nwnd == 0) {          /* Not on screen yet.   */
-           if ((wp=wpopup()) == NULL)
+           if ((wp=wpopup(theEnv)) == NULL)
                    return (0);
            bp = wp->w_bufp;
            if (--bp->b_nwnd == 0) {
@@ -212,7 +238,7 @@ char *str2)
 #else
    return(0);
 #endif		
-}
+  }
 
 /****************************************************************
  *  This function will compare the logical name with names in 	*
@@ -220,13 +246,13 @@ char *str2)
  ****************************************************************/
 
 globle int region_fnd(
-char *log_name)
-{
-    if(strcmp("Emacs_region",log_name)== 0)
-	return(TRUE);
-    return(FALSE);
-
-}
+  void *theEnv,
+  char *log_name)
+  {
+   if (strcmp("Emacs_region",log_name)== 0)
+     { return(TRUE); }
+   return(FALSE);
+  }
 
 /****************************************************************
  *   This function will return a character from the file which  *
@@ -237,6 +263,7 @@ char *log_name)
 #pragma argsused
 #endif
 globle int region_getc(
+  void *theEnv,
 char *log_name)
 {
   int c;
@@ -264,6 +291,7 @@ char *log_name)
 #pragma argsused
 #endif
 globle int region_ungetc(
+  void *theEnv,
 int c,
 char *log_name)
 
@@ -288,7 +316,8 @@ char *log_name)
  **************************************************************/
 
 globle int buffer_fnd(
-char *log_name)
+  void *theEnv,
+  char *log_name)
 {
     if(strcmp("Emacs_buffer",log_name)== 0)
     	return(TRUE);
@@ -305,7 +334,8 @@ char *log_name)
 #pragma argsused
 #endif
 globle int buffer_getc(
-char *log_name)
+  void *theEnv,
+  char *log_name)
 {
   int c;
   if (linep == curbp->b_linep)       /* End of file */
@@ -333,8 +363,9 @@ char *log_name)
 #pragma argsused
 #endif
 globle int buffer_ungetc(
-int    c,
-char  *logical_name)
+  void *theEnv,
+  int    c,
+  char  *logical_name)
 {
     if (c == EOF)
       return(1);
@@ -349,19 +380,21 @@ char  *logical_name)
 }
 
 globle int query_cmp(
-char *log)
+  void *theEnv,
+  char *logName)
 {
-   if((strcmp(log,"wdialog") == 0) ||
-      (strcmp(log,"wtrace")  == 0) ||
-      (strcmp(log,"wwarning")  == 0) ||
-      (strcmp(log,"werror")  == 0))
+   if((strcmp(logName,"wdialog") == 0) ||
+      (strcmp(logName,"wtrace")  == 0) ||
+      (strcmp(logName,"wwarning")  == 0) ||
+      (strcmp(logName,"werror")  == 0))
        return(TRUE);
    else
        return(FALSE);
 }
 
 globle int print_cmp(
-  char *log, 
+  void *theEnv,
+  char *logName, 
   char *str)
   {
    register int i;
@@ -372,7 +405,7 @@ globle int print_cmp(
      {
       if ((str[i] == '\n') || (str[i] == '\r'))
         {
-         addline(CompileBufferp,CompileLine);
+         addline(theEnv,CompileBufferp,CompileLine);
          CompileLineIndex = 0;
          CompileLine[0] = '\0';
         }
@@ -383,7 +416,7 @@ globle int print_cmp(
         }
       else
         {
-         addline(CompileBufferp,CompileLine);
+         addline(theEnv,CompileBufferp,CompileLine);
          CompileLineIndex = 1;
          CompileLine[0] = str[i];
          CompileLine[1] = '\0';
@@ -392,9 +425,10 @@ globle int print_cmp(
    return(1);
   }
 
-globle VOID init_cmp_router()
-{
-   AddRouter("cmp_router",
+globle void init_cmp_router(
+  void *theEnv)
+  {
+   EnvAddRouter(theEnv,"cmp_router",
 	      20,
 	      query_cmp,
 	      print_cmp,
@@ -402,12 +436,13 @@ globle VOID init_cmp_router()
 	      NULL,
 	      NULL
 	      );
-}
+  }
 
-globle VOID kill_cmp_router()
-{
-   DeleteRouter("cmp_router");
-}
+globle void kill_cmp_router(
+  void *theEnv)
+  {
+   EnvDeleteRouter(theEnv,"cmp_router");
+  }
 
 /* =========================================================================
  *                              MISC FUNCTIONS
@@ -421,12 +456,13 @@ globle VOID kill_cmp_router()
 #pragma argsused
 #endif
 globle int setfillcol(
-int f,
-int n)
-{
-        fillcol = n;
-        return(TRUE);
-}
+  void *theEnv,
+  int f,
+  int n)
+  {
+   fillcol = n;
+   return(TRUE);
+  }
 
 /*
  * Display the current position of the cursor; the current
@@ -437,9 +473,10 @@ int n)
 #pragma argsused
 #endif
 globle int showcpos(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
         register int    cline;
         register int    col;
         register int    tline;
@@ -450,7 +487,7 @@ int n)
         mlwrite("MicroEMACS Version %s   col: %d  line: %d of %d"
                 ,VERSION_NUM, col+1, cline, tline);
         return (TRUE);
-}
+  }
 
 /*
  * Return current column.  Stop at first non-blank given TRUE argument.
@@ -517,16 +554,17 @@ globle int cntlines()
 #pragma argsused
 #endif
 globle int gotoline(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
    register int line;
    char buf[5];
    register int i;
    register int s;
    struct LINE *clp;
 
-   if ((s=mlreply("Goto line: ", buf, 5)) != TRUE)
+   if ((s=mlreply(theEnv,"Goto line: ", buf, 5)) != TRUE)
         return (s);
 
    if((line = atoi(buf)) <= 0) {
@@ -549,7 +587,7 @@ int n)
    curwp->w_doto  = 0;
    curwp->w_flag |= WFMOVE;
    return (TRUE);
-}
+  }
 
 /*
  * Twiddle the two characters on either side of dot. If dot is at the end of
@@ -562,9 +600,10 @@ int n)
 #pragma argsused
 #endif
 globle int twiddle(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
         register LINE   *dotp;
         register int    doto;
         register int    cl;
@@ -582,7 +621,7 @@ int n)
         lputc(dotp, doto+1, cl);
         lchange(WFEDIT);
         return (TRUE);
-}
+  }
 
 /*
  * Quote the next character, and insert it into the buffer. All the characters
@@ -595,9 +634,10 @@ int n)
 #pragma argsused
 #endif
 globle int quote(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
         register int    s;
         register int    c;
 
@@ -608,12 +648,12 @@ int n)
                 return (TRUE);
         if (c == '\n') {
                 do {
-                        s = lnewline();
+                        s = lnewline(theEnv);
                 } while (s==TRUE && --n);
                 return (s);
         }
-        return (linsert(n, c));
-}
+        return (linsert(theEnv,n, c));
+  }
 
 /*
  * Set tab size if given non-default argument (n <> 1).  Otherwise, insert a
@@ -626,9 +666,10 @@ int n)
 #pragma argsused
 #endif
 globle int tab(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
         if (n < 0)
                 return (FALSE);
         if (n == 0 || n > 1) {
@@ -636,9 +677,9 @@ int n)
                 return(TRUE);
         }
         if (! tabsize)
-                return(linsert(1, '\t'));
-        return(linsert(tabsize - (getccol(FALSE) % tabsize), ' '));
-}
+                return(linsert(theEnv,1, '\t'));
+        return(linsert(theEnv,tabsize - (getccol(FALSE) % tabsize), ' '));
+  }
 
 /*
  * Open up some blank space. The basic plan is to insert a bunch of newlines,
@@ -649,9 +690,10 @@ int n)
 #pragma argsused
 #endif
 globle int openline(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
         register int    i;
         register int    s;
 
@@ -661,12 +703,12 @@ int n)
                 return (TRUE);
         i = n;                                  /* Insert newlines.     */
         do {
-                s = lnewline();
+                s = lnewline(theEnv);
         } while (s==TRUE && --i);
         if (s == TRUE)                          /* Then back up overtop */
-                s = backchar(f, n);             /* of them all.         */
+                s = backchar(theEnv,f, n);             /* of them all.         */
         return (s);
-}
+  }
 
 /*
  * Insert a newline. Bound to "C-M". If you are at the end of the line and the
@@ -679,9 +721,10 @@ int n)
 #pragma argsused
 #endif
 globle int newline(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
         register LINE   *lp;
         register int    s;
 
@@ -692,13 +735,13 @@ int n)
                 if (llength(lp) == curwp->w_doto
                 && lp != curbp->b_linep
                 && llength(lforw(lp)) == 0) {
-                        if ((s=forwchar(FALSE, 1)) != TRUE)
+                        if ((s=forwchar(theEnv,FALSE, 1)) != TRUE)
                                 return (s);
-                } else if ((s=lnewline()) != TRUE)
+                } else if ((s=lnewline(theEnv)) != TRUE)
                         return (s);
         }
         return (TRUE);
-}
+  }
 
 /*
  * Delete blank lines around dot. What this command does depends if dot is
@@ -712,9 +755,10 @@ int n)
 #pragma argsused
 #endif
 globle int deblank(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
         register LINE   *lp1;
         register LINE   *lp2;
         long nld;
@@ -730,8 +774,8 @@ int n)
                 return (TRUE);
         curwp->w_dotp = lforw(lp1);
         curwp->w_doto = 0;
-        return (ldelete(nld,FALSE));
-}
+        return (ldelete(theEnv,nld,FALSE));
+  }
 
 /*
  * Insert a newline, then enough tabs and spaces to duplicate the indentation
@@ -745,8 +789,9 @@ int n)
 #pragma argsused
 #endif
 globle int indent(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
 {
         register int    nicol;
         register int    c;
@@ -764,9 +809,9 @@ int n)
                                 nicol |= 0x07;
                         ++nicol;
                 }
-                if (lnewline() == FALSE
-                || ((i=nicol/8)!=0 && linsert(i, '\t')==FALSE)
-                || ((i=nicol%8)!=0 && linsert(i,  ' ')==FALSE))
+                if (lnewline(theEnv) == FALSE
+                || ((i=nicol/8)!=0 && linsert(theEnv,i, '\t')==FALSE)
+                || ((i=nicol%8)!=0 && linsert(theEnv,i,  ' ')==FALSE))
                         return (FALSE);
         }
         return (TRUE);
@@ -782,18 +827,19 @@ int n)
 #pragma argsused
 #endif
 globle int forwdel(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
         if (n < 0)
-                return (backdel(f, -n));
+                return (backdel(theEnv,f, -n));
         if (f != FALSE) {                       /* Really a kill.       */
                 if ((lastflag&CFKILL) == 0)
-                        kdelete();
+                        kdelete(theEnv);
                 thisflag |= CFKILL;
         }
-        return (ldelete((long) n, f));
-}
+        return (ldelete(theEnv,(long) n, f));
+  }
 
 /*
  * Delete backwards. This is quite easy too, because it's all done with other
@@ -805,22 +851,23 @@ int n)
 #pragma argsused
 #endif
 globle int backdel(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
         register int    s;
 
         if (n < 0)
-                return (forwdel(f, -n));
+                return (forwdel(theEnv,f, -n));
         if (f != FALSE) {                       /* Really a kill.       */
                 if ((lastflag&CFKILL) == 0)
-                        kdelete();
+                        kdelete(theEnv);
                 thisflag |= CFKILL;
         }
-        if ((s=backchar(f, n)) == TRUE)
-                s = ldelete((long) n, f);
+        if ((s=backchar(theEnv,f, n)) == TRUE)
+                s = ldelete(theEnv,(long) n, f);
         return (s);
-}
+  }
 
 /*
  * Kill text. If called without an argument, it kills from dot to the end of
@@ -834,14 +881,15 @@ int n)
 #pragma argsused
 #endif
 globle int kill_fwd(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
         register int    chunk;
         register LINE   *nextp;
 
         if ((lastflag&CFKILL) == 0)             /* Clear kill buffer if */
-                kdelete();                      /* last wasn't a kill.  */
+                kdelete(theEnv);                      /* last wasn't a kill.  */
         thisflag |= CFKILL;
         if (f == FALSE) {
                 chunk = llength(curwp->w_dotp)-curwp->w_doto;
@@ -863,8 +911,8 @@ int n)
                 mlwrite("neg kill");
                 return (FALSE);
         }
-        return (ldelete((long) chunk, TRUE));
-}
+        return (ldelete(theEnv,(long) chunk, TRUE));
+  }
 
 /*
  * Yank text back from the kill buffer. This is really easy. All of the work
@@ -878,9 +926,10 @@ int n)
 #pragma argsused
 #endif
 globle int yank(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
         register int    c;
         register int    i;
 
@@ -890,17 +939,17 @@ int n)
                 i = 0;
                 while ((c=kremove(i)) >= 0) {
                         if (c == '\n') {
-                                if (newline(FALSE, 1) == FALSE)
+                                if (newline(theEnv,FALSE, 1) == FALSE)
                                         return (FALSE);
                         } else {
-                                if (linsert(1, c) == FALSE)
+                                if (linsert(theEnv,1, c) == FALSE)
                                         return (FALSE);
                         }
                         ++i;
                 }
         }
         return (TRUE);
-}
+  }
 
 /* =========================================================================
  *                           SEARCH FUNCTIONS
@@ -948,8 +997,9 @@ int n)
 #pragma argsused
 #endif
 globle int forwsearch(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
     {
     register LINE *clp;
     register int cbo;
@@ -959,7 +1009,7 @@ int n)
     register char *pp;
     register int s;
 
-    if ((s = readpattern("Search")) != TRUE)
+    if ((s = readpattern(theEnv,"Search")) != TRUE)
         return (s);
 
     clp = curwp->w_dotp;
@@ -1022,8 +1072,9 @@ fail:;
 #pragma argsused
 #endif
 globle int backsearch(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
     {
     register LINE *clp;
     register int cbo;
@@ -1034,7 +1085,7 @@ int n)
     register char *pp;
     register int s;
 
-    if ((s = readpattern("Reverse search")) != TRUE)
+    if ((s = readpattern(theEnv,"Reverse search")) != TRUE)
         return (s);
 
     for (epp = &pat[0]; epp[1] != 0; ++epp)
@@ -1107,8 +1158,9 @@ int n)
 #pragma argsused
 #endif
 globle int bkwrdrpl(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
     {
     LINE *clp;
     int cbo;
@@ -1120,12 +1172,12 @@ int n)
     char *pat2;
     int s;
 
-    if ((s = readpattern("Rev. replace all occrs of")) != TRUE)
+    if ((s = readpattern(theEnv,"Rev. replace all occrs of")) != TRUE)
         return (s);
-    pat2 = (char *) genalloc((unsigned) strlen (pat) + 1);          /* Pat2 is first pattern */
+    pat2 = (char *) genalloc(theEnv,(unsigned) strlen (pat) + 1);          /* Pat2 is first pattern */
     strcpy(pat2,pat);
-    if((s = mlreply("Replace with: ",pat,NPAT)) == ABORT) {
-        genfree((VOID *) pat2, (unsigned) strlen(pat) + 1);
+    if((s = mlreply(theEnv,"Replace with: ",pat,NPAT)) == ABORT) {
+        genfree(theEnv,(void *) pat2, (unsigned) strlen(pat) + 1);
         return(s);
         }
     for (epp = &pat2[0];epp[1] != 0 ; ++epp);
@@ -1177,7 +1229,7 @@ int n)
 			curwp->w_dotp = clp;
 			curwp->w_doto = tbo;
 			count++;
-			lreplace(pat2);
+			lreplace(theEnv,pat2);
 			clp = curwp->w_dotp;
 			cbo = curwp->w_doto - strlen(pat);
  		  }
@@ -1200,8 +1252,9 @@ int n)
 #pragma argsused
 #endif
 globle int bkwrdcr(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
     {
     LINE *clp;
     int cbo;
@@ -1212,12 +1265,12 @@ int n)
     char *pat2;
     int s;
 
-    if ((s = readpattern("Rev. replace some occrs. of")) != TRUE)
+    if ((s = readpattern(theEnv,"Rev. replace some occrs. of")) != TRUE)
         return (s);
-    pat2 = (char *) genalloc((unsigned) strlen (pat) + 1);
+    pat2 = (char *) genalloc(theEnv,(unsigned) strlen (pat) + 1);
     strcpy(pat2,pat);
-    if((s = mlreply("Replace with: ",pat,NPAT)) == ABORT) {
-        genfree((VOID *) pat2,(unsigned) strlen(pat) + 1);
+    if((s = mlreply(theEnv,"Replace with: ",pat,NPAT)) == ABORT) {
+        genfree(theEnv,(void *) pat2,(unsigned) strlen(pat) + 1);
         return(s);
         }
     for (epp = &pat2[0]; epp[1] != 0; ++epp)
@@ -1290,7 +1343,7 @@ int n)
 	    	c = (*term.t_getchar)();
             	if((c ==' ')||(c == 'y')||(c == 'Y'))
                	   {
-                 	lreplace(pat2);
+                 	lreplace(theEnv,pat2);
                  	clp = curwp->w_dotp;
                  	cbo = curwp->w_doto - strlen(pat);
 	       	    }
@@ -1305,7 +1358,7 @@ int n)
      curwp->w_doto -= strlen(pat);
      update();
      mlwrite("No more occurrences of [%s] in buffer",pat2);
-     genfree((VOID *) pat2,(unsigned) strlen(pat) + 1);
+     genfree(theEnv,(void *) pat2,(unsigned) strlen(pat) + 1);
      return(TRUE);
    }
 
@@ -1320,8 +1373,9 @@ int n)
 #pragma argsused
 #endif
 globle int frwsr(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
 {
    LINE *clp,*tlp;
    int cbo,tbo,c,s,count = 0 ;
@@ -1330,15 +1384,15 @@ int n)
 
  /* Read the string to be replaced */
 
-  if((s = readpattern ("Replace the occurences of?")) != TRUE)
+  if((s = readpattern (theEnv,"Replace the occurences of?")) != TRUE)
     return (s);
-  pat2 = (char *) genalloc ((unsigned) strlen(pat) + 1);
+  pat2 = (char *) genalloc (theEnv,(unsigned) strlen(pat) + 1);
   strcpy (pat2,pat);
 
  /* Read the string to replace with */
 
-  if((s = mlreply("Replace with: ",pat,NPAT)) == ABORT) {
-    genfree((VOID *) pat2,(unsigned) strlen(pat) + 1);
+  if((s = mlreply(theEnv,"Replace with: ",pat,NPAT)) == ABORT) {
+    genfree(theEnv,(void *) pat2,(unsigned) strlen(pat) + 1);
     return(s);
     }
 
@@ -1380,7 +1434,7 @@ int n)
             curwp->w_dotp = clp;
             curwp->w_doto = cbo - 1;
             count++;
-            lreplace(pat2);
+            lreplace(theEnv,pat2);
             clp = curwp->w_dotp;
             cbo = curwp->w_doto;
            }
@@ -1405,9 +1459,10 @@ int n)
 #pragma argsused
 #endif
 globle int querysr(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
    LINE *clp,*tlp;
    int cbo,tbo,c,s;
    char *pp;
@@ -1415,15 +1470,15 @@ int n)
 
  /* Read the string to be replaced */
 
-  if((s = readpattern ("Query_replace ?")) != TRUE)
+  if((s = readpattern (theEnv,"Query_replace ?")) != TRUE)
     return (s);
-  pat2 = (char *) genalloc((unsigned) strlen(pat) + 1);
+  pat2 = (char *) genalloc(theEnv,(unsigned) strlen(pat) + 1);
   strcpy (pat2,pat);
 
  /* Read the string to replace with */
 
-  if((s = mlreply("Replace with: ",pat,NPAT)) == ABORT) {
-    genfree((VOID *) pat2,(unsigned) strlen(pat) + 1);
+  if((s = mlreply(theEnv,"Replace with: ",pat,NPAT)) == ABORT) {
+    genfree(theEnv,(void *) pat2,(unsigned) strlen(pat) + 1);
     return(s);
     }
 
@@ -1480,7 +1535,7 @@ int n)
 	    c = (*term.t_getchar)();
             if((c ==' ')||(c == 'y')||(c == 'Y'))
                {
-                 lreplace(pat2);
+                 lreplace(theEnv,pat2);
                  clp = curwp->w_dotp;
                  cbo = curwp->w_doto;
 	       }
@@ -1496,10 +1551,10 @@ int n)
      curwp->w_doto -= strlen(pat);
      update();
      mlwrite("No more occurrences of [%s] in buffer",pat2);
-     genfree((VOID *) pat2,(unsigned) strlen(pat) + 1);
+     genfree(theEnv,(void *) pat2,(unsigned) strlen(pat) + 1);
      return(TRUE);
 
-}
+  }
 
 /***************************************************
  *    Replace old string with new string           *
@@ -1507,9 +1562,11 @@ int n)
 
 
 globle int lreplace(
-char *pat2)
+  void *theEnv,
+  char *pat2)
 {
-      int doto,i;
+      int doto;
+      unsigned i;
       char *cp1,*cp2;
       LINE *lp1,*lp2;
       WINDOW *wp;
@@ -1518,7 +1575,7 @@ char *pat2)
      lp1 = curwp->w_dotp;
      doto = curwp->w_doto;
 
-     if((lp2 =lalloc((int) (lp1->l_used - strlen(pat2) + strlen(pat) ))) == NULL)
+     if((lp2 =lalloc(theEnv,(int) (lp1->l_used - strlen(pat2) + strlen(pat) ))) == NULL)
           return(FALSE);
 
      cp1 = &lp1->l_text[0];
@@ -1572,7 +1629,7 @@ char *pat2)
              }
         wp = wp->w_wndp;
      }
-     genfree((VOID *) lp1,(unsigned) sizeof(LINE) + lp1->l_size);
+     genfree(theEnv,(void *) lp1,(unsigned) sizeof(LINE) + lp1->l_size);
      return(TRUE);
 }
 /********************************************************
@@ -1585,9 +1642,10 @@ char *pat2)
 #pragma argsused
 #endif
 globle int smatchb(
-int f,
-int n)
-{
+  void *theEnv,
+  int f,
+  int n)
+  {
      int cbo,c;
      LINE *clp;
 
@@ -1613,7 +1671,7 @@ int n)
 
      curwp->w_flag |= WFMOVE;
      return(TRUE);
-}
+  }
 
 /***************************************************
  * This function will search for closing bracket,  *
@@ -1752,6 +1810,7 @@ int tempch)
  * style of Jeff Lomicka. There is some do-it-yourself control expansion.
  */
 globle int readpattern(
+    void *theEnv,
     char *prompt)
     {
     register char *cp1;
@@ -1793,7 +1852,7 @@ globle int readpattern(
     *cp1++ = ':';                       /* Finish prompt */
     *cp1++ = ' ';
     *cp1++ = '\0';
-    s = mlreply(tpat, tpat, NPAT);      /* Read pattern */
+    s = mlreply(theEnv,tpat, tpat, NPAT);      /* Read pattern */
 
     if (s == TRUE)                      /* Specified */
         strcpy(pat, tpat);
@@ -1823,8 +1882,9 @@ globle int readpattern(
 #pragma argsused
 #endif
 globle int spawncli(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
 {
 #if     UNIX_7 || UNIX_V || IBM_MSC || IBM_TBC || IBM_ZTC || IBM_ICB || IBM_SC || IBM_GCC
         register char *cp;
@@ -1873,14 +1933,15 @@ int n)
 #pragma argsused
 #endif
 globle int spawn(
-int f,
-int n)
+  void *theEnv,
+  int f,
+  int n)
 {
         register int    s;
         char            line[NLINE];
 
 #if     VAX_VMS
-        if ((s=mlreply("DCL command: ", line, NLINE)) != TRUE)
+        if ((s=mlreply(theEnv,"DCL command: ", line, NLINE)) != TRUE)
                 return (s);
         (*term.t_putchar)('\n');                /* Already have '\r'    */
         (*term.t_flush)();
@@ -1894,7 +1955,7 @@ int n)
 #endif
 
 #if     IBM_MSC || IBM_TBC || IBM_ZTC || IBM_ICB || IBM_SC || IBM_GCC
-        if ((s=mlreply("MS-DOS command: ", line, NLINE)) != TRUE)
+        if ((s=mlreply(theEnv,"MS-DOS command: ", line, NLINE)) != TRUE)
                 return (s);
         system(line);
         mlwrite("Hit any key to continue");
@@ -1904,7 +1965,7 @@ int n)
 #endif
 
 #if     UNIX_7 || UNIX_V
-        if ((s=mlreply("! ", line, NLINE)) != TRUE)
+        if ((s=mlreply(theEnv,"! ", line, NLINE)) != TRUE)
                 return (s);
         (*term.t_putchar)('\n');                /* Already have '\r'    */
         (*term.t_flush)();

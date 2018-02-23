@@ -1,9 +1,7 @@
-/*  $Header: /dist/CVS/fzclips/src/dffnxcmp.h,v 1.3 2001/08/11 21:04:59 dave Exp $  */
-
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.05  04/09/97          */
+   /*               CLIPS Version 6.20  01/31/02          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -42,13 +40,12 @@
 #define LOCALE extern
 #endif
 
-LOCALE void SetupDeffunctionCompiler(void);
-LOCALE void PrintDeffunctionReference(FILE *,DEFFUNCTION *,int,int);
-LOCALE void DeffunctionCModuleReference(FILE *,int,int,int);
+LOCALE void SetupDeffunctionCompiler(void *);
+LOCALE void PrintDeffunctionReference(void *,FILE *,DEFFUNCTION *,int,int);
+LOCALE void DeffunctionCModuleReference(void *,FILE *,int,int,int);
 
 #endif
 
 #endif
-
 
 
