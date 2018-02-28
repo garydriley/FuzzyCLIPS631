@@ -23,8 +23,8 @@ FuzzyCLIPS> (defmessage-handler USER foo ())   ; DR0501
 FuzzyCLIPS> (conserve-mem on)                  ; DR0501
 FuzzyCLIPS> (defmessage-handler USER foo ())   ; DR0501
 FuzzyCLIPS> (clear)                            ; DR0501
-FuzzyCLIPS> (release-mem)                      ; DR0501
-2330 ;; Different number is OK
+FuzzyCLIPS> (progn (release-mem) TRUE)         ; DR0501
+TRUE
 FuzzyCLIPS> (conserve-mem off)                 ; DR0501
 FuzzyCLIPS> (clear)                            ; DR0502
 FuzzyCLIPS> (defclass a (is-a USER))           ; DR0502
@@ -39,7 +39,7 @@ FuzzyCLIPS> (defrule foo                       ; DR0503
    =>
    (printout t "Success!" crlf))
 FuzzyCLIPS> (assert (items 2 3))               ; DR0503
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (run)                              ; DR0503 - Success!
 Success!
 FuzzyCLIPS> (clear)                            ; DR0504
@@ -76,7 +76,7 @@ FuzzyCLIPS> (deftemplate calculate             ; DR0511
    (field operation
       (type SYMBOL) (default ?NONE)))
 FuzzyCLIPS> (assert (calculate (operation +))) ; DR0511
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (modify 1 
    (calculate (operation op2)))    ; DR0511 - Error
 
@@ -94,13 +94,13 @@ FuzzyCLIPS> (assert (calculate
 
 [TMPLTDEF2] The single field slot operation can only contain a single field value.
 FuzzyCLIPS> (assert (calculate (operation go)))
-<Fact-0>
-FuzzyCLIPS> (modify 0 (operation 467<789)))    ; DR0512 - Error
+<Fact-1>
+FuzzyCLIPS> (modify 1 (operation 467<789)))    ; DR0512 - Error
 
 [TMPLTFUN2] Attempted to assert a multifield value 
 into the single field slot operation of deftemplate calculate.
 FALSE
-FuzzyCLIPS> (duplicate 0 (operation 54<2345))) ; DR0512 - Error
+FuzzyCLIPS> (duplicate 1 (operation 54<2345))) ; DR0512 - Error
 
 [TMPLTFUN2] Attempted to assert a multifield value 
 into the single field slot operation of deftemplate calculate.
@@ -110,23 +110,23 @@ FuzzyCLIPS> (deftemplate r                     ; DR0517
    (field mine) (field yours))     ; DR0517
 FuzzyCLIPS> (watch facts)                      ; DR0517
 FuzzyCLIPS> (assert (r (mine "string")))       ; DR0517
-==> f-0     (r (mine "string") (yours nil)) CF 1.00 
-<Fact-0>
-FuzzyCLIPS> (assert (r (yours this-is-a-word)))
-==> f-1     (r (mine nil) (yours this-is-a-word)) CF 1.00 
+==> f-1     (r (mine "string") (yours nil)) CF 1.00 
 <Fact-1>
-FuzzyCLIPS> (modify 0 (mine "string"))         ; DR0517
-<== f-0     (r (mine "string") (yours nil)) CF 1.00 
-==> f-2     (r (mine "string") (yours nil)) CF 1.00 
+FuzzyCLIPS> (assert (r (yours this-is-a-word)))
+==> f-2     (r (mine nil) (yours this-is-a-word)) CF 1.00 
 <Fact-2>
-FuzzyCLIPS> (modify 1 (yours wordie))          ; DR0517
-<== f-1     (r (mine nil) (yours this-is-a-word)) CF 1.00 
-==> f-3     (r (mine nil) (yours wordie)) CF 1.00 
+FuzzyCLIPS> (modify 1 (mine "string"))         ; DR0517
+<== f-1     (r (mine "string") (yours nil)) CF 1.00 
+==> f-3     (r (mine "string") (yours nil)) CF 1.00 
 <Fact-3>
-FuzzyCLIPS> (modify 3 (yours is-mine))         ; DR0517
-<== f-3     (r (mine nil) (yours wordie)) CF 1.00 
-==> f-4     (r (mine nil) (yours is-mine)) CF 1.00 
+FuzzyCLIPS> (modify 2 (yours wordie))          ; DR0517
+<== f-2     (r (mine nil) (yours this-is-a-word)) CF 1.00 
+==> f-4     (r (mine nil) (yours wordie)) CF 1.00 
 <Fact-4>
+FuzzyCLIPS> (modify 4 (yours is-mine))         ; DR0517
+<== f-4     (r (mine nil) (yours wordie)) CF 1.00 
+==> f-5     (r (mine nil) (yours is-mine)) CF 1.00 
+<Fact-5>
 FuzzyCLIPS> (unwatch facts)                    ; DR0517
 FuzzyCLIPS> (clear)                            ; DR0519
 FuzzyCLIPS> (deftemplate result                ; DR0519
@@ -141,18 +141,19 @@ FuzzyCLIPS> (assert (result (x 6)))            ; DR0519
 does not match the allowed values for slot x.
 FuzzyCLIPS> (clear)                            ; DR0520
 FuzzyCLIPS> (assert (a) (b) (c))               ; DR0520
-<Fact-2>
+<Fact-3>
 FuzzyCLIPS> (facts)                            ; DR0520
-f-0     (a) CF 1.00 
-f-1     (b) CF 1.00 
-f-2     (c) CF 1.00 
-For a total of 3 facts.
-FuzzyCLIPS> (facts 0 2 2)                      ; DR0520
-f-0     (a) CF 1.00 
-f-1     (b) CF 1.00 
+f-0     (initial-fact) CF 1.00 
+f-1     (a) CF 1.00 
+f-2     (b) CF 1.00 
+f-3     (c) CF 1.00 
+For a total of 4 facts.
+FuzzyCLIPS> (facts 1 3 2)                      ; DR0520
+f-1     (a) CF 1.00 
+f-2     (b) CF 1.00 
 For a total of 2 facts.
-FuzzyCLIPS> (facts 2)                          ; DR0520
-f-2     (c) CF 1.00 
+FuzzyCLIPS> (facts 3)                          ; DR0520
+f-3     (c) CF 1.00 
 For a total of 1 fact.
 FuzzyCLIPS> (not FALSE)                        ; DR0521 - TRUE
 TRUE
@@ -164,6 +165,8 @@ FuzzyCLIPS> (assert (foo (x (1 2))))           ; DR0522 - Error
 
 [EXPRNPSR1] A function name must be a symbol
 FuzzyCLIPS> (facts)                            ; DR0522 - None
+f-0     (initial-fact) CF 1.00 
+For a total of 1 fact.
 FuzzyCLIPS> (print-region 1 1)                 ; DR0524 - Error
 [ARGACCES5] Function print-region expected argument #1 to be of type symbol
 FuzzyCLIPS> (print-region 3 "foo.lis" ROOT SUBTOPIC)    
@@ -210,9 +213,9 @@ FuzzyCLIPS> (* 3.0 15.0)                       ; DR0533 - 45.0
 45.0
 FuzzyCLIPS> 898~898                            ; DR0536 - 898
 898
-FuzzyCLIPS> (format nil "%ld" 12)              ; DR0539 - "12"
+FuzzyCLIPS> (format nil "%d" 12)               ; DR0539 - "12"
 "12"
-FuzzyCLIPS> (format nil "|%ld|" 12)            ; DR0539 - "|12|"
+FuzzyCLIPS> (format nil "|%d|" 12)             ; DR0539 - "|12|"
 "|12|"
 FuzzyCLIPS> (clear)                            ; DR0540
 FuzzyCLIPS> (defglobal ?*x* = ?*r*)            ; DR0540 - Error
@@ -277,7 +280,7 @@ TRUE
 FuzzyCLIPS> (defrule foo (not (a)) =>)         ; DR0548
 FuzzyCLIPS> (reset)                            ; DR0548
 FuzzyCLIPS> (agenda)                           ; DR0548 - 1 Activation
-0      foo: f-0,
+0      foo: *
 For a total of 1 activation.
 FuzzyCLIPS> (clear)                            ; DR0548
 FuzzyCLIPS> (set-incremental-reset TRUE)       ; DR0548
@@ -297,8 +300,8 @@ FuzzyCLIPS> (defrule blah (declare (salience 10)) =>)
 FuzzyCLIPS> (defrule flub (declare (salience -10)) =>)
 FuzzyCLIPS> (reset)                            ; DR0551
 FuzzyCLIPS> (agenda)                           ; DR0551 - blah, flub
-10     blah: f-0
--10    flub: f-0
+10     blah: *
+-10    flub: *
 For a total of 2 activations.
 FuzzyCLIPS> (set-strategy depth)               ; DR0551
 breadth
@@ -327,10 +330,11 @@ FuzzyCLIPS> (clear)                            ; DR0561
 FuzzyCLIPS> (deftemplate foo                   ; DR0561
    (field x (type EXTERNAL-ADDRESS)))
 FuzzyCLIPS> (assert (foo))                     ; DR0561
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (facts)                            ; DR0561
-f-0     (foo (x <Pointer-0>)) CF 1.00 ;; Any NULL pointer is OK
-For a total of 1 fact.
+f-0     (initial-fact) CF 1.00 
+f-1     (foo (x <Pointer-C-0x0>)) CF 1.00  ;; Any NULL pointer is OK
+For a total of 2 facts.
 FuzzyCLIPS> (clear)                            ; DR0562
 FuzzyCLIPS> (deffunction foo ()                ; DR0562
    (+ ?a 1) (bind ?a 2))           ; DR0562
@@ -344,6 +348,11 @@ FuzzyCLIPS> (bind ?a 3)                        ; DR0566 - 3
 3
 FuzzyCLIPS> (bind ?b 4)                        ; DR0566 - 4
 4
+FuzzyCLIPS> (+ ?a 3)
+6
+FuzzyCLIPS> (+ ?a ?b)
+7
+FuzzyCLIPS> (reset)
 FuzzyCLIPS> (+ ?a 3)                           ; DR0566 - Error
 [EVALUATN1] Variable a is unbound
 [ARGACCES5] Function + expected argument #1 to be of type integer or float
@@ -409,13 +418,13 @@ FuzzyCLIPS> (list-deffunctions)                ; DR0570 - None
 FuzzyCLIPS> (clear)                            ; DR0571
 FuzzyCLIPS> (defglobal ?*x* = 3)               ; DR0571
 FuzzyCLIPS> (assert (a))                       ; DR0571
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (defrule foo ?f <- (a) => (bind ?*x* ?f))
 FuzzyCLIPS> (run)                              ; DR0571
 FuzzyCLIPS> (printout t ?*x* crlf)             ; DR0571
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> ?*x*                               ; DR0571
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (clear)                            ; DR0573
 FuzzyCLIPS> (defclass A (is-a USER))           ; DR0573
 FuzzyCLIPS> (defclass B (is-a USER))           ; DR0573
@@ -423,13 +432,15 @@ FuzzyCLIPS> (defclass C (is-a A B) (role concrete)) ; DR0573
 FuzzyCLIPS> (make-instance c of C)             ; DR0573 - [c]
 [c]
 FuzzyCLIPS> (instances)                        ; DR0573 - 1 instance
+[initial-object] of INITIAL-OBJECT
 [c] of C
-For a total of 1 instance.
+For a total of 2 instances.
 FuzzyCLIPS> (instances MAIN B inherit)              ; DR0573 - 1 instance
 [c] of C
 For a total of 1 instance.
 FuzzyCLIPS> (do-for-all-instances ((?u USER)) TRUE
     (printout t ?u crlf))          ; DR0573 - 1 instance
+[initial-object]
 [c]
 FuzzyCLIPS> (clear)                            ; DR0575
 FuzzyCLIPS> (defrule try-or (or (a) (b)) =>)   ; DR0575
@@ -466,23 +477,27 @@ FuzzyCLIPS> (defmessage-handler A put-foo primary (?value)
 FuzzyCLIPS> (make-instance a of A)             ; DR0584 - [a]
 [a]
 FuzzyCLIPS> (instances)                        ; DR0584
+[initial-object] of INITIAL-OBJECT
 [a] of A
-For a total of 1 instance.
+For a total of 2 instances.
 FuzzyCLIPS> (save-instances "Temp//drtest06.tmp")    ; DR0584
-1
+2
 FuzzyCLIPS> (unmake-instance a)                ; DR0584
 TRUE
 FuzzyCLIPS> (load-instances "Temp//drtest06.tmp")    ; DR0584
 [MSGFUN3] foo slot in [a] of A: write access denied.
 [PRCCODE4] Execution halted during the actions of message-handler put-foo primary in class A
 [INSFILE1] Function load-instances could not completely process file Temp//drtest06.tmp.
-0
-FuzzyCLIPS> (instances)                        ; DR0584
-FuzzyCLIPS> (restore-instances "Temp//drtest06.tmp") ; See CRS
 1
 FuzzyCLIPS> (instances)                        ; DR0584
-[a] of A
+[initial-object] of INITIAL-OBJECT
 For a total of 1 instance.
+FuzzyCLIPS> (restore-instances "Temp//drtest06.tmp") ; See CRS
+2
+FuzzyCLIPS> (instances)                        ; DR0584
+[initial-object] of INITIAL-OBJECT
+[a] of A
+For a total of 2 instances.
 FuzzyCLIPS> (clear)                            ; DR0588
 FuzzyCLIPS> (ppdefinstances Teams)             ; DR0588
 [PRNTUTIL1] Unable to find definstances Teams.
@@ -518,8 +533,8 @@ ERROR:
    ?f1 <- (color (standard ?))
    =>
    (modify ?f1 (standard none)))
-FuzzyCLIPS> (release-mem)                      ; DR0592
-18335 ;; Different number is OK
+FuzzyCLIPS> (progn (release-mem) TRUE)         ; DR0592
+TRUE
 FuzzyCLIPS> (clear)                            ; DR0594
 FuzzyCLIPS> (defrule junk => (bsave "Temp//drtest06.bin"))     
 FuzzyCLIPS> (reset)                            ; DR0594

@@ -805,7 +805,7 @@ globle void executeModifyFunction(
 /*************************************************************/
 globle struct modifierListItem *FindModifier(
    void *theEnv,
-   char *modname)
+   const char *modname)
 {
    struct modifierListItem *currentPtr;
    char *modLowerName;
@@ -848,7 +848,7 @@ globle struct modifierListItem *FindModifier(
 /*************************************************************/
 globle int AddFuzzyModifier(
    void *theEnv,
-   char *modname,
+   const char *modname,
    void (*modfun)(void *,struct fuzzy_value *fv),
 #if DEFFUNCTION_CONSTRUCT
    struct FunctionDefinition *modClipsfun,
@@ -924,7 +924,7 @@ globle int AddFuzzyModifier(
 /*************************************************************/
 globle void RemoveFuzzyModifier(
    void *theEnv,
-   char *modname)
+   const char *modname)
 {
    struct modifierListItem *currentPtr, *lastPtr;
 

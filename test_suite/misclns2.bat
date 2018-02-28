@@ -199,7 +199,7 @@
 (undeftemplate foo)
 (defrule foobar => (assert (foo)))
 (undeftemplate foo)
-(retract 0)
+(retract 1)
 (undeftemplate foo)
 (undefrule foobar)
 (undeftemplate foo)

@@ -57,11 +57,11 @@
 #endif
 
 
-   LOCALE struct expr        *ParseAssertFuzzyFact(void *theEnv,char *readSource, struct token *tempToken,
+   LOCALE struct expr        *ParseAssertFuzzyFact(void *theEnv,const char *readSource, struct token *tempToken,
                                               int *error, int endType, int constantsOnly,
                                               struct deftemplate *theDeftemplate,
                                               int variablesAllowed);
-   LOCALE struct fuzzy_value *ParseLinguisticExpr(void *theEnv,char *readSource,
+   LOCALE struct fuzzy_value *ParseLinguisticExpr(void *theEnv,const char *readSource,
                                               struct token *tempToken,
                                               struct fuzzyLv *lvp,
                                               int *error);
@@ -74,7 +74,7 @@
    LOCALE void                FrtnArray ( void *theEnv, double *p, int length );
    LOCALE int                *IgetArray ( void *theEnv, int length );
    LOCALE void                IrtnArray ( void *theEnv, int *p, int length );
-   LOCALE struct expr        *tokenToFloatExpression(void *theEnv,char *readSource,
+   LOCALE struct expr        *tokenToFloatExpression(void *theEnv,const char *readSource,
                                                 struct token *tempToken,
                                                 int  *error,
                                                 int constantsOnly);

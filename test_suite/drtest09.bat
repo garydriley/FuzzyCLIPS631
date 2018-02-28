@@ -1,511 +1,636 @@
-(clear)                   ; DR0724
-[x]
-(clear)                   ; DRO725
-
-(defrule should-be-ok
-   (message $?first)
-   (test (length$ ?first))
-   (translation $?first)
-   =>)
-(clear)                   ; DR0726
-
-(defrule bar
-   (not (and (c ?x) (d ?y&:(> ?y 3))))
-   =>)
-(reset)
-(assert (c 1) (d a)) ; should not hang
-(clear)                   ; DR0727
-
-(defrule foo
-   (not (and (a) (b) (c)))
-   (d ?x&:(> ?x 3))
-   =>)
-(reset)
-(assert (d a)) ; Error should be for pattern 5
-(clear)                   ; DR0728
-
-(deftemplate attempt
-   (multifield numbers (default 7 7 3 3))
-   (multifield rpn))
-
-(deffacts initial-info
-   (attempt)
-   (operator *)
-   (operator /)
-   (operator -)
-   (operator +))
-
-(defrule do-first
-   ?f <- (attempt (numbers $?b ?n1 $?m ?n2 $?e)
-                  (rpn))
-   (operator ?o)
-   =>
-   (duplicate ?f (numbers ?b ?m ?e)
-                 (rpn ?n1 ?n2 ?o)))
-
-(defrule do-next
-   ?f <- (attempt (numbers $?b ?n $?e)
-                  (rpn ?f $?rest))
-   (operator ?o)
-   =>
-   (duplicate ?f (numbers ?b ?e)
-                 (rpn ?f ?rest ?n ?o)))
-(reset)
-(run) ; should not hang or crash
-(clear)                   ; DR0729
-(get-salience-evaluation)
-(set-salience-evaluation every-cycle) ; should return when-defined
-(set-salience-evaluation when-defined) ; should return every-cycle
-(clear)                   ; DR0730
-(get-salience-evaluation)
-(defmodule A)
-(refresh-agenda *)
-(get-salience-evaluation) ; should be when-defined
-(clear)                   ; DR0731
+(clear)                   ; DR0801
+(setgen 1)
 (unwatch all)
-(defrule zoiks =>)
-(reset)
-(watch rules)
-(defrule zoiks =>) ; activation should not be printed
-(unwatch all)
-(clear)                   ; DR0734
-(defmodule MAIN (export ?ALL))
-(defglobal MAIN ?*proximity* = 9)
-(defmodule SCORE (import MAIN ?ALL))
-
-(defrule SCORE::should-be-ok
-   (attempt1)
-   (test (<= 3 ?*proximity*))
-   =>)
-(clear)                  ; DR0736
-
-(deftemplate where
-   (multislot x (type SYMBOL)))
-
-(defrule yak ; This should be OK
-   (where (x $?pds&:(member$ x ?pds)))
-   =>)
-(clear)
-
-(defrule foo ; This should fail
-   (bbb ?x&:(member a ?x))
-   =>)
-(clear)
-
-(deftemplate this
-   (slot x)
-   (slot y (type INTEGER))
-   (multislot z (type STRING)))
-
-(defrule this-1 ; This should fail
-   (this (x ?x))
-   =>
-   (member$ a ?x))
-(clear)                   ; DR0737
-
-(defrule fd-1 ; This should be ok
-   (a)
-   (not (and (b)
-             (or (c)
-                 (d))))
-   =>)
-   
-(defrule fd-2 ; this should be ok
-   (a)
-   (exists (b)
-           (or (and (c))
-               (d)))
-   =>)
-
-(defrule fd-3 ; this should be ok
-   (a)
-   (not (and (b)
-             (or (and (c) (e))
-                 (d))))
-   =>)
-
-(defrule fd-4 ; this should be ok
-   (a)
-   (exists (b)
-           (or (c)         
-               (d)))
-   =>)
-(clear)
-
-(defrule foo-1
-   (not (or (a) (b)))
-   =>)
-
-(defrule foo-2
-   (not (not (or (a) (b))))
-   =>)
-
-(defrule foo-3
-   (not (and (not (a))
-             (not (b))))
-   =>)
-(reset)
-(agenda)
-(assert (a))
-(agenda)
-(assert (b))
-(agenda)
-(clear)                   ; DR0738
-
-(deffacts f1
-   (s 1)
-   (s 2)
-   (s 3)
-   (c)
-   (a 1))
-
-(defrule r1 ; SHOULD activate, but doesn't
-   (s 1)
-   (exists (or (and (a ?x)
-                    (d)
-                    (test (> 16 10)))
-               (and (a ?x)
-                    (c))))
-   =>)
-   
-(defrule r2 ; SHOULD activate, but doesn't
-   (s 2)
-   (not (and (not (and (a ?x)
-                       (d)
-                       (test (> 16 10))))
-              (not (and (a ?x)
-                        (c)))))
-   =>)
-
-(defrule r3 ; SHOULD NOT activate, but does
-   (s 3)
-   (not (and (a ?x)
-             (d)
-             (test (> 16 10))))
-   (not (and (a ?x)
-             (c)))
-   =>)
-(reset)
-(agenda)
-(clear)                    ; DR0740
-
-(deffunction bug (?list ?a ?b)
-   (while TRUE (return (subseq$ ?list ?a ?b))))
-(bug (create$ a b c) 1 2) ; Should return (a b)
-
-(deffunction bug (?list ?a ?b)
-   (loop-for-count 1 (return (subseq$ ?list ?a ?b))))
-(bug (create$ a b c) 1 2) ; Should return (a b)
-(clear)                   ; DR0742 - should have no error
-(deftemplate TREATMENT
-   (multislot values
-   (type INTEGER)
-   (range 0 19)
-   (cardinality 0 20)))
-(assert (TREATMENT (values (create$))))
-(clear)                  ; DR0743 - should have no error
-(defglobal ?*x* = 3)
-(bsave "Temp//mytest.bin")
-(clear)
-(watch all)
-(bload "Temp//mytest.bin")
-(unwatch all)
-(clear)                 ; DR0745
-(unwatch all)
-(defclass A (is-a USER)
-  (role concrete)
-  (pattern-match reactive)
-  (slot x (create-accessor write))
-  (slot y (create-accessor write)))
-(defrule bug
-  (object (is-a A)
-          (y 100)
-          (x 100))
-  =>)
-(agenda) ; should be no activations
-(make-instance a of A)
+(watch instances)
 (watch activations)
-(object-pattern-match-delay ; should have only one activation arrow
-   (send [a] put-y 100)
-   (send [a] put-x 100))
-(unwatch all)
-(clear)                 ; DR0747
-
-(defclass A (is-a USER)
-   (slot foo (type INSTANCE-NAME)))
-(slot-types A foo) ; Should be just instance-name
-(clear)                ; DR0748 - Should have no error from print message
-(defmodule MAIN (export ?ALL))
-(defclass TEST (is-a USER)
-  (role concrete))
-(defmodule TEST (import MAIN ?ALL))
-(make-instance test of TEST)
-(do-for-instance ((?t TEST)) TRUE
-  (send ?t print))
-(clear)                ; DR0749
-(defclass A (is-a USER)
-   (slot foo (access read-only) (create-accessor ?NONE)))
-(slot-facets A foo) ; facet should be SHR and not LCL
-(clear)                ; DR0750 - Should not crash
-(defclass FOO (is-a USER) (slot x))
-(slot-cardinality FOO x)
-(clear)                ; DR0752 - Should return "a"
-(deffunction y ()
-   (progn$ (?x (create$ "a" "b" "c"))
-      (return ?x))
-   (return "hello"))
-(y)
-(clear)                ; DR0753
-
-(defmodule MAIN (export ?ALL))
-
-(defrule MAIN::foo
-  =>
-  (assert (a))
-  (focus B)
-  (return))
-
-(defrule MAIN::bar
-  (a)
-  =>
-  (focus B)
-  (return))
-
-(defmodule B (import MAIN ?ALL))
-
-(defrule B::yak
-  =>)
-(reset)
-(run 1)
-(list-focus-stack) ; Just B should be on stack
-(reset)
-(focus MAIN B)
-(list-focus-stack) ; Should be MAIN B MAIN
-(run 1)
-(list-focus-stack) ; Should be B B MAIN
-(clear)                ; DR0754
+(watch rules)
 
 (defclass A (is-a USER)
   (role concrete)
   (pattern-match reactive)
-  (slot foo (create-accessor read-write)))
+  (slot match (default yes) (create-accessor read-write))
+  (slot container (create-accessor read-write)))
+  
+(defmessage-handler A delete before ()
+  (if (instance-existp ?self:container) then
+     (unmake-instance ?self:container)))
+     
+(defrule A-rule
+  (logical ?obj <- (object (is-a A) (match yes)))
+=>
+  (send ?obj put-container 
+      (make-instance of A (match no)
+                          (container (make-instance of INITIAL-OBJECT))))
+  (send ?obj put-match no))
+(make-instance a of A)
+(run)
+(unwatch all)
+(clear)                   ; DR0802
+
+(defclass A (is-a USER)
+  (role concrete)
+  (slot foo (default bar)))
+  
+(defmessage-handler A delete after ()
+  (printout t ?self:foo crlf))
+(unmake-instance (make-instance of A))
+(clear)                   ; DR0803
+
+(defclass A
+   (is-a USER)
+  (role concrete)
+  (pattern-match reactive)
+  (multislot data
+    (create-accessor read-write)))
+    
+(defrule rule1
+  (object (is-a A) (data 0 ?x))
+  (object (is-a A) (data 1 ?x))
+  =>
+  (printout t ?x crlf))
+
+(definstances objects
+  (a of A (data 0 0))
+  (b of A (data 1 0))
+  (c of A (data 1 1)))
+(reset)
+(agenda)
+(clear)                   ; DR0804
+
+(deffunction imfi (?cv)
+   (bind ?position 3)
+   (while TRUE do
+     (bind ?nv (+ (nth$ ?position ?cv) 1))
+     (if (<= ?nv 9)
+        then 
+        (return (replace$ ?cv ?position ?position ?nv)))
+     (bind ?cv (replace$ ?cv ?position ?position 1))
+     (bind ?position (- ?position 1))
+     (if (< ?position 1) then (return FALSE))))
+ 
+(deffunction optimize ()
+   (bind ?current-settings (create$ 1 1 1))
+   (while (neq ?current-settings FALSE)
+      (bind ?current-settings (imfi ?current-settings))))
+(reset)
+(optimize)
+(clear)                   ; DR0805
+(setgen 1)
+
+(defclass A
+   (is-a USER)
+   (role concrete)
+   (pattern-match reactive)
+   (multislot data
+      (create-accessor read-write)))
+
+(defrule rule1
+   (object (is-a A) (data ? red ?x&green))
+   (object (is-a A) (data ? red ?x))
+   =>)
+(make-instance of A (data orange red green))
+(matches rule1)
+(clear)                   ; DR0806
+(setgen 1)
+
+(defclass A (is-a INITIAL-OBJECT)
+   (multislot foo))
 
 (defclass B (is-a A)
-  (pattern-match non-reactive))
+   (slot foo))
 
-(defrule foo
-  (test (send [b] put-foo blah))
-  =>)
-(make-instance b of B)
-(assert (initial-fact)) ; Should not generate error
-(clear)                ; DR0756 - Should not crash
+(defrule AB
+   (object (is-a A) (foo ?val))
+   =>
+   (printout t ?val crlf))
+(make-instance of B)
+(run)
+(clear)                   ; DR0807
+(insert$ (rest$ (create$ abc def)) 2 ghi)
+(clear)                   ; DR0808
+(assert (m))
+(assert (a))
+(defrule r1 (m) (not (a)) =>)
+(defrule r2 (m) (not (a)) (not (b)) =>)
+(agenda)
+(clear)                   ; DR0809
+(deffunction pins () (ppinstance))
+(defmessage-handler USER pins () (pins))
 (defclass A (is-a USER) (role concrete))
 (make-instance a of A)
-(any-instancep ((?long-var A)) ?long-var:)
-(clear)                ; DR0757 - Error ID should be [INSMNGR11]
-(defclass A (is-a USER) (role concrete))
-(make-instance BOGUS::A of A)
-(clear)                ; DR0758
+(send [a] pins)
+(clear)                   ; DR0810
+(deffunction MAIN::foo
+   (?garbage)
+   (setgen 1)
+   (loop-for-count ?garbage
+      (make-instance of INITIAL-OBJECT))
+   (delayed-do-for-all-instances ((?ins INITIAL-OBJECT))
+      TRUE
+      (progn
+         (unmake-instance *)
+         (return (gensym*)))))
+(foo 100)
+(foo 500)
+(clear)                   ; DR0813
+
+(defclass A (is-a INITIAL-OBJECT)
+   (multislot foo (create-accessor read-write)))
+
+(defrule A
+   (fact ?v)
+   (not (object (is-a A) (foo $? ?v $?)))
+=>)
+(assert (fact a))
+(make-instance a of A (foo a b c))
+(make-instance b of A (foo a b c))
+
+(object-pattern-match-delay
+   (modify-instance a (foo q))
+   (modify-instance b (foo q)))
+(clear)                   ; DR0815
+
+(defclass grammy (is-a USER)
+    (role concrete)
+    (pattern-match reactive)
+    (multislot  text
+    (create-accessor write)
+    (type SYMBOL)))
+
+(defmessage-handler grammy print before ()
+    (printout t crlf)
+    (printout t "******  starting to print   ****"  ?self crlf))
+
+(defmessage-handler grammy print after ()
+    (printout t "******  starting to print   ****"  ?self crlf)
+    (printout t crlf))
+
+(deffunction resize (?xlist)
+   (if (= (length$ ?xlist)  0)
+     then
+     (printout t "got to here !!! "  crlf)
+     (return)
+     else
+     (make-instance (gensym) of grammy
+         (text (subseq$ ?xlist 1 9))))
+     (resize (subseq$ ?xlist 10 (length$ ?xlist))))
+
+(deffunction ask ()
+   (do-for-all-instances ((?tag grammy)) (instancep ?tag)
+      (send ?tag print)))
+
+(defrule commence  "make it happen"
+   =>
+   (resize (create$ a b c d e f g h i j k l m n)))
+(reset)
+(run)
+(clear)                   ; DR0816
+
+(defclass A
+	  (is-a USER)
+	  (role concrete)
+	  (slot str
+	    (create-accessor read-write)
+	    (type STRING))
+	  (slot length
+	    (create-accessor read-write)
+	    (type INTEGER)))
+
+(defmessage-handler A put-str after (?value)
+   (bind ?self:length 3))
+(make-instance a of A (str 4))
+(send [a] get-length)
+(clear)                   ; DR0817
+
+(deftemplate status 
+   (slot search-depth)
+   (slot parent))
+
+(defrule move-alone 
+  ?node <- (status)
+  =>
+  (duplicate ?node (search-depth =(+ 1 3))
+                   (parent ?node)))
+(ppdefrule move-alone) 
+ 
+(deftemplate dbdata
+  (multislot values))
+ 
+(defrule bug1
+  =>
+  (assert (dbdata (values (create$ 1 2)))))
+(ppdefrule bug1)
+ 
+(defrule bug2
+  =>
+  (assert (dbdata (values (create$ 1 2) (create$ 3 4)))))
+(ppdefrule bug2)    
+ 
+(deftemplate foo 
+   (field x) 
+   (multifield y))
+ 
+(deffacts d5 (foo (y a)))
+(ppdeffacts d5)
+(deffacts d6 (foo (y a b)) (b) (foo (x 3)) (d))
+(ppdeffacts d6)
+(clear)                   ; DR0818
+(defmodule A (export ?ALL))
+(defgeneric A::foo)
+(defmethod A::foo ((?arg NUMBER)))
+(defmodule B (import A ?ALL))
+(defclass B (is-a USER))
+(defmethod B::foo ((?arg B)))
+(clear)                   ; DR0819
+
+(defclass A 
+   (is-a INITIAL-OBJECT)
+   (multislot foo (create-accessor read-write)))
+(make-instance a of A)
+(modify-instance [a] (foo 4))
+(send [a] print)
+(clear)                   ; DR0820
 
 (defclass A (is-a USER)
-  (role concrete))
+   (role concrete)
+   (slot iii 
+      (type INTEGER)
+      (default -1)
+      (visibility public)
+      (create-accessor read-write)))
 
-(defglobal ?*x* = (assert (foo))
-           ?*y* = (make-instance [a] of A))
+(defclass B (is-a USER)
+   (role concrete)
+   (slot ooo 
+      (type INSTANCE)
+      (visibility public)
+      (create-accessor read-write)))
+
+(defmessage-handler B init after ()
+   (send [a] put-iii 23)
+   (printout t "1st output line: iii = " (send [a] get-iii) crlf)
+   (initialize-instance [a])
+   (printout t "2nd output line: iii = " (send [a] get-iii) crlf))
+
+(defrule test
+   (initial-fact)
+   =>
+   (make-instance [a] of A)
+   (make-instance [b] of B))
 (reset)
-(facts)
-(instances)
-(clear)                ; DR0759
-
-(deftemplate A
-   (slot foo (type INTEGER)
-             (allowed-instance-names [a])))
-(clear)                ; DR0763
-
-(deffunction bug (?state)
-   (switch ?state
-     (case instance then TRUE)
-     (case logical then TRUE)
-     (default (return error))))
-(bsave "Temp//foo.bin")
-(clear)                ; DR0765
-
-(deftemplate bar
-   (slot foo (type INTEGER)
-             (allowed-values abc def)))
-(clear)                ; DR0766
-
-(deftemplate temp
-   (multislot foofoo (type INTEGER LEXEME))
-   (slot after-foo (type STRING)))
-(set-dynamic-constraint-checking TRUE)
-(assert (temp (foofoo 11)))
-
-(deftemplate temp2
-   (multislot foofoo (type INTEGER LEXEME)))
-(assert (temp2 (foofoo (progn 3.4))))
-(set-dynamic-constraint-checking FALSE)
-(clear)                ; DR0770
+(run)
+(clear)
+(watch slots)
 
 (defclass A (is-a USER)
   (role concrete)
-  (pattern-match reactive)
-  (multislot foo (default x)))
-
-(defrule bomb
-  (object (foo $? x $?))
-  (object (foo $? ? $?))
-=>)
+  (slot foo
+    (create-accessor read-write)
+    (access initialize-only)))
 (make-instance a of A)
-(clear)                ; DR0778
 
-(deffacts example
-   (a b c d e d c b a a a a a a a a a a a a))
+(defclass B (is-a USER)
+  (role concrete)
+  (slot bar
+     (create-accessor read-write)
+     (default-dynamic (send [a] put-foo blah))))
+(make-instance of B)
+(unwatch slots)
+(clear)                   ; DR0821
 
-(defrule foo
-   (a ?x $?y d $?z ?x)
-   =>
-   (printout t "x = " ?x " y = " ?y " z = " ?z crlf))
+(deffunction function2 ()
+  (subseq$ (create$ 3 (+ 3 1)) 1 1))
+
+(deffunction function1 ()
+   (bind ?str "")
+   (bind ?result (function2))
+   (loop-for-count 3
+      (bind ?str (str-cat ?str " ")))) 
+(loop-for-count 1000 (function1))
+(clear)
+(clear)                   ; DR0824
+
+(defclass c
+   (is-a USER)
+   (role concrete)
+   (slot s
+      (access initialize-only)
+      (visibility public)
+      (create-accessor read-write)))
+
+(defmessage-handler c init after
+   ()
+   (bind ?self:s (+ ?self:s 1)))
+(make-instance of c (s 1))
+(clear)                   ; DR0825
+
+(defclass EXAMPLE
+   (is-a USER)
+   (role concrete)
+   (slot x))
+(restore-instances bug825.ins)
+(clear)
+(progn (release-mem) TRUE)
+(clear)                   ; DR0831
+(defmodule MAIN (export ?ALL))
+(defmodule M (import MAIN ?ALL) (export ?ALL))
+(deffunction MAIN::problem (?x))
+(save "Temp//bug.clp")
+(clear)
+(load "Temp//bug.clp")
+(clear)                   ; DR0834
+
+(deffacts Stuff
+   (Value)
+   (AxisLine))  
+
+(defrule r1
+   (initial-fact)
+   (not (and (Value) 
+             (not (AxisLine))))
+   (not (AxisLine))
+   (not (Bogus))
+   =>)
+(reset)
+(retract 2)
+(run)
+(clear)                   ; DR0835
+
+(explode$
+   (nth$ 1 (explode$
+      (nth$ 1 (explode$
+         (nth$ 1 (explode$
+            (implode$ (create$
+               (implode$ (create$
+                  (implode$ (create$
+                     (implode$ (create$ a b c)))))))))))))))
+(clear)                   ; DR0837
+(assert-string "()dfj )))(")
+(assert-string ")(dsf")
+(clear)                   ; DR0839
+(ppdefclass asd)
+(ppdefclass MAIN::dip)
+(ppdefclass uiui::gop)
+(clear)                   ; DR0840
+
+(defmodule A
+   (export deftemplate template))
+(deftemplate A::template)
+
+(defmodule B
+   (import A deftemplate template))
+(save "Temp//bug.tmp")
+(clear)
+(load "Temp//bug.tmp")
+(clear)
+(load mab.clp)
+(save "Temp//bug.tmp")
+(clear)
+(load "Temp//bug.tmp")
+(clear)
+(load dilemma1.clp)
+(save "Temp//bug.tmp")
+(clear)
+(load "Temp//bug.tmp")
+(clear)
+(load dilemma2.clp)
+(save "Temp//bug.tmp")
+(clear)
+(load "Temp//bug.tmp")
+(clear)
+(load wordgame.clp)
+(save "Temp//bug.tmp")
+(clear)
+(load "Temp//bug.tmp")
+(clear)
+(load zebra.clp)
+(save "Temp//bug.tmp")
+(clear)
+(load "Temp//bug.tmp")
+(clear)
+(load electrnc.clp)
+(load circuit3.clp)
+(save "Temp//bug.tmp")
+(clear)
+(load "Temp//bug.tmp")
+(clear)
+(load mabobj.clp)
+(save "Temp//bug.tmp")
+(clear)
+(load "Temp//bug.tmp")
+(clear)
+(load objfarm.clp)
+(save "Temp//bug.tmp")
+(clear)
+(load "Temp//bug.tmp")
+(clear)
+(load wrdgmobj.clp)
+(save "Temp//bug.tmp")
+(clear)
+(load "Temp//bug.tmp")
+(clear)
+(load wine.clp)
+(save "Temp//bug.tmp")
+(clear)
+(load "Temp//bug.tmp")
+(clear)
+(clear)                   ; DR0848
+
+(defrule test1 
+   (hihi ?a $?m) 
+   => 
+   (progn$ (?each ?m) 
+      (printout t "Value=" ?each " Index=" ?each-index crlf)))
+(assert (hihi alpha bravo charli david echo))
+(run)
+(clear)                   ; DR0849
+
+(defclass FRIDGE
+   (is-a USER)
+   (multislot contents))
+
+(definstances test
+   (fridge-1 of FRIDGE (contents a b c d)))
+(reset)
+(member$ (first$ (rest$ (send [fridge-1] get-contents))) (send [fridge-1] get-contents))
+(member$ (first$ (rest$ (send [fridge-1] get-contents))) (rest$ (send [fridge-1] get-contents)))
+(clear)                   ; DR0854
+
+(deffunction foobar (?a ?b ?c)
+   (printout t ?a " " ?b " " ?c crlf))
+(funcall foobar 1)
+(clear)                   ; DR0855
+(fetch
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+)
+(clear)                   ; DR0856
+(constructs-to-c
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+1)
+(clear)                   ; DR0857
+
+(defclass
+CLASSaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+(is-a OBJECT))
+(profile constructs)
+(profile-info)
+(profile off)
+(clear)                   ; DR0858
+
+(defmodule
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
+
+(deffunction
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa::foo
+()))
+(get-deffunction-list *)
+(clear)                   ; DR0867
+
+(defrule Bad-Rule ""
+   (exists (C))
+   (not (B))
+   =>)
+(watch activations)
+(reset)
 (reset)
 (agenda)
-(clear)               ; DR0782
-(set-strategy breadth)
-(set-strategy depth)
-(deftemplate t1       ; DR0783
-  (field code)
-  (field a))
-(deftemplate t2
-  (field code)
-  (field a))
-(deftemplate t1
-  (field code)
-  (field a))
-(deftemplate t2
-  (field code)
-  (field b))
-(clear)
+(unwatch activations)
+(clear)                   ; DR0870
 
-(defclass fifty (is-a USER)     
-  (role   concrete)       
-  (pattern-match  reactive)
-  (slot   s1      (type   SYMBOL))
-  (slot   s2      (type   INTEGER))
-  (slot   s3      (type   SYMBOL))
-  (slot   s4      (type   INTEGER))
-  (slot   s5      (type   SYMBOL))
-  (slot   s6      (type   INTEGER))
-  (slot   s7      (type   SYMBOL))
-  (slot   s8      (type   INTEGER))
-  (slot   s9      (type   SYMBOL))
-  (slot   s10     (type   INTEGER))
-  (slot   s11     (type   SYMBOL))
-  (slot   s12     (type   INTEGER))
-  (slot   s13     (type   SYMBOL))
-  (slot   s14     (type   INTEGER))
-  (slot   s15     (type   SYMBOL))
-  (slot   s16     (type   INTEGER))
-  (slot   s17     (type   SYMBOL))
-  (slot   s18     (type   INTEGER))
-  (slot   s19     (type   SYMBOL))
-  (slot   s20     (type   INTEGER))
-  (slot   s21     (type   SYMBOL))
-  (slot   s22     (type   INTEGER))
-  (slot   s23     (type   SYMBOL))
-  (slot   s24     (type   INTEGER))
-  (slot   s25     (type   SYMBOL))
-  (slot   s26     (type   INTEGER))
-  (slot   s27     (type   SYMBOL))
-  (slot   s28     (type   INTEGER))
-  (slot   s29     (type   SYMBOL))
-  (slot   s30     (type   INTEGER))
-  (slot   s31     (type   SYMBOL))
-  (slot   s32     (type   INTEGER))
-  (slot   s33     (type   SYMBOL))
-  (slot   s34     (type   INTEGER))
-  (slot   s35     (type   SYMBOL))
-  (slot   s36     (type   INTEGER))
-  (slot   s37     (type   SYMBOL))
-  (slot   s38     (type   INTEGER))
-  (slot   s39     (type   SYMBOL))
-  (slot   s40     (type   INTEGER))
-  (slot   s41     (type   SYMBOL))
-  (slot   s42     (type   INTEGER))
-  (slot   s43     (type   SYMBOL))
-  (slot   s44     (type   INTEGER))
-  (slot   s45     (type   SYMBOL))
-  (slot   s46     (type   INTEGER))
-  (slot   s47     (type   SYMBOL))
-  (slot   s48     (type   INTEGER))
-  (slot   s49     (type   SYMBOL))
-  (slot   s50     (type   INTEGER)))
+(defclass A (is-a USER)
+   (slot x (default ?NONE)))
+(slot-default-value A x)
+(clear)                   ; DR0872
+(load dr0872-1.clp)
+(load dr0872-2.clp)
+(clear)                   ; DR0873
 
-(deffunction f(?limit ?class)
-   (reset)
-   (loop-for-count (?i 1 ?limit)
-      (bind ?t (time))
-      (loop-for-count (?j 1 500) (make-instance of ?class))
-      (printout t ?i crlf)))
-(f 3 fifty)
-(clear)               ; DR0784
+(defclass A
+   (is-a USER) 
+   (slot x)) 
 
-(defrule testing
-   ?f1<-(orders $?first&:(> (length$ ?first) 0))
-   ?f2<-(orders $?others&:(subsetp ?first ?others))
+(defclass B
+   (is-a USER) 
+   (slot y)) 
+
+(definstances initialization 
+   (ob1 of A (x 1)) 
+   (ob2 of B (y 1))) 
+
+(defrule one 
+   (object (is-a A) 
+           (x ~0)) 
+   (object (is-a B) 
+           (y ?val)) 
+   (test (> ?val 0)) 
    =>)
-
-(defrule testing
-   (orders $?first&:(implode$ ?first)
-                   :(implode$ ?first))
-   =>)
-(clear)               ; DR0785
-(defglobal ?*x* = 0)
-(defmodule MAIN (export ?ALL))
-(defmodule FOO (import MAIN ?ALL))
-(defclass FOO (is-a USER) (role concrete))
-(bind ?*x* (instance-address (make-instance foo of FOO)))
-(focus MAIN)
-(send [FOO::foo] print)
-(send ?*x* print)
-(clear)               ; DR0786
-
-(deftemplate nanu
-   (slot a (type INTEGER))
-   (slot b (type FLOAT)))
-(assert (nanu))
-(modify 0 (c 4))
-(clear)               ; DR0788
-
-(defrule r1 
-   (or (P1 p1) (P2 p2)) 
-   =>)
-(reset)
-(bsave "Temp//r1.bin")
-(clear)
-(bload "Temp//r1.bin")
-(reset)
-(watch all)
-(unwatch all)
-(clear)               ; DR0789
-(deffacts MAIN:: the-suit-list)
-(clear)               ; DR0790
-
-(defrule init
+   
+(defrule trigger
    =>
-  (assert (p 1)))
-
-(defrule crash
-  (p ?X)
-  (not (test (eq ?X 1)))
-  (p ?Y)
-  (not (and (test (neq ?Y 20))(test (neq ?Y 30))))
-  =>)
+   (object-pattern-match-delay
+      (modify-instance [ob1] (x 2))
+      (make-instance [ob2] of B (y 2))))
 (reset)
 (run)
-(clear)               ; DR0791
+(clear)                   ; DR0874
+(undefrule MAIN::)
+(clear)                   ; DR0877
 
-(defrule autorule2_B2
-  (or (foo ?st_B1)
-      (bpc-newdata))
-  =>
-  ?st_B1)
+(deftemplate foo (multislot bar) (multislot yak))
+
+(deffacts init
+   (foo (bar) (yak)))
+   
+(deffunction callit (?c)
+    (loop-for-count (?i ?c)
+       (do-for-fact ((?f foo)) TRUE
+          (bind ?b1 ?f:bar)
+          (bind ?b2 ?f:yak)
+          (assert (foo (bar ?b1 ?i) (yak ?b2 (- ?c ?i))))
+          (retract ?f))))
+      
+(defrule doit
+    =>
+    (callit 2000))
+(reset)
+(run)
+(clear)                   ; DR0878
+(funcall assert foo a b c)
+(clear)                   ; DR0879
+(assert (a) (b) (c))
+(implode$ (get-fact-list))
+(clear)                   ; DR0880
+(deftemplate matrix (slot ID) (slot JD))
+(deffacts blah (matrix (ID 5) (JD 5)))
+(reset)
+
+(defrule rule1
+   (matrix (ID 5) (JD 3))
+   =>)
+
+(defrule rule2
+   (matrix (ID 5))
+   =>)
+(agenda)
+(reset)
+(agenda)
+(clear)                   ; SourceForge 1881324: CLIPS 6.3 Beta Release 2
+
+(deftemplate as_score 
+   (slot segment_id) 
+   (slot score))
+
+(deffacts as_score_info 
+   (as_score (segment_id 11)(score 5)) 
+   (as_score (segment_id 12)(score 9))) 
+(reset)
+(facts)
+(reset)
+(facts)
 (clear)
+(clear)                   ; SourceForge 1881324: CLIPS 6.3 Beta Release 3
+
+(deftemplate TAG2200 
+   (slot Doc-Address))
+   
+(defrule bug ""
+   (TAG2200 (Doc-Address ?DA1) )
+   (not (create-doc-shipper))
+   (test (eq ?DA1 ""))
+   =>)
+ 
+(reset)
+(assert (TAG2200 (Doc-Address "")))
+(assert (create-doc-shipper))
+
+(clear)                   ; DR0881
+(unwatch all)   
+
+(defrule detect
+   (b ?b)
+   (exists (a))
+   (test (eq ?b 2))
+   =>
+   (printout t "Rule Fired" crlf))
+(assert (a))
+(assert (b 1))
+(run)
+(reset)
+(assert (b 1))
+(assert (a))
+(run)
+(reset)
+(assert (a))
+(assert (b 2))
+(run)
+(reset)
+(assert (b 2))
+(assert (a))
+(run)
+(clear)                   ; CLIPSESG Issue
+(defclass BEO (is-a USER) (multislot de) (multislot en))
+(make-instance of BEO)
+(make-instance of BEO)
+(bsave-instances "Temp//d.bins")
+(reset)
+(bload-instances "Temp//d.bins")

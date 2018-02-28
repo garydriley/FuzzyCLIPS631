@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.31  06/28/17            */
    /*                                                     */
    /*               RULE BUILD HEADER FILE                */
    /*******************************************************/
@@ -21,6 +21,17 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Removed INCREMENTAL_RESET compilation flag.    */
+/*                                                           */
+/*            Corrected code to remove compiler warnings.    */
+/*                                                           */
+/*      6.30: Changes to constructing join network.          */
+/*                                                           */
+/*            Added support for hashed memories.             */
+/*                                                           */
+/*      6.31: DR#882 Logical retraction not working if       */
+/*            logical CE starts with test CE.                */
 /*                                                           */
 /*************************************************************/
 
@@ -45,9 +56,10 @@
 #define LOCALE extern
 #endif
 
-   LOCALE struct joinNode               *ConstructJoins(void *,int,struct lhsParseNode *);
+   LOCALE struct joinNode               *ConstructJoins(void *,int,struct lhsParseNode *,int,struct joinNode *,int,int);
+   LOCALE void                           AttachTestCEsToPatternCEs(void *,struct lhsParseNode *);
 
-#endif
+#endif /* _H_rulebld */
 
 
 

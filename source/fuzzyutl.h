@@ -54,12 +54,12 @@
                                                     int Asize, int Bsize );
    LOCALE void                 computeFuzzyConsequence(void *theEnv, struct fact *new_fact );
    LOCALE void                 changeValueOfFuzzySlots(void *theEnv, struct fact *fact1, struct fact *fact2 );
-   LOCALE void                 PrintFuzzyTemplateFact(void *theEnv,char *logName, struct fuzzy_value *fv
+   LOCALE void                 PrintFuzzyTemplateFact(void *theEnv,const char *logName, struct fuzzy_value *fv
 #if CERTAINTY_FACTORS
                                                      ,double CF
 #endif
                                                      );
-   LOCALE void                 PrintFuzzySet(void *theEnv,char *logName, struct fuzzy_value *fv);
+   LOCALE void                 PrintFuzzySet(void *theEnv,const char *logName, struct fuzzy_value *fv);
    LOCALE double               maxmin_intersect(void *theEnv,struct fuzzy_value *f1,
                                                 struct fuzzy_value *f2, 
                                                 int DoIntersect,

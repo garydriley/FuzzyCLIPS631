@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  12/04/07            */
    /*                                                     */
    /*                  DRIVE HEADER FILE                  */
    /*******************************************************/
@@ -19,6 +19,13 @@
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Added support for hashed memories.             */
+/*                                                           */
+/*            Added additional developer statistics to help  */
+/*            analyze join network performance.              */
+/*                                                           */
+/*            Removed pseudo-facts used in not CE.           */
 /*                                                           */
 /*************************************************************/
 
@@ -46,11 +53,16 @@
 #define LOCALE extern
 #endif
 
-   void                           NetworkAssert(void *,struct partialMatch *,struct joinNode *,int);
-   void                           PNLDrive(void *,struct joinNode *,struct partialMatch *);
-   intBool                        EvaluateJoinExpression(void *,struct expr *,struct partialMatch *,struct partialMatch *,struct joinNode *);
-
-#endif
+   void                           NetworkAssert(void *,struct partialMatch *,struct joinNode *);
+   intBool                        EvaluateJoinExpression(void *,struct expr *,struct joinNode *);
+   void                           NetworkAssertLeft(void *,struct partialMatch *,struct joinNode *,int);
+   void                           NetworkAssertRight(void *,struct partialMatch *,struct joinNode *,int);
+   void                           PPDrive(void *,struct partialMatch *,struct partialMatch *,struct joinNode *,int);
+   unsigned long                  BetaMemoryHashValue(void *,struct expr *,struct partialMatch *,struct partialMatch *,struct joinNode *);
+   intBool                        EvaluateSecondaryNetworkTest(void *,struct partialMatch *,struct joinNode *);
+   void                           EPMDrive(void *,struct partialMatch *,struct joinNode *,int);
+   
+#endif /* _H_drive */
 
 
 

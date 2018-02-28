@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*           DEFFACTS BSAVE/BLOAD HEADER FILE          */
    /*******************************************************/
@@ -13,13 +13,16 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
 #if (! RUN_TIME)
+
 #ifndef _H_dffctbin
 
 #define _H_dffctbin
@@ -66,8 +69,9 @@ struct deffactsBinaryData
    LOCALE void                           DeffactsBinarySetup(void *);
    LOCALE void                          *BloadDeffactsModuleReference(void *,int);
 
-#endif
-#endif
+#endif /* _H_dffctbin */
+
+#endif /* (! RUN_TIME) */
 
 
 

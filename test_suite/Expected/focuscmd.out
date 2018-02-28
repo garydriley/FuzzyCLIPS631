@@ -142,6 +142,8 @@ FuzzyCLIPS> (focus A B)
 ==> Focus A from B
 TRUE
 FuzzyCLIPS> (clear)
+<== Focus MAIN
+==> Focus MAIN
 FuzzyCLIPS> (run)
 <== Focus MAIN
 FuzzyCLIPS> (run)

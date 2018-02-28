@@ -23,7 +23,7 @@ FuzzyCLIPS> (reset)
 <== Focus MAIN
 ==> Focus MAIN
 FuzzyCLIPS> (run)
-FIRE    1 start: f-0
+FIRE    1 start: *
 ==> Focus C from MAIN
 ==> Focus B from C
 ==> Focus A from B
@@ -38,6 +38,8 @@ FIRE    7 crule1: f-1
 <== Focus C to MAIN
 <== Focus MAIN
 FuzzyCLIPS> (clear) ;; Test early return
+<== Focus MAIN
+==> Focus MAIN
 FuzzyCLIPS> (defmodule MAIN (export ?ALL))
 FuzzyCLIPS> (deffacts info (a) (b))
 FuzzyCLIPS> (defrule MAIN::start => (focus A B C))
@@ -54,7 +56,7 @@ FuzzyCLIPS> (reset)
 <== Focus MAIN
 ==> Focus MAIN
 FuzzyCLIPS> (run)
-FIRE    1 start: f-0
+FIRE    1 start: *
 ==> Focus C from MAIN
 ==> Focus B from C
 ==> Focus A from B
@@ -66,6 +68,8 @@ FIRE    4 crule2: f-2
 <== Focus C to MAIN
 <== Focus MAIN
 FuzzyCLIPS> (clear) ;; Test nesting
+<== Focus MAIN
+==> Focus MAIN
 FuzzyCLIPS> (defmodule MAIN (export ?ALL))
 FuzzyCLIPS> (deffacts info (a) (b) (c))
 FuzzyCLIPS> (defrule MAIN::start => (focus A))
@@ -85,7 +89,7 @@ FuzzyCLIPS> (reset)
 <== Focus MAIN
 ==> Focus MAIN
 FuzzyCLIPS> (run)
-FIRE    1 start: f-0
+FIRE    1 start: *
 ==> Focus A from MAIN
 FIRE    2 arule3: f-3
 ==> Focus B from A
@@ -109,6 +113,8 @@ FIRE   10 crule1: f-1
 <== Focus A to MAIN
 <== Focus MAIN
 FuzzyCLIPS> (clear) ;; Autofocus
+<== Focus MAIN
+==> Focus MAIN
 FuzzyCLIPS> (defrule error (declare (auto-focus)) =>)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for auto-focus statement.
@@ -131,6 +137,8 @@ ERROR:
 (defrule MAIN::error
    (declare (auto-focus 6
 FuzzyCLIPS> (clear)
+<== Focus MAIN
+==> Focus MAIN
 FuzzyCLIPS> (defmodule MAIN (export ?ALL))
 FuzzyCLIPS> (deffacts info (a) (b) (c))
 FuzzyCLIPS> (defrule MAIN::mrule1 (c) => (assert (d)))

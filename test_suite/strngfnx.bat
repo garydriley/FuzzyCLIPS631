@@ -42,6 +42,7 @@
 (sub-string 5 7 "abc")             ; 10.4.3
 (sub-string -1 0 "abc")            ; 10.4.3
 (sub-string 3 8 "abcdefghijkl")    ; 10.4.3
+(sub-string 1 1 "")                ; 10.4.3
 (str-index)                        ; 10.4.4
 (str-index "a")                    ; 10.4.4
 (str-index "a" "b" 3)              ; 10.4.4

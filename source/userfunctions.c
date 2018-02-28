@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.24  04/21/06          */
+   /*               CLIPS Version 6.30  08/16/14          */
    /*                                                     */
    /*                USER FUNCTIONS MODULE                */
    /*******************************************************/
@@ -18,6 +18,10 @@
 /*                                                           */
 /*      6.24: Created file to seperate UserFunctions and     */
 /*            EnvUserFunctions from main.c.                  */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
 /*                                                           */
 /*************************************************************/
 
@@ -41,12 +45,11 @@
 /*                                                                         */
 /***************************************************************************/
 
-#include "setup.h"
-#include "extnfunc.h"
+#include "clips.h"
 
 void UserFunctions(void);
 void EnvUserFunctions(void *);
-  
+
 /*********************************************************/
 /* UserFunctions: Informs the expert system environment  */
 /*   of any user defined functions. In the default case, */
@@ -57,7 +60,9 @@ void EnvUserFunctions(void *);
 /*   included in another file.                           */
 /*********************************************************/
 void UserFunctions()
-  {   
+  {
+   // Use of UserFunctions is deprecated.
+   // Use EnvUserFunctions instead.
   }
   
 /***********************************************************/
@@ -69,14 +74,11 @@ void UserFunctions()
 /*   this function can be deleted from this file and       */
 /*   included in another file.                             */
 /***********************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 void EnvUserFunctions(
-  void *theEnv)
+  void *environment)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
-#pragma unused(theEnv)
+#if MAC_XCD
+#pragma unused(environment)
 #endif
   }
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.20  01/31/02          */
+   /*               CLIPS Version 6.30  08/16/14          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,11 +10,27 @@
 /* Purpose: Object System Construct Compiler Code            */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Added environment parameter to GenClose.       */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Added support for path name argument to        */
+/*            constructs-to-c.                               */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -54,9 +70,9 @@ struct objectCompilerData
 #define LOCALE extern
 #endif
 
-LOCALE void SetupObjectsCompiler(void *);
-LOCALE void PrintClassReference(void *,FILE *,DEFCLASS *,int,int);
-LOCALE void DefclassCModuleReference(void *,FILE *,int,int,int);
+   LOCALE void                    SetupObjectsCompiler(void *);
+   LOCALE void                    PrintClassReference(void *,FILE *,DEFCLASS *,int,int);
+   LOCALE void                    DefclassCModuleReference(void *,FILE *,int,int,int);
 
-#endif
+#endif /* _H_objcmp */
 

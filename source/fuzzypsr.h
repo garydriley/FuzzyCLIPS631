@@ -44,7 +44,7 @@
 #define LOCALE extern
 #endif
 
-   LOCALE struct fuzzyLv        *ParseFuzzyTemplate(void *theEnv,char *readSource, 
+   LOCALE struct fuzzyLv        *ParseFuzzyTemplate(void *theEnv,const char *readSource, 
                                                    struct token *inputToken,
                                                    int *DeftemplateError);
    LOCALE void                  RtnFuzzyTemplate(struct fuzzyLv *lv);

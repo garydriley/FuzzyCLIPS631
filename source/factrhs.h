@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/20/14            */
    /*                                                     */
    /*        FACT RHS PATTERN PARSER HEADER MODULE        */
    /*******************************************************/
@@ -15,6 +15,13 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Added code to prevent a clear command from     */
+/*            being executed during fact assertions via      */
+/*            Increment/DecrementClearReadyLocks API.        */
 /*                                                           */
 /*************************************************************/
 
@@ -44,11 +51,11 @@
 #define LOCALE extern
 #endif
 
-   LOCALE struct expr                   *BuildRHSAssert(void *,char *,struct token *,int *,int,int,char *);
-   LOCALE struct expr                   *GetAssertArgument(void *,char *,struct token *,int *,int,int,int *);
-   LOCALE struct expr                   *GetRHSPattern(void *,char *,struct token *,int *,int,
+   LOCALE struct expr                   *BuildRHSAssert(void *,const char *,struct token *,int *,int,int,const char *);
+   LOCALE struct expr                   *GetAssertArgument(void *,const char *,struct token *,int *,int,int,int *);
+   LOCALE struct expr                   *GetRHSPattern(void *,const char *,struct token *,int *,int,
                                                        int,int,int);
-   LOCALE struct fact                   *StringToFact(void *,char *);
+   LOCALE struct fact                   *StringToFact(void *,const char *);
 
-#endif
+#endif /* _H_factrhs */
 

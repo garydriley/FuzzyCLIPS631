@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.31  08/28/17            */
    /*                                                     */
    /*                  MATCH HEADER FILE                  */
    /*******************************************************/
@@ -15,6 +15,14 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Added support for hashed memories.             */
+/*                                                           */
+/*            Added additional members to partialMatch to    */
+/*            support changes to the matching algorithm.     */
+/*                                                           */
+/*      6.31: Bug fix to prevent rule activations for        */
+/*            partial matches being deleted.                 */
 /*                                                           */
 /*************************************************************/
 
@@ -38,9 +46,9 @@ struct multifieldMarker;
 #include "pattern.h"
 #endif
 
-/************************************************************/
-/* PATTERNMATCH STRUCTURE:                                  */
-/************************************************************/
+/***************************/
+/* PATTERNMATCH STRUCTURE: */
+/***************************/
 struct patternMatch
   {
    struct patternMatch *next;
@@ -60,30 +68,44 @@ struct genericMatch
      } gm;
   };
 
-/************************************************************/
-/* PARTIALMATCH STRUCTURE:                                  */
-/************************************************************/
+/***************************/
+/* PARTIALMATCH STRUCTURE: */
+/***************************/
 struct partialMatch
   {
-   unsigned int betaMemory  : 1;
-   unsigned int busy        : 1;
-   unsigned int activationf : 1;
-   unsigned int dependentsf : 1;
-   unsigned int notOriginf  : 1;
-   unsigned int counterf    : 1;
-   unsigned int bcount      : 9;
-   struct partialMatch *next;
+   unsigned int betaMemory  :  1;
+   unsigned int busy        :  1;
+   unsigned int rhsMemory   :  1;
+   unsigned int deleting    :  1;
+   unsigned short bcount; 
+   unsigned long hashValue;
+   void *owner;
+   void *marker;
+   void *dependents;
+   struct partialMatch *nextInMemory;
+   struct partialMatch *prevInMemory;
+   struct partialMatch *children;
+   struct partialMatch *rightParent;
+   struct partialMatch *nextRightChild;
+   struct partialMatch *prevRightChild;
+   struct partialMatch *leftParent;
+   struct partialMatch *nextLeftChild;
+   struct partialMatch *prevLeftChild;
+   struct partialMatch *blockList;
+   struct partialMatch *nextBlocked;
+   struct partialMatch *prevBlocked;
    struct genericMatch binds[1];
   };
 
-/************************************************************/
-/* ALPHAMATCH STRUCTURE:                                    */
-/************************************************************/
+/*************************/
+/* ALPHAMATCH STRUCTURE: */
+/*************************/
 struct alphaMatch
   {
    struct patternEntity *matchingItem;
    struct multifieldMarker *markers;
    struct alphaMatch *next;
+   unsigned long bucket;
   };
 
 /************************************************************/
@@ -111,7 +133,7 @@ struct multifieldMarker
 #define set_nth_pm_value(thePM,thePos,theVal) (thePM->binds[thePos].gm.theValue = (void *) theVal)
 #define set_nth_pm_match(thePM,thePos,theVal) (thePM->binds[thePos].gm.theMatch = theVal)
 
-#endif
+#endif /* _H_match */
 
 
 

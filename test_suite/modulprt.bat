@@ -67,6 +67,7 @@
 (list-defmessage-handlers D::FOO)
 (list-definstances *)
 (clear) ; Test for scope
+(setgen 1)
 (defmodule A (export ?ALL))
 (deftemplate A::foo (slot x))
 (defglobal A ?*foo* = 3)

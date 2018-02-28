@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*        SYMBOL CONSTRUCT COMPILER HEADER FILE        */
    /*******************************************************/
@@ -13,11 +13,23 @@
 /*                                                           */
 /* Principal Programmer(s):                                  */
 /*      Gary D. Riley                                        */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Added environment parameter to GenClose.       */
+/*                                                           */
+/*            Corrected code to remove compiler warnings.    */
+/*                                                           */
+/*      6.30: Added support for path name argument to        */
+/*            constructs-to-c.                               */
+/*                                                           */
+/*            Support for long long integers.                */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -50,8 +62,8 @@
 #if FUZZY_DEFTEMPLATES  
    LOCALE void                     PrintFuzzyValueReference(void *,FILE *,FUZZY_VALUE_HN *);
 #endif
-   LOCALE void                     AtomicValuesToCode(void *,char *);
+   LOCALE void                     AtomicValuesToCode(void *,const char *,const char *,char *);
 
-#endif
+#endif /* _H_symblcmp */
 
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  07/01/05            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*            CONSTRAINT BLOAD/BSAVE MODULE            */
    /*******************************************************/
@@ -14,10 +14,13 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.24: Added allowed-classes slot facet.              */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
@@ -168,7 +171,7 @@ globle void WriteNeededConstraints(
    /* constraints in the constraint table.       */
    /*============================================*/
 
-   GenWrite(&numberOfUsedConstraints,(unsigned long) sizeof(unsigned long int),fp);
+   GenWrite(&numberOfUsedConstraints,sizeof(unsigned long int),fp);
    if (numberOfUsedConstraints == 0) return;
 
    for (i = 0 ; i < SIZE_CONSTRAINT_HASH; i++)
@@ -185,8 +188,7 @@ globle void WriteNeededConstraints(
 #endif
 
          CopyToBsaveConstraintRecord(theEnv,tmpPtr,&bsaveConstraints);
-         GenWrite(&bsaveConstraints,
-                  (unsigned long) sizeof(BSAVE_CONSTRAINT_RECORD),fp);
+         GenWrite(&bsaveConstraints,sizeof(BSAVE_CONSTRAINT_RECORD),fp);
 #if FUZZY_DEFTEMPLATES
            }
 #endif
@@ -244,13 +246,11 @@ static void CopyToBsaveConstraintRecord(
 globle void ReadNeededConstraints(
   void *theEnv)
   {
-   GenReadBinary(theEnv,(void *) &ConstraintData(theEnv)->NumberOfConstraints,(unsigned long)
-                                         sizeof(unsigned long int));
+   GenReadBinary(theEnv,(void *) &ConstraintData(theEnv)->NumberOfConstraints,sizeof(unsigned long int));
    if (ConstraintData(theEnv)->NumberOfConstraints == 0) return;
 
    ConstraintData(theEnv)->ConstraintArray = (CONSTRAINT_RECORD *)
-           genlongalloc(theEnv,(unsigned long) (sizeof(CONSTRAINT_RECORD) *
-                                        ConstraintData(theEnv)->NumberOfConstraints));
+           genalloc(theEnv,(sizeof(CONSTRAINT_RECORD) * ConstraintData(theEnv)->NumberOfConstraints));
 
    BloadandRefresh(theEnv,ConstraintData(theEnv)->NumberOfConstraints,sizeof(BSAVE_CONSTRAINT_RECORD),
                    CopyFromBsaveConstraintRecord);
@@ -314,9 +314,8 @@ globle void ClearBloadedConstraints(
   {
    if (ConstraintData(theEnv)->NumberOfConstraints != 0)
      {
-      genlongfree(theEnv,(void *) ConstraintData(theEnv)->ConstraintArray,
-                  (unsigned long) (sizeof(CONSTRAINT_RECORD) *
-                                  ConstraintData(theEnv)->NumberOfConstraints));
+      genfree(theEnv,(void *) ConstraintData(theEnv)->ConstraintArray,
+                     (sizeof(CONSTRAINT_RECORD) * ConstraintData(theEnv)->NumberOfConstraints));
       ConstraintData(theEnv)->NumberOfConstraints = 0;
      }
   }

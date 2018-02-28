@@ -1,342 +1,6 @@
 TRUE
 FuzzyCLIPS> (batch "drtest08.bat")
 TRUE
-FuzzyCLIPS> (reset)                   ; DR0675
-FuzzyCLIPS> (defrule foo (initial-fact) (test (> 4 3)) =>)
-FuzzyCLIPS> (agenda)
-0      foo: f-0
-For a total of 1 activation.
-FuzzyCLIPS> (assert (a))
-<Fact-1>
-FuzzyCLIPS> (defrule bar (initial-fact) (or (test (> 5 3)) (a)) =>)
-FuzzyCLIPS> (agenda)
-0      bar: f-0,f-1
-0      bar: f-0
-0      foo: f-0
-For a total of 3 activations.
-FuzzyCLIPS> (reset)
-FuzzyCLIPS> (assert (a))
-<Fact-1>
-FuzzyCLIPS> (agenda)
-0      bar: f-0,f-1
-0      foo: f-0
-0      bar: f-0
-For a total of 3 activations.
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (defmethod foo (?a)       ; DR0676
-  (bind ?b 10)
-  (call-next-method)
-  ?b)
-FuzzyCLIPS> (defmethod foo ($?any)
-  (bind ?b 20))
-FuzzyCLIPS> (foo bar)
-10
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (call-next-method 0)      ; DR0677
-[ARGACCES4] Function call-next-method expected exactly 0 argument(s)
-FuzzyCLIPS> (next-methodp 0)
-[ARGACCES4] Function next-methodp expected exactly 0 argument(s)
-FuzzyCLIPS> (preview-generic)
-[ARGACCES4] Function preview-generic expected at least 1 argument(s)
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (delete-instance 0)       ; DR0678
-[ARGACCES4] Function delete-instance expected exactly 0 argument(s)
-FuzzyCLIPS> (init-slots 0)
-[ARGACCES4] Function init-slots expected exactly 0 argument(s)
-FuzzyCLIPS> (ppinstance 0)
-[ARGACCES4] Function ppinstance expected exactly 0 argument(s)
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (print-region 1 2 3)      ; DR0679
-[ARGACCES5] Function print-region expected argument #1 to be of type symbol
-FuzzyCLIPS> (print-region t 2 3)
-[ARGACCES5] Function print-region expected argument #2 to be of type symbol or string
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (defclass A (is-a USER))  ; DR0680
-FuzzyCLIPS> (class-superclasses A inherit)
-(USER OBJECT)
-FuzzyCLIPS> (defclass A (is-a USER))
-FuzzyCLIPS> (class-superclasses A inherit)
-(USER OBJECT)
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> ;; DRs 0681, 0682 and 0683 involve recompiling CLIPS
-(while 1 do ?a)           ; DR0684
-[EVALUATN1] Variable a is unbound
-FALSE
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (printout t ?a crlf)      ; DR0685
-[EVALUATN1] Variable a is unbound
-FuzzyCLIPS> (defrule foo =>
-   (printout t ?a)
-   (bind ?a 1))
-FuzzyCLIPS> (reset)
-FuzzyCLIPS> (run)
-[PRCCODE5] Variable a unbound.
-[PRCCODE4] Execution halted during the actions of defrule foo.
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (str-cat abc (eval "(+ abc)") def) ; DR0686
-[ARGACCES4] Function + expected at least 2 argument(s)
-""
-FuzzyCLIPS> (sym-cat abc (eval "(+ abc)") def)
-[ARGACCES4] Function + expected at least 2 argument(s)
-nil
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (deffunction foo (?a))    ; DR0687
-FuzzyCLIPS> (foo (eval "(+ abc)"))
-[ARGACCES4] Function + expected at least 2 argument(s)
-[PRCCODE6] This error occurred while evaluating arguments for the deffunction foo.
-FALSE
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (defgeneric any-instancep) ; DR0688
-[GENRCPSR16] The system function any-instancep cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::any-instancep)
-FuzzyCLIPS> (defgeneric assert)
-[GENRCPSR16] The system function assert cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::assert)
-FuzzyCLIPS> (defgeneric bind)
-[GENRCPSR16] The system function bind cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::bind)
-FuzzyCLIPS> (defgeneric break)
-[GENRCPSR16] The system function break cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::break)
-FuzzyCLIPS> (defgeneric call-next-handler)
-[GENRCPSR16] The system function call-next-handler cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::call-next-handler)
-FuzzyCLIPS> (defgeneric call-next-method)
-[GENRCPSR16] The system function call-next-method cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::call-next-method)
-FuzzyCLIPS> (defgeneric delayed-do-for-all-instances)
-[GENRCPSR16] The system function delayed-do-for-all-instances cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::delayed-do-for-all-instances)
-FuzzyCLIPS> (defgeneric do-for-all-instances)
-[GENRCPSR16] The system function do-for-all-instances cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::do-for-all-instances)
-FuzzyCLIPS> (defgeneric do-for-instance)
-[GENRCPSR16] The system function do-for-instance cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::do-for-instance)
-FuzzyCLIPS> (defgeneric duplicate)
-[GENRCPSR16] The system function duplicate cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::duplicate)
-FuzzyCLIPS> (defgeneric expand$)
-[GENRCPSR16] The system function expand$ cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::expand$)
-FuzzyCLIPS> (defgeneric find-all-instances)
-[GENRCPSR16] The system function find-all-instances cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::find-all-instances)
-FuzzyCLIPS> (defgeneric find-instance)
-[GENRCPSR16] The system function find-instance cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::find-instance)
-FuzzyCLIPS> (defgeneric if)
-[GENRCPSR16] The system function if cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::if)
-FuzzyCLIPS> (defgeneric initialize-instance)
-[GENRCPSR16] The system function initialize-instance cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::initialize-instance)
-FuzzyCLIPS> (defgeneric make-instance)
-[GENRCPSR16] The system function make-instance cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::make-instance)
-FuzzyCLIPS> (defgeneric modify)
-[GENRCPSR16] The system function modify cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::modify)
-FuzzyCLIPS> (defgeneric next-handlerp)
-[GENRCPSR16] The system function next-handlerp cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::next-handlerp)
-FuzzyCLIPS> (defgeneric next-methodp)
-[GENRCPSR16] The system function next-methodp cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::next-methodp)
-FuzzyCLIPS> (defgeneric override-next-handler)
-[GENRCPSR16] The system function override-next-handler cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::override-next-handler)
-FuzzyCLIPS> (defgeneric progn)
-[GENRCPSR16] The system function progn cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::progn)
-FuzzyCLIPS> (defgeneric retract)
-FuzzyCLIPS> (defgeneric return)
-[GENRCPSR16] The system function return cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::return)
-FuzzyCLIPS> (defgeneric while)
-[GENRCPSR16] The system function while cannot be overloaded.
-
-ERROR:
-(defgeneric MAIN::while)
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (defmethod blah  ;; DR0689
-  ((?a (progn (undefmethod blah *) TRUE))))
-FuzzyCLIPS> (blah 1)
-[GENRCFUN1] Defgeneric blah cannot be modified while one of its methods is executing.
-FALSE
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (defgeneric foo)  ;; DR0690
-FuzzyCLIPS> (foo (progn (undefgeneric foo) 1))
-[PRNTUTIL4] Unable to delete defgeneric foo.
-[GENRCEXE1] No applicable methods for foo.
-FALSE
-FuzzyCLIPS> (deffunction bar (?a))
-FuzzyCLIPS> (bar (progn (undeffunction bar) 1))
-[PRNTUTIL4] Unable to delete deffunction bar.
-FALSE
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (printout t (eval "(+ abc)") " OOPS " (eval "(+ abc)") crlf)  ;; DR0691
-[ARGACCES4] Function + expected at least 2 argument(s)
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (deftemplate foo             ;; DR0692
-  (multifield linkTagList))
-FuzzyCLIPS> (defrule foo
-   ?w<-(foo)
-   =>
-   (modify ?w (linkTagList ?linktag ?linktagx ?a $?b)))
-
-[PRCCODE3] Undefined variable linktag referenced in RHS of defrule.
-
-ERROR:
-(defrule MAIN::foo
-   ?w <- (foo)
-   =>
-   (modify ?w (linkTagList ?linktag ?linktagx ?a $?b)))
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (unwatch all)  ;; DR0693
-FuzzyCLIPS> (defrule foo (logical (not (a))) => (assert (b)))
-FuzzyCLIPS> (watch facts)
-FuzzyCLIPS> (reset)
-==> f-0     (initial-fact) CF 1.00 
-FuzzyCLIPS> (run)
-==> f-1     (b) CF 1.00 
-FuzzyCLIPS> (assert (a))
-==> f-2     (a) CF 1.00 
-<== f-1     (b) CF 1.00 
-<Fact-2>
-FuzzyCLIPS> (reset)
-<== f-0     (initial-fact) CF 1.00 
-<== f-2     (a) CF 1.00 
-==> f-0     (initial-fact) CF 1.00 
-FuzzyCLIPS> (defrule bar (declare (salience -1)) => (assert (a)))
-FuzzyCLIPS> (run)
-==> f-1     (b) CF 1.00 
-==> f-2     (a) CF 1.00 
-<== f-1     (b) CF 1.00 
-FuzzyCLIPS> (unwatch all)
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (defclass A (is-a USER) (role concrete)
-  (slot foo (create-accessor read-write))
-  (multislot bar (create-accessor read-write))) ;; DR0697 and DR0700
-FuzzyCLIPS> (make-instance fribban of A)
-[fribban]
-FuzzyCLIPS> (make-instance quoxnar of A)
-[quoxnar]
-FuzzyCLIPS> (send [quoxnar] put-foo (instance-address [fribban]))
-<Instance-fribban>
-FuzzyCLIPS> (send [quoxnar] put-bar (mv-append))
-()
-FuzzyCLIPS> (unmake-instance [fribban])
-TRUE
-FuzzyCLIPS> (send (send [quoxnar] get-foo) print)
-[INSFUN4] Invalid instance-address in function send.
-FALSE
-FuzzyCLIPS> (save-instances "Temp//badfile.tmp")
-1
-FuzzyCLIPS> (reset)
-FuzzyCLIPS> (restore-instances "Temp//badfile.tmp")
-1
-FuzzyCLIPS> (send [quoxnar] print)
-[quoxnar] of A
-(foo [fribban])
-(bar)
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (defglobal ?*x* = 0) ;; DR0698 and DR0701
-FuzzyCLIPS> (deffunction create-number-2 ()
-  (bind ?*x* (nth 1 (str-explode "2.0")))
-  BOGUS)
-FuzzyCLIPS> (deffunction create-number ()
-  (create-number-2))
-FuzzyCLIPS> (deffunction force-garbage-collection ()
-  (bind ?i 0)      
-  (while (< ?i 10000) do
-    (gensym*)
-    (bind ?i (+ ?i 1))))
-FuzzyCLIPS> (mv-append (create-number) ?*x* (bind ?*x* 0)
-  (force-garbage-collection) (float (random))
-     (float (random)))
-(BOGUS 2.0 0 FALSE 29601.0 26138.0) ;; Last two fields can be different
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (deffunction foo ()      ;; DR0699
-   (printout t Foo crlf))
-FuzzyCLIPS> (defmethod bar () (foo))
-FuzzyCLIPS> (bar)
-Foo
-FuzzyCLIPS> (undeffunction *)
-[DFFNXFUN1] WARNING: Deffunction foo only partially deleted due to usage by other constructs.
-FuzzyCLIPS> (bar)
-FALSE
-FuzzyCLIPS> (ppdeffunction foo)
-FuzzyCLIPS> (clear) ;; DR0700
-FuzzyCLIPS> (defclass A (is-a USER) (role concrete) (multislot foo (create-accessor read-write)))
-FuzzyCLIPS> (make-instance a of A (foo (mv-append)))
-[a]
-FuzzyCLIPS> (send [a] print)
-[a] of A
-(foo)
-FuzzyCLIPS> (save-instances "Temp//ins.tmp")
-1
-FuzzyCLIPS> (unmake-instance [a])
-TRUE
-FuzzyCLIPS> (load-instances "Temp//ins.tmp")
-1
-FuzzyCLIPS> (send [a] print)
-[a] of A
-(foo)
-FuzzyCLIPS> (clear) ;; DR0704
-FuzzyCLIPS> (defrule foo => (printout t [hdh] crlf))
-FuzzyCLIPS> (reset)
-FuzzyCLIPS> (run)
-[hdh]
-FuzzyCLIPS> (bsave "Temp//foo.bin")
-TRUE
-FuzzyCLIPS> (clear)
-FuzzyCLIPS> (bload "Temp//foo.bin")
-TRUE
 FuzzyCLIPS> (clear) ;; DR0705
 FuzzyCLIPS> (= 5 (read))
 Whatever
@@ -350,13 +14,13 @@ FuzzyCLIPS> (send [a] print)
 [a] of A
 (foo ""This is a string"")
 FuzzyCLIPS> (save-instances "Temp//bogus.tmp")
-1
+2
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (instances)
 [initial-object] of INITIAL-OBJECT
 For a total of 1 instance.
 FuzzyCLIPS> (load-instances "Temp//bogus.tmp")
-1
+2
 FuzzyCLIPS> (send [a] print)
 [a] of A
 (foo ""This is a string"")
@@ -370,5 +34,700 @@ FuzzyCLIPS> (make-instance a of TEST)
 [a]
 FuzzyCLIPS> (message-modify-instance [a] (item 3))
 TRUE
+FuzzyCLIPS> (clear)                   ; DR0724
+FuzzyCLIPS> [x]
+[x]
+FuzzyCLIPS> (clear)                   ; DRO725
+FuzzyCLIPS> 
+(defrule should-be-ok
+   (message $?first)
+   (test (length$ ?first))
+   (translation $?first)
+   =>)
+FuzzyCLIPS> (clear)                   ; DR0726
+FuzzyCLIPS> 
+(defrule bar
+   (not (and (c ?x) (d ?y&:(> ?y 3))))
+   =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (c 1) (d a)) ; should not hang
+[ARGACCES5] Function > expected argument #1 to be of type integer or float
+
+[FACTMCH1] This error occurred in the fact pattern network
+   Currently active fact: (d a) CF 1.00 
+   Problem resides in field #1
+      Of pattern #2 in rule bar
+
+FALSE
+FuzzyCLIPS> (clear)                   ; DR0727
+FuzzyCLIPS> 
+(defrule foo
+   (not (and (a) (b) (c)))
+   (d ?x&:(> ?x 3))
+   =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (d a)) ; Error should be for pattern 5
+[ARGACCES5] Function > expected argument #1 to be of type integer or float
+
+[FACTMCH1] This error occurred in the fact pattern network
+   Currently active fact: (d a) CF 1.00 
+   Problem resides in field #1
+      Of pattern #4 in rule foo
+
+<Fact-1>
+FuzzyCLIPS> (clear)                   ; DR0728
+FuzzyCLIPS> 
+(deftemplate attempt
+   (multifield numbers (default 7 7 3 3))
+   (multifield rpn))
+FuzzyCLIPS> 
+(deffacts initial-info
+   (attempt)
+   (operator *)
+   (operator /)
+   (operator -)
+   (operator +))
+FuzzyCLIPS> 
+(defrule do-first
+   ?f <- (attempt (numbers $?b ?n1 $?m ?n2 $?e)
+                  (rpn))
+   (operator ?o)
+   =>
+   (duplicate ?f (numbers ?b ?m ?e)
+                 (rpn ?n1 ?n2 ?o)))
+FuzzyCLIPS> 
+(defrule do-next
+   ?f <- (attempt (numbers $?b ?n $?e)
+                  (rpn ?f $?rest))
+   (operator ?o)
+   =>
+   (duplicate ?f (numbers ?b ?e)
+                 (rpn ?f ?rest ?n ?o)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run) ; should not hang or crash
+FuzzyCLIPS> (clear)                   ; DR0729
+FuzzyCLIPS> (get-salience-evaluation)
+when-defined
+FuzzyCLIPS> (set-salience-evaluation every-cycle) ; should return when-defined
+when-defined
+FuzzyCLIPS> (set-salience-evaluation when-defined) ; should return every-cycle
+every-cycle
+FuzzyCLIPS> (clear)                   ; DR0730
+FuzzyCLIPS> (get-salience-evaluation)
+when-defined
+FuzzyCLIPS> (defmodule A)
+FuzzyCLIPS> (refresh-agenda *)
+FuzzyCLIPS> (get-salience-evaluation) ; should be when-defined
+when-defined
+FuzzyCLIPS> (clear)                   ; DR0731
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (defrule zoiks =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (watch rules)
+FuzzyCLIPS> (defrule zoiks =>) ; activation should not be printed
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear)                   ; DR0734
+FuzzyCLIPS> (defmodule MAIN (export ?ALL))
+FuzzyCLIPS> (defglobal MAIN ?*proximity* = 9)
+FuzzyCLIPS> (defmodule SCORE (import MAIN ?ALL))
+FuzzyCLIPS> 
+(defrule SCORE::should-be-ok
+   (attempt1)
+   (test (<= 3 ?*proximity*))
+   =>)
+FuzzyCLIPS> (clear)                  ; DR0736
+FuzzyCLIPS> 
+(deftemplate where
+   (multislot x (type SYMBOL)))
+FuzzyCLIPS> 
+(defrule yak ; This should be OK
+   (where (x $?pds&:(member$ x ?pds)))
+   =>)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule foo ; This should fail
+   (bbb ?x&:(member a ?x))
+   =>)
+
+[RULECSTR2] Previous variable bindings of ?x caused the type restrictions
+for argument #2 of the expression (member a ?x)
+found in CE #1 field #1 to be violated.
+
+ERROR:
+(defrule MAIN::foo
+   (bbb ?x&:(member a ?x))
+   =>)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(deftemplate this
+   (slot x)
+   (slot y (type INTEGER))
+   (multislot z (type STRING)))
+FuzzyCLIPS> 
+(defrule this-1 ; This should fail
+   (this (x ?x))
+   =>
+   (member$ a ?x))
+
+[RULECSTR3] Previous variable bindings of ?x caused the type restrictions
+for argument #2 of the expression (member$ a ?x)
+found in the rule's RHS to be violated.
+
+ERROR:
+(defrule MAIN::this-1
+   (this (x ?x))
+   =>
+   (member$ a ?x))
+FuzzyCLIPS> (clear)                   ; DR0737
+FuzzyCLIPS> 
+(defrule fd-1 ; This should be ok
+   (a)
+   (not (and (b)
+             (or (c)
+                 (d))))
+   =>)
+FuzzyCLIPS>    
+(defrule fd-2 ; this should be ok
+   (a)
+   (exists (b)
+           (or (and (c))
+               (d)))
+   =>)
+FuzzyCLIPS> 
+(defrule fd-3 ; this should be ok
+   (a)
+   (not (and (b)
+             (or (and (c) (e))
+                 (d))))
+   =>)
+FuzzyCLIPS> 
+(defrule fd-4 ; this should be ok
+   (a)
+   (exists (b)
+           (or (c)         
+               (d)))
+   =>)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule foo-1
+   (not (or (a) (b)))
+   =>)
+FuzzyCLIPS> 
+(defrule foo-2
+   (not (not (or (a) (b))))
+   =>)
+FuzzyCLIPS> 
+(defrule foo-3
+   (not (and (not (a))
+             (not (b))))
+   =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+0      foo-1: *,*
+For a total of 1 activation.
+FuzzyCLIPS> (assert (a))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+0      foo-2: *
+0      foo-3: *
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      foo-2: *
+0      foo-3: *
+For a total of 2 activations.
+FuzzyCLIPS> (clear)                   ; DR0738
+FuzzyCLIPS> 
+(deffacts f1
+   (s 1)
+   (s 2)
+   (s 3)
+   (c)
+   (a 1))
+FuzzyCLIPS> 
+(defrule r1 ; SHOULD activate, but doesn't
+   (s 1)
+   (exists (or (and (a ?x)
+                    (d)
+                    (test (> 16 10)))
+               (and (a ?x)
+                    (c))))
+   =>)
+FuzzyCLIPS>    
+(defrule r2 ; SHOULD activate, but doesn't
+   (s 2)
+   (not (and (not (and (a ?x)
+                       (d)
+                       (test (> 16 10))))
+              (not (and (a ?x)
+                        (c)))))
+   =>)
+FuzzyCLIPS> 
+(defrule r3 ; SHOULD NOT activate, but does
+   (s 3)
+   (not (and (a ?x)
+             (d)
+             (test (> 16 10))))
+   (not (and (a ?x)
+             (c)))
+   =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+0      r1: f-1,*
+0      r2: f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (clear)                    ; DR0740
+FuzzyCLIPS> 
+(deffunction bug (?list ?a ?b)
+   (while TRUE (return (subseq$ ?list ?a ?b))))
+FuzzyCLIPS> (bug (create$ a b c) 1 2) ; Should return (a b)
+(a b)
+FuzzyCLIPS> 
+(deffunction bug (?list ?a ?b)
+   (loop-for-count 1 (return (subseq$ ?list ?a ?b))))
+FuzzyCLIPS> (bug (create$ a b c) 1 2) ; Should return (a b)
+(a b)
+FuzzyCLIPS> (clear)                   ; DR0742 - should have no error
+FuzzyCLIPS> (deftemplate TREATMENT
+   (multislot values
+   (type INTEGER)
+   (range 0 19)
+   (cardinality 0 20)))
+FuzzyCLIPS> (assert (TREATMENT (values (create$))))
+<Fact-1>
+FuzzyCLIPS> (clear)                  ; DR0743 - should have no error
+FuzzyCLIPS> (defglobal ?*x* = 3)
+FuzzyCLIPS> (bsave "Temp//mytest.bin")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (watch all)
+FuzzyCLIPS> (bload "Temp//mytest.bin")
+MSG >> delete ED:1 (<Instance-initial-object>)
+HND >> delete primary in class USER
+       ED:1 (<Instance-initial-object>)
+<== instance [initial-object] of INITIAL-OBJECT
+HND << delete primary in class USER
+       ED:1 (<Stale Instance-initial-object>)
+MSG << delete ED:1 (<Stale Instance-initial-object>)
+<== f-0     (initial-fact) CF 1.00 
+<== Focus MAIN
+:== ?*x* ==> 3 <== 
+TRUE
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear)                 ; DR0745
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (defclass A (is-a USER)
+  (role concrete)
+  (pattern-match reactive)
+  (slot x (create-accessor write))
+  (slot y (create-accessor write)))
+FuzzyCLIPS> (defrule bug
+  (object (is-a A)
+          (y 100)
+          (x 100))
+  =>)
+FuzzyCLIPS> (agenda) ; should be no activations
+FuzzyCLIPS> (make-instance a of A)
+[a]
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> (object-pattern-match-delay ; should have only one activation arrow
+   (send [a] put-y 100)
+   (send [a] put-x 100))
+==> Activation 0      bug: [a]
+100
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear)                 ; DR0747
+FuzzyCLIPS> 
+(defclass A (is-a USER)
+   (slot foo (type INSTANCE-NAME)))
+FuzzyCLIPS> (slot-types A foo) ; Should be just instance-name
+(INSTANCE-NAME)
+FuzzyCLIPS> (clear)                ; DR0748 - Should have no error from print message
+FuzzyCLIPS> (defmodule MAIN (export ?ALL))
+FuzzyCLIPS> (defclass TEST (is-a USER)
+  (role concrete))
+FuzzyCLIPS> (defmodule TEST (import MAIN ?ALL))
+FuzzyCLIPS> (make-instance test of TEST)
+[test]
+FuzzyCLIPS> (do-for-instance ((?t TEST)) TRUE
+  (send ?t print))
+[test] of TEST
+FuzzyCLIPS> (clear)                ; DR0749
+FuzzyCLIPS> (defclass A (is-a USER)
+   (slot foo (access read-only) (create-accessor ?NONE)))
+FuzzyCLIPS> (slot-facets A foo) ; facet should be SHR and not LCL
+(SGL STC INH R SHR RCT EXC PRV NIL NIL)
+FuzzyCLIPS> (clear)                ; DR0750 - Should not crash
+FuzzyCLIPS> (defclass FOO (is-a USER) (slot x))
+FuzzyCLIPS> (slot-cardinality FOO x)
+()
+FuzzyCLIPS> (clear)                ; DR0752 - Should return "a"
+FuzzyCLIPS> (deffunction y ()
+   (progn$ (?x (create$ "a" "b" "c"))
+      (return ?x))
+   (return "hello"))
+FuzzyCLIPS> (y)
+"a"
+FuzzyCLIPS> (clear)                ; DR0753
+FuzzyCLIPS> 
+(defmodule MAIN (export ?ALL))
+FuzzyCLIPS> 
+(defrule MAIN::foo
+  =>
+  (assert (a))
+  (focus B)
+  (return))
+FuzzyCLIPS> 
+(defrule MAIN::bar
+  (a)
+  =>
+  (focus B)
+  (return))
+FuzzyCLIPS> 
+(defmodule B (import MAIN ?ALL))
+FuzzyCLIPS> 
+(defrule B::yak
+  =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run 1)
+FuzzyCLIPS> (list-focus-stack) ; Just B should be on stack
+B
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (focus MAIN B)
+TRUE
+FuzzyCLIPS> (list-focus-stack) ; Should be MAIN B MAIN
+MAIN
+B
+MAIN
+FuzzyCLIPS> (run 1)
+FuzzyCLIPS> (list-focus-stack) ; Should be B B MAIN
+B
+B
+MAIN
+FuzzyCLIPS> (clear)                ; DR0754
+FuzzyCLIPS> 
+(defclass A (is-a USER)
+  (role concrete)
+  (pattern-match reactive)
+  (slot foo (create-accessor read-write)))
+FuzzyCLIPS> 
+(defclass B (is-a A)
+  (pattern-match non-reactive))
+FuzzyCLIPS> 
+(defrule foo
+  (i-f)
+  (test (send [b] put-foo blah))
+  =>)
+FuzzyCLIPS> (make-instance b of B)
+[b]
+FuzzyCLIPS> (assert (i-f)) ; Should not generate error
+<Fact-1>
+FuzzyCLIPS> (clear)                ; DR0756 - Should not crash
+FuzzyCLIPS> (defclass A (is-a USER) (role concrete))
+FuzzyCLIPS> (make-instance a of A)
+[a]
+FuzzyCLIPS> (any-instancep ((?long-var A)) ?long-var:)
+[EVALUATN1] Variable long-var: is unbound
+FALSE
+FuzzyCLIPS> (clear)                ; DR0757 - Error ID should be [INSMNGR11]
+FuzzyCLIPS> (defclass A (is-a USER) (role concrete))
+FuzzyCLIPS> (make-instance BOGUS::A of A)
+
+[INSMNGR11] Invalid module specifier in new instance name.
+FALSE
+FuzzyCLIPS> (clear)                ; DR0758
+FuzzyCLIPS> 
+(defclass A (is-a USER)
+  (role concrete))
+FuzzyCLIPS> 
+(defglobal ?*x* = (assert (foo))
+           ?*y* = (make-instance [a] of A))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (facts)
+f-0     (foo) CF 1.00 
+f-1     (initial-fact) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (instances)
+[a] of A
+[initial-object] of INITIAL-OBJECT
+For a total of 2 instances.
+FuzzyCLIPS> (clear)                ; DR0759
+FuzzyCLIPS> 
+(deftemplate A
+   (slot foo (type INTEGER)
+             (allowed-instance-names [a])))
+
+[CSTRNPSR1] The type attribute conflicts with the allowed-instance-names attribute.
+
+ERROR:
+(deftemplate MAIN::A
+   (slot foo (type INTEGER) (allowed-instance-names [a]))
+FuzzyCLIPS> (clear)                ; DR0763
+FuzzyCLIPS> 
+(deffunction bug (?state)
+   (switch ?state
+     (case instance then TRUE)
+     (case logical then TRUE)
+     (default (return error))))
+FuzzyCLIPS> (bsave "Temp//foo.bin")
+TRUE
+FuzzyCLIPS> (clear)                ; DR0765
+FuzzyCLIPS> 
+(deftemplate bar
+   (slot foo (type INTEGER)
+             (allowed-values abc def)))
+
+[CSTRNPSR1] The type attribute conflicts with the allowed-values attribute.
+
+ERROR:
+(deftemplate MAIN::bar
+   (slot foo (type INTEGER) (allowed-values abc def))
+FuzzyCLIPS> (clear)                ; DR0766
+FuzzyCLIPS> 
+(deftemplate temp
+   (multislot foofoo (type INTEGER LEXEME))
+   (slot after-foo (type STRING)))
+FuzzyCLIPS> (set-dynamic-constraint-checking TRUE)
+FALSE
+FuzzyCLIPS> (assert (temp (foofoo 11)))
+<Fact-1>
+FuzzyCLIPS> 
+(deftemplate temp2
+   (multislot foofoo (type INTEGER LEXEME)))
+FuzzyCLIPS> (assert (temp2 (foofoo (progn 3.4))))
+
+[CSTRNCHK1] Slot value (3.4) found in fact f-2     
+does not match the allowed types for slot foofoo.
+<Fact-2>
+FuzzyCLIPS> (set-dynamic-constraint-checking FALSE)
+TRUE
+FuzzyCLIPS> (clear)                ; DR0770
+FuzzyCLIPS> 
+(defclass A (is-a USER)
+  (role concrete)
+  (pattern-match reactive)
+  (multislot foo (default x)))
+FuzzyCLIPS> 
+(defrule bomb
+  (object (foo $? x $?))
+  (object (foo $? ? $?))
+=>)
+FuzzyCLIPS> (make-instance a of A)
+[a]
+FuzzyCLIPS> (clear)                ; DR0778
+FuzzyCLIPS> 
+(deffacts example
+   (a b c d e d c b a a a a a a a a a a a a))
+FuzzyCLIPS> 
+(defrule foo
+   (a ?x $?y d $?z ?x)
+   =>
+   (printout t "x = " ?x " y = " ?y " z = " ?z crlf))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear)               ; DR0782
+FuzzyCLIPS> (set-strategy breadth)
+depth
+FuzzyCLIPS> (set-strategy depth)
+breadth
+FuzzyCLIPS> (deftemplate t1       ; DR0783
+  (field code)
+  (field a))
+FuzzyCLIPS> (deftemplate t2
+  (field code)
+  (field a))
+FuzzyCLIPS> (deftemplate t1
+  (field code)
+  (field a))
+FuzzyCLIPS> (deftemplate t2
+  (field code)
+  (field b))
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defclass fifty (is-a USER)     
+  (role   concrete)       
+  (pattern-match  reactive)
+  (slot   s1      (type   SYMBOL))
+  (slot   s2      (type   INTEGER))
+  (slot   s3      (type   SYMBOL))
+  (slot   s4      (type   INTEGER))
+  (slot   s5      (type   SYMBOL))
+  (slot   s6      (type   INTEGER))
+  (slot   s7      (type   SYMBOL))
+  (slot   s8      (type   INTEGER))
+  (slot   s9      (type   SYMBOL))
+  (slot   s10     (type   INTEGER))
+  (slot   s11     (type   SYMBOL))
+  (slot   s12     (type   INTEGER))
+  (slot   s13     (type   SYMBOL))
+  (slot   s14     (type   INTEGER))
+  (slot   s15     (type   SYMBOL))
+  (slot   s16     (type   INTEGER))
+  (slot   s17     (type   SYMBOL))
+  (slot   s18     (type   INTEGER))
+  (slot   s19     (type   SYMBOL))
+  (slot   s20     (type   INTEGER))
+  (slot   s21     (type   SYMBOL))
+  (slot   s22     (type   INTEGER))
+  (slot   s23     (type   SYMBOL))
+  (slot   s24     (type   INTEGER))
+  (slot   s25     (type   SYMBOL))
+  (slot   s26     (type   INTEGER))
+  (slot   s27     (type   SYMBOL))
+  (slot   s28     (type   INTEGER))
+  (slot   s29     (type   SYMBOL))
+  (slot   s30     (type   INTEGER))
+  (slot   s31     (type   SYMBOL))
+  (slot   s32     (type   INTEGER))
+  (slot   s33     (type   SYMBOL))
+  (slot   s34     (type   INTEGER))
+  (slot   s35     (type   SYMBOL))
+  (slot   s36     (type   INTEGER))
+  (slot   s37     (type   SYMBOL))
+  (slot   s38     (type   INTEGER))
+  (slot   s39     (type   SYMBOL))
+  (slot   s40     (type   INTEGER))
+  (slot   s41     (type   SYMBOL))
+  (slot   s42     (type   INTEGER))
+  (slot   s43     (type   SYMBOL))
+  (slot   s44     (type   INTEGER))
+  (slot   s45     (type   SYMBOL))
+  (slot   s46     (type   INTEGER))
+  (slot   s47     (type   SYMBOL))
+  (slot   s48     (type   INTEGER))
+  (slot   s49     (type   SYMBOL))
+  (slot   s50     (type   INTEGER)))
+FuzzyCLIPS> 
+(deffunction f(?limit ?class)
+   (reset)
+   (loop-for-count (?i 1 ?limit)
+      (bind ?t (time))
+      (loop-for-count (?j 1 500) (make-instance of ?class))
+      (printout t ?i crlf)))
+FuzzyCLIPS> (f 3 fifty)
+1
+2
+3
+FALSE
+FuzzyCLIPS> (clear)               ; DR0784
+FuzzyCLIPS> 
+(defrule testing
+   ?f1<-(orders $?first&:(> (length$ ?first) 0))
+   ?f2<-(orders $?others&:(subsetp ?first ?others))
+   =>)
+FuzzyCLIPS> 
+(defrule testing
+   (orders $?first&:(implode$ ?first)
+                   :(implode$ ?first))
+   =>)
+FuzzyCLIPS> (clear)               ; DR0785
+FuzzyCLIPS> (defglobal ?*x* = 0)
+FuzzyCLIPS> (defmodule MAIN (export ?ALL))
+FuzzyCLIPS> (defmodule FOO (import MAIN ?ALL))
+FuzzyCLIPS> (defclass FOO (is-a USER) (role concrete))
+FuzzyCLIPS> (bind ?*x* (instance-address (make-instance foo of FOO)))
+<Instance-foo>
+FuzzyCLIPS> (focus MAIN)
+TRUE
+FuzzyCLIPS> (send [FOO::foo] print)
+[foo] of FOO::FOO
+FuzzyCLIPS> (send ?*x* print)
+[foo] of FOO::FOO
+FuzzyCLIPS> (clear)               ; DR0786
+FuzzyCLIPS> 
+(deftemplate nanu
+   (slot a (type INTEGER))
+   (slot b (type FLOAT)))
+FuzzyCLIPS> (assert (nanu))
+<Fact-1>
+FuzzyCLIPS> (modify 1 (c 4))
+
+[TMPLTDEF1] Invalid slot c not defined in corresponding deftemplate nanu.
+FALSE
+FuzzyCLIPS> (clear)               ; DR0788
+FuzzyCLIPS> 
+(defrule r1 
+   (or (P1 p1) (P2 p2)) 
+   =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (bsave "Temp//r1.bin")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (bload "Temp//r1.bin")
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (watch all)
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear)               ; DR0789
+FuzzyCLIPS> (deffacts MAIN:: the-suit-list)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for construct name.
+
+ERROR:
+(deffacts MAIN::
+FuzzyCLIPS> (clear)               ; DR0790
+FuzzyCLIPS> 
+(defrule init
+   =>
+  (assert (p 1)))
+FuzzyCLIPS> 
+(defrule crash
+  (p ?X)
+  (not (test (eq ?X 1)))
+  (p ?Y)
+  (not (and (test (neq ?Y 20))(test (neq ?Y 30))))
+  =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (clear)               ; DR0791
+FuzzyCLIPS> 
+(defrule autorule2_B2
+  (or (foo ?st_B1)
+      (bpc-newdata))
+  =>
+  ?st_B1)
+
+[PRCCODE3] Undefined variable st_B1 referenced in RHS of defrule.
+
+ERROR:
+(defrule MAIN::autorule2_B2
+   (or  (foo ?st_B1)
+        (bpc-newdata))
+   =>
+   ?st_B1)
+FuzzyCLIPS> (clear)                   ; DR0793
+FuzzyCLIPS> (load bug793.clp)
+###!!
+TRUE
+FuzzyCLIPS> (BEeditInit streamout)
+TRUE
+FuzzyCLIPS> (BECPMIn bug793.ins)
+24
+FuzzyCLIPS> (clear)                   ; DR0795
+FuzzyCLIPS> 
+(defrule rule-1
+  (blah $?y)
+  =>
+  (progn$ (?x ?y) (printout t ?x)))
+FuzzyCLIPS> (ppdefrule rule-1)
+(defrule MAIN::rule-1
+   (blah $?y)
+   =>
+   (progn$ (?x ?y) 
+      (printout t ?x)))
+FuzzyCLIPS> (clear)                   ; DR0798
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (a))
+<Fact-1>
+FuzzyCLIPS> (assert (b))
+<Fact-2>
+FuzzyCLIPS> (defrule t1 (b) (a) =>)
+FuzzyCLIPS> (defrule t2 (a) (or (b) (b)) =>)
+FuzzyCLIPS> (agenda)
+0      t2: f-1,f-2
+0      t2: f-1,f-2
+0      t1: f-2,f-1
+For a total of 3 activations.
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (dribble-off)

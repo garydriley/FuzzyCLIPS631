@@ -83,26 +83,26 @@ FuzzyCLIPS> (defrule rule1 ""
   (expert ?level|* ?token-num|*)
   =>)
 FuzzyCLIPS> (assert (token 2 4))              ; DR0135
-<Fact-0>
-FuzzyCLIPS> (assert (expert 2 4))             ; DR0135
 <Fact-1>
-FuzzyCLIPS> (assert (expert 2 2))             ; DR0135
+FuzzyCLIPS> (assert (expert 2 4))             ; DR0135
 <Fact-2>
-FuzzyCLIPS> (assert (expert 2 *))             ; DR0135
+FuzzyCLIPS> (assert (expert 2 2))             ; DR0135
 <Fact-3>
-FuzzyCLIPS> (assert (expert * 4))             ; DR0135
+FuzzyCLIPS> (assert (expert 2 *))             ; DR0135
 <Fact-4>
-FuzzyCLIPS> (assert (expert * *))             ; DR0135
+FuzzyCLIPS> (assert (expert * 4))             ; DR0135
 <Fact-5>
-FuzzyCLIPS> (assert (expert 4 *))             ; DR0135
+FuzzyCLIPS> (assert (expert * *))             ; DR0135
 <Fact-6>
-FuzzyCLIPS> (assert (expert * 2))             ; DR0135
+FuzzyCLIPS> (assert (expert 4 *))             ; DR0135
 <Fact-7>
+FuzzyCLIPS> (assert (expert * 2))             ; DR0135
+<Fact-8>
 FuzzyCLIPS> (agenda)                          ; DR0135
-0      rule1: f-0,f-5
-0      rule1: f-0,f-4
-0      rule1: f-0,f-3
-0      rule1: f-0,f-1
+0      rule1: f-1,f-6
+0      rule1: f-1,f-5
+0      rule1: f-1,f-4
+0      rule1: f-1,f-2
 For a total of 4 activations.
 FuzzyCLIPS> (setgen 1)                        ; DR0156
 1

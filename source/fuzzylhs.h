@@ -45,7 +45,7 @@
 #define LOCALE extern
 #endif
 
-    LOCALE struct fuzzy_value *GetFuzzyLHSPattern(void *theEnv,char *readSource,struct token *theToken,
+    LOCALE struct fuzzy_value *GetFuzzyLHSPattern(void *theEnv,const char *readSource,struct token *theToken,
                                     struct fuzzyLv *fzTemplate,int *error);
 
 

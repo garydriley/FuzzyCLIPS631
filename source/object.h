@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.20  01/31/02          */
+   /*               CLIPS Version 6.31  02/03/18          */
    /*                                                     */
    /*                OBJECT SYSTEM DEFINITIONS            */
    /*******************************************************/
@@ -10,12 +10,19 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
+/*                                                           */
+/*            Changed garbage collection algorithm.          */
+/*                                                           */
+/*      6.31: Optimization for marking relevant alpha nodes  */
+/*            in the object pattern network.                 */
 /*                                                           */
 /*************************************************************/
 
@@ -71,11 +78,15 @@ typedef struct instanceSlot INSTANCE_SLOT;
 #include "pattern.h"
 #endif
 
+#if DEFRULE_CONSTRUCT
+#include "objrtmch.h"
+#endif
+
 #define GetInstanceSlotLength(sp) GetMFLength(sp->value)
 
 struct packedClassLinks
   {
-   unsigned short classCount;
+   long classCount;
    DEFCLASS **classArray;
   };
 
@@ -93,7 +104,7 @@ struct defclass
    unsigned reactive       : 1;
    unsigned traceInstances : 1;
    unsigned traceSlots     : 1;
-   unsigned short id;
+   unsigned id;
    unsigned busy,
             hashTableIndex;
    PACKED_CLASS_LINKS directSuperclasses,
@@ -102,17 +113,28 @@ struct defclass
    SLOT_DESC *slots,
              **instanceTemplate;
    unsigned *slotNameMap;
-   unsigned slotCount,
-            localInstanceSlotCount,
-            instanceSlotCount,
-            maxSlotNameID;
+   short slotCount;
+   short localInstanceSlotCount;
+   short instanceSlotCount;
+   short maxSlotNameID;
    INSTANCE_TYPE *instanceList,
                  *instanceListBottom;
    HANDLER *handlers;
    unsigned *handlerOrderMap;
-   unsigned handlerCount;
+   short handlerCount;
    DEFCLASS *nxtHash;
    BITMAP_HN *scopeMap;
+
+   /*
+    * Links this defclass to each of the terminal alpha nodes which could be
+    * affected by a modification to an instance of it. This saves having to
+    * iterate through every single terminal alpha for every single modification
+    * to an instance of a defclass.
+    */
+#if DEFRULE_CONSTRUCT
+   CLASS_ALPHA_LINK *relevant_terminal_alpha_nodes;
+#endif
+
    char traversalRecord[TRAVERSAL_BYTES];
   };
 
@@ -125,8 +147,8 @@ struct classLink
 struct slotName
   {
    unsigned hashTableIndex,
-            use,
-            id;
+            use;
+   short id;
    SYMBOL_HN *name,
              *putHandlerName;
    struct slotName *nxt;
@@ -138,7 +160,7 @@ struct instanceSlot
    SLOT_DESC *desc;
    unsigned valueRequired : 1;
    unsigned override      : 1;
-   unsigned type          : 6;
+   unsigned short type;
    void *value;
   };
 
@@ -179,7 +201,6 @@ struct instance
    unsigned initializeInProgress : 1;
    unsigned reteSynchronized     : 1;
    SYMBOL_HN *name;
-   int depth;
    unsigned hashTableIndex;
    unsigned busy;
    DEFCLASS *cls;
@@ -199,15 +220,15 @@ struct messageHandler
    unsigned busy;
    SYMBOL_HN *name;
    DEFCLASS *cls;
-   int minParams,
-       maxParams,
-       localVarCount;
+   short minParams;
+   short maxParams;
+   short localVarCount;
    EXPRESSION *actions;
    char *ppForm;
    struct userData *usrData;
   };
 
-#endif
+#endif /* _H_object */
 
 
 

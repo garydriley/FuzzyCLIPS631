@@ -81,14 +81,14 @@ struct modifierListItem
 
      LOCALE void initFuzzyModifierList(void *theEnv);
      LOCALE void executeModifyFunction(void *theEnv,struct fuzzy_value *, struct modifierListItem *);
-     LOCALE int  AddFuzzyModifier(void *,char *, void (*)(void *,struct fuzzy_value *),
+     LOCALE int  AddFuzzyModifier(void *,const char *, void (*)(void *,struct fuzzy_value *),
                                   struct FunctionDefinition *
 #if DEFFUNCTION_CONSTRUCT
                                   ,DEFFUNCTION *
 #endif
                                  );
-     LOCALE void RemoveFuzzyModifier(void *theEnv,char *);
-     LOCALE struct modifierListItem *FindModifier(void *theEnv,char *mod_name);
+     LOCALE void RemoveFuzzyModifier(void *theEnv,const char *);
+     LOCALE struct modifierListItem *FindModifier(void *theEnv,const char *mod_name);
 
 
 

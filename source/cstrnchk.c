@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  07/01/05            */
+   /*             CLIPS Version 6.30  08/22/14            */
    /*                                                     */
    /*             CONSTRAINT CHECKING MODULE              */
    /*******************************************************/
@@ -14,9 +14,10 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian Donnell                                        */
+/*      Brian Dantes                                         */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Changed name of variable exp to theExp         */
 /*            because of Unix compiler warnings of shadowed  */
 /*            definitions.                                   */
@@ -24,6 +25,19 @@
 /*      6.24: Added allowed-classes slot facet.              */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW and       */
+/*            MAC_MCW).                                      */
+/*                                                           */
+/*            Support for long long integers.                */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Dynamic constraint checking for the            */
+/*            allowed-classes constraint now searches        */
+/*            imported modules.                              */
 /*                                                           */
 /*************************************************************/
 
@@ -57,7 +71,7 @@
    static int                     CheckFunctionReturnType(int,CONSTRAINT_RECORD *);
    static intBool                 CheckTypeConstraint(int,CONSTRAINT_RECORD *);
    static intBool                 CheckRangeConstraint(void *,int,void *,CONSTRAINT_RECORD *);
-   static void                    PrintRange(void *,char *,CONSTRAINT_RECORD *);
+   static void                    PrintRange(void *,const char *,CONSTRAINT_RECORD *);
 
 /******************************************************/
 /* CheckFunctionReturnType: Checks a functions return */
@@ -129,6 +143,10 @@ static int CheckFunctionReturnType(
 
       case 'x':
         if (constraints->instanceAddressesAllowed) return(TRUE);
+        else return(FALSE);
+
+      case 'y':
+        if (constraints->factAddressesAllowed) return(TRUE);
         else return(FALSE);
 
       case 'o':
@@ -508,7 +526,8 @@ globle intBool CheckAllowedClassesConstraint(
         tmpPtr != NULL;
         tmpPtr = tmpPtr->nextArg)
      {
-      cmpClass = (DEFCLASS *) EnvFindDefclass(theEnv,ValueToString(tmpPtr->value));
+      //cmpClass = (DEFCLASS *) EnvFindDefclass(theEnv,ValueToString(tmpPtr->value));
+      cmpClass = (DEFCLASS *) LookupDefclassByMdlOrScope(theEnv,ValueToString(tmpPtr->value));
       if (cmpClass == NULL) continue;
       if (cmpClass == insClass) return(TRUE);
       if (EnvSubclassP(theEnv,insClass,cmpClass)) return(TRUE);
@@ -522,7 +541,7 @@ globle intBool CheckAllowedClassesConstraint(
    return(FALSE);
 #else
 
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #pragma unused(type)
 #pragma unused(vPtr)
@@ -599,8 +618,8 @@ static intBool CheckRangeConstraint(
 /************************************************/
 globle void ConstraintViolationErrorMessage(
   void *theEnv,
-  char *theWhat,
-  char *thePlace,
+  const char *theWhat,
+  const char *thePlace,
   int command,
   int thePattern,
   struct symbolHashNode *theSlot,
@@ -690,7 +709,7 @@ globle void ConstraintViolationErrorMessage(
    else if (theField > 0)
      {
       EnvPrintRouter(theEnv,WERROR," for field #");
-      PrintLongInteger(theEnv,WERROR,(long) theField);
+      PrintLongInteger(theEnv,WERROR,(long long) theField);
      }
 
    EnvPrintRouter(theEnv,WERROR,".\n");
@@ -702,7 +721,7 @@ globle void ConstraintViolationErrorMessage(
 /********************************************************************/
 static void PrintRange(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   CONSTRAINT_RECORD *theConstraint)
   {
    if (theConstraint->minValue->value == SymbolData(theEnv)->NegativeInfinity)

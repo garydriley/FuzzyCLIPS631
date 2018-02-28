@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*             RULE CONSTRAINTS HEADER FILE            */
    /*******************************************************/
@@ -18,6 +18,8 @@
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Support for long long integers.                */
 /*                                                           */
 /*************************************************************/
 
@@ -45,5 +47,5 @@
                                                                 int);
    LOCALE intBool                        CheckRHSForConstraintErrors(void *,struct expr *,struct lhsParseNode *);
 
-#endif
+#endif /* _H_rulecstr */
 

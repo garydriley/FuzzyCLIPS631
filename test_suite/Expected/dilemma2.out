@@ -1,4 +1,4 @@
-FIRE    1 start-it: f-0
+FIRE    1 start-it: *
 DFN >> solve-dilemma ED:2 ()
 DFN >> opposite-shore ED:6 (shore-1)
 DFN << opposite-shore ED:6 (shore-1)

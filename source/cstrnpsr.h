@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  07/01/05            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*             CONSTRAINT PARSER HEADER FILE           */
    /*******************************************************/
@@ -16,9 +16,19 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.23: Changed name of variable exp to theExp         */
+/*            because of Unix compiler warnings of shadowed  */
+/*            definitions.                                   */
+/*                                                           */
 /*      6.24: Added allowed-classes slot facet.              */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Used gensprintf instead of sprintf.            */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -58,11 +68,11 @@ struct constraintParseRecord
 typedef struct constraintParseRecord CONSTRAINT_PARSE_RECORD;
 
    LOCALE intBool                        CheckConstraintParseConflicts(void *,CONSTRAINT_RECORD *);
-   LOCALE void                           AttributeConflictErrorMessage(void *,char *,char *);
+   LOCALE void                           AttributeConflictErrorMessage(void *,const char *,const char *);
 #if (! RUN_TIME) && (! BLOAD_ONLY)
    LOCALE void                           InitializeConstraintParseRecord(CONSTRAINT_PARSE_RECORD *);
-   LOCALE intBool                        StandardConstraint(char *);
-   LOCALE intBool                        ParseStandardConstraint(void *,char *,char *,
+   LOCALE intBool                        StandardConstraint(const char *);
+   LOCALE intBool                        ParseStandardConstraint(void *,const char *,const char *,
                                                                  CONSTRAINT_RECORD *,
                                                                  CONSTRAINT_PARSE_RECORD *,
                                                                  int);
@@ -70,9 +80,9 @@ typedef struct constraintParseRecord CONSTRAINT_PARSE_RECORD;
                                                            CONSTRAINT_RECORD *,CONSTRAINT_RECORD *);
    LOCALE void                           OverlayConstraintParseRecord(CONSTRAINT_PARSE_RECORD *,
                                                                       CONSTRAINT_PARSE_RECORD *);
-#endif
+#endif /* (! RUN_TIME) && (! BLOAD_ONLY) */
 
-#endif
+#endif /* _H_cstrnpsr */
 
 
 

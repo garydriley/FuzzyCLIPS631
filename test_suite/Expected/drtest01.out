@@ -42,7 +42,7 @@ ERROR:
    (test (=)
 FuzzyCLIPS> (defrule c (x ?v) => (clear))     ; DR0033
 FuzzyCLIPS> (assert (x 9))                    ; DR0033
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (run)                             ; DR0033
 [CONSTRCT1] Some constructs are still in use. Clear cannot continue.
 FuzzyCLIPS> (clear)                           ; DR0034
@@ -50,7 +50,7 @@ FuzzyCLIPS> (bind ?b)                         ; DR0034
 FALSE
 FuzzyCLIPS> (defrule a (x ?b) => (bind ?b)))  ; DR0034
 FuzzyCLIPS> (assert (x n))                    ; DR0034
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (run)                             ; DR0034
 FuzzyCLIPS> (close blah)                      ; DR0037
 FALSE
@@ -91,7 +91,7 @@ FuzzyCLIPS> (defrule a                        ; DR0051
    =>
    (format t "%s" ?a))
 FuzzyCLIPS> (assert (data a b c d))           ; DR0051
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (run)                             ; DR0051
 [ARGACCES5] Function format expected argument #3 to be of type symbol or string
 [PRCCODE4] Execution halted during the actions of defrule a.
@@ -108,7 +108,7 @@ ERROR:
    (b ?x ?y&:(evenp ?value)|?y&:(oddp ?value) ?z)
    =>)
 FuzzyCLIPS> (assert (b 2 3 4))                ; DR0052
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (agenda)                          ; DR0052
 FuzzyCLIPS> (clear)                           ; DR0053
 FuzzyCLIPS> (defrule rule1 (oven-type $?) =>) ; DR0053
@@ -117,16 +117,16 @@ FuzzyCLIPS> (defrule rule2                    ; DR0053
   =>)
 FuzzyCLIPS> (defrule rule3 (oven-type ?) =>)  ; DR0053
 FuzzyCLIPS> (assert (oven-type 1))            ; DR0053
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (agenda)                          ; DR0053
-0      rule1: f-0
-0      rule3: f-0
+0      rule1: f-1
+0      rule3: f-1
 For a total of 2 activations.
 FuzzyCLIPS> (clear)                           ; DR0054
 FuzzyCLIPS> (defrule test (a ?i) (b ?n&=?i)   ; DR0054
   =>)
 FuzzyCLIPS> (assert (a 3) (b 3))              ; DR0054
-<Fact-1>
+<Fact-2>
 FuzzyCLIPS> (agenda)                          ; DR0054
 FuzzyCLIPS> (oddp 3.1)                        ; DR0056
 [ARGACCES5] Function oddp expected argument #1 to be of type integer
@@ -150,7 +150,7 @@ FuzzyCLIPS> (defrule foo                      ; DR0063
   =>
   (printout t (nth 3 ?x) crlf))  ; DR0063
 FuzzyCLIPS> (assert (data foo a b here d))    ; DR0063
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (run)                             ; DR0063
 here
 FuzzyCLIPS> (retract ?f)                      ; DR0067
@@ -160,7 +160,7 @@ FuzzyCLIPS> (clear)                           ; DR0068
 FuzzyCLIPS> (defrule foo =>)                  ; DR0068
 FuzzyCLIPS> (reset)                           ; DR0068
 FuzzyCLIPS> (agenda)                          ; DR0068
-0      foo: f-0
+0      foo: *
 For a total of 1 activation.
 FuzzyCLIPS> (undefrule foo)                   ; DR0068
 FuzzyCLIPS> (agenda)                          ; DR0068
@@ -194,6 +194,8 @@ FuzzyCLIPS> (assert (a~b))                    ; DR0075
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for RHS patterns.
 FuzzyCLIPS> (facts)                           ; DR0075
+f-0     (initial-fact) CF 1.00 
+For a total of 1 fact.
 FuzzyCLIPS> (print-region t "f.f")            ; DR0077
 FALSE
 FuzzyCLIPS> (printout q)                      ; DR0080
@@ -218,12 +220,13 @@ FuzzyCLIPS> (defrule a                        ; DR0087
   => 
   (assert (z ?y)))
 FuzzyCLIPS> (assert (x q))                    ; DR0087
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (run)                             ; DR0087
 FuzzyCLIPS> (facts)                           ; DR0087
-f-0     (x q) CF 1.00 
-f-1     (z q) CF 1.00 
-For a total of 2 facts.
+f-0     (initial-fact) CF 1.00 
+f-1     (x q) CF 1.00 
+f-2     (z q) CF 1.00 
+For a total of 3 facts.
 FuzzyCLIPS> (subseq$ a 2 4)                 ; DR0090
 [ARGACCES5] Function subseq$ expected argument #1 to be of type multifield
 FuzzyCLIPS> (sub-string)                      ; DR0092

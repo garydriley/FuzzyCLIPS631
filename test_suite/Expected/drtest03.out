@@ -22,13 +22,13 @@ FuzzyCLIPS> (defrule get-min
    (printout t "This rule fires" crlf))
 FuzzyCLIPS> (reset)                            ; DR0202
 FuzzyCLIPS> (agenda)                           ; DR0202
-0      get-min: f-1,,f-2,
+0      get-min: f-1,*,f-2,*
 For a total of 1 activation.
 FuzzyCLIPS> (watch rules)                      ; DR0202
 FuzzyCLIPS> (run)                              ; DR0202
-FIRE    1 get-min: f-1,,f-2,
+FIRE    1 get-min: f-1,*,f-2,*
 This rule fires
-FIRE    2 get-min: f-3,,f-4,
+FIRE    2 get-min: f-3,*,f-4,*
 This rule fires
 FuzzyCLIPS> (unwatch rules)                    ; DR0202
 FuzzyCLIPS> (clear)                            ; DR0204
@@ -90,7 +90,7 @@ ERROR:
 FuzzyCLIPS> (reset)                            ; DR0232
 FuzzyCLIPS> (run)                              ; DR0232
 FuzzyCLIPS> (format t "%6.5 " 8655.3)          ; DR0233
-[ARGACCES4] Function format expected exactly 2 argument(s)
+[IOFUN3] Invalid format flag "%6.5 " specified in format function.
 ""
 FuzzyCLIPS> (clear)                            ; DR0235
 FuzzyCLIPS> (deftemplate colors 
@@ -152,12 +152,13 @@ FuzzyCLIPS> (defrule error                     ; DR0246
    =>
    (assert (new-fact ?f))) 
 FuzzyCLIPS> (assert (fact))                    ; DR0246
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (run)                              ; DR0246
 FuzzyCLIPS> (facts)                            ; DR0246
-f-0     (fact) CF 1.00 
-f-1     (new-fact <Fact-0>) CF 1.00 
-For a total of 2 facts.
+f-0     (initial-fact) CF 1.00 
+f-1     (fact) CF 1.00 
+f-2     (new-fact <Fact-1>) CF 1.00 
+For a total of 3 facts.
 FuzzyCLIPS> (clear)                            ; DR0248
 FuzzyCLIPS> (deffacts a)                       ; DR0248
 FuzzyCLIPS> (clear)                            ; DR0251
@@ -188,11 +189,11 @@ FuzzyCLIPS> (defrule bar                       ; DR0257
    (test (neq ?f1 ?f2))
    =>)
 FuzzyCLIPS> (assert (a 1) (a 2) (b 1))         ; DR0257
-<Fact-2>
+<Fact-3>
 FuzzyCLIPS> (agenda)                           ; DR0257
-0      foo: f-0,f-2
-0      bar: f-0,f-2
-0      bar: f-1,f-2
+0      foo: f-1,f-3
+0      bar: f-1,f-3
+0      bar: f-2,f-3
 For a total of 3 activations.
 FuzzyCLIPS> (clear)                            ; DR0261
 FuzzyCLIPS> (deffacts a (one =(reset)))        ; DR0261
@@ -245,11 +246,11 @@ ERROR:
    (foo (y ?x1&~?x2) (x ?x2))
    =>)
 FuzzyCLIPS> (assert (foo (x 3) (y 4)))         ; DR0298
-<Fact-0>
-FuzzyCLIPS> (assert (foo (x 4) (y 3)))         ; DR0298
 <Fact-1>
+FuzzyCLIPS> (assert (foo (x 4) (y 3)))         ; DR0298
+<Fact-2>
 FuzzyCLIPS> (agenda)                           ; DR0298
+0      this-rule-doesnt-work: f-2
 0      this-rule-doesnt-work: f-1
-0      this-rule-doesnt-work: f-0
 For a total of 2 activations.
 FuzzyCLIPS> (dribble-off)

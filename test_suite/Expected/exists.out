@@ -1,0 +1,146 @@
+TRUE
+FuzzyCLIPS> (batch "exists.bat")
+TRUE
+FuzzyCLIPS> (clear)      ; Test exists
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> 
+(defrule test
+   (exists (a ?))
+   =>)
+FuzzyCLIPS> (reset)
+<== f-0     (initial-fact) CF 1.00 
+==> f-0     (initial-fact) CF 1.00 
+FuzzyCLIPS> (assert (a 1))
+==> f-1     (a 1) CF 1.00 
+==> Activation 0      test: *
+<Fact-1>
+FuzzyCLIPS> (assert (a 2))
+==> f-2     (a 2) CF 1.00 
+<Fact-2>
+FuzzyCLIPS> (assert (a 3))
+==> f-3     (a 3) CF 1.00 
+<Fact-3>
+FuzzyCLIPS> (retract 1)
+<== f-1     (a 1) CF 1.00 
+FuzzyCLIPS> (retract 3)
+<== f-3     (a 3) CF 1.00 
+FuzzyCLIPS> (retract 2)
+<== f-2     (a 2) CF 1.00 
+<== Activation 0      test: *
+FuzzyCLIPS> (assert (a 4))
+==> f-4     (a 4) CF 1.00 
+==> Activation 0      test: *
+<Fact-4>
+FuzzyCLIPS> (clear)
+==> f-0     (initial-fact) CF 1.00 
+FuzzyCLIPS> 
+(defrule test
+   (a ?x)
+   (exists (b ?x ?))
+   =>)
+FuzzyCLIPS> (reset)
+<== f-0     (initial-fact) CF 1.00 
+==> f-0     (initial-fact) CF 1.00 
+FuzzyCLIPS> (assert (b 1 1))
+==> f-1     (b 1 1) CF 1.00 
+<Fact-1>
+FuzzyCLIPS> (assert (b 1 2))
+==> f-2     (b 1 2) CF 1.00 
+<Fact-2>
+FuzzyCLIPS> (assert (a 1))
+==> f-3     (a 1) CF 1.00 
+==> Activation 0      test: f-3,*
+<Fact-3>
+FuzzyCLIPS> (assert (a 2))
+==> f-4     (a 2) CF 1.00 
+<Fact-4>
+FuzzyCLIPS> (retract 1)
+<== f-1     (b 1 1) CF 1.00 
+FuzzyCLIPS> (retract 2)
+<== f-2     (b 1 2) CF 1.00 
+<== Activation 0      test: f-3,*
+FuzzyCLIPS> (assert (b 2 2))
+==> f-5     (b 2 2) CF 1.00 
+==> Activation 0      test: f-4,*
+<Fact-5>
+FuzzyCLIPS> (assert (b 1 2))
+==> f-6     (b 1 2) CF 1.00 
+==> Activation 0      test: f-3,*
+<Fact-6>
+FuzzyCLIPS> (assert (b 2 3))
+==> f-7     (b 2 3) CF 1.00 
+<Fact-7>
+FuzzyCLIPS> (assert (b 1 3))
+==> f-8     (b 1 3) CF 1.00 
+<Fact-8>
+FuzzyCLIPS> (retract 7)
+<== f-7     (b 2 3) CF 1.00 
+FuzzyCLIPS> (retract 5)
+<== f-5     (b 2 2) CF 1.00 
+<== Activation 0      test: f-4,*
+FuzzyCLIPS> (retract 3)
+<== f-3     (a 1) CF 1.00 
+<== Activation 0      test: f-3,*
+FuzzyCLIPS> (unwatch facts)
+FuzzyCLIPS> (unwatch activations)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defrule foo (a) (exists (a) (a)) =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (a))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+0      foo: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (retract 1)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; 6.3 Issue
+FuzzyCLIPS> (unwatch all)   
+FuzzyCLIPS> 
+(defrule detect
+   (b ?b)
+   (exists (a))
+   (test (eq ?b 2))
+   =>
+   (printout t "Rule Fired" crlf))
+FuzzyCLIPS> (assert (a))
+<Fact-1>
+FuzzyCLIPS> (assert (b 1))
+<Fact-2>
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (b 1))
+<Fact-1>
+FuzzyCLIPS> (assert (a))
+<Fact-2>
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (a))
+<Fact-1>
+FuzzyCLIPS> (assert (b 2))
+<Fact-2>
+FuzzyCLIPS> (run)
+Rule Fired
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (b 2))
+<Fact-1>
+FuzzyCLIPS> (assert (a))
+<Fact-2>
+FuzzyCLIPS> (run)
+Rule Fired
+FuzzyCLIPS> (clear) ; 6.3 Issue
+FuzzyCLIPS> 
+(deffacts xy
+    (SAD T 1 T07 "12345678"))
+FuzzyCLIPS> 
+(defrule x
+   (exists (SAD T ?ix T07 ?str)
+       (test (>= (str-length ?str) 0))) 
+   (test (=  1 1))
+   =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+0      x: *
+For a total of 1 activation.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (dribble-off)

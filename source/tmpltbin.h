@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*         DEFTEMPLATE BSAVE/BLOAD HEADER FILE         */
    /*******************************************************/
@@ -13,7 +13,7 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
 /*                  (Fuzzy reasoning extensions)             */
 /*                  (certainty factors for facts and rules)  */
@@ -21,9 +21,17 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.23: Added support for templates maintaining their  */
+/*            own list of facts.                             */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
+/*                                                           */
+/*            Support for deftemplate slot facets.           */
+/*                                                           */
 /*************************************************************/
 
 #if (! RUN_TIME)
+
 #ifndef _H_tmpltbin
 
 #define _H_tmpltbin
@@ -37,6 +45,7 @@ struct bsaveTemplateSlot
    unsigned int defaultDynamic : 1;
    long constraints;
    long defaultList;
+   long facetList;
    long next;
   };
 
@@ -122,8 +131,9 @@ struct deftemplateBinaryData
    LOCALE void                           DeftemplateBinarySetup(void *);
    LOCALE void                          *BloadDeftemplateModuleReference(void *,int);
 
-#endif
-#endif
+#endif /* _H_tmpltbin */
+
+#endif /* (! RUN_TIME) */
 
 
 

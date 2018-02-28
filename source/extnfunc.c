@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/02/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*               EXTERNAL FUNCTION MODULE              */
    /*******************************************************/
@@ -14,12 +14,22 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Corrected code to remove run-time program      */
 /*            compiler warning.                              */
+/*                                                           */
+/*      6.30: Added support for passing context information  */ 
+/*            to user defined functions.                     */
+/*                                                           */
+/*            Support for long long integers.                */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Converted API macros to function calls.        */
 /*                                                           */
 /*************************************************************/
 
@@ -101,76 +111,64 @@ static void DeallocateExternalFunctionData(
 
 #if (! RUN_TIME)
 
-/************************************************************/
-/* DefineFunction: Used to define a system or user external */
-/*   function so that the KB can access it.                 */
-/************************************************************/
-#if (! ENVIRONMENT_API_ONLY) && ALLOW_ENVIRONMENT_GLOBALS
-globle int DefineFunction(
-  char *name,
-  int returnType,
-  int (*pointer)(void),
-  char *actualName)
-  {
-   void *theEnv;
-   
-   theEnv = GetCurrentEnvironment();
-
-   return(DefineFunction3(theEnv,name,returnType,
-                          (int (*)(void *)) pointer,
-                          actualName,NULL,FALSE));
-  }
-#endif
-
-/***************************************************************/
-/* EnvDefineFunction: Used to define a system or user external */
-/*   function so that the KB can access it.                    */
-/***************************************************************/
+/******************************************************/
+/* EnvDefineFunction: Used to define a system or user */
+/*   external function so that the KB can access it.  */
+/******************************************************/
 globle int EnvDefineFunction(
   void *theEnv,
-  char *name,
+  const char *name,
   int returnType,
   int (*pointer)(void *),
-  char *actualName)
+  const char *actualName)
   {
-   return(DefineFunction3(theEnv,name,returnType,pointer,actualName,NULL,TRUE));
+   return(DefineFunction3(theEnv,name,returnType,pointer,actualName,NULL,TRUE,NULL));
   }
   
-/*************************************************************/
-/* DefineFunction2: Used to define a system or user external */
-/*   function so that the KB can access it.                  */
-/*************************************************************/
-#if (! ENVIRONMENT_API_ONLY) && ALLOW_ENVIRONMENT_GLOBALS
-globle int DefineFunction2(
-  char *name,
+/************************************************************/
+/* EnvDefineFunctionWithContext: Used to define a system or */
+/*   user external function so that the KB can access it.   */
+/************************************************************/
+globle int EnvDefineFunctionWithContext(
+  void *theEnv,
+  const char *name,
   int returnType,
-  int (*pointer)(void),
-  char *actualName,
-  char *restrictions)
+  int (*pointer)(void *),
+  const char *actualName,
+  void *context)
   {
-   void *theEnv;
-   
-   theEnv = GetCurrentEnvironment();
-
-   return(DefineFunction3(theEnv,name,returnType,
-                          (int (*)(void *)) pointer,
-                          actualName,restrictions,FALSE));
+   return(DefineFunction3(theEnv,name,returnType,pointer,actualName,NULL,TRUE,context));
   }
-#endif
   
-/*************************************************************/
-/* EnvDefineFunction2: Used to define a system or user external */
-/*   function so that the KB can access it.                  */
-/*************************************************************/
+/*******************************************************/
+/* EnvDefineFunction2: Used to define a system or user */
+/*   external function so that the KB can access it.   */
+/*******************************************************/
 globle int EnvDefineFunction2(
   void *theEnv,
-  char *name,
+  const char *name,
   int returnType,
   int (*pointer)(void *),
-  char *actualName,
-  char *restrictions)
+  const char *actualName,
+  const char *restrictions)
   {
-   return(DefineFunction3(theEnv,name,returnType,pointer,actualName,restrictions,TRUE));
+   return(DefineFunction3(theEnv,name,returnType,pointer,actualName,restrictions,TRUE,NULL));
+  }
+
+/*************************************************************/
+/* EnvDefineFunction2WithContext: Used to define a system or */
+/*   user external function so that the KB can access it.    */
+/*************************************************************/
+globle int EnvDefineFunction2WithContext(
+  void *theEnv,
+  const char *name,
+  int returnType,
+  int (*pointer)(void *),
+  const char *actualName,
+  const char *restrictions,
+  void *context)
+  {
+   return(DefineFunction3(theEnv,name,returnType,pointer,actualName,restrictions,TRUE,context));
   }
 
 /*************************************************************/
@@ -183,11 +181,12 @@ globle int EnvDefineFunction2(
 /*     c - character (converted to symbol)                   */
 /*     d - double precision float                            */
 /*     f - single precision float (converted to double)      */
-/*     i - integer (converted to long integer)               */
+/*     g - long long integer                                 */
+/*     i - integer (converted to long long integer)          */
 /*     j - unknown (symbol, string,                          */
 /*                  or instance name by convention)          */
 /*     k - unknown (symbol or string by convention)          */
-/*     l - long integer                                      */
+/*     l - long integer (converted to long long integer)     */
 /*     m - unknown (multifield by convention)                */
 /*     n - unknown (integer or float by convention)          */
 /*     o - instance name                                     */
@@ -199,12 +198,13 @@ globle int EnvDefineFunction2(
 /*************************************************************/
 globle int DefineFunction3(
   void *theEnv,
-  char *name,
+  const char *name,
   int returnType,
   int (*pointer)(void *),
-  char *actualName,
-  char *restrictions,
-  intBool environmentAware)
+  const char *actualName,
+  const char *restrictions,
+  intBool environmentAware,
+  void *context)
   {
    struct FunctionDefinition *newFunction;
 
@@ -216,6 +216,7 @@ globle int DefineFunction3(
 #if FUZZY_DEFTEMPLATES 
         (returnType != 'F') &&
 #endif
+        (returnType != 'g') &&
         (returnType != 'i') &&
         (returnType != 'j') &&
         (returnType != 'k') &&
@@ -230,6 +231,9 @@ globle int DefineFunction3(
         (returnType != 'v') &&
 #if OBJECT_SYSTEM
         (returnType != 'x') &&
+#endif
+#if DEFTEMPLATE_CONSTRUCT
+        (returnType != 'y') &&
 #endif
         (returnType != 'w') )
      { return(0); }
@@ -261,6 +265,7 @@ globle int DefineFunction3(
    newFunction->sequenceuseok = TRUE;
    newFunction->environmentAware = (short) environmentAware;
    newFunction->usrData = NULL;
+   newFunction->context = context;
 
    return(1);
   }
@@ -271,7 +276,7 @@ globle int DefineFunction3(
 /***********************************************/
 globle int UndefineFunction(
   void *theEnv,
-  char *functionName)
+  const char *functionName)
   {
    SYMBOL_HN *findValue;
    struct FunctionDefinition *fPtr, *lastPtr = NULL;
@@ -348,8 +353,8 @@ static int RemoveHashFunction(
 /***************************************************************************/
 globle int AddFunctionParser(
   void *theEnv,
-  char *functionName,
-  struct expr *(*fpPtr)(void *,struct expr *,char *))
+  const char *functionName,
+  struct expr *(*fpPtr)(void *,struct expr *,const char *))
   {
    struct FunctionDefinition *fdPtr;
 
@@ -372,7 +377,7 @@ globle int AddFunctionParser(
 /*********************************************************************/
 globle int RemoveFunctionParser(
   void *theEnv,
-  char *functionName)
+  const char *functionName)
   {
    struct FunctionDefinition *fdPtr;
 
@@ -394,7 +399,7 @@ globle int RemoveFunctionParser(
 /*****************************************************************/
 globle int FuncSeqOvlFlags(
   void *theEnv,
-  char *functionName,
+  const char *functionName,
   int seqp,
   int ovlp)
   {
@@ -417,7 +422,7 @@ globle int FuncSeqOvlFlags(
 /* GetArgumentTypeName: Returns a descriptive string for */
 /*   a function argument type (used by DefineFunction2). */
 /*********************************************************/
-globle char *GetArgumentTypeName(
+globle const char *GetArgumentTypeName(
   int theRestriction)
   {
    switch ((char) theRestriction)
@@ -600,7 +605,7 @@ globle void InstallFunctionList(
 /********************************************************/
 globle struct FunctionDefinition *FindFunction(
   void *theEnv,
-  char *functionName)
+  const char *functionName)
   {
    struct FunctionHash *fhPtr;
    unsigned hashValue;
@@ -668,7 +673,8 @@ static void AddHashFunction(
 globle int GetMinimumArgs(
   struct FunctionDefinition *theFunction)
   {
-   char theChar[2], *restrictions;
+   char theChar[2];
+   const char *restrictions;
 
    restrictions = theFunction->restrictions;
    if (restrictions == NULL) return(-1);
@@ -691,7 +697,8 @@ globle int GetMinimumArgs(
 globle int GetMaximumArgs(
   struct FunctionDefinition *theFunction)
   {
-   char theChar[2], *restrictions;
+   char theChar[2];
+   const char *restrictions;
 
    restrictions = theFunction->restrictions;
    if (restrictions == NULL) return(-1);
@@ -707,3 +714,45 @@ globle int GetMaximumArgs(
    
    return(-1); 
   }
+
+/*#####################################*/
+/* ALLOW_ENVIRONMENT_GLOBALS Functions */
+/*#####################################*/
+
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+#if (! RUN_TIME)
+globle int DefineFunction(
+  const char *name,
+  int returnType,
+  int (*pointer)(void),
+  const char *actualName)
+  {
+   void *theEnv;
+   
+   theEnv = GetCurrentEnvironment();
+
+   return(DefineFunction3(theEnv,name,returnType,
+                          (int (*)(void *)) pointer,
+                          actualName,NULL,FALSE,NULL));
+  }
+
+globle int DefineFunction2(
+  const char *name,
+  int returnType,
+  int (*pointer)(void),
+  const char *actualName,
+  const char *restrictions)
+  {
+   void *theEnv;
+   
+   theEnv = GetCurrentEnvironment();
+
+   return(DefineFunction3(theEnv,name,returnType,
+                          (int (*)(void *)) pointer,
+                          actualName,restrictions,FALSE,NULL));
+  }
+
+#endif /* (! RUN_TIME) */
+
+#endif /* ALLOW_ENVIRONMENT_GLOBALS */

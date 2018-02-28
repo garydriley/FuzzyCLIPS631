@@ -23,6 +23,7 @@ FuzzyCLIPS>
    =>
    (assert (doo)))
 FuzzyCLIPS> (reset)
+<== f-0     (initial-fact) CF 1.00 
 ==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (assert (a 1) (b 1) (a 2) (b 2) (c 1))
 ==> f-1     (a 1) CF 1.00 
@@ -30,9 +31,9 @@ FuzzyCLIPS> (assert (a 1) (b 1) (a 2) (b 2) (c 1))
 ==> f-3     (a 2) CF 1.00 
 ==> f-4     (b 2) CF 1.00 
 ==> f-5     (c 1) CF 1.00 
-==> Activation 0      r3: f-0,,f-5
-==> Activation 0      r2: f-0,,f-5
-==> Activation 0      r1: f-0,,f-5
+==> Activation 0      r3: *,f-5
+==> Activation 0      r2: *,f-5
+==> Activation 0      r1: *,f-5
 <Fact-5>
 FuzzyCLIPS> (run)
 ==> f-6     (yaba) CF 1.00 
@@ -92,25 +93,27 @@ FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> (watch activations)
 FuzzyCLIPS> (watch facts)
 FuzzyCLIPS> (reset)
+<== Activation 0      all-trained: *
+<== f-0     (initial-fact) CF 1.00 
+==> Activation 0      all-trained: *
 ==> f-0     (initial-fact) CF 1.00 
-==> Activation 0      all-trained: f-0,
 FuzzyCLIPS> (agenda)
-0      all-trained: f-0,
+0      all-trained: *
 For a total of 1 activation.
 FuzzyCLIPS> (assert (player Gary))
 ==> f-1     (player Gary) CF 1.00 
-<== Activation 0      all-trained: f-0,
+<== Activation 0      all-trained: *
 <Fact-1>
 FuzzyCLIPS> (assert (pitched Gary))
 ==> f-2     (pitched Gary) CF 1.00 
 <Fact-2>
 FuzzyCLIPS> (assert (batted Gary))
 ==> f-3     (batted Gary) CF 1.00 
-==> Activation 0      all-trained: f-0,
+==> Activation 0      all-trained: *
 <Fact-3>
 FuzzyCLIPS> (assert (player Brian))
 ==> f-4     (player Brian) CF 1.00 
-<== Activation 0      all-trained: f-0,
+<== Activation 0      all-trained: *
 <Fact-4>
 FuzzyCLIPS> (assert (player Tom))
 ==> f-5     (player Tom) CF 1.00 
@@ -126,17 +129,17 @@ FuzzyCLIPS> (assert (batted Tom))
 <Fact-8>
 FuzzyCLIPS> (assert (batted Brian))
 ==> f-9     (batted Brian) CF 1.00 
-==> Activation 0      all-trained: f-0,
+==> Activation 0      all-trained: *
 <Fact-9>
 FuzzyCLIPS> (retract 8)
 <== f-8     (batted Tom) CF 1.00 
-<== Activation 0      all-trained: f-0,
+<== Activation 0      all-trained: *
 FuzzyCLIPS> (retract 5)
 <== f-5     (player Tom) CF 1.00 
-==> Activation 0      all-trained: f-0,
+==> Activation 0      all-trained: *
 FuzzyCLIPS> (reset)
+<== Activation 0      all-trained: *
 <== f-0     (initial-fact) CF 1.00 
-<== Activation 0      all-trained: f-0,
 <== f-1     (player Gary) CF 1.00 
 <== f-2     (pitched Gary) CF 1.00 
 <== f-3     (batted Gary) CF 1.00 
@@ -144,69 +147,70 @@ FuzzyCLIPS> (reset)
 <== f-6     (pitched Tom) CF 1.00 
 <== f-7     (pitched Brian) CF 1.00 
 <== f-9     (batted Brian) CF 1.00 
+==> Activation 0      all-trained: *
 ==> f-0     (initial-fact) CF 1.00 
-==> Activation 0      all-trained: f-0,
 FuzzyCLIPS> (agenda)
-0      all-trained: f-0,
+0      all-trained: *
 For a total of 1 activation.
 FuzzyCLIPS> (assert (player Gary))   ;1
 ==> f-1     (player Gary) CF 1.00 
-<== Activation 0      all-trained: f-0,
+<== Activation 0      all-trained: *
 <Fact-1>
 FuzzyCLIPS> (assert (pitched Gary))  ;2
 ==> f-2     (pitched Gary) CF 1.00 
 <Fact-2>
 FuzzyCLIPS> (assert (batted Gary))   ;3
 ==> f-3     (batted Gary) CF 1.00 
-==> Activation 0      all-trained: f-0,
+==> Activation 0      all-trained: *
 <Fact-3>
 FuzzyCLIPS> (assert (player Tom))    ;4
 ==> f-4     (player Tom) CF 1.00 
-<== Activation 0      all-trained: f-0,
+<== Activation 0      all-trained: *
 <Fact-4>
 FuzzyCLIPS> (assert (pitched Tom))   ;5
 ==> f-5     (pitched Tom) CF 1.00 
 <Fact-5>
 FuzzyCLIPS> (assert (batted Tom))    ;6
 ==> f-6     (batted Tom) CF 1.00 
-==> Activation 0      all-trained: f-0,
+==> Activation 0      all-trained: *
 <Fact-6>
 FuzzyCLIPS> (retract 6)
 <== f-6     (batted Tom) CF 1.00 
-<== Activation 0      all-trained: f-0,
+<== Activation 0      all-trained: *
 FuzzyCLIPS> (retract 4)
 <== f-4     (player Tom) CF 1.00 
-==> Activation 0      all-trained: f-0,
+==> Activation 0      all-trained: *
 FuzzyCLIPS> (reset)
+<== Activation 0      all-trained: *
 <== f-0     (initial-fact) CF 1.00 
-<== Activation 0      all-trained: f-0,
 <== f-1     (player Gary) CF 1.00 
 <== f-2     (pitched Gary) CF 1.00 
 <== f-3     (batted Gary) CF 1.00 
 <== f-5     (pitched Tom) CF 1.00 
+==> Activation 0      all-trained: *
 ==> f-0     (initial-fact) CF 1.00 
-==> Activation 0      all-trained: f-0,
 FuzzyCLIPS> (agenda)
-0      all-trained: f-0,
+0      all-trained: *
 For a total of 1 activation.
 FuzzyCLIPS> (assert (player Gary))   ;1
 ==> f-1     (player Gary) CF 1.00 
-<== Activation 0      all-trained: f-0,
+<== Activation 0      all-trained: *
 <Fact-1>
 FuzzyCLIPS> (assert (pitched Gary))  ;2
 ==> f-2     (pitched Gary) CF 1.00 
 <Fact-2>
 FuzzyCLIPS> (assert (batted Gary))   ;3
 ==> f-3     (batted Gary) CF 1.00 
-==> Activation 0      all-trained: f-0,
+==> Activation 0      all-trained: *
 <Fact-3>
 FuzzyCLIPS> (retract 3)
 <== f-3     (batted Gary) CF 1.00 
-<== Activation 0      all-trained: f-0,
+<== Activation 0      all-trained: *
 FuzzyCLIPS> (retract 1)
 <== f-1     (player Gary) CF 1.00 
-==> Activation 0      all-trained: f-0,
+==> Activation 0      all-trained: *
 FuzzyCLIPS> (clear)
+==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> 
 (defrule rule-1
@@ -235,101 +239,101 @@ FuzzyCLIPS>
   =>)
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (agenda)
-5      rule-1: f-0,
-3      rule-3: f-0,
-2      rule-4: f-0,
-1      rule-5: f-0,
+5      rule-1: *
+3      rule-3: *
+2      rule-4: *
+1      rule-5: *
 For a total of 4 activations.
 FuzzyCLIPS> (assert (a 1) (a 2) (a 3))
 <Fact-3>
 FuzzyCLIPS> (agenda)
-3      rule-3: f-0,
-2      rule-4: f-0,
-1      rule-5: f-0,
+3      rule-3: *
+2      rule-4: *
+1      rule-5: *
 For a total of 3 activations.
 FuzzyCLIPS> (assert (b 1) (b 2))
 <Fact-5>
 FuzzyCLIPS> (agenda)
-2      rule-4: f-0,
-1      rule-5: f-0,
+2      rule-4: *
+1      rule-5: *
 For a total of 2 activations.
 FuzzyCLIPS> (assert (c 2) (c 3) (c 4) (c 5))
 <Fact-9>
 FuzzyCLIPS> (agenda)
-4      rule-2: f-0,
-2      rule-4: f-0,
-1      rule-5: f-0,
+4      rule-2: *
+2      rule-4: *
+1      rule-5: *
 For a total of 3 activations.
 FuzzyCLIPS> (assert (d 3) (d 4))
 <Fact-11>
 FuzzyCLIPS> (agenda)
-4      rule-2: f-0,
-2      rule-4: f-0,
+4      rule-2: *
+2      rule-4: *
 For a total of 2 activations.
 FuzzyCLIPS> (assert (e 3) (e 4))
 <Fact-13>
 FuzzyCLIPS> (agenda)
-4      rule-2: f-0,
-2      rule-4: f-0,
+4      rule-2: *
+2      rule-4: *
 For a total of 2 activations.
 FuzzyCLIPS> (assert (f 3) (f 4))
 <Fact-15>
 FuzzyCLIPS> (agenda)
-4      rule-2: f-0,
-2      rule-4: f-0,
-1      rule-5: f-0,
+4      rule-2: *
+2      rule-4: *
+1      rule-5: *
 For a total of 3 activations.
 FuzzyCLIPS> (assert (b 3) (c 1))
 <Fact-17>
 FuzzyCLIPS> (agenda)
-5      rule-1: f-0,
-4      rule-2: f-0,
-1      rule-5: f-0,
+5      rule-1: *
+4      rule-2: *
+1      rule-5: *
 For a total of 3 activations.
 FuzzyCLIPS> (retract 2 3 4)
 FuzzyCLIPS> (agenda)
-3      rule-3: f-0,
-1      rule-5: f-0,
+3      rule-3: *
+1      rule-5: *
 For a total of 2 activations.
 FuzzyCLIPS> (assert (d 2))
 <Fact-18>
 FuzzyCLIPS> (agenda)
-3      rule-3: f-0,
+3      rule-3: *
 For a total of 1 activation.
 FuzzyCLIPS> (retract 10)
 FuzzyCLIPS> (agenda)
-3      rule-3: f-0,
+3      rule-3: *
 For a total of 1 activation.
 FuzzyCLIPS> (retract 1)
 FuzzyCLIPS> (agenda)
-5      rule-1: f-0,
-3      rule-3: f-0,
+5      rule-1: *
+3      rule-3: *
 For a total of 2 activations.
 FuzzyCLIPS> (retract 5 6 7 8 9)
 FuzzyCLIPS> (agenda)
-5      rule-1: f-0,
-3      rule-3: f-0,
-2      rule-4: f-0,
+5      rule-1: *
+3      rule-3: *
+2      rule-4: *
 For a total of 3 activations.
 FuzzyCLIPS> (retract 11 13 15)
 FuzzyCLIPS> (agenda)
-5      rule-1: f-0,
-3      rule-3: f-0,
-2      rule-4: f-0,
+5      rule-1: *
+3      rule-3: *
+2      rule-4: *
 For a total of 3 activations.
 FuzzyCLIPS> (retract 18)
 FuzzyCLIPS> (agenda)
-5      rule-1: f-0,
-3      rule-3: f-0,
-2      rule-4: f-0,
-1      rule-5: f-0,
+5      rule-1: *
+3      rule-3: *
+2      rule-4: *
+1      rule-5: *
 For a total of 4 activations.
 FuzzyCLIPS> (retract 12 14 16 17)
 FuzzyCLIPS> (agenda)
-5      rule-1: f-0,
-3      rule-3: f-0,
-2      rule-4: f-0,
-1      rule-5: f-0,
+5      rule-1: *
+3      rule-3: *
+2      rule-4: *
+1      rule-5: *
 For a total of 4 activations.
 FuzzyCLIPS> (clear) ; Test combinations of variable use
 FuzzyCLIPS> 
@@ -343,12 +347,12 @@ FuzzyCLIPS> (reset)
 FuzzyCLIPS> (assert (a 3) (e 3) (f 3))
 <Fact-3>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-1: f-1,,f-2,f-3
+0      foo-1: f-1,*,f-2,f-3
 For a total of 1 activation.
 FuzzyCLIPS> (assert (b 4) (c 4) (d 4))
 <Fact-6>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-1: f-1,,f-2,f-3
+0      foo-1: f-1,*,f-2,f-3
 For a total of 1 activation.
 FuzzyCLIPS> (assert (b 3) (c 3) (d 3))
 <Fact-9>
@@ -368,17 +372,17 @@ FuzzyCLIPS> (reset)
 FuzzyCLIPS> (assert (a 3) (h 3) (i 3))
 <Fact-3>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-2: f-1,,,f-2,f-3
+0      foo-2: f-1,*,*,f-2,f-3
 For a total of 1 activation.
 FuzzyCLIPS> (assert (b 4) (c 4) (d 4))
 <Fact-6>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-2: f-1,,,f-2,f-3
+0      foo-2: f-1,*,*,f-2,f-3
 For a total of 1 activation.
 FuzzyCLIPS> (assert (e 5) (f 5) (g 5))
 <Fact-9>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-2: f-1,,,f-2,f-3
+0      foo-2: f-1,*,*,f-2,f-3
 For a total of 1 activation.
 FuzzyCLIPS> (assert (b 3) (c 3) (d 3))
 <Fact-12>
@@ -400,12 +404,12 @@ FuzzyCLIPS> (reset)
 FuzzyCLIPS> (assert (a 3) (b 3) (e 3))
 <Fact-3>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-3: f-1,f-2,,f-3
+0      foo-3: f-1,f-2,*,f-3
 For a total of 1 activation.
 FuzzyCLIPS> (assert (c 4) (d 4))
 <Fact-5>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-3: f-1,f-2,,f-3
+0      foo-3: f-1,f-2,*,f-3
 For a total of 1 activation.
 FuzzyCLIPS> (assert (c 3) (d 3))
 <Fact-7>
@@ -426,17 +430,17 @@ FuzzyCLIPS> (reset)
 FuzzyCLIPS> (assert (a 3) (i 3))
 <Fact-2>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-4: f-1,,f-2
+0      foo-4: f-1,*,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (assert (b 4) (c 4) (h 4))
 <Fact-5>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-4: f-1,,f-2
+0      foo-4: f-1,*,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (assert (e 4) (f 4) (g 4))
 <Fact-8>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-4: f-1,,f-2
+0      foo-4: f-1,*,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (assert (b 3) (c 3) (h 3))
 <Fact-11>
@@ -444,11 +448,11 @@ FuzzyCLIPS> (agenda) ;; Should have no activations
 FuzzyCLIPS> (assert (e 3) (f 3) (g 3))
 <Fact-14>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-4: f-1,,f-2
+0      foo-4: f-1,*,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (retract 9 10 11)
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-4: f-1,,f-2
+0      foo-4: f-1,*,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> 
@@ -464,12 +468,12 @@ FuzzyCLIPS> (reset)
 FuzzyCLIPS> (assert (a 3) (h 3))
 <Fact-2>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-5: f-1,,f-2
+0      foo-5: f-1,*,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (assert (b 4) (c 4) (g 4))
 <Fact-5>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-5: f-1,,f-2
+0      foo-5: f-1,*,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (assert (b 3) (c 3) (g 3))
 <Fact-8>
@@ -477,11 +481,11 @@ FuzzyCLIPS> (agenda) ;; Should have no activations
 FuzzyCLIPS> (assert (d 1) (e 2) (f 3))
 <Fact-11>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-5: f-1,,f-2
+0      foo-5: f-1,*,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (retract 3 4 5)
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-5: f-1,,f-2
+0      foo-5: f-1,*,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> 
@@ -498,7 +502,7 @@ FuzzyCLIPS> (reset)
 FuzzyCLIPS> (assert (a 3) (g 3))
 <Fact-2>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-6: f-1,,f-2
+0      foo-6: f-1,*,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (assert (b 4) (c 4) (f 4))
 <Fact-5>
@@ -506,18 +510,18 @@ FuzzyCLIPS> (agenda) ;; Should have no activations
 FuzzyCLIPS> (assert (d 1) (e 3))
 <Fact-7>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-6: f-1,,f-2
+0      foo-6: f-1,*,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (assert (e 4))
 <Fact-8>
 FuzzyCLIPS> (agenda) ;; Should have activations
-0      foo-6: f-1,,f-2
+0      foo-6: f-1,*,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (clear) ;; Test not/or
 FuzzyCLIPS> (defrule foo (not (or (a) (b))) =>)
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (agenda)
-0      foo: f-0,,
+0      foo: *,*
 For a total of 1 activation.
 FuzzyCLIPS> (assert (a))
 <Fact-1>
@@ -529,7 +533,231 @@ FuzzyCLIPS> (retract 1)
 FuzzyCLIPS> (agenda)
 FuzzyCLIPS> (retract 2)
 FuzzyCLIPS> (agenda)
-0      foo: f-0,,
+0      foo: *,*
 For a total of 1 activation.
+FuzzyCLIPS> (clear) ; New Indexing Code
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> 
+(defrule foo
+   (a ?x ?y ?z)
+   (not (and (b ?x) (c ?y) (d ?z)))
+   =>)
+FuzzyCLIPS> (assert (a 1 2 3))
+==> Activation 0      foo: f-1,*
+<Fact-1>
+FuzzyCLIPS> (assert (b 1))
+<Fact-2>
+FuzzyCLIPS> (assert (c 2))
+<Fact-3>
+FuzzyCLIPS> (assert (d 3))
+<== Activation 0      foo: f-1,*
+<Fact-4>
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deftemplate a (slot x) (slot y) (slot z))
+FuzzyCLIPS> (deftemplate b (slot x))
+FuzzyCLIPS> (deftemplate c (slot y)) 
+FuzzyCLIPS> (deftemplate d (slot z))
+FuzzyCLIPS> 
+(defrule foo 
+   (a (x ?x) (y ?y) (z ?z))
+   (not (and (b (x ?x))
+             (c (y ?y))
+             (d (z ?z))))
+   =>)
+FuzzyCLIPS> (assert (a (x 1) (y 2) (z 3)))
+==> Activation 0      foo: f-1,*
+<Fact-1>
+FuzzyCLIPS> (assert (b (x 1)))
+<Fact-2>
+FuzzyCLIPS> (assert (c (y 2)))
+<Fact-3>
+FuzzyCLIPS> (assert (d (z 3)))
+<== Activation 0      foo: f-1,*
+<Fact-4>
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deftemplate a (multislot x) (multislot y) (multislot z))
+FuzzyCLIPS> (deftemplate b (multislot x))
+FuzzyCLIPS> (deftemplate c (multislot y)) 
+FuzzyCLIPS> (deftemplate d (multislot z))
+FuzzyCLIPS> 
+(defrule foo 
+   (a (x $? $? ?x) (y $? $? ?y) (z $? $? ?z))
+   (not (and (b (x $? $? ?x))
+             (c (y $? $? ?y))
+             (d (z $? $? ?z))))
+   =>)
+FuzzyCLIPS> (assert (a (x 1) (y 2) (z 3)))
+==> Activation 0      foo: f-1,*
+<Fact-1>
+FuzzyCLIPS> (assert (b (x 1)))
+<Fact-2>
+FuzzyCLIPS> (assert (c (y 2)))
+<Fact-3>
+FuzzyCLIPS> (assert (d (z 3)))
+<== Activation 0      foo: f-1,*
+<Fact-4>
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule foo
+   (a ?x)
+   (b ?y)
+   (not (and (c ?z)
+             (d ?w)
+             (test (and (> ?x ?z) (< ?y ?w)))))
+   =>)
+FuzzyCLIPS> (assert (a 3) (b 5))
+==> Activation 0      foo: f-1,f-2,*
+<Fact-2>
+FuzzyCLIPS> (assert (c 1))
+<Fact-3>
+FuzzyCLIPS> (assert (d 6))
+<== Activation 0      foo: f-1,f-2,*
+<Fact-4>
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule problem-rule-1
+   (A)
+   (not (and (B)
+             (not (and (C) (D)))))
+   (not (E))
+   =>)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule problem-rule-2
+   (A)  
+   (not (and (B)
+             (not (and (C) (D)))))
+
+   (not  (and (E)   
+              (F)))
+   =>)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule problem-rule-3
+   (A)  
+   (exists (or (and (B) 
+                    (C))  
+               (and (D)
+                    (E))
+               (and (F)
+                    (G)
+                    (exists (H)
+                            (I)
+                            (J))
+                    (K)
+                    (L)
+                    (exists (M)
+                            (N)
+                            (O)))
+               (and (P)
+                    (Q)
+                    (R))
+               (and (S)   
+                    (T))))
+   (not (U))
+   =>)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule problem-rule-4
+   (A ?td2)  
+   (not (and (not (and (B) 
+                       (C ?td2)))
+             (not (D))))
+   =>)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule buggy-rule
+   (A ?td2)
+   (not (and (B) 
+             (not (and (C ?x)
+                       (exists (D ?td2)
+                               (E))))))
+   =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (B))
+<Fact-1>
+FuzzyCLIPS> (assert (A 3))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(defrule problem-rule-5
+   (A ?td2)  
+   (not (and (not (and (B) 
+                       (C ?td2)))  
+             (not (and (D)
+                       (not (E ?td2))))))
+   =>)
+FuzzyCLIPS> 
+(clear)
+FuzzyCLIPS> (deftemplate select-GCSS-TAG2100 
+   (slot tag-id) 
+   (slot process-order))
+FuzzyCLIPS> 
+(defrule TAG2100-New-2.5.2.6.2
+   
+   (X)
+   
+   (exists (and (select-GCSS-TAG2100 (tag-id ?tag-id))
+   
+                (exists (select-GCSS-TAG2100 (tag-id ~?tag-id)))))   
+
+   =>)
+FuzzyCLIPS>    
+(defrule  TAG2100-Use-2.5.2.6.3
+      
+   (Y)
+      
+  (select-GCSS-TAG2100 (tag-id ?tag-id))
+            
+  (exists (select-GCSS-TAG2100 (tag-id ~?tag-id))) 
+                                        
+  =>)
+FuzzyCLIPS> (assert (select-GCSS-TAG2100 (tag-id 2) (process-order 2)))
+<Fact-1>
+FuzzyCLIPS> (assert (select-GCSS-TAG2100 (tag-id 2) (process-order 3)))
+<Fact-2>
+FuzzyCLIPS> (assert (select-GCSS-TAG2100 (tag-id 1) (process-order 5)))
+<Fact-3>
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(deftemplate TAG2300
+   (slot matched)
+   (slot action)
+   (slot tag-id))
+FuzzyCLIPS> 
+(deftemplate TAG2370
+   (slot parent))
+FuzzyCLIPS> 
+(deftemplate TAG2400
+   (slot action))
+FuzzyCLIPS> 
+(defrule rule-3
+   (TAG2400 (action ?))      
+   (exists (and (TAG2370 (parent ?equipment))
+            
+                (TAG2300 (tag-id ?equipment)
+                         (matched ~no))))
+   =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (TAG2370 (parent "GCSS-E2")))
+<Fact-1>
+FuzzyCLIPS> (assert (TAG2370 (parent "GCSS-E3")))
+<Fact-2>
+FuzzyCLIPS> (assert (TAG2400 (action none)))
+<Fact-3>
+FuzzyCLIPS> (assert (TAG2300 (matched yes) (action none) (tag-id "GCSS-E2")))
+==> Activation 0      rule-3: f-3,*
+<Fact-4>
+FuzzyCLIPS> (assert (TAG2300 (matched maybe) (action none) (tag-id "GCSS-E3")))
+<Fact-5>
+FuzzyCLIPS> (retract 4)
+FuzzyCLIPS> (assert (TAG2300 (matched yes) (action update) (tag-id "GCSS-E2")))
+<Fact-6>
+FuzzyCLIPS> (retract 3)
+<== Activation 0      rule-3: f-3,*
+FuzzyCLIPS> (assert (TAG2400 (action delete)))
+==> Activation 0      rule-3: f-7,*
+<Fact-7>
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (dribble-off)

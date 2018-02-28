@@ -1,0 +1,12 @@
+(unwatch all)
+(clear)
+(set-strategy depth)
+(open "Results//utf8.rsl" utf8 "w")
+(dribble-on "Actual//utf8.out")
+(batch "utf8.bat")
+(dribble-off)
+(load "compline.clp")
+(printout utf8 "utf8.bat differences are as follows:" crlf)
+(compare-files "Expected//utf8.out" "Actual//utf8.out" utf8)
+; close result file
+(close utf8)

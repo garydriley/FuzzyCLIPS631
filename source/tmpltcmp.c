@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.23  01/31/05            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*          DEFTEMPLATE CONSTRUCTS-TO-C MODULE         */
    /*******************************************************/
@@ -14,14 +14,31 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
 /*                  (Fuzzy reasoning extensions)             */
 /*                  (certainty factors for facts and rules)  */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Added support for templates maintaining their  */
 /*            own list of facts.                             */
+/*                                                           */
+/*      6.30: Added support for path name argument to        */
+/*            constructs-to-c.                               */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Support for deftemplate slot facets.           */
+/*                                                           */
+/*            Added code for deftemplate run time            */
+/*            initialization of hashed comparisons to        */
+/*            constants.                                     */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -60,7 +77,7 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     ConstructToCode(void *,char *,int,FILE *,int,int);
+   static int                     ConstructToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
    static void                    SlotToCode(void *,FILE *,struct templateSlot *,int,int,int);
    static void                    DeftemplateModuleToCode(void *,FILE *,struct defmodule *,int,int,int);
 #if FUZZY_DEFTEMPLATES   
@@ -72,6 +89,7 @@
                                                  int,int,int,int);
    static void                    CloseDeftemplateFiles(void *,FILE *,FILE *,FILE *,int);
 #endif
+   static void                    InitDeftemplateCode(void *,FILE *,int,int);
 #if FUZZY_DEFTEMPLATES    
    static void                    LvUniverseToCode(void *,FILE *,struct fuzzyLv *,
                                                  int,int,int,int);
@@ -86,10 +104,10 @@
 globle void DeftemplateCompilerSetup(
   void *theEnv)
   {
-#if FUZZY_DEFTEMPLATES    
-   DeftemplateData(theEnv)->DeftemplateCodeItem = AddCodeGeneratorItem(theEnv,"deftemplate",0,NULL,NULL,ConstructToCode,5);
+#if FUZZY_DEFTEMPLATES
+   DeftemplateData(theEnv)->DeftemplateCodeItem = AddCodeGeneratorItem(theEnv,"deftemplate",0,NULL,InitDeftemplateCode,ConstructToCode,5);
 #else
-   DeftemplateData(theEnv)->DeftemplateCodeItem = AddCodeGeneratorItem(theEnv,"deftemplate",0,NULL,NULL,ConstructToCode,3);
+   DeftemplateData(theEnv)->DeftemplateCodeItem = AddCodeGeneratorItem(theEnv,"deftemplate",0,NULL,InitDeftemplateCode,ConstructToCode,3);
 #endif
   }
 
@@ -99,7 +117,9 @@ globle void DeftemplateCompilerSetup(
 /*************************************************************/
 static int ConstructToCode(
   void *theEnv,
-  char *fileName,
+  const char *fileName,
+  const char *pathName,
+  char *fileNameBuffer,
   int fileID,
   FILE *headerFP,
   int imageID,
@@ -139,7 +159,7 @@ static int ConstructToCode(
      {
       EnvSetCurrentModule(theEnv,(void *) theModule);
 
-      moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,fileID,imageID,&fileCount,
+      moduleFile = OpenFileIfNeeded(theEnv,moduleFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                                     moduleArrayVersion,headerFP,
                                     "struct deftemplateModule",ModulePrefix(DeftemplateData(theEnv)->DeftemplateCodeItem),
                                     FALSE,NULL);
@@ -167,7 +187,7 @@ static int ConstructToCode(
 
       while (theTemplate != NULL)
         {
-         templateFile = OpenFileIfNeeded(theEnv,templateFile,fileName,fileID,imageID,&fileCount,
+         templateFile = OpenFileIfNeeded(theEnv,templateFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                                          templateArrayVersion,headerFP,
                                          "struct deftemplate",ConstructPrefix(DeftemplateData(theEnv)->DeftemplateCodeItem),
                                          FALSE,NULL);
@@ -199,7 +219,7 @@ static int ConstructToCode(
          lvPtr = theTemplate->fuzzyTemplate;
          if (lvPtr != NULL)
            {
-             lvUniverseFile = OpenFileIfNeeded(theEnv,lvUniverseFile,fileName,fileID,
+             lvUniverseFile = OpenFileIfNeeded(theEnv,lvUniverseFile,fileName,pathName,fileNameBuffer,fileID,
                                                imageID,&fileCount,
                                                lvUniverseArrayVersion,headerFP,
                                                "struct fuzzyLv",
@@ -219,7 +239,7 @@ static int ConstructToCode(
 
               /* now write out the primaryTerm list*/
               primaryTermPtr = lvPtr->primary_term_list;
-              primaryTermFile = OpenFileIfNeeded(theEnv,primaryTermFile,fileName,fileID,
+              primaryTermFile = OpenFileIfNeeded(theEnv,primaryTermFile,fileName,pathName,fileNameBuffer,fileID,
                                                  imageID,&fileCount,
                                                  primaryTermArrayVersion,headerFP,
                                                  "struct primary_term",
@@ -249,7 +269,7 @@ static int ConstructToCode(
          slotPtr = theTemplate->slotList;
          while (slotPtr != NULL)
            {
-            slotFile = OpenFileIfNeeded(theEnv,slotFile,fileName,fileID,imageID,&fileCount,
+            slotFile = OpenFileIfNeeded(theEnv,slotFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                                         slotArrayVersion,headerFP,
                                        "struct templateSlot",SlotPrefix(),FALSE,NULL);
             if (slotFile == NULL)
@@ -423,9 +443,6 @@ static void primaryTermToCode(
 /* DeftemplateModuleToCode: Writes the C code representation */
 /*   of a single deftemplate module to the specified file.   */
 /*************************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 static void DeftemplateModuleToCode(
   void *theEnv,
   FILE *theFile,
@@ -434,7 +451,7 @@ static void DeftemplateModuleToCode(
   int maxIndices,
   int moduleCount)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(moduleCount)
 #endif
 
@@ -529,7 +546,6 @@ static void DeftemplateToCode(
    /*============================================*/
    
    fprintf(theFile,",NULL,NULL}");
-   
   }
 
 /*****************************************************/
@@ -570,6 +586,13 @@ static void SlotToCode(
 
    fprintf(theFile,",");
    PrintHashedExpressionReference(theEnv,theFile,theSlot->defaultList,imageID,maxIndices);
+   
+   /*============*/
+   /* Facet List */
+   /*============*/
+   
+   fprintf(theFile,",");
+   PrintHashedExpressionReference(theEnv,theFile,theSlot->facetList,imageID,maxIndices);
    fprintf(theFile,",");
 
    /*===========*/
@@ -626,6 +649,25 @@ globle void DeftemplateCConstructReference(
                       theTemplate->header.bsaveID % maxIndices);
      }
 
+  }
+  
+/*******************************************/
+/* InitDeftemplateCode: Writes out runtime */
+/*   initialization code for deftemplates. */
+/*******************************************/
+static void InitDeftemplateCode(
+  void *theEnv,
+  FILE *initFP,
+  int imageID,
+  int maxIndices)
+  {
+#if MAC_XCD
+#pragma unused(theEnv)
+#pragma unused(imageID)
+#pragma unused(maxIndices)
+#endif
+
+   fprintf(initFP,"   DeftemplateRunTimeInitialize(theEnv);\n");
   }
 
 #endif /* DEFTEMPLATE_CONSTRUCT && CONSTRUCT_COMPILER && (! RUN_TIME) */

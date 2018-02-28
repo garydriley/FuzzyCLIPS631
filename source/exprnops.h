@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*          EXPRESSION OPERATIONS HEADER FILE          */
    /*******************************************************/
@@ -14,11 +14,16 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Add NegateExpression function.                 */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -41,7 +46,7 @@
 #endif
 
    LOCALE intBool                        ConstantExpression(struct expr *);
-   LOCALE void                           PrintExpression(void *,char *,struct expr *);
+   LOCALE void                           PrintExpression(void *,const char *,struct expr *);
    LOCALE long                           ExpressionSize(struct expr *);
    LOCALE int                            CountArguments(struct expr *);
    LOCALE struct expr                   *CopyExpression(void *,struct expr *);
@@ -54,7 +59,8 @@
    LOCALE intBool                        ConstantType(int);
    LOCALE struct expr                   *CombineExpressions(void *,struct expr *,struct expr *);
    LOCALE struct expr                   *AppendExpressions(struct expr *,struct expr *);
+   LOCALE struct expr                   *NegateExpression(void *,struct expr *);
 
-#endif
+#endif /* _H_exprnops */
 
 

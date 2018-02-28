@@ -157,8 +157,6 @@ FuzzyCLIPS> (definstances B::foo)
 FuzzyCLIPS> (defmodule C (export ?ALL))
 FuzzyCLIPS> (defmodule D (import A ?ALL) (import C ?ALL))
 FuzzyCLIPS> (defrule C::foo =>)
-[FACTLHS1] WARNING: Creating implied initial-fact deftemplate in module C.
-  You probably want to import this deftemplate from the MAIN module.
 FuzzyCLIPS> (deffacts C::foo)
 FuzzyCLIPS> (deftemplate C::foo)
 
@@ -230,10 +228,9 @@ A:
 B:
    b
 C:
-   initial-fact
 D:
 E:
-For a total of 5 deftemplates.
+For a total of 4 deftemplates.
 FuzzyCLIPS> (list-defglobals *)
 MAIN:
 A:
@@ -310,6 +307,8 @@ D:
 E:
 For a total of 4 definstances.
 FuzzyCLIPS> (clear) ; Test for scope
+FuzzyCLIPS> (setgen 1)
+1
 FuzzyCLIPS> (defmodule A (export ?ALL))
 FuzzyCLIPS> (deftemplate A::foo (slot x))
 FuzzyCLIPS> (defglobal A ?*foo* = 3)
@@ -320,38 +319,42 @@ FuzzyCLIPS> (defmodule B (import A ?ALL))
 FuzzyCLIPS> (deffacts B::foo (foo (x 3)))
 FuzzyCLIPS> (defrule B::bar (foo (x 3)) => (printout t ?*foo* " " (foo)))
 FuzzyCLIPS> (make-instance of FOO)
-[A::gen1] ;; Different Name OK
+[gen1]
 FuzzyCLIPS> (instances)
-[gen1] of A::FOO ;; Should have same name as above
-For a total of 1 instance.
+[initial-object] of INITIAL-OBJECT
+[gen1] of A::FOO
+For a total of 2 instances.
 FuzzyCLIPS> (clear) ; Test fact scoping
 FuzzyCLIPS> (defmodule A)
 FuzzyCLIPS> (assert (a))
-<Fact-0>
-FuzzyCLIPS> (assert (b))
 <Fact-1>
-FuzzyCLIPS> (defmodule B)
 FuzzyCLIPS> (assert (b))
 <Fact-2>
-FuzzyCLIPS> (assert (c))
+FuzzyCLIPS> (defmodule B)
+FuzzyCLIPS> (assert (b))
 <Fact-3>
+FuzzyCLIPS> (assert (c))
+<Fact-4>
 FuzzyCLIPS> (assert (c))
 FALSE
 FuzzyCLIPS> (facts A)
-f-0     (a) CF 1.00 
-f-1     (b) CF 1.00 
+f-1     (a) CF 1.00 
+f-2     (b) CF 1.00 
 For a total of 2 facts.
 FuzzyCLIPS> (facts B)
-f-2     (b) CF 1.00 
-f-3     (c) CF 1.00 
+f-3     (b) CF 1.00 
+f-4     (c) CF 1.00 
 For a total of 2 facts.
 FuzzyCLIPS> (facts MAIN)
+f-0     (initial-fact) CF 1.00 
+For a total of 1 fact.
 FuzzyCLIPS> (facts *)
-f-0     (a) CF 1.00 
-f-1     (b) CF 1.00 
+f-0     (initial-fact) CF 1.00 
+f-1     (a) CF 1.00 
 f-2     (b) CF 1.00 
-f-3     (c) CF 1.00 
-For a total of 4 facts.
+f-3     (b) CF 1.00 
+f-4     (c) CF 1.00 
+For a total of 5 facts.
 FuzzyCLIPS> (clear) ; Test redefinition of MAIN module
 FuzzyCLIPS> (defmodule MAIN (export ?ALL))
 FuzzyCLIPS> (defmodule MAIN (export deftemplate ?ALL))
@@ -471,7 +474,7 @@ FuzzyCLIPS> (defmodule MAIN (export ?ALL))
 FuzzyCLIPS> (defmodule BAR (import MAIN ?ALL))
 FuzzyCLIPS> (deftemplate BAR::b (slot x))
 FuzzyCLIPS> (assert (b (x 3)))
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (set-current-module MAIN)
 BAR
 FuzzyCLIPS> (assert (b 3))
@@ -506,25 +509,25 @@ FuzzyCLIPS> (deftemplate b (slot x))
 FuzzyCLIPS> (defmodule YAK (import MAIN ?ALL) (import BAR ?ALL))
 FuzzyCLIPS> (deftemplate c (slot x))
 FuzzyCLIPS> (assert (c (x 3)))
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (set-current-module BAR)
 YAK
 FuzzyCLIPS> (assert (b (x 4)))
-<Fact-1>
+<Fact-2>
 FuzzyCLIPS> (set-current-module MAIN)
 BAR
 FuzzyCLIPS> (assert (a (x 5)))
-<Fact-2>
+<Fact-3>
 FuzzyCLIPS> (defrule YAK::c (a (x ?)) (b (x ?)) (c (x ?)) =>)
 FuzzyCLIPS> (defrule BAR::b (a (x ?)) (b (x ?)) =>)
 FuzzyCLIPS> (defrule MAIN::a (a (x ?)) =>)
 FuzzyCLIPS> (agenda *)
 MAIN:
-   0      a: f-2
+   0      a: f-3
 BAR:
-   0      b: f-2,f-1
+   0      b: f-3,f-2
 YAK:
-   0      c: f-2,f-1,f-0
+   0      c: f-3,f-2,f-1
 For a total of 3 activations.
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (dribble-off)

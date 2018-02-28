@@ -526,5 +526,245 @@ FuzzyCLIPS> (deffunction quoxnar ()
      (progn (printout t INS-RETURN ?b crlf) (return))))
 FuzzyCLIPS> (quoxnar)
 INS-RETURN<Fact-0>
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deftemplate point (slot x) (slot y))
+FuzzyCLIPS> (deffacts points (point (x 1) (y 2)) (point (x 3) (y 4)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (do-for-all-facts ((?f point)) TRUE (retract ?f) (+ ?f:x ?f:y))
+[PRNTUTIL12] The variable/slot reference ?f:x cannot be resolved because the referenced fact f-1 has been retracted.
+[ARGACCES5] Function + expected argument #1 to be of type integer or float
+FALSE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (do-for-all-facts ((?f point)) TRUE (+ ?f:x ?f:z))
+[PRNTUTIL13] The variable/slot reference ?f:z is invalid because the referenced fact f-1 does not contain the specified slot.
+[ARGACCES5] Function + expected argument #2 to be of type integer or float
+FALSE
+FuzzyCLIPS> (do-for-all-facts ((?f point)) TRUE (+ ?f:x ?f:78))
+[PRNTUTIL14] The variable/slot reference ?f:78 is invalid because slot names must be symbols.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deftemplate a (slot x))
+FuzzyCLIPS> (deftemplate b (slot y))
+FuzzyCLIPS> (deftemplate c (slot z))
 FuzzyCLIPS> 
-(dribble-off)
+(deffacts init
+   (a (x 1)) 
+   (a (x 2)) 
+   (b (y 3)) 
+   (b (y 4)) 
+   (c (z 5)) 
+   (c (z 6))
+   (c (z 7)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf))
+1 3 5
+1 3 6
+1 3 7
+1 4 5
+1 4 6
+1 4 7
+2 3 5
+2 3 6
+2 3 7
+2 4 5
+2 4 6
+2 4 7
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?a))
+1 3 5
+2 3 5
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?b))
+1 3 5
+1 4 5
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?c))
+1 3 5
+1 3 6
+1 3 7
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?a ?b))
+1 3 5
+2 4 5
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?b ?c))
+1 3 5
+1 4 6
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?a ?c))
+1 3 5
+2 3 6
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?a ?b ?c))
+1 3 5
+2 4 6
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(delayed-do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf))
+1 3 5
+1 3 6
+1 3 7
+1 4 5
+1 4 6
+1 4 7
+2 3 5
+2 3 6
+2 3 7
+2 4 5
+2 4 6
+2 4 7
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(delayed-do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?a ?b ?c))
+1 3 5
+2 4 6
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(find-all-facts ((?a a) (?b b) (?c c)) 
+  (progn (retract ?a ?b ?c) FALSE))
+()
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-7     (c (z 7)) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(find-fact ((?a a) (?b b) (?c c)) 
+  (progn (retract ?a ?b ?c) FALSE))
+()
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-7     (c (z 7)) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(find-all-facts ((?a a) (?b b) (?c c)) 
+  (progn (if (eq ?b:y 3) then (retract ?b)) FALSE))
+()
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-1     (a (x 1)) CF 1.00 
+f-2     (a (x 2)) CF 1.00 
+f-4     (b (y 4)) CF 1.00 
+f-5     (c (z 5)) CF 1.00 
+f-6     (c (z 6)) CF 1.00 
+f-7     (c (z 7)) CF 1.00 
+For a total of 7 facts.
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(find-fact ((?a a) (?b b) (?c c)) 
+  (progn (if (eq ?b:y 3) then (retract ?b)) FALSE))
+()
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-1     (a (x 1)) CF 1.00 
+f-2     (a (x 2)) CF 1.00 
+f-4     (b (y 4)) CF 1.00 
+f-5     (c (z 5)) CF 1.00 
+f-6     (c (z 6)) CF 1.00 
+f-7     (c (z 7)) CF 1.00 
+For a total of 7 facts.
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(find-all-facts ((?a a) (?b b) (?c c)) 
+  (progn (if (eq ?b:y 3) then (retract ?b)) 
+         (if (eq ?c:z 5) then (retract ?c))
+         (if (eq ?a:x 2) then TRUE else FALSE)))
+(<Fact-2> <Fact-4> <Fact-6> <Fact-2> <Fact-4> <Fact-7>)
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-1     (a (x 1)) CF 1.00 
+f-2     (a (x 2)) CF 1.00 
+f-4     (b (y 4)) CF 1.00 
+f-6     (c (z 6)) CF 1.00 
+f-7     (c (z 7)) CF 1.00 
+For a total of 6 facts.
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(find-fact ((?a a) (?b b) (?c c)) 
+  (progn (if (eq ?b:y 3) then (retract ?b)) 
+         (if (eq ?c:z 5) then (retract ?c))
+         (if (eq ?a:x 2) then TRUE else FALSE)))
+(<Fact-2> <Fact-4> <Fact-6>)
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-1     (a (x 1)) CF 1.00 
+f-2     (a (x 2)) CF 1.00 
+f-4     (b (y 4)) CF 1.00 
+f-6     (c (z 6)) CF 1.00 
+f-7     (c (z 7)) CF 1.00 
+For a total of 6 facts.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (deftemplate foo (multislot list))
+FuzzyCLIPS> (assert (foo (list 1 2)))
+==> f-1     (foo (list 1 2)) CF 1.00 
+<Fact-1>
+FuzzyCLIPS> 
+(do-for-fact ((?f foo)) TRUE
+   (retract ?f)
+   (bind ?x ?f:list)
+   (assert (foo (list ?x 3))))
+<== f-1     (foo (list 1 2)) CF 1.00 
+[PRNTUTIL12] The variable/slot reference ?f:list cannot be resolved because the referenced fact f-1 has been retracted.
+FALSE
+FuzzyCLIPS> (assert (foo (list 3 4)) (foo (list 5 6)))   
+==> f-2     (foo (list 3 4)) CF 1.00 
+==> f-3     (foo (list 5 6)) CF 1.00 
+<Fact-3>
+FuzzyCLIPS> 
+(do-for-all-facts ((?f foo)) TRUE
+   (retract ?f)
+   (bind ?x ?f:list)
+   (assert (foo (list ?x 3)))) 
+<== f-2     (foo (list 3 4)) CF 1.00 
+[PRNTUTIL12] The variable/slot reference ?f:list cannot be resolved because the referenced fact f-2 has been retracted.
+FALSE
+FuzzyCLIPS> (unwatch facts)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (dribble-off)

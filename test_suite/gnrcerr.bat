@@ -12,7 +12,7 @@
 (defmethod good ((?a NUMBER (> ?a 0)) (?b LEXEME (neq ?b "ERROR"))))
 (defmethod good 2 ((?a NUMBER (> ?a 0)) (?b LEXEME (neq ?b "ERROR"))))
 (defmethod bad 0 ())
-(defmethod bad 1000000000000 ())
+(defmethod bad 2147483648 ())
 (defmethod bad (?a 34))
 (defmethod bad ($?any ?any))
 (defmethod bad (?a ?a))

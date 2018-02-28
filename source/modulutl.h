@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*            DEFMODULE UTILITY HEADER FILE            */
    /*******************************************************/
@@ -15,9 +15,14 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Used genstrncpy instead of strncpy.            */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -41,26 +46,28 @@
 #define LOCALE extern
 #endif
 
-   LOCALE unsigned                       FindModuleSeparator(char *);
-   LOCALE SYMBOL_HN                     *ExtractModuleName(void *,unsigned,char *);
-   LOCALE SYMBOL_HN                     *ExtractConstructName(void *,unsigned,char *);
-   LOCALE char                          *ExtractModuleAndConstructName(void *,char *);
-   LOCALE void                          *FindImportedConstruct(void *,char *,struct defmodule *,
-                                                               char *,int *,int,struct defmodule *);
-   LOCALE void                           AmbiguousReferenceErrorMessage(void *,char *,char *);
+   LOCALE unsigned                       FindModuleSeparator(const char *);
+   LOCALE SYMBOL_HN                     *ExtractModuleName(void *,unsigned,const char *);
+   LOCALE SYMBOL_HN                     *ExtractConstructName(void *,unsigned,const char *);
+   LOCALE const char                    *ExtractModuleAndConstructName(void *,const char *);
+   LOCALE void                          *FindImportedConstruct(void *,const char *,struct defmodule *,
+                                                               const char *,int *,int,struct defmodule *);
+   LOCALE void                           AmbiguousReferenceErrorMessage(void *,const char *,const char *);
    LOCALE void                           MarkModulesAsUnvisited(void *);
+   LOCALE intBool                        AllImportedModulesVisited(void *,struct defmodule *);
    LOCALE void                           ListItemsDriver(void *,
-                                                         char *,struct defmodule *,
-                                                         char *,char *,
-                                                          void *(*)(void *,void *),
-                                                          char *(*)(void *),
-                                                          void (*)(void *,char *,void *),
-                                                          int (*)(void *,void *));
+                                                         const char *,struct defmodule *,
+                                                         const char *,const char *,
+                                                         void *(*)(void *,void *),
+                                                         const char *(*)(void *),
+                                                         void (*)(void *,const char *,void *),
+                                                         int (*)(void *,void *));
    LOCALE long                           DoForAllModules(void *,
                                                          void (*)(struct defmodule *,void *),
                                                          int,void *);
-
-#endif
+   LOCALE intBool                        ConstructExported(void *,const char *,struct symbolHashNode *,struct symbolHashNode *);
+   
+#endif /* _H_modulutl */
 
 
 

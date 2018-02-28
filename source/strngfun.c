@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.23  01/31/05            */
+   /*             CLIPS Version 6.31  08/15/17            */
    /*                                                     */
    /*               STRING FUNCTIONS MODULE               */
    /*******************************************************/
@@ -19,7 +19,36 @@
 /*      Barry Cameron                                        */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
+/*      6.30: Support for long long integers.                */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW and       */
+/*            MAC_MCW).                                      */
+/*                                                           */
+/*            Used gensprintf instead of sprintf.            */
+/*                                                           */
+/*            Changed integer type/precision.                */
+/*                                                           */
+/*            Changed garbage collection algorithm.          */
+/*                                                           */
+/*            Added support for UTF-8 strings to str-length, */
+/*            str-index, and sub-string functions.           */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Added code to keep track of pointers to        */
+/*            constructs that are contained externally to    */
+/*            to constructs, DanglingConstructs.             */
+/*                                                           */
+/*            Fixed str-cat bug that could be invoked by     */
+/*            (funcall str-cat).                             */
+/*                                                           */
+/*      6.31: Prior error flags are cleared before Eval      */
+/*            and Build are processed.                       */
 /*                                                           */
 /*************************************************************/
 
@@ -35,6 +64,7 @@
 #include <string.h>
 
 #include "argacces.h"
+#include "commline.h"
 #include "constrct.h"
 #include "cstrcpsr.h"
 #include "engine.h"
@@ -46,6 +76,7 @@
 #include "router.h"
 #include "strngrtr.h"
 #include "scanner.h"
+#include "sysdep.h"
 
 #if DEFRULE_CONSTRUCT
 #include "drive.h"
@@ -69,8 +100,8 @@ globle void StringFunctionDefinitions(
 #if ! RUN_TIME
    EnvDefineFunction2(theEnv,"str-cat", 'k', PTIEF StrCatFunction, "StrCatFunction", "1*");
    EnvDefineFunction2(theEnv,"sym-cat", 'k', PTIEF SymCatFunction, "SymCatFunction", "1*");
-   EnvDefineFunction2(theEnv,"str-length", 'l', PTIEF StrLengthFunction, "StrLengthFunction", "11j");
-   EnvDefineFunction2(theEnv,"str-compare", 'l', PTIEF StrCompareFunction, "StrCompareFunction", "23*jji");
+   EnvDefineFunction2(theEnv,"str-length", 'g', PTIEF StrLengthFunction, "StrLengthFunction", "11j");
+   EnvDefineFunction2(theEnv,"str-compare", 'g', PTIEF StrCompareFunction, "StrCompareFunction", "23*jji");
    EnvDefineFunction2(theEnv,"upcase", 'j', PTIEF UpcaseFunction, "UpcaseFunction", "11j");
    EnvDefineFunction2(theEnv,"lowcase", 'j', PTIEF LowcaseFunction, "LowcaseFunction", "11j");
    EnvDefineFunction2(theEnv,"sub-string", 's', PTIEF SubStringFunction, "SubStringFunction", "33*iij");
@@ -79,7 +110,7 @@ globle void StringFunctionDefinitions(
    EnvDefineFunction2(theEnv,"build", 'b', PTIEF BuildFunction, "BuildFunction", "11k");
    EnvDefineFunction2(theEnv,"string-to-field", 'u', PTIEF StringToFieldFunction, "StringToFieldFunction", "11j");
 #else
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 #endif
@@ -121,7 +152,7 @@ static void StrOrSymCatFunction(
    char *theString;
    SYMBOL_HN **arrayOfStrings;
    SYMBOL_HN *hashPtr;
-   char *functionName;
+   const char *functionName;
 
    /*============================================*/
    /* Determine the calling function name.       */
@@ -148,6 +179,8 @@ static void StrOrSymCatFunction(
    /*===============================================*/
 
    numArgs = EnvRtnArgCount(theEnv);
+   if (numArgs == 0) return;
+   
    arrayOfStrings = (SYMBOL_HN **) gm1(theEnv,(int) sizeof(SYMBOL_HN *) * numArgs);
    for (i = 0; i < numArgs; i++)   
      { arrayOfStrings[i] = NULL; }
@@ -218,7 +251,7 @@ static void StrOrSymCatFunction(
    j = 0;
    for (i = 0 ; i < numArgs ; i++)
      {
-      sprintf(&theString[j],"%s",ValueToString(arrayOfStrings[i]));
+      gensprintf(&theString[j],"%s",ValueToString(arrayOfStrings[i]));
       j += (int) strlen(ValueToString(arrayOfStrings[i]));
      }
 
@@ -243,7 +276,7 @@ static void StrOrSymCatFunction(
 /* StrLengthFunction: H/L access routine   */
 /*   for the str-length function.          */
 /*******************************************/
-globle long int StrLengthFunction(
+globle long long StrLengthFunction(
   void *theEnv)
   {
    DATA_OBJECT theArg;
@@ -253,20 +286,20 @@ globle long int StrLengthFunction(
    /*===================================================*/
 
    if (EnvArgCountCheck(theEnv,"str-length",EXACTLY,1) == -1)
-     { return(-1L); }
+     { return(-1LL); }
 
    /*==================================================*/
    /* The argument should be of type symbol or string. */
    /*==================================================*/
 
    if (EnvArgTypeCheck(theEnv,"str-length",1,SYMBOL_OR_STRING,&theArg) == FALSE)
-     { return(-1L); }
+     { return(-1LL); }
 
    /*============================================*/
    /* Return the length of the string or symbol. */
    /*============================================*/
-
-   return( (long) strlen(DOToString(theArg)));
+   
+   return(UTF8Length(DOToString(theArg)));
   }
 
 /****************************************/
@@ -280,7 +313,8 @@ globle void UpcaseFunction(
    DATA_OBJECT theArg;
    unsigned i;
    size_t slen;
-   char *osptr, *nsptr;
+   const char *osptr;
+   char *nsptr;
 
    /*===============================================*/
    /* Function upcase expects exactly one argument. */
@@ -343,7 +377,8 @@ globle void LowcaseFunction(
    DATA_OBJECT theArg;
    unsigned i;
    size_t slen;
-   char *osptr, *nsptr;
+   const char *osptr;
+   char *nsptr;
 
    /*================================================*/
    /* Function lowcase expects exactly one argument. */
@@ -399,12 +434,12 @@ globle void LowcaseFunction(
 /* StrCompareFunction: H/L access routine   */
 /*   for the str-compare function.          */
 /********************************************/
-globle long int StrCompareFunction(
+globle long long StrCompareFunction(
   void *theEnv)
   {
    int numArgs, length;
    DATA_OBJECT arg1, arg2, arg3;
-   long returnValue;
+   long long returnValue;
 
    /*=======================================================*/
    /* Function str-compare expects either 2 or 3 arguments. */
@@ -459,8 +494,9 @@ globle void *SubStringFunction(
   void *theEnv)
   {
    DATA_OBJECT theArgument;
-   char *tempString, *returnString;
-   int start, end, i, j;
+   const char *tempString;
+   char *returnString;
+   size_t start, end, i, j, length;
    void *returnValue;
 
    /*===================================*/
@@ -473,30 +509,39 @@ globle void *SubStringFunction(
    if (EnvArgTypeCheck(theEnv,"sub-string",1,INTEGER,&theArgument) == FALSE)
      { return((void *) EnvAddSymbol(theEnv,"")); }
 
-   start = CoerceToInteger(theArgument.type,theArgument.value) - 1;
+   if (CoerceToLongInteger(theArgument.type,theArgument.value) < 1)
+     { start = 0; }
+   else
+     { start = (size_t) CoerceToLongInteger(theArgument.type,theArgument.value) - 1; }
 
    if (EnvArgTypeCheck(theEnv,"sub-string",2,INTEGER,&theArgument) == FALSE)
      {  return((void *) EnvAddSymbol(theEnv,"")); }
 
-   end = CoerceToInteger(theArgument.type,theArgument.value) - 1;
+   if (CoerceToLongInteger(theArgument.type,theArgument.value) < 1)
+     { return((void *) EnvAddSymbol(theEnv,"")); }
+   else
+     { end = (size_t) CoerceToLongInteger(theArgument.type,theArgument.value) - 1; }
 
    if (EnvArgTypeCheck(theEnv,"sub-string",3,SYMBOL_OR_STRING,&theArgument) == FALSE)
      { return((void *) EnvAddSymbol(theEnv,"")); }
-
+   
+   tempString = DOToString(theArgument);
+   
    /*================================================*/
    /* If parameters are out of range return an error */
    /*================================================*/
-
-   if (start < 0) start = 0;
-   if (end > (int) strlen(DOToString(theArgument)))
-     { end = (int) strlen(DOToString(theArgument)); }
+   
+   length = UTF8Length(tempString);
+   
+   if (end > length)
+     { end = length; }
 
    /*==================================*/
    /* If the start is greater than the */
    /* end, return a null string.       */
    /*==================================*/
 
-   if (start > end)
+   if ((start > end) || (length == 0))
      { return((void *) EnvAddSymbol(theEnv,"")); }
 
    /*=============================================*/
@@ -507,8 +552,10 @@ globle void *SubStringFunction(
 
    else
      {
+      start = UTF8Offset(tempString,start);
+      end = UTF8Offset(tempString,end + 1) - 1;
+      
       returnString = (char *) gm2(theEnv,(unsigned) (end - start + 2));  /* (end - start) inclusive + EOS */
-      tempString = DOToString(theArgument);
       for(j=0, i=start;i <= end; i++, j++)
         { *(returnString+j) = *(tempString+i); }
       *(returnString+j) = '\0';
@@ -532,8 +579,8 @@ globle void StrIndexFunction(
   DATA_OBJECT_PTR result)
   {
    DATA_OBJECT theArgument1, theArgument2;
-   char *strg1, *strg2;
-   int i, j;
+   const char *strg1, *strg2, *strg3;
+   size_t i, j;
 
    result->type = SYMBOL;
    result->value = EnvFalseSymbol(theEnv);
@@ -559,10 +606,11 @@ globle void StrIndexFunction(
    if (strlen(strg1) == 0)
      {
       result->type = INTEGER;
-      result->value = (void *) EnvAddLong(theEnv,(long) strlen(strg2) + 1L);
+      result->value = (void *) EnvAddLong(theEnv,(long long) UTF8Length(strg2) + 1LL);
       return;
      }
-
+     
+   strg3 = strg2;
    for (i=1; *strg2; i++, strg2++)
      {
       for (j=0; *(strg1+j) && *(strg1+j) == *(strg2+j); j++)
@@ -571,7 +619,7 @@ globle void StrIndexFunction(
       if (*(strg1+j) == '\0')
         {
          result->type = INTEGER;
-         result->value = (void *) EnvAddLong(theEnv,(long) i);
+         result->value = (void *) EnvAddLong(theEnv,(long long) UTF8CharNum(strg3,i));
          return;
         }
      }
@@ -623,7 +671,7 @@ globle void StringToFieldFunction(
 /*************************************************************/
 globle void StringToField(
   void *theEnv,
-  char *theString,
+  const char *theString,
   DATA_OBJECT *returnValue)
   {
    struct token theToken;
@@ -706,13 +754,26 @@ globle void EvalFunction(
    EnvEval(theEnv,DOToString(theArg),returnValue);
   }
 
+/****************************/
+/* Eval: C access routine   */
+/*   for the eval function. */
+/****************************/
+#if ALLOW_ENVIRONMENT_GLOBALS
+globle int Eval(
+  const char *theString,
+  DATA_OBJECT_PTR returnValue)
+  {
+   return EnvEval(GetCurrentEnvironment(),theString,returnValue);
+  }
+#endif
+  
 /*****************************/
 /* EnvEval: C access routine */
 /*   for the eval function.  */
 /*****************************/
 globle int EnvEval(
   void *theEnv,
-  char *theString,
+  const char *theString,
   DATA_OBJECT_PTR returnValue)
   {
    struct expr *top;
@@ -720,6 +781,18 @@ globle int EnvEval(
    static int depth = 0;
    char logicalNameBuffer[20];
    struct BindInfo *oldBinds;
+   int danglingConstructs;
+
+   /*=====================================*/
+   /* If embedded, clear the error flags. */
+   /*=====================================*/
+
+   if ((! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
+       (EvaluationData(theEnv)->CurrentExpression == NULL))
+     {
+      SetEvaluationError(theEnv,FALSE);
+      SetHaltExecution(theEnv,FALSE);
+     }
 
    /*======================================================*/
    /* Evaluate the string. Create a different logical name */
@@ -727,7 +800,7 @@ globle int EnvEval(
    /*======================================================*/
 
    depth++;
-   sprintf(logicalNameBuffer,"Eval-%d",depth);
+   gensprintf(logicalNameBuffer,"Eval-%d",depth);
    if (OpenStringSource(theEnv,logicalNameBuffer,theString,0) == 0)
      {
       SetpType(returnValue,SYMBOL);
@@ -745,6 +818,7 @@ globle int EnvEval(
    SetPPBufferStatus(theEnv,FALSE);
    oldBinds = GetParsedBindNames(theEnv);
    SetParsedBindNames(theEnv,NULL);
+   danglingConstructs = ConstructData(theEnv)->DanglingConstructs;
 
    /*========================================================*/
    /* Parse the string argument passed to the eval function. */
@@ -771,6 +845,7 @@ globle int EnvEval(
       SetpType(returnValue,SYMBOL);
       SetpValue(returnValue,EnvFalseSymbol(theEnv));
       depth--;
+      ConstructData(theEnv)->DanglingConstructs = danglingConstructs;
       return(FALSE);
      }
 
@@ -789,6 +864,7 @@ globle int EnvEval(
       SetpValue(returnValue,EnvFalseSymbol(theEnv));
       ReturnExpression(theEnv,top);
       depth--;
+      ConstructData(theEnv)->DanglingConstructs = danglingConstructs;
       return(FALSE);
      }
 
@@ -807,6 +883,7 @@ globle int EnvEval(
       SetpValue(returnValue,EnvFalseSymbol(theEnv));
       ReturnExpression(theEnv,top);
       depth--;
+      ConstructData(theEnv)->DanglingConstructs = danglingConstructs;
       return(FALSE);
      }
 
@@ -822,6 +899,26 @@ globle int EnvEval(
    depth--;
    ReturnExpression(theEnv,top);
    CloseStringSource(theEnv,logicalNameBuffer);
+
+   /*==============================================*/
+   /* If embedded, reset dangling construct count. */
+   /*==============================================*/
+   
+   if ((! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
+       (EvaluationData(theEnv)->CurrentExpression == NULL))
+     { ConstructData(theEnv)->DanglingConstructs = danglingConstructs; }
+
+   /*==========================================*/
+   /* Perform periodic cleanup if the eval was */
+   /* issued from an embedded controller.      */
+   /*==========================================*/
+
+   if ((UtilityData(theEnv)->CurrentGarbageFrame->topLevel) && (! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
+       (EvaluationData(theEnv)->CurrentExpression == NULL) && (UtilityData(theEnv)->GarbageCollectionLocks == 0))
+     { 
+      CleanCurrentGarbageFrame(theEnv,returnValue);
+      CallPeriodicTasks(theEnv);
+     }
 
    if (GetEvaluationError(theEnv)) return(FALSE);
    return(TRUE);
@@ -849,13 +946,9 @@ globle void EvalFunction(
 /*****************************************************/
 globle int EnvEval(
   void *theEnv,
-  char *theString,
+  const char *theString,
   DATA_OBJECT_PTR returnValue)
   {
-#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
-#pragma unused(theString)
-#endif
-
    PrintErrorID(theEnv,"STRNGFUN",1,FALSE);
    EnvPrintRouter(theEnv,WERROR,"Function eval does not work in run time modules.\n");
    SetpType(returnValue,SYMBOL);
@@ -895,18 +988,41 @@ globle int BuildFunction(
    return(EnvBuild(theEnv,DOToString(theArg)));
   }
 
+/*****************************/
+/* Build: C access routine   */
+/*   for the build function. */
+/*****************************/
+#if ALLOW_ENVIRONMENT_GLOBALS
+globle int Build(
+  const char *theString)
+  {
+   return EnvBuild(GetCurrentEnvironment(),theString);
+  }
+#endif
+  
 /******************************/
 /* EnvBuild: C access routine */
 /*   for the build function.  */
 /******************************/
 globle int EnvBuild(
   void *theEnv,
-  char *theString)
+  const char *theString)
   {
-   char *constructType;
+   const char *constructType;
    struct token theToken;
    int errorFlag;
 
+   /*=====================================*/
+   /* If embedded, clear the error flags. */
+   /*=====================================*/
+
+   if ((! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
+       (EvaluationData(theEnv)->CurrentExpression == NULL))
+     {
+      SetEvaluationError(theEnv,FALSE);
+      SetHaltExecution(theEnv,FALSE);
+     }
+     
    /*====================================================*/
    /* No additions during defrule join network activity. */
    /*====================================================*/
@@ -975,6 +1091,18 @@ globle int EnvBuild(
 
    DestroyPPBuffer(theEnv);
 
+   /*===========================================*/
+   /* Perform periodic cleanup if the build was */
+   /* issued from an embedded controller.       */
+   /*===========================================*/
+
+   if ((UtilityData(theEnv)->CurrentGarbageFrame->topLevel) && (! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
+       (EvaluationData(theEnv)->CurrentExpression == NULL) && (UtilityData(theEnv)->GarbageCollectionLocks == 0))
+     {
+      CleanCurrentGarbageFrame(theEnv,NULL);
+      CallPeriodicTasks(theEnv);
+     }
+
    /*===============================================*/
    /* Return TRUE if the construct was successfully */
    /* parsed, otherwise return FALSE.               */
@@ -1003,12 +1131,8 @@ globle int BuildFunction(
 /******************************************************/
 globle int EnvBuild(
   void *theEnv,
-  char *theString)
+  const char *theString)
   { 
-#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
-#pragma unused(theString)
-#endif
-
    PrintErrorID(theEnv,"STRNGFUN",1,FALSE);
    EnvPrintRouter(theEnv,WERROR,"Function build does not work in run time modules.\n");
    return(FALSE);

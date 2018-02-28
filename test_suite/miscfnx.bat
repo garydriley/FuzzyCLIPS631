@@ -49,8 +49,8 @@
 (= ?*r1* (random))                 ; 10.9.5
 (= ?*r2* (random))                 ; 10.9.5
 (= ?*r3* (random))                 ; 10.9.5
-(random)                           ; 10.9.5
-(random 10)                        ; 10.9.5
+(progn (random) TRUE)              ; 10.9.5
+(progn (random 10) TRUE)           ; 10.9.5
 (if)                               ; 10.9.7
 (if (> 3 4) then)                  ; 10.9.7
 (if TRUE then (+ 3 4))             ; 10.9.7
@@ -67,6 +67,14 @@
 (while)                            ; 10.9.8
 (while FALSE)                      ; 10.9.8
 (while FALSE do)                   ; 10.9.8
+(while FALSE 3)                    ; 10.9.8
+(while FALSE 3 4)                  ; 10.9.8
+(while FALSE (+ 2 3))              ; 10.9.8
+(while FALSE a (+ 2 3))            ; 10.9.8
+(while FALSE do 3)                 ; 10.9.8
+(while FALSE do 3 4)               ; 10.9.8
+(while FALSE do (+ 2 3))           ; 10.9.8
+(while FALSE do a (+ 2 3))         ; 10.9.8
 (clear)                            ; 10.9.8
 (defglobal ?*t* = 10)              ; 10.9.8
 (while (> ?*t* 0) do
@@ -74,7 +82,7 @@
    (bind ?*t* (- ?*t* 1))
    (if (= ?*t* 0) then (printout t crlf)))
 (clear)                            ; 10.9.8
-(time)                             ; 10.9.9
+(progn (time) TRUE)                ; 10.9.9
 (<= (time) (time))                 ; 10.9.9
 (time a)                           ; 10.9.9
 (progn)                            ; 10.9.10
@@ -170,4 +178,14 @@
 (foo)
 (while TRUE do
   (progn (break) (printout t ERROR crlf)))
+(clear)
+(defclass A (is-a USER))
+(bind ?v (instance-address (make-instance [a1] of A)))
+(timetag ?v)
+(send ?v delete)
+(timetag ?v)
+(bind ?v (assert (a b c)))
+(timetag ?v)
+(retract ?v)
+(timetag ?v)
 (clear)

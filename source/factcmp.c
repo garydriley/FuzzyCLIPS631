@@ -2,7 +2,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*     FACT PATTERN NETWORK CONSTRUCTS-TO-C MODULE     */
    /*******************************************************/
@@ -17,6 +17,12 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Added support for path name argument to        */
+/*            constructs-to-c.                               */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -41,7 +47,7 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     PatternNetworkToCode(void *,char *,int,FILE *,int,int);
+   static int                     PatternNetworkToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
    static void                    BeforePatternNetworkToCode(void *);
    static struct factPatternNode *GetNextPatternNode(struct factPatternNode *);
    static void                    CloseNetworkFiles(void *,FILE *,int);
@@ -156,7 +162,9 @@ static struct factPatternNode *GetNextPatternNode(
 /********************************************************************/
 static int PatternNetworkToCode(
   void *theEnv,
-  char *fileName,
+  const char *fileName,
+  const char *pathName,
+  char *fileNameBuffer,
   int fileID,
   FILE *headerFP,
   int imageID,
@@ -208,7 +216,7 @@ static int PatternNetworkToCode(
               thePatternNode != NULL;
               thePatternNode = GetNextPatternNode(thePatternNode))
            {
-            networkFile = OpenFileIfNeeded(theEnv,networkFile,fileName,fileID,imageID,&fileCount,
+            networkFile = OpenFileIfNeeded(theEnv,networkFile,fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                                          networkArrayVersion,headerFP,
                                          "struct factPatternNode",FactPrefix(),FALSE,NULL);
             if (networkFile == NULL)

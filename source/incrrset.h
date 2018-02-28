@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*            INCREMENTAL RESET HEADER FILE            */
    /*******************************************************/
@@ -18,7 +18,23 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
+/*      6.24: Removed INCREMENTAL_RESET compilation flag.    */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Added support for hashed alpha memories and    */
+/*            other join network changes.                    */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW and       */
+/*            MAC_MCW).                                      */
+/*                                                           */
+/*            Modified EnvSetIncrementalReset to check for   */
+/*            the existance of rules.                        */
+/*                                                           */
+/*            Converted API macros to function calls.        */
 /*                                                           */
 /*************************************************************/
 
@@ -40,21 +56,20 @@
 #define LOCALE extern
 #endif
 
-#if ENVIRONMENT_API_ONLY
-#define GetIncrementalReset(theEnv) EnvGetIncrementalReset(theEnv)
-#define SetIncrementalReset(theEnv,a) EnvSetIncrementalReset(theEnv,a)
-#else
-#define GetIncrementalReset() EnvGetIncrementalReset(GetCurrentEnvironment())
-#define SetIncrementalReset(a) EnvSetIncrementalReset(GetCurrentEnvironment(),a)
-#endif
-
    LOCALE void                           IncrementalReset(void *,struct defrule *);
    LOCALE intBool                        EnvGetIncrementalReset(void *);
    LOCALE intBool                        EnvSetIncrementalReset(void *,intBool);
    LOCALE int                            GetIncrementalResetCommand(void *);
    LOCALE int                            SetIncrementalResetCommand(void *);
 
-#endif
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+   LOCALE intBool                        GetIncrementalReset(void);
+   LOCALE intBool                        SetIncrementalReset(int);
+
+#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+
+#endif /* _H_incrrset */
 
 
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*            CONSTRAINT UTILITY HEADER FILE           */
    /*******************************************************/
@@ -14,7 +14,7 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian Donnell                                        */
+/*      Brian Dantes                                         */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -52,6 +52,6 @@
    LOCALE CONSTRAINT_RECORD             *FunctionCallToConstraintRecord(void *,void *);
    LOCALE CONSTRAINT_RECORD             *ExpressionToConstraintRecord(void *,struct expr *);
 
-#endif
+#endif /* _H_cstrnutl */
 
 

@@ -1,524 +1,540 @@
-(clear)                   ; DR0793
-(load bug793.clp)
-(BEeditInit streamout)
-(BECPMIn bug793.ins)
-(clear)                   ; DR0795
+(clear)                   ; Memory Leak #1
+(progn (release-mem) TRUE)
+(mem-used)
+(defclass SOURCE (is-a USER))
 
-(defrule rule-1
-  (blah $?y)
-  =>
-  (progn$ (?x ?y) (printout t ?x)))
-(ppdefrule rule-1)
-(clear)                   ; DR0798
+(deffunction foo()
+   (do-for-all-instances ((?x SOURCE)) TRUE
+      (bind ?y 0)
+      (bogus)))
+(clear)                   ; Memory Leak #2
+(progn (release-mem) TRUE)
+(mem-used)
+(defclass SOURCE (is-a USER))
+
+(deffunction foo()
+   (do-for-all-instances ((?x SOURCE)) (progn (bind ?y 3) (bogus) TRUE)
+      (+ 3 4)))
+(clear)                   ; Memory Leak #3
+(progn (release-mem) TRUE)
+(mem-used)
+(deftemplate SOURCE)
+
+(deffunction foo()
+   (do-for-all-facts ((?x SOURCE)) TRUE
+      (bind ?y 0)
+      (bogus)))
+(clear)                   ; Memory Leak #41
+(progn (release-mem) TRUE)
+(mem-used)
+(deftemplate SOURCE)
+
+(deffunction foo()
+   (do-for-all-facts ((?x SOURCE)) (progn (bind ?y 3) (bogus) TRUE)
+      (+ 3 4)))
+(clear)                   ; Memory Leak #5
+(progn (release-mem) TRUE)
+(mem-used)
+
+(defclass FOO (is-a USER)
+   (slot value1))
+
+(deffunction foo ()
+   (make-instance of FOO
+      (value1 (bogus))))
+(clear)                   ; Memory Leak #6
+(progn (release-mem) TRUE)
+(mem-used)
+
+(deftemplate FOO
+   (slot value1 (type SYMBOL)))
+
+(defrule foo
+   (FOO (value1 ?x))
+   =>
+   (+ ?x 1)
+   (printout t ?x))
+(clear)
+(progn (release-mem) TRUE)
+(mem-used)
+(clear)
+
+(deftemplate nar 
+   (slot bc))
+
+(defrule migrant 
+   (test (eq 1 1))
+   (nar (bc ?bc))
+   =>
+   (printout t ?bc crlf))
+
+(deffacts stuff
+   (nar  (bc "US")))
 (reset)
-(assert (a))
-(assert (b))
-(defrule t1 (b) (a) =>)
-(defrule t2 (a) (or (b) (b)) =>)
-(agenda)
-(clear)                   ; DR0801
-(setgen 1)
-(unwatch all)
-(watch instances)
-(watch activations)
-(watch rules)
-
-(defclass A (is-a USER)
-  (role concrete)
-  (pattern-match reactive)
-  (slot match (default yes) (create-accessor read-write))
-  (slot container (create-accessor read-write)))
-  
-(defmessage-handler A delete before ()
-  (if (instance-existp ?self:container) then
-     (unmake-instance ?self:container)))
-     
-(defrule A-rule
-  (logical ?obj <- (object (is-a A) (match yes)))
-=>
-  (send ?obj put-container 
-      (make-instance of A (match no)
-                          (container (make-instance of INITIAL-OBJECT))))
-  (send ?obj put-match no))
-(make-instance a of A)
 (run)
-(unwatch all)
-(clear)                   ; DR0802
+(clear)                   ; SourceForge Bug #12
+(defclass Test (is-a USER) (multislot Contents))
+(make-instance of Test (Contents a b c d e f g h))
+
+(defrule BrokenPatternMatchBehavior-Object
+   (object (is-a Test) 
+           (Contents $?first ?second ?third $?fourth ?fifth))
+   =>
+   (printout t ?first " " ?second " " ?third " " ?fourth " " ?fifth crlf))
+(run)
+(clear) ;; CLIPSESG Bug
 
 (defclass A (is-a USER)
   (role concrete)
-  (slot foo (default bar)))
-  
-(defmessage-handler A delete after ()
-  (printout t ?self:foo crlf))
-(unmake-instance (make-instance of A))
-(clear)                   ; DR0803
+  (slot foo)
+  (slot bar))
+(make-instance a of A)
+(watch all)
+(modify-instance a (foo 0))
+(unwatch all)
+(clear) ;; CLIPSESG Bug
 
 (defclass A
-   (is-a USER)
+  (is-a USER)
   (role concrete)
-  (pattern-match reactive)
-  (multislot data
-    (create-accessor read-write)))
-    
+  (slot one (type STRING))
+  (slot two (type SYMBOL) (allowed-values TRUE FALSE) (default TRUE)))
+
+(definstances TEST (a1 of A) (a2 of A) (a3 of A))
+
 (defrule rule1
-  (object (is-a A) (data 0 ?x))
-  (object (is-a A) (data 1 ?x))
+  ?obj <- (object (is-a A) (name [a1]))
   =>
-  (printout t ?x crlf))
+  (message-modify-instance ?obj (one "a") (two FALSE))
+  (send ?obj print))
 
-(definstances objects
-  (a of A (data 0 0))
-  (b of A (data 1 0))
-  (c of A (data 1 1)))
+(defrule rule2
+  ?obj <- (object (is-a A) (name [a2]))
+  =>
+  (message-modify-instance ?obj (two FALSE) (one "a"))
+  (send ?obj print))
+
+(defrule rule3
+  ?obj <- (object (is-a A) (name [a3]))
+  =>
+  (modify-instance ?obj (two FALSE) (one "a"))
+  (send ?obj print))
 (reset)
-(agenda)
-(clear)                   ; DR0804
+(run)
+(clear) ;; CLIPSESG Crash Bug
 
-(deffunction imfi (?cv)
-   (bind ?position 3)
-   (while TRUE do
-     (bind ?nv (+ (nth$ ?position ?cv) 1))
-     (if (<= ?nv 9)
-        then 
-        (return (replace$ ?cv ?position ?position ?nv)))
-     (bind ?cv (replace$ ?cv ?position ?position 1))
-     (bind ?position (- ?position 1))
-     (if (< ?position 1) then (return FALSE))))
- 
-(deffunction optimize ()
-   (bind ?current-settings (create$ 1 1 1))
-   (while (neq ?current-settings FALSE)
-      (bind ?current-settings (imfi ?current-settings))))
-(reset)
-(optimize)
-(clear)                   ; DR0805
-(setgen 1)
-
-(defclass A
-   (is-a USER)
-   (role concrete)
-   (pattern-match reactive)
-   (multislot data
-      (create-accessor read-write)))
-
-(defrule rule1
-   (object (is-a A) (data ? red ?x&green))
-   (object (is-a A) (data ? red ?x))
+(defrule bug
+   (dummy)
+   (foo ?x)
+   (not (and (huge ?x)
+             (not (and (test (eq ?x 1))
+                       (bar ?x)))))
    =>)
-(make-instance of A (data orange red green))
-(matches rule1)
-(clear)                   ; DR0806
-(setgen 1)
+(reset)
+(assert (bar 1))
+(assert (huge 1))
+(clear) ; SourceForge Bug
 
-(defclass A (is-a INITIAL-OBJECT)
-   (multislot foo))
+(defclass FOO
+   (is-a USER)
+   (slot _foo (default ?NONE)))
+(make-instance foo1 of FOO)
+(make-instance foo2 of FOO (_foo))
+(clear) ; SourceForge Assert/Clear Bug
+(defrule foo (a ?x&:(progn (clear) TRUE)) =>)
+(assert (a 1))
+(send [initial-object] delete)
+(assert (a 2))
+(clear)
+(assert (a (clear)))
+(clear)
+(deffacts FOO (foo bar) (foo (clear)))
+(reset)
+(clear)
+(assert-string "(a (clear))")
+(clear)
+(deftemplate foo (multislot x))
+(assert (foo (x (clear) 1)))
+(facts)
+(modify 1 (x (clear) 2))
+(facts)
+(clear) ; SourceForge Bug
 
-(defclass B (is-a A)
+(defmodule FOO
+   (export ?ALL))
+   
+(defclass FOO::DUMMY 
+   (is-a USER)
    (slot foo))
+   
+(defmodule BAR
+   (import FOO ?ALL))
 
-(defrule AB
-   (object (is-a A) (foo ?val))
-   =>
-   (printout t ?val crlf))
-(make-instance of B)
-(run)
-(clear)                   ; DR0807
-(insert$ (rest$ (create$ abc def)) 2 ghi)
-(clear)                   ; DR0808
-(assert (m))
-(assert (a))
-(defrule r1 (m) (not (a)) =>)
-(defrule r2 (m) (not (a)) (not (b)) =>)
-(agenda)
-(clear)                   ; DR0809
-(deffunction pins () (ppinstance))
-(defmessage-handler USER pins () (pins))
-(defclass A (is-a USER) (role concrete))
-(make-instance a of A)
-(send [a] pins)
-(clear)                   ; DR0810
-(deffunction MAIN::foo
-   (?garbage)
-   (setgen 1)
-   (loop-for-count ?garbage
-      (make-instance of INITIAL-OBJECT))
-   (delayed-do-for-all-instances ((?ins INITIAL-OBJECT))
-      TRUE
-      (progn
-         (unmake-instance *)
-         (return (gensym*)))))
-(foo 100)
-(foo 500)
-(clear)                   ; DR0813
-
-(defclass A (is-a INITIAL-OBJECT)
-   (multislot foo (create-accessor read-write)))
-
-(defrule A
-   (fact ?v)
-   (not (object (is-a A) (foo $? ?v $?)))
-=>)
-(assert (fact a))
-(make-instance a of A (foo a b c))
-(make-instance b of A (foo a b c))
-
-(object-pattern-match-delay
-   (modify-instance a (foo q))
-   (modify-instance b (foo q)))
-(clear)                   ; DR0815
-
-(defclass grammy (is-a USER)
-    (role concrete)
-    (pattern-match reactive)
-    (multislot  text
-    (create-accessor write)
-    (type SYMBOL)))
-
-(defmessage-handler grammy print before ()
-    (printout t crlf)
-    (printout t "******  starting to print   ****"  ?self crlf))
-
-(defmessage-handler grammy print after ()
-    (printout t "******  starting to print   ****"  ?self crlf)
-    (printout t crlf))
-
-(deffunction resize (?xlist)
-   (if (= (length$ ?xlist)  0)
-     then
-     (printout t "got to here !!! "  crlf)
-     (return)
-     else
-     (make-instance (gensym) of grammy
-         (text (subseq$ ?xlist 1 9))))
-     (resize (subseq$ ?xlist 10 (length$ ?xlist))))
-
-(deffunction ask ()
-   (do-for-all-instances ((?tag grammy)) (instancep ?tag)
-      (send ?tag print)))
-
-(defrule commence  "make it happen"
-   =>
-   (resize (create$ a b c d e f g h i j k l m n)))
-(reset)
-(run)
-(clear)                   ; DR0816
-
-(defclass A
-	  (is-a USER)
-	  (role concrete)
-	  (slot str
-	    (create-accessor read-write)
-	    (type STRING))
-	  (slot length
-	    (create-accessor read-write)
-	    (type INTEGER)))
-
-(defmessage-handler A put-str after (?value)
-   (bind ?self:length 3))
-(make-instance a of A (str 4))
-(send [a] get-length)
-(clear)                   ; DR0817
-
-(deftemplate status 
-   (slot search-depth)
-   (slot parent))
-
-(defrule move-alone 
-  ?node <- (status)
-  =>
-  (duplicate ?node (search-depth =(+ 1 3))
-                   (parent ?node)))
-(ppdefrule move-alone) 
- 
-(deftemplate dbdata
-  (multislot values))
- 
-(defrule bug1
-  =>
-  (assert (dbdata (values (create$ 1 2)))))
-(ppdefrule bug1)
- 
-(defrule bug2
-  =>
-  (assert (dbdata (values (create$ 1 2) (create$ 3 4)))))
-(ppdefrule bug2)    
- 
-(deftemplate foo 
-   (field x) 
-   (multifield y))
- 
-(deffacts d5 (foo (y a)))
-(ppdeffacts d5)
-(deffacts d6 (foo (y a b)) (b) (foo (x 3)) (d))
-(ppdeffacts d6)
-(clear)                   ; DR0818
-(defmodule A (export ?ALL))
-(defgeneric A::foo)
-(defmethod A::foo ((?arg NUMBER)))
-(defmodule B (import A ?ALL))
-(defclass B (is-a USER))
-(defmethod B::foo ((?arg B)))
-(clear)                   ; DR0819
-
-(defclass A 
-   (is-a INITIAL-OBJECT)
-   (multislot foo (create-accessor read-write)))
-(make-instance a of A)
-(modify-instance [a] (foo 4))
-(send [a] print)
-(clear)                   ; DR0820
-
-(defclass A (is-a USER)
-   (role concrete)
-   (slot iii 
-      (type INTEGER)
-      (default -1)
-      (visibility public)
-      (create-accessor read-write)))
-
-(defclass B (is-a USER)
-   (role concrete)
-   (slot ooo 
-      (type INSTANCE)
-      (visibility public)
-      (create-accessor read-write)))
-
-(defmessage-handler B init after ()
-   (send [a] put-iii 23)
-   (printout t "1st output line: iii = " (send [a] get-iii) crlf)
-   (initialize-instance [a])
-   (printout t "2nd output line: iii = " (send [a] get-iii) crlf))
-
-(defrule test
-   (initial-fact)
-   =>
-   (make-instance [a] of A)
-   (make-instance [b] of B))
-(reset)
-(run)
-(clear)
-(watch slots)
-
-(defclass A (is-a USER)
-  (role concrete)
-  (slot foo
-    (create-accessor read-write)
-    (access initialize-only)))
-(make-instance a of A)
-
-(defclass B (is-a USER)
-  (role concrete)
-  (slot bar
-     (create-accessor read-write)
-     (default-dynamic (send [a] put-foo blah))))
-(make-instance of B)
-(unwatch slots)
-(clear)                   ; DR0821
-
-(deffunction function2 ()
-  (subseq$ (create$ 3 (+ 3 1)) 1 1))
-
-(deffunction function1 ()
-   (bind ?str "")
-   (bind ?result (function2))
-   (loop-for-count 3
-      (bind ?str (str-cat ?str " ")))) 
-(loop-for-count 1000 (function1))
-(clear)
-(clear)                   ; DR0824
-
-(defclass c
+(defclass BAR::BAR 
    (is-a USER)
-   (role concrete)
-   (slot s
-      (access initialize-only)
-      (visibility public)
-      (create-accessor read-write)))
+   (slot bar (allowed-classes DUMMY)))
+(set-dynamic-constraint-checking TRUE)
 
-(defmessage-handler c init after
-   ()
-   (bind ?self:s (+ ?self:s 1)))
-(make-instance of c (s 1))
-(clear)                   ; DR0825
+(make-instance b of BAR
+   (bar (make-instance f of DUMMY)))
+(set-dynamic-constraint-checking FALSE)   
+(clear) ; CLIPSESG Bug
 
-(defclass EXAMPLE
-   (is-a USER)
-   (role concrete)
-   (slot x))
-(restore-instances bug825.ins)
+(deffunction generate (?a ?c)
+   (str-cat ?a ?c))
+
+(deffunction gm1 ()
+   (progn$ (?ctype (create$ aaa))
+      (generate 2 ?ctype)))
+
+(deffunction gm2 ()
+   (bind ?ctype aaa)
+   (generate 2 ?ctype))
+(gm1)
+(gm2)
+   
+(clear) ; Dangling constructs
+
+(progn
+   (clear)
+   (build "(defrule foo (count) =>)")
+   (assert (count)))
+(deftemplate blah (slot x))
+
+(progn 
+   (clear)
+   (assert (blah (x 1))))
+   
+(defclass BLAH (is-a USER) (slot x))
+
+(progn
+   (clear)
+   (make-instance of BLAH (x 1)))
+(deffunction yabbo () (printout t "Hello, world!" crlf))
+
+(progn (clear)
+       (yabbo))
+
+(defmethod blah ((?x STRING))
+   (printout t ?x crlf))
+
+(progn (clear)
+       (blah "Hello, world!"))
+(clear) ; Sourceforge bug
+(funcall str-cat)
+
+(deffunction bar1 (?func)
+   (bind $?a (create$))
+   (funcall ?func (expand$ $?a)))
+(bar1 "str-cat")
 (clear)
-(release-mem)
-(clear)                   ; DR0831
-(defmodule MAIN (export ?ALL))
-(defmodule M (import MAIN ?ALL) (export ?ALL))
-(deffunction MAIN::problem (?x))
-(save "Temp//bug.clp")
-(clear)
-(load "Temp//bug.clp")
-(clear)                   ; DR0834
 
-(deffacts Stuff
-   (Value)
-   (AxisLine))  
+(defclass BOO (is-a USER)
+   (multislot foo (cardinality -1 0)))
+   
+(defclass BOO (is-a USER)
+   (multislot foo (cardinality 0 -3)))
+(clear) ; Continuous operation issue
+(defglobal ?*num* = 37)
+(defglobal ?*val* = FALSE)
 
-(defrule r1
-   (initial-fact)
-   (not (and (Value) 
-             (not (AxisLine))))
-   (not (AxisLine))
-   (not (Bogus))
+(deffunction get-number ()
+   (bind ?*num* (+ ?*num* 1)))
+
+(deffunction muck ()
+   (bind ?*val* (create$ (get-number) (get-number))))
+
+(deffacts startup
+   (muck-around))
+   
+(defrule muck-around
+   ?f0 <- (muck-around)
+   =>
+   (retract ?f0) 
+   (muck)
+   (assert (muck-around)))
+(reset)
+(run 1)
+?*val*
+(clear) ; SourceForge Crash Bug
+
+(deftemplate table
+   (slot table-id (type INTEGER)))
+
+(deftemplate modeler-instance
+   (slot class (type SYMBOL) (default ?NONE))
+   (slot id (type SYMBOL) (default ?NONE)))
+
+(deftemplate table-modeler-binding
+   (slot modeler (type SYMBOL))
+   (slot table-id))
+
+(deffacts start
+   (table (table-id 100002))
+   (table (table-id 100003))
+   (modeler-instance (class TIME-PROFILER) (id gen4)) 
+   (table-modeler-binding (modeler gen4) (table-id 100003)) 
+   (modeler-instance (class TIME-PROFILER) (id gen6))
+   (table-modeler-binding (modeler gen6) (table-id 100002)))
+
+(defrule mark   
+   (modeler-instance (id ?m1))
+   (modeler-instance (id ?m2&~?m1))
+   (not (and (table-modeler-binding (modeler ?m1) (table-id ?t1))
+             (table-modeler-binding (modeler ?m2) (table-id ?t2&~?t1))
+             (table (table-id ?t1))
+             (table (table-id ?t2))))
+   (not (and
+             (table-modeler-binding (modeler ?m2) (table-id ?t3))
+             (table-modeler-binding (modeler ?m1) (table-id ?t4&~?t3))
+             (table (table-id ?t4))))
+   =>)
+
+(defrule remove 
    =>)
 (reset)
+(matches mark)
 (retract 2)
-(run)
-(clear)                   ; DR0835
+(matches mark)
+(retract 3)
+(matches mark)
+(clear)
+(clear) ; DR #882
+(watch activations)
 
-(explode$
-   (nth$ 1 (explode$
-      (nth$ 1 (explode$
-         (nth$ 1 (explode$
-            (implode$ (create$
-               (implode$ (create$
-                  (implode$ (create$
-                     (implode$ (create$ a b c)))))))))))))))
-(clear)                   ; DR0837
-(assert-string "()dfj )))(")
-(assert-string ")(dsf")
-(clear)                   ; DR0839
-(ppdefclass asd)
-(ppdefclass MAIN::dip)
-(ppdefclass uiui::gop)
-(clear)                   ; DR0840
+(defrule if 
+   (not (and (not (and (A) (B)))
+             (C)))
+   (not (and (SAD ?v)
+             (SAD ?v)))
+   =>)
+(assert (SAD 2))
+(clear)
 
-(defmodule A
-   (export deftemplate template))
-(deftemplate A::template)
-
-(defmodule B
-   (import A deftemplate template))
-(save "Temp//bug.tmp")
-(clear)
-(load "Temp//bug.tmp")
-(clear)
-(load mab.clp)
-(save "Temp//bug.tmp")
-(clear)
-(load "Temp//bug.tmp")
-(clear)
-(load dilemma1.clp)
-(save "Temp//bug.tmp")
-(clear)
-(load "Temp//bug.tmp")
-(clear)
-(load dilemma2.clp)
-(save "Temp//bug.tmp")
-(clear)
-(load "Temp//bug.tmp")
-(clear)
-(load wordgame.clp)
-(save "Temp//bug.tmp")
-(clear)
-(load "Temp//bug.tmp")
-(clear)
-(load zebra.clp)
-(save "Temp//bug.tmp")
-(clear)
-(load "Temp//bug.tmp")
-(clear)
-(load electrnc.clp)
-(load circuit3.clp)
-(save "Temp//bug.tmp")
-(clear)
-(load "Temp//bug.tmp")
-(clear)
-(load mabobj.clp)
-(save "Temp//bug.tmp")
-(clear)
-(load "Temp//bug.tmp")
-(clear)
-(load objfarm.clp)
-(save "Temp//bug.tmp")
-(clear)
-(load "Temp//bug.tmp")
-(clear)
-(load wrdgmobj.clp)
-(save "Temp//bug.tmp")
-(clear)
-(load "Temp//bug.tmp")
-(clear)
-(load wine.clp)
-(save "Temp//bug.tmp")
-(clear)
-(load "Temp//bug.tmp")
-(clear)
-(clear)                   ; DR0848
-
-(defrule test1 
-   (hihi ?a $?m) 
-   => 
-   (progn$ (?each ?m) 
-      (printout t "Value=" ?each " Index=" ?each-index crlf)))
-(assert (hihi alpha bravo charli david echo))
-(run)
-(clear)                   ; DR0849
-
-(defclass FRIDGE
-   (is-a USER)
-   (multislot contents))
-
-(definstances test
-   (fridge-1 of FRIDGE (contents a b c d)))
+(defrule if 
+    (and  
+        (exists 
+            (SAD T ?tx1 T01 ?t01)
+            (SAD T ?tx1 T02 ?t02)
+            (or  
+                (test (not (not (str-index  "ABCD" ?t01)))) 
+                (test (not (not (str-index  "ABCD" ?t02)))))) 
+        (exists 
+            (SAD G ?gx1 G02N ?g02n)
+            (and  
+                (test (eq (str-index  "9900" ?g02n) 1)) 
+                (exists 
+                    (SAD T ?tx2 T08 ?t08)
+                    (SAD G ?gx1 G01 ?g01)
+                    (or  
+                        (test (<= ?t08 0)) 
+                        (test (= ?t08 ?g01)))))))
+   =>)
+(assert (SAD G 2 G01 2))
+(assert (SAD G 2 G02N "99009000"))
+(assert (SAD T 3 T01 "ABCD XYX"))
+(assert (SAD T 3 T02 "XYZ CDE"))
+(assert (SAD T 3 T08 2))
+(unwatch activations)
+(clear) ; Matches issue
+(defmodule MAIN (export ?ALL))
+(deffacts start (a) (b) (c))
+(defmodule A (import MAIN ?ALL))
+(defrule A::foo (a) =>)
+(defmodule B (import MAIN ?ALL))
+(defrule B::foo (b) =>)
+(defmodule C (import MAIN ?ALL))
+(defrule C::foo (c) =>)
 (reset)
-(member$ (first$ (rest$ (send [fridge-1] get-contents))) (send [fridge-1] get-contents))
-(member$ (first$ (rest$ (send [fridge-1] get-contents))) (rest$ (send [fridge-1] get-contents)))
-(clear)                   ; DR0854
+(matches A::foo)
+(matches B::foo)
+(matches C::foo)
+(set-current-module MAIN)
+(matches A::foo)
+(clear) ; SourceForge Bug
 
-(deffunction foobar (?a ?b ?c)
-   (printout t ?a " " ?b " " ?c crlf))
-(funcall foobar 1)
-(clear)                   ; DR0855
-(fetch
-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-)
-(clear)                   ; DR0856
-(constructs-to-c
-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-1)
-(clear)                   ; DR0857
-
-(defclass
-CLASSaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-(is-a OBJECT))
-(profile constructs)
-(profile-info)
-(profile off)
-(clear)                   ; DR0858
-
-(defmodule
-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
-
-(deffunction
-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa::foo
-()))
-(get-deffunction-list *)
-(clear)                   ; DR0867
-
-(defrule Bad-Rule ""
-   (exists (C))
-   (not (B))
+(defrule bug 
+   (A)
+   (B ?cot)     
+   (not (and (X)  
+             (C ?cot)))
+   (not (and (D ?cot) 
+             (not (Z))))
    =>)
 (watch activations)
-(reset)
-(reset)
+(assert (B R))
+(assert (B C))
+(assert (D C))
+(assert (A)))
 (agenda)
 (unwatch activations)
-(clear)                   ; DR0870
+(clear) ; SourceForge Bug
+(deftemplate C (slot x))
+(deftemplate D (slot x))
 
-(defclass A (is-a USER)
-   (slot x (default ?NONE)))
-(slot-default-value A x)
-(clear)                   ; DR0872
-(load dr0872-1.clp)
-(load dr0872-2.clp)
+(defrule if ""
+    (not 
+         (and 
+              (not 
+                   (not 
+                        (and (not (and (W) 
+                                       (X)))
+                             (not (and (Y) 
+                                       (Z)))
+                        )
+                   )  
+              )
+              (C (x ?ix_t))
+              (D (x ?ix_t))
+         ) 
+    )
+   =>)
+(assert (C (x 1)))
+(clear) ; Load Crash
+
+(defrule bug
+   (X ?a)
+   (Y ?b)
+   (not (and (not (and (A ?a)      
+                       (B ?b)))    
+             (test (eq ?a ?b))))  
+   (Z)
+   =>)
+(assert (Z)) 
+(agenda)
+(assert (X 1))
+(agenda)
+(assert (Y 2))
+(agenda)
+(assert (X 2))
+(agenda)
+(assert (Y 1))
+(agenda)
+(assert (A 1))
+(agenda)
+(assert (B 2))
+(agenda)
+(assert (A 2))
+(agenda)
+(assert (B 1))
+(agenda)
+(clear) ; Load Crash
+
+(defrule bug
+    (Surname ?surname_1)
+    (PersonSurname ?PersonSurname_1)
+    (exists 
+        (or  
+            (and  
+                (exists 
+                    (Surname ?Surname_2)
+                    (LVAR two ?two)
+                    (test (eq ?Surname_2 ?two))) 
+                (test (eq ?surname_1 ?PersonSurname_1))) 
+            (and  
+                (exists 
+                    (Surname ?Surname_3)
+                    (LVAR three ?three)
+                    (test (eq ?Surname_3 ?three))))))
+=>)
+(clear) ; DR0882
+
+(defrule foo
+   (logical (test (> 4 3))
+            (a))
+   =>
+   (assert (b)))
+(watch facts)
+(assert (a))
+(run)
+(retract 1)
+(unwatch facts) 
+(clear) ; CLIPSESG Bug
+(watch activations)
+(defclass A (is-a USER))
+
+(defrule crash
+  (not (object (is-a A)))
+  (object (is-a A))
+  =>)
+(make-instance test1 of A)
+(unmake-instance [test1])
+(run)
+(clear)
+(deftemplate A)
+
+(defrule crash
+  (not (A))
+  (A)
+  =>)
+(assert (A))
+(retract 1)
+(unwatch activations)
+(clear) ; CLIPSESG Bug
+(watch activations)
+
+(defclass A
+  (is-a USER)
+  (slot a))
+
+(defrule test
+  (not (object (is-a A) (a 1)))
+  (object (is-a A) (a 1))
+  =>)
+(make-instance [a1] of A (a 1))
+(modify-instance [a1] (a 2))
+(agenda)
+(unwatch activations)
+(clear) ; SourceForge Ticket #14
+(watch facts)
+(deftemplate foo (multislot x))
+(deffacts start (foo (x 1 2)) (foo (x a)))
+(reset)
+
+(do-for-fact ((?f foo)) TRUE
+  (retract ?f)
+  (bind ?x ?f:x)
+  (assert (foo (x $?x 3))))
+(reset)
+(do-for-all-facts ((?f foo)) TRUE
+  (retract ?f)
+  (printout t ?f " " ?f:x crlf))
+  
+(unwatch facts)
+(clear)  
+(watch instances)
+(watch slots)
+(defclass FOO (is-a USER) (multislot x))
+
+(definstances start
+   ([f1] of FOO (x 1 2))
+   ([f2] of FOO (x a)))
+(reset)
+
+(do-for-instance ((?f FOO)) TRUE
+  (send ?f delete)
+  (bind ?x ?f:x)
+  (make-instance [f3] of FOO (x $?x 3)))
+(reset)
+
+(do-for-all-instances ((?f FOO)) TRUE
+  (send ?f delete)
+  (printout t ?f " " ?f:x crlf))
+(unwatch all)
+(clear) ; Indentation depth overflow
+(defrule foo
+   =>
+   (if (eq 3 3)
+      then
+      (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
+      (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
+      (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
+      (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
+      (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
+      (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
+      (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
+      (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
+      (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
+      (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
+      (if (eq 3 3) then 3)))))))))))))))))))))))))))))))))))))))))))
 (clear)

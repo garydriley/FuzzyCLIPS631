@@ -931,20 +931,18 @@ FuzzyCLIPS> (bload-instances inssav.clp)
 -1
 FuzzyCLIPS> (save-instances "Actual//inssav1.out")
 200
-FuzzyCLIPS> (progn
+FuzzyCLIPS> 
+(progn
   (bind ?start (time))
   (restore-instances "Actual//inssav1.out")
   (bind ?tt (- (time) ?start))
   (bind ?start (time))
   (bload-instances "Temp//inssav1.bin")
   (bind ?bt (- (time) ?start))
-  (printout t "BINARY-LOAD TIME: " ?bt " seconds" crlf)
-  (printout t "TEXT-LOAD TIME: " ?tt " seconds" crlf)
-  (printout t "RATIO B/T: " (if (eq ?tt 0.0) then "Infinite" else (/ ?bt ?tt)) crlf)
-)
-BINARY-LOAD TIME: 0.1333333333333329 seconds ;; Different number OK
-TEXT-LOAD TIME: 0.2000000000000011 seconds ;; Different number OK
-RATIO B/T: 0.6666666666666607 ;; Ratio less than 1.0 OK
+  (if (> ?bt ?tt)
+     then
+     (printout t "Binary load time exceeded text load time" crlf)))
+FALSE
 FuzzyCLIPS> (save-instances "Actual//inssav1.out")
 200
 FuzzyCLIPS> (file-message "Actual//inssav1.out" "D E")

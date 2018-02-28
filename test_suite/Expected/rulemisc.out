@@ -10,18 +10,14 @@ FuzzyCLIPS> (watch facts)
 FuzzyCLIPS> (watch activations)
 FuzzyCLIPS> (defrule foo (not (not (and (a) (b)))) =>)
 FuzzyCLIPS> (defrule bar (not (and (a) (b))) =>)
-FuzzyCLIPS> (reset)
-==> f-0     (initial-fact) CF 1.00 
-==> Activation 0      foo: f-0,
-==> Activation 0      bar: f-0,
-<== Activation 0      foo: f-0,
+==> Activation 0      bar: *
 FuzzyCLIPS> (assert (a))
 ==> f-1     (a) CF 1.00 
 <Fact-1>
 FuzzyCLIPS> (assert (b))
 ==> f-2     (b) CF 1.00 
-<== Activation 0      bar: f-0,
-==> Activation 0      foo: f-0,
+<== Activation 0      bar: *
+==> Activation 0      foo: *
 <Fact-2>
 FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> (clear) ; Test Thing #3
@@ -30,7 +26,7 @@ FuzzyCLIPS> (defrule foo (initial-fact) (not (a)) =>)
 FuzzyCLIPS> (defrule bar (initial-fact) =>)
 FuzzyCLIPS> (agenda)
 0      bar: f-0
-0      foo: f-0,
+0      foo: f-0,*
 For a total of 2 activations.
 FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> (clear) ; Test Thing #4
@@ -55,7 +51,7 @@ FuzzyCLIPS> (assert (a 1) (a 2) (b 2))
 FuzzyCLIPS> (run)
 FuzzyCLIPS> (refresh rule-1)
 FuzzyCLIPS> (agenda)
-0      rule-1: f-1,
+0      rule-1: f-1,*
 For a total of 1 activation.
 FuzzyCLIPS> (clear) ; Test Thing #6
 FuzzyCLIPS> (reset)
@@ -67,20 +63,20 @@ FuzzyCLIPS> (defrule all-players-practiced
                     (batted ?name)))
    =>
    (assert (all-players-have-practiced)))
-==> Activation 0      all-players-practiced: f-0,
+==> Activation 0      all-players-practiced: *
 FuzzyCLIPS> (assert (player Gary) (pitched Gary) (batted Gary))
 ==> f-1     (player Gary) CF 1.00 
-<== Activation 0      all-players-practiced: f-0,
+<== Activation 0      all-players-practiced: *
 ==> f-2     (pitched Gary) CF 1.00 
 ==> f-3     (batted Gary) CF 1.00 
-==> Activation 0      all-players-practiced: f-0,
+==> Activation 0      all-players-practiced: *
 <Fact-3>
 FuzzyCLIPS> (assert (pitched Brian) (player Brian) (batted Brian))
 ==> f-4     (pitched Brian) CF 1.00 
 ==> f-5     (player Brian) CF 1.00 
-<== Activation 0      all-players-practiced: f-0,
+<== Activation 0      all-players-practiced: *
 ==> f-6     (batted Brian) CF 1.00 
-==> Activation 0      all-players-practiced: f-0,
+==> Activation 0      all-players-practiced: *
 <Fact-6>
 FuzzyCLIPS> (run)
 ==> f-7     (all-players-have-practiced) CF 1.00 
@@ -104,77 +100,122 @@ Matches for Pattern 4
  None
 Partial matches for CEs 1 - 2
  None
+Partial matches for CEs 1 - 3
+ None
+Partial matches for CEs 1 - 4
+ None
+Partial matches for CEs 1 (P1) - 2 (P2) , 3 (P3 - P4)
+ None
+Partial matches for CEs 1 (P1) , 2 (P2 - P4)
+ None
 Activations
  None
+(0 0 0)
 FuzzyCLIPS> (assert (team Reds))
-<Fact-0>
-FuzzyCLIPS> (matches rule-1)
-Matches for Pattern 1
-f-0
-Matches for Pattern 2
- None
-Matches for Pattern 3
- None
-Matches for Pattern 4
- None
-Partial matches for CEs 1 - 2
-f-0,
-Activations
-f-0,
-FuzzyCLIPS> (assert (player Gary Reds))
 <Fact-1>
 FuzzyCLIPS> (matches rule-1)
 Matches for Pattern 1
-f-0
-Matches for Pattern 2
 f-1
+Matches for Pattern 2
+ None
 Matches for Pattern 3
  None
 Matches for Pattern 4
  None
 Partial matches for CEs 1 - 2
  None
-Activations
+Partial matches for CEs 1 - 3
  None
-FuzzyCLIPS> (assert (batted Gary))
+Partial matches for CEs 1 - 4
+ None
+Partial matches for CEs 1 (P1) - 2 (P2) , 3 (P3 - P4)
+ None
+Partial matches for CEs 1 (P1) , 2 (P2 - P4)
+f-1,*
+Activations
+f-1,*
+(1 1 1)
+FuzzyCLIPS> (assert (player Gary Reds))
 <Fact-2>
 FuzzyCLIPS> (matches rule-1)
 Matches for Pattern 1
-f-0
-Matches for Pattern 2
 f-1
-Matches for Pattern 3
+Matches for Pattern 2
 f-2
+Matches for Pattern 3
+ None
 Matches for Pattern 4
  None
 Partial matches for CEs 1 - 2
+f-1,f-2
+Partial matches for CEs 1 - 3
+ None
+Partial matches for CEs 1 - 4
+ None
+Partial matches for CEs 1 (P1) - 2 (P2) , 3 (P3 - P4)
+f-1,f-2,*
+Partial matches for CEs 1 (P1) , 2 (P2 - P4)
  None
 Activations
  None
-FuzzyCLIPS> (assert (pitched Gary))
+(2 2 0)
+FuzzyCLIPS> (assert (batted Gary))
 <Fact-3>
 FuzzyCLIPS> (matches rule-1)
 Matches for Pattern 1
-f-0
-Matches for Pattern 2
 f-1
-Matches for Pattern 3
+Matches for Pattern 2
 f-2
-Matches for Pattern 4
+Matches for Pattern 3
 f-3
+Matches for Pattern 4
+ None
 Partial matches for CEs 1 - 2
-f-0,
+f-1,f-2
+Partial matches for CEs 1 - 3
+f-1,f-2,f-3
+Partial matches for CEs 1 - 4
+ None
+Partial matches for CEs 1 (P1) - 2 (P2) , 3 (P3 - P4)
+f-1,f-2,*
+Partial matches for CEs 1 (P1) , 2 (P2 - P4)
+ None
 Activations
-f-0,
+ None
+(3 3 0)
+FuzzyCLIPS> (assert (pitched Gary))
+<Fact-4>
+FuzzyCLIPS> (matches rule-1)
+Matches for Pattern 1
+f-1
+Matches for Pattern 2
+f-2
+Matches for Pattern 3
+f-3
+Matches for Pattern 4
+f-4
+Partial matches for CEs 1 - 2
+f-1,f-2
+Partial matches for CEs 1 - 3
+f-1,f-2,f-3
+Partial matches for CEs 1 - 4
+f-1,f-2,f-3,f-4
+Partial matches for CEs 1 (P1) - 2 (P2) , 3 (P3 - P4)
+ None
+Partial matches for CEs 1 (P1) , 2 (P2 - P4)
+f-1,*
+Activations
+f-1,*
+(4 4 1)
 FuzzyCLIPS> (clear) ; Test Thing #8 - Fact Addresses References
 FuzzyCLIPS> (defrule theRule 
   ?f <- (this)
   (that ?f)
   =>)
 FuzzyCLIPS> (assert (that =(assert (this))))
-<Fact-1>
+<Fact-2>
 FuzzyCLIPS> (agenda)
-0      theRule: f-0,f-1
+0      theRule: f-1,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (defrule theRule
   ?f <- (a)
@@ -211,31 +252,32 @@ For a total of 1 activation.
 FuzzyCLIPS> (clear) ; Test Thing #10
 FuzzyCLIPS> (defrule foo (a ?) (b ?) (c ?) =>)
 FuzzyCLIPS> (assert (a 1) (a 2) (b 1) (b 2) (c 1))
-<Fact-4>
+<Fact-5>
 FuzzyCLIPS> (matches foo)
 Matches for Pattern 1
-f-0
 f-1
-Matches for Pattern 2
 f-2
+Matches for Pattern 2
 f-3
-Matches for Pattern 3
 f-4
+Matches for Pattern 3
+f-5
 Partial matches for CEs 1 - 2
-f-0,f-3
+f-1,f-4
+f-2,f-4
 f-1,f-3
-f-0,f-2
-f-1,f-2
+f-2,f-3
 Partial matches for CEs 1 - 3
-f-1,f-2,f-4
-f-0,f-2,f-4
-f-1,f-3,f-4
-f-0,f-3,f-4
+f-2,f-3,f-5
+f-1,f-3,f-5
+f-2,f-4,f-5
+f-1,f-4,f-5
 Activations
-f-1,f-2,f-4
-f-0,f-2,f-4
-f-1,f-3,f-4
-f-0,f-3,f-4
+f-2,f-3,f-5
+f-1,f-3,f-5
+f-2,f-4,f-5
+f-1,f-4,f-5
+(5 8 4)
 FuzzyCLIPS> (clear) ; Test Thing #11
 FuzzyCLIPS> (defrule foo 
    (exists (a ?x) (b ?x)) 
@@ -246,19 +288,635 @@ FuzzyCLIPS> (assert (a 1) (b 1) (c 2) (d 2))
 <Fact-4>
 FuzzyCLIPS> (matches foo)
 Matches for Pattern 1
-f-0
-Matches for Pattern 2
 f-1
-Matches for Pattern 3
+Matches for Pattern 2
 f-2
-Matches for Pattern 4
+Matches for Pattern 3
 f-3
-Matches for Pattern 5
+Matches for Pattern 4
 f-4
 Partial matches for CEs 1 - 2
-f-0,
-Partial matches for CEs 1 - 3
-f-0,,
+f-1,f-2
+Partial matches for CEs 1 (P1 - P2)
+*
+Partial matches for CEs 1 (P1 - P2) , 2 (P3)
+*,f-3
+Partial matches for CEs 1 (P1 - P2) , 2 (P3) - 3 (P4)
+*,f-3,f-4
+Partial matches for CEs 1 (P1 - P2) , 2 (P3 - P4)
+*,*
 Activations
-f-0,,
+*,*
+(4 5 1)
+FuzzyCLIPS> (clear) ; Test Thing #12
+FuzzyCLIPS> 
+(defrule Buggy-Rule
+   (A ?a)  
+   (not (and (A ?a)
+             (B)
+             (not (and (C ?c)
+                       (test (neq ?c ?a))))))
+   =>) 
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (assert (A G1))
+<Fact-1>
+FuzzyCLIPS> (assert (B))
+<Fact-2>
+FuzzyCLIPS> (assert (C G1))
+<Fact-3>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Matches
+FuzzyCLIPS> (defrule foo 
+   (exists (a ?x) (b ?x) (c ?x)) 
+   (exists (d ?x) (e ?x) (f ?x))
+   (exists (g ?x) (h ?x) (i ?x))
+   (j ?x)
+   =>)
+FuzzyCLIPS> (assert (a 1) (b 1) (c 1) (d 2) (e 2) (f 2) (g 3) (h 3) (i 3) (j 4))
+<Fact-10>
+FuzzyCLIPS> (matches foo)
+Matches for Pattern 1
+f-1
+Matches for Pattern 2
+f-2
+Matches for Pattern 3
+f-3
+Matches for Pattern 4
+f-4
+Matches for Pattern 5
+f-5
+Matches for Pattern 6
+f-6
+Matches for Pattern 7
+f-7
+Matches for Pattern 8
+f-8
+Matches for Pattern 9
+f-9
+Matches for Pattern 10
+f-10
+Partial matches for CEs 1 - 2
+f-1,f-2
+Partial matches for CEs 1 - 3
+f-1,f-2,f-3
+Partial matches for CEs 1 (P1 - P3)
+*
+Partial matches for CEs 1 (P1 - P3) , 2 (P4)
+*,f-4
+Partial matches for CEs 1 (P1 - P3) , 2 (P4) - 3 (P5)
+*,f-4,f-5
+Partial matches for CEs 1 (P1 - P3) , 2 (P4) - 4 (P6)
+*,f-4,f-5,f-6
+Partial matches for CEs 1 (P1 - P3) , 2 (P4 - P6)
+*,*
+Partial matches for CEs 1 (P1 - P3) , 2 (P4 - P6) , 3 (P7)
+*,*,f-7
+Partial matches for CEs 1 (P1 - P3) , 2 (P4 - P6) , 3 (P7) - 4 (P8)
+*,*,f-7,f-8
+Partial matches for CEs 1 (P1 - P3) , 2 (P4 - P6) , 3 (P7) - 5 (P9)
+*,*,f-7,f-8,f-9
+Partial matches for CEs 1 (P1 - P3) , 2 (P4 - P6) , 3 (P7 - P9)
+*,*,*
+Partial matches for CEs 1 (P1 - P3) , 2 (P4 - P6) , 3 (P7 - P9) , 4 (P10)
+*,*,*,f-10
+Activations
+*,*,*,f-10
+(10 12 1)
+FuzzyCLIPS> (clear) ; Test Thing #13
+FuzzyCLIPS> (deftemplate TAG2100 (slot tag-id))
+FuzzyCLIPS> (deftemplate TAG2300 (slot parent))
+FuzzyCLIPS> (deftemplate TAG2500 (slot parent))
+FuzzyCLIPS> (deftemplate TAG2400 (slot parent))
+FuzzyCLIPS> (deftemplate GCSS-merge-tag (slot tag-id))
+FuzzyCLIPS> 
+(defrule load-data
+   =>
+   (assert (TAG2300 (parent "1")))
+   (assert (TAG2370))
+   (assert (TAG2400 (parent "1")));  (matched no)))
+   (assert (GCSS-merge-tag (tag-id "1"))))
+FuzzyCLIPS> 
+(defrule TAG2400-AA-Update ""
+   (TBX)
+   (TAG2100 (tag-id ?td2))
+   (TAG2500 (parent ?td2))      
+   (exists (GCSS-merge-tag (tag-id ?td3))
+           (TAG2400 (parent ?td2 | ?td3)) 
+           (not (and (TAG2370)
+                     (TAG2300 (parent ?td2 | ?td3)))))
+   =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (clear) ; Test Thing #14
+FuzzyCLIPS> 
+(deftemplate TAG2100
+   (slot source)
+   (slot matched)
+   (slot sort-order))
+FuzzyCLIPS> 
+(defrule load-data
+   =>
+   (assert (TAGS100)
+           (TAG2100 (source ESI) (matched yes) (sort-order 2))
+           (TAG2100 (source GCSS) (matched yes) (sort-order 19))))
+FuzzyCLIPS> 
+(defrule Rule-2 ""
+   
+   (TAG2100 (source ESI)
+            (matched ?m))
+            
+   (TAG2100 (source GCSS)
+            (matched ?m)
+            (sort-order ?so1))
+
+   (not (and (TAGS100)
+                       
+             (not (TAG2100 (source GCSS)
+                           (sort-order ?so5&:(< ?so5 ?so1))))))
+   
+   =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (clear) ; Test Thing #15
+FuzzyCLIPS> (watch activations) 
+FuzzyCLIPS> (watch facts) 
+FuzzyCLIPS> (deftemplate foo (slot bar)) 
+FuzzyCLIPS> 
+(defrule modify-with-logical 
+   (logical (something))
+   ?f <- (foo (bar 1))
+  => 
+   (modify ?f (bar TRUE))) 
+FuzzyCLIPS> 
+(assert (foo (bar 1)))
+==> f-1     (foo (bar 1)) CF 1.00 
+<Fact-1>
+FuzzyCLIPS> (assert (something))
+==> f-2     (something) CF 1.00 
+==> Activation 0      modify-with-logical: f-2,f-1
+<Fact-2>
+FuzzyCLIPS> (run) 
+<== f-1     (foo (bar 1)) CF 1.00 
+==> f-3     (foo (bar TRUE)) CF 1.00 
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-2     (something) CF 1.00 
+f-3     (foo (bar TRUE)) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (watch activations) 
+FuzzyCLIPS> (watch facts) 
+FuzzyCLIPS> (deftemplate foo (slot bar)) 
+FuzzyCLIPS> 
+(defrule modify-with-logical 
+   (logical (something)
+   ?f <- (foo (bar 1)))
+  => 
+   (modify ?f (bar TRUE))) 
+FuzzyCLIPS> 
+(assert (foo (bar 1)))
+==> f-1     (foo (bar 1)) CF 1.00 
+<Fact-1>
+FuzzyCLIPS> (assert (something))
+==> f-2     (something) CF 1.00 
+==> Activation 0      modify-with-logical: f-2,f-1
+<Fact-2>
+FuzzyCLIPS> (run) 
+<== f-1     (foo (bar 1)) CF 1.00 
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-2     (something) CF 1.00 
+For a total of 2 facts.
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear) ; Test Thing #16
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (defrule prop
+   (logical (level-search ?n))
+   (not (level-search ?n1&:(> ?n1 ?n)))
+   =>
+   (assert (level-search (+ ?n 1))))
+FuzzyCLIPS> (reset)
+<== f-0     (initial-fact) CF 1.00 
+==> f-0     (initial-fact) CF 1.00 
+FuzzyCLIPS> (assert (level-search 1))
+==> f-1     (level-search 1) CF 1.00 
+<Fact-1>
+FuzzyCLIPS> (run 1)
+==> f-2     (level-search 2) CF 1.00 
+FuzzyCLIPS> (unwatch facts)
+FuzzyCLIPS> (clear) ; Test Thing #17
+FuzzyCLIPS> (deftemplate Event (slot value) (slot time))
+FuzzyCLIPS> 
+(defrule example-failing-2
+  (Event (value 1) (time ?t1))
+  (not (and (Event (value 0) (time ?tn))
+            (test (< ?t1 ?tn))
+            ))
+  (test (< ?t1 3))
+  =>
+  (printout t "Fails 1" crlf))
+FuzzyCLIPS> 
+(deffacts stuff
+   (Event (value 1) (time 1)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+0      example-failing-2: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Test Thing #18
+FuzzyCLIPS> (deftemplate Event (slot value) (slot time))
+FuzzyCLIPS> 
+(defrule example-working
+  (Event (value 1) (time ?t1))
+  (Event (value 1) (time ?t2))
+  (test (< ?t1 ?t2))
+  (test (< ?t1 ?t2))
+  (not (and (Event (value 0) (time ?tn))
+            (test (< ?t1 ?tn))))
+ =>
+  (printout t "Works 1" crlf)
+)
+FuzzyCLIPS> 
+(defrule example-failing-1
+  (Event (value 1) (time ?t1))
+  (Event (value 1) (time ?t2))
+  (test (< ?t1 ?t2))
+  (not (and (Event (value 0) (time ?tn))
+            (test (< ?t1 ?tn))))
+  (test (< ?t1 ?t2))
+=>
+ (printout t "Fails 1" crlf)
+)
+FuzzyCLIPS> 
+(defrule example-simple-working-2
+  (Event (value 1) (time ?t1))
+  (Event (value 1) (time ?t2))
+  (test (< ?t1 ?t2))
+  (not (Event (value 0) (time ?tn)))
+  (test (< ?t1 ?t2))
+=>
+ (printout t "Works (Simple!) 2" crlf)
+)
+FuzzyCLIPS> 
+(defrule example-failing-2
+  (Event (value 1) (time ?t1))
+  (Event (value 1) (time ?t2))
+  (not (and (Event (value 0) (time ?tn))
+            (test (< ?t1 ?tn))))
+  (test (< ?t1 ?t2))
+  (test (< ?t1 ?t2))
+=>
+ (printout t "Fails 2" crlf)
+)
+FuzzyCLIPS> 
+(defrule example-working-3
+  (Event (value 1) (time ?t1))
+  (not (and (Event (value 0) (time ?tn))
+            (test (< ?t1 ?tn))))
+  (Event (value 1) (time ?t2))
+  (test (< ?t1 ?t2))
+  (test (< ?t1 ?t2))
+=>
+ (printout t "Works 3" crlf)
+)
+FuzzyCLIPS> (assert (Event (value 1) (time 0)))
+<Fact-1>
+FuzzyCLIPS> (assert (Event (value 1) (time 1)))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      example-working: f-1,f-2,*
+0      example-failing-1: f-1,f-2,*
+0      example-simple-working-2: f-1,f-2,*
+0      example-failing-2: f-1,f-2,*
+0      example-working-3: f-1,*,f-2
+For a total of 5 activations.
+FuzzyCLIPS> (clear) ; Test Thing #19
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> 
+(defrule xx
+   (SAD SD SD01 ?val0)
+   (and
+      (exists 
+         (SAD G ?ix G10 ?val1)
+         (SAD G ?ix G10 ?val2)
+         (or
+            (test (eq ?val1 "IQ")) 
+            (test (eq ?val2 "IQ")))) 
+      (test (eq ?val0 "ZAH")))
+=>)
+FuzzyCLIPS> (assert (SAD SD SD01 "ZAH"))
+==> Activation 0      xx: f-1,*
+<== Activation 0      xx: f-1,*
+<Fact-1>
+FuzzyCLIPS> (assert (SAD SD SD01 "BAH"))
+<Fact-2>
+FuzzyCLIPS> (assert (SAD G 10 G10 "BQ"))
+<Fact-3>
+FuzzyCLIPS> (assert (SAD G 10 G10 "IQ"))
+==> Activation 0      xx: f-1,*
+<Fact-4>
+FuzzyCLIPS> (unwatch activations)
+FuzzyCLIPS> (clear) ; Test Thing #20
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> 
+(deffacts xy
+   (SAD G 1 GX01 "XX")
+   (SAD G 1 GCH 1 GCH03 "AA")
+   (SAD G 2 GX01 "CN")
+   (SAD G 2 GCH 1 GCH03 "AA")
+   (SAD G 3 GX01 "XX")
+   (SAD G 3 GCH 1 GCH03 "B00")
+   (SAD G 4 GX01 "CN")
+   (SAD G 4 GCH 1 GCH03 "B00"))
+FuzzyCLIPS> 
+(defrule if_exists ""
+   (SAD G ?ix1 GX01 ?var1)
+   (and
+      (test (eq ?var1 "CN"))
+      (exists 
+         (SAD G ?ix1 GCH ?ix2 GCH03 ?var2)
+         (test (eq ?var2 "B00"))))
+   =>)
+FuzzyCLIPS> (reset)
+==> Activation 0      if_exists: f-7,*
+FuzzyCLIPS> (unwatch activations)
+FuzzyCLIPS> (clear) ; Test Thing #21 (Sudoku)
+FuzzyCLIPS> 
+(deftemplate possible
+   (slot row)
+   (slot value))
+FuzzyCLIPS> 
+(deftemplate size-value
+   (slot value))
+FuzzyCLIPS> 
+(defrule issue
+   (size-value (value ?v))
+   (not (and (size-value (value ?v2&:(< ?v2 ?v)))
+             (not (possible (row 1) (value ?v2)))))
+   =>)
+FuzzyCLIPS> 
+(defrule grid-values
+   =>
+   (assert (size-value (value 5)))
+   (assert (size-value (value 6))))   
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+0      grid-values: *
+For a total of 1 activation.
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (run 1)
+==> f-1     (size-value (value 5)) CF 1.00 
+==> Activation 0      issue: f-1,*
+==> f-2     (size-value (value 6)) CF 1.00 
+FuzzyCLIPS> (agenda)
+0      issue: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (unwatch facts)
+FuzzyCLIPS> (unwatch activations)
+FuzzyCLIPS> (clear) ; Test Thing #22 (Sudoku)
+FuzzyCLIPS> 
+(deftemplate possible
+   (slot row)
+   (slot value))
+FuzzyCLIPS> 
+(deftemplate size-value
+   (slot value))
+FuzzyCLIPS> 
+(defrule issue
+   (x)
+   (size-value (value ?v))
+   (not (and (y)
+             (size-value (value ?v2&:(< ?v2 ?v)))
+             (not (possible (row 1) (value ?v2)))))
+   =>)
+FuzzyCLIPS> 
+(defrule grid-values
+   =>
+   (assert (x))
+   (assert (y))
+   (assert (size-value (value 5)))
+   (assert (size-value (value 6))))   
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+0      grid-values: *
+For a total of 1 activation.
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (run 1)
+==> f-1     (x) CF 1.00 
+==> f-2     (y) CF 1.00 
+==> f-3     (size-value (value 5)) CF 1.00 
+==> Activation 0      issue: f-1,f-3,*
+==> f-4     (size-value (value 6)) CF 1.00 
+FuzzyCLIPS> (agenda)
+0      issue: f-1,f-3,*
+For a total of 1 activation.
+FuzzyCLIPS> (unwatch facts)
+FuzzyCLIPS> (unwatch activations)
+FuzzyCLIPS> (clear) ; Test Thing #23 (User Bug)
+FuzzyCLIPS> 
+(deftemplate link
+   (slot z)
+   (slot y))
+FuzzyCLIPS> 
+(deftemplate xfer
+   (slot u)
+   (slot z))
+FuzzyCLIPS>    
+(deftemplate csp
+   (slot y)
+   (slot u))
+FuzzyCLIPS>       
+(deffacts start
+   (csp (y A) (u B))
+   (link (z B) (y A))
+   (link (z C) (y A))
+   (xfer (u B) (z C)))
+FuzzyCLIPS> 
+(defrule rule-bad
+   (link (z ?zzz) (y ?yyy))
+   (forall (csp (y ?yyy) (u ?uuu))
+           (test (progn TRUE))
+           (xfer (u ?uuu) (z ?zzz)))
+   =>)
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> (reset)
+<== f-0     (initial-fact) CF 1.00 
+==> f-0     (initial-fact) CF 1.00 
+==> f-1     (csp (y A) (u B)) CF 1.00 
+==> f-2     (link (z B) (y A)) CF 1.00 
+==> f-3     (link (z C) (y A)) CF 1.00 
+==> f-4     (xfer (u B) (z C)) CF 1.00 
+==> Activation 0      rule-bad: f-3,*
+FuzzyCLIPS> (agenda)
+0      rule-bad: f-3,*
+For a total of 1 activation.
+FuzzyCLIPS> (unwatch facts)
+FuzzyCLIPS> (unwatch activations)
+FuzzyCLIPS> (clear) ; Test Thing #24 (Client Bug)
+FuzzyCLIPS> 
+(deftemplate thing
+   (slot id))
+FuzzyCLIPS> 
+(defrule load-data
+   =>
+   (assert
+      (thing
+         (id "GCSS2100-001"))))
+FuzzyCLIPS> 
+(defrule Rule-1
+   (exists (and (thing (id ?id))
+                (thing (id ~?id))))
+   =>)
+FuzzyCLIPS>       
+(defrule Rule-2
+   (before)
+   (exists (and (thing (id ?id))
+                (thing (id ~?id))))
+   (after)
+   =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+0      load-data: *
+For a total of 1 activation.
+FuzzyCLIPS> (run 1)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Test Thing #25 (Client Bug)
+FuzzyCLIPS> 
+(deftemplate thing
+   (slot source)
+   (slot tag-id))
+FuzzyCLIPS> 
+(defrule load-data
+   =>
+   (assert
+      (thing
+         (source BAR)
+         (tag-id "thing-001"))))
+FuzzyCLIPS> 
+(deftemplate select-thing
+   (slot tag-id))
+FuzzyCLIPS>     
+(defrule rule-1
+   (thing (source FOO)
+          (tag-id ?td1))
+   =>)
+FuzzyCLIPS> 
+(defrule rule-2
+   (exists (and (thing (source BAR) 
+                       (tag-id ?td2))
+                (thing (source GCSS)
+                       (tag-id ?td3&~?td2))))
+   =>)
+FuzzyCLIPS> 
+(defrule rule-3
+   (thing (source FOO)
+          (tag-id ?td1))
+   (exists (and (thing (source BAR) 
+                       (tag-id ?td2))
+                (thing (source BAR)
+                       (tag-id ?td3&~?td2))))
+   (not (select-thing))
+   =>)
+FuzzyCLIPS> 
+(defrule rule-4  "This needs to share with rule-2"
+   (thing (source FOO)
+          (tag-id ?td1))
+   (exists (and (thing (source BAR) 
+                       (tag-id ?td2))
+                (thing (source BAR)
+                       (tag-id ?td3&~?td2))))
+   (not (dabble))
+   =>)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+0      load-data: *
+For a total of 1 activation.
+FuzzyCLIPS> (run 1)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Test Thing #26 (Client Bug)
+FuzzyCLIPS> 
+(deftemplate thing
+   (slot source)
+   (slot matched (default no)))
+FuzzyCLIPS> 
+(deftemplate dubob
+   (slot source)
+   (slot matched (default no)))
+FuzzyCLIPS> 
+(deffacts initial
+   (thing
+      (source BAR)
+      (matched X))
+   (thing
+      (source FOO)
+      (matched X))
+   (dubob
+      (source FOO)
+      (matched Y)))
+FuzzyCLIPS> 
+(defrule rule-1  ""
+   (compare)
+   (exists (thing (source FOO)
+                  (matched ?match&~no))        
+           (not (thing (source BAR)
+                       (matched ?match))))
+   =>)
+FuzzyCLIPS> 
+(defrule rule-2 ""
+   (exists (and (thing (source FOO) (matched ~no)) ;; This join should not be shared with the prior join
+                (dubob (source FOO) (matched ~no))))   
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+0      rule-2: *
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Test Thing #27 (Client Bug)
+FuzzyCLIPS> 
+(deftemplate thing
+   (slot tag-id))
+FuzzyCLIPS> 
+(deftemplate dubob)
+FuzzyCLIPS> 
+(deffacts data
+   (dubob)
+   (thing (tag-id "B")))
+FuzzyCLIPS>          
+(defrule rule-1 ""
+   (thing (tag-id ?td2)) 
+   (not (and (dubob)  
+             (not (thing (tag-id ~?td2))))) 
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Class to alpha link removal
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> (defclass A (is-a USER))
+FuzzyCLIPS> (defclass B (is-a USER))
+FuzzyCLIPS> (defrule foo (object (is-a A)) =>)
+FuzzyCLIPS> (make-instance a1 of A)
+==> Activation 0      foo: [a1]
+[a1]
+FuzzyCLIPS> (agenda)
+0      foo: [a1]
+For a total of 1 activation.
+FuzzyCLIPS> (undefrule foo)
+<== Activation 0      foo: [a1]
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (defrule bar (object (is-a B)) =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (make-instance a2 of A)
+[a2]
+FuzzyCLIPS> (make-instance b1 of B)
+==> Activation 0      bar: [b1]
+[b1]
+FuzzyCLIPS> (agenda)
+0      bar: [b1]
+For a total of 1 activation.
+FuzzyCLIPS> (unwatch activations)
+FuzzyCLIPS> (clear)
 FuzzyCLIPS> (dribble-off)

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*            DEFTEMPLATE PARSER HEADER FILE           */
    /*******************************************************/
@@ -15,6 +15,20 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.23: Added support for templates maintaining their  */
+/*            own list of facts.                             */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW and       */
+/*            MAC_MCW).                                      */
+/*                                                           */
+/*            GetConstructNameAndComment API change.         */
+/*                                                           */
+/*            Support for deftemplate slot facets.           */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -39,10 +53,10 @@
 #define LOCALE extern
 #endif
 
-   LOCALE int                            ParseDeftemplate(void *,char *);
+   LOCALE int                            ParseDeftemplate(void *,const char *);
    LOCALE void                           InstallDeftemplate(void *,struct deftemplate *);
 
-#endif
+#endif /* _H_tmpltpsr */
 
 
 

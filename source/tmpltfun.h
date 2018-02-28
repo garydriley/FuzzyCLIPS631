@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  07/01/05            */
+   /*             CLIPS Version 6.30  08/20/14            */
    /*                                                     */
    /*          DEFTEMPLATE FUNCTION HEADER FILE           */
    /*******************************************************/
@@ -15,6 +15,9 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
 /*      6.24: Added deftemplate-slot-names,                  */
 /*            deftemplate-slot-default-value,                */
 /*            deftemplate-slot-cardinality,                  */
@@ -27,6 +30,30 @@
 /*            deftemplate-slot-defaultp functions.           */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Support for deftemplate slot facets.           */
+/*                                                           */
+/*            Added deftemplate-slot-facet-existp and        */
+/*            deftemplate-slot-facet-value functions.        */
+/*                                                           */
+/*            Support for long long integers.                */
+/*                                                           */
+/*            Used gensprintf instead of sprintf.            */
+/*                                                           */
+/*            Support for modify callback function.          */
+/*                                                           */
+/*            Added additional argument to function          */
+/*            CheckDeftemplateAndSlotArguments to specify    */
+/*            the expected number of arguments.              */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Converted API macros to function calls.        */
+/*                                                           */
+/*            Added code to prevent a clear command from     */
+/*            being executed during fact assertions via      */
+/*            Increment/DecrementClearReadyLocks API.        */
 /*                                                           */
 /*************************************************************/
 
@@ -50,10 +77,6 @@
 #include "tmpltdef.h"
 #endif
 
-#define NO_DEFAULT      0
-#define STATIC_DEFAULT  1
-#define DYNAMIC_DEFAULT 2
-
 #ifdef LOCALE
 #undef LOCALE
 #endif
@@ -64,58 +87,53 @@
 #define LOCALE extern
 #endif
 
-#if ENVIRONMENT_API_ONLY
-#define DeftemplateSlotNames(theEnv,a,b) EnvDeftemplateSlotNames(theEnv,a,b)
-#define DeftemplateSlotDefaultValue(theEnv,a,b,c) EnvDeftemplateSlotDefaultValue(theEnv,a,b,c)
-#define DeftemplateSlotCardinality(theEnv,a,b,c) EnvDeftemplateSlotCardinality(theEnv,a,b,c)
-#define DeftemplateSlotAllowedValues(theEnv,a,b,c) EnvDeftemplateSlotAllowedValues(theEnv,a,b,c)
-#define DeftemplateSlotRange(theEnv,a,b,c) EnvDeftemplateSlotRange(theEnv,a,b,c)
-#define DeftemplateSlotTypes(theEnv,a,b,c) EnvDeftemplateSlotTypes(theEnv,a,b,c)
-#define DeftemplateSlotMultiP(theEnv,a,b) EnvDeftemplateSlotMultiP(theEnv,a,b)
-#define DeftemplateSlotSingleP(theEnv,a,b) EnvDeftemplateSlotSingleP(theEnv,a,b)
-#define DeftemplateSlotExistP(theEnv,a,b) EnvDeftemplateSlotExistP(theEnv,a,b)
-#define DeftemplateSlotDefaultP(theEnv,a,b) EnvDeftemplateSlotDefaultP(theEnv,a,b)
-#else
-#define DeftemplateSlotNames(a,b) EnvDeftemplateSlotNames(GetCurrentEnvironment(),a,b)
-#define DeftemplateSlotDefaultValue(a,b,c) EnvDeftemplateSlotDefaultValue(GetCurrentEnvironment(),a,b,c)
-#define DeftemplateSlotCardinality(a,b,c) EnvDeftemplateSlotCardinality(GetCurrentEnvironment(),a,b,c)
-#define DeftemplateSlotAllowedValues(a,b,c) EnvDeftemplateSlotAllowedValues(GetCurrentEnvironment(),a,b,c)
-#define DeftemplateSlotRange(a,b,c) EnvDeftemplateSlotRange(GetCurrentEnvironment(),a,b,c)
-#define DeftemplateSlotTypes(a,b,c) EnvDeftemplateSlotTypes(GetCurrentEnvironment(),a,b,c)
-#define DeftemplateSlotMultiP(a,b) EnvDeftemplateSlotMultiP(GetCurrentEnvironment(),a,b)
-#define DeftemplateSlotSingleP(a,b) EnvDeftemplateSlotSingleP(GetCurrentEnvironment(),a,b)
-#define DeftemplateSlotExistP(a,b) EnvDeftemplateSlotExistP(GetCurrentEnvironment(),a,b)
-#define DeftemplateSlotDefaultP(a,b) EnvDeftemplateSlotDefaultP(GetCurrentEnvironment(),a,b)
-#endif
-
-   LOCALE intBool                        UpdateModifyDuplicate(void *,struct expr *,char *,void *);
-   LOCALE struct expr                   *ModifyParse(void *,struct expr *,char *);
-   LOCALE struct expr                   *DuplicateParse(void *,struct expr *,char *);
+   LOCALE intBool                        UpdateModifyDuplicate(void *,struct expr *,const char *,void *);
+   LOCALE struct expr                   *ModifyParse(void *,struct expr *,const char *);
+   LOCALE struct expr                   *DuplicateParse(void *,struct expr *,const char *);
    LOCALE void                           DeftemplateFunctions( void *);
    LOCALE void                           ModifyCommand(void *,DATA_OBJECT_PTR);
    LOCALE void                           DuplicateCommand(void *,DATA_OBJECT_PTR);
    LOCALE void                           DeftemplateSlotNamesFunction(void *,DATA_OBJECT *);
    LOCALE void                           EnvDeftemplateSlotNames(void *,void *,DATA_OBJECT *);
    LOCALE void                           DeftemplateSlotDefaultValueFunction(void *,DATA_OBJECT *);
-   LOCALE intBool                        EnvDeftemplateSlotDefaultValue(void *,void *,char *,DATA_OBJECT *);
+   LOCALE intBool                        EnvDeftemplateSlotDefaultValue(void *,void *,const char *,DATA_OBJECT *);
    LOCALE void                           DeftemplateSlotCardinalityFunction(void *,DATA_OBJECT *);
-   LOCALE void                           EnvDeftemplateSlotCardinality(void *,void *,char *,DATA_OBJECT *);
+   LOCALE void                           EnvDeftemplateSlotCardinality(void *,void *,const char *,DATA_OBJECT *);
    LOCALE void                           DeftemplateSlotAllowedValuesFunction(void *,DATA_OBJECT *);
-   LOCALE void                           EnvDeftemplateSlotAllowedValues(void *,void *,char *,DATA_OBJECT *);
+   LOCALE void                           EnvDeftemplateSlotAllowedValues(void *,void *,const char *,DATA_OBJECT *);
    LOCALE void                           DeftemplateSlotRangeFunction(void *,DATA_OBJECT *);
-   LOCALE void                           EnvDeftemplateSlotRange(void *,void *,char *,DATA_OBJECT *);
+   LOCALE void                           EnvDeftemplateSlotRange(void *,void *,const char *,DATA_OBJECT *);
    LOCALE void                           DeftemplateSlotTypesFunction(void *,DATA_OBJECT *);
-   LOCALE void                           EnvDeftemplateSlotTypes(void *,void *,char *,DATA_OBJECT *);
+   LOCALE void                           EnvDeftemplateSlotTypes(void *,void *,const char *,DATA_OBJECT *);
    LOCALE int                            DeftemplateSlotMultiPFunction(void *);
-   LOCALE int                            EnvDeftemplateSlotMultiP(void *,void *,char *);
+   LOCALE int                            EnvDeftemplateSlotMultiP(void *,void *,const char *);
    LOCALE int                            DeftemplateSlotSinglePFunction(void *);
-   LOCALE int                            EnvDeftemplateSlotSingleP(void *,void *,char *);
+   LOCALE int                            EnvDeftemplateSlotSingleP(void *,void *,const char *);
    LOCALE int                            DeftemplateSlotExistPFunction(void *);
-   LOCALE int                            EnvDeftemplateSlotExistP(void *,void *,char *);
+   LOCALE int                            EnvDeftemplateSlotExistP(void *,void *,const char *);
    LOCALE void                          *DeftemplateSlotDefaultPFunction(void *);
-   LOCALE int                            EnvDeftemplateSlotDefaultP(void *,void *,char *);
+   LOCALE int                            EnvDeftemplateSlotDefaultP(void *,void *,const char *);
+   LOCALE int                            DeftemplateSlotFacetExistPFunction(void *);
+   LOCALE int                            EnvDeftemplateSlotFacetExistP(void *,void *,const char *,const char *);
+   LOCALE void                           DeftemplateSlotFacetValueFunction(void *,DATA_OBJECT *);
+   LOCALE int                            EnvDeftemplateSlotFacetValue(void *,void *,const char *,const char *,DATA_OBJECT *);
 
-#endif
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+   LOCALE void                           DeftemplateSlotNames(void *,DATA_OBJECT *);
+   LOCALE intBool                        DeftemplateSlotDefaultValue(void *,const char *,DATA_OBJECT_PTR);
+   LOCALE void                           DeftemplateSlotCardinality(void *,const char *,DATA_OBJECT *);
+   LOCALE void                           DeftemplateSlotAllowedValues(void *,const char *,DATA_OBJECT *);
+   LOCALE void                           DeftemplateSlotRange(void *,const char *,DATA_OBJECT *);
+   LOCALE void                           DeftemplateSlotTypes(void *,const char *,DATA_OBJECT *);
+   LOCALE int                            DeftemplateSlotMultiP(void *,const char *);
+   LOCALE int                            DeftemplateSlotSingleP(void *,const char *);
+   LOCALE int                            DeftemplateSlotExistP(void *,const char *);
+   LOCALE int                            DeftemplateSlotDefaultP(void *,const char *);
+
+#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+
+#endif /* _H_tmpltfun */
 
 
 

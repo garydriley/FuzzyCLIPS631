@@ -139,4 +139,143 @@
    (do-for-all-facts ((?b initial-fact)) TRUE 
      (progn (printout t INS-RETURN ?b crlf) (return))))
 (quoxnar)
+(clear)
+(deftemplate point (slot x) (slot y))
+(deffacts points (point (x 1) (y 2)) (point (x 3) (y 4)))
+(reset)
+(do-for-all-facts ((?f point)) TRUE (retract ?f) (+ ?f:x ?f:y))
+(reset)
+(do-for-all-facts ((?f point)) TRUE (+ ?f:x ?f:z))
+(do-for-all-facts ((?f point)) TRUE (+ ?f:x ?f:78))
+(clear)
+(deftemplate a (slot x))
+(deftemplate b (slot y))
+(deftemplate c (slot z))
 
+(deffacts init
+   (a (x 1)) 
+   (a (x 2)) 
+   (b (y 3)) 
+   (b (y 4)) 
+   (c (z 5)) 
+   (c (z 6))
+   (c (z 7)))
+(reset)
+
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf))
+(reset)
+
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?a))
+(reset)
+
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?b))
+(reset)
+
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?c))
+(reset)
+
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?a ?b))
+(reset)
+
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?b ?c))
+(reset)
+
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?a ?c))
+(reset)
+
+(do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?a ?b ?c))
+(reset)
+
+(delayed-do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf))
+(reset)
+
+(delayed-do-for-all-facts ((?a a) (?b b) (?c c)) TRUE 
+  (printout t (if (fact-existp ?a) then ?a:x else "?") " " 
+              (if (fact-existp ?b) then ?b:y else "?") " " 
+              (if (fact-existp ?c) then ?c:z else "?") crlf)
+  (retract ?a ?b ?c))
+(reset)
+
+(find-all-facts ((?a a) (?b b) (?c c)) 
+  (progn (retract ?a ?b ?c) FALSE))
+(facts)
+(reset)
+
+(find-fact ((?a a) (?b b) (?c c)) 
+  (progn (retract ?a ?b ?c) FALSE))
+(facts)
+(reset)
+
+(find-all-facts ((?a a) (?b b) (?c c)) 
+  (progn (if (eq ?b:y 3) then (retract ?b)) FALSE))
+(facts)
+(reset)
+
+(find-fact ((?a a) (?b b) (?c c)) 
+  (progn (if (eq ?b:y 3) then (retract ?b)) FALSE))
+(facts)
+(reset)
+
+(find-all-facts ((?a a) (?b b) (?c c)) 
+  (progn (if (eq ?b:y 3) then (retract ?b)) 
+         (if (eq ?c:z 5) then (retract ?c))
+         (if (eq ?a:x 2) then TRUE else FALSE)))
+(facts)
+(reset)
+
+(find-fact ((?a a) (?b b) (?c c)) 
+  (progn (if (eq ?b:y 3) then (retract ?b)) 
+         (if (eq ?c:z 5) then (retract ?c))
+         (if (eq ?a:x 2) then TRUE else FALSE)))
+(facts)
+(clear)
+(watch facts)
+(deftemplate foo (multislot list))
+(assert (foo (list 1 2)))
+
+(do-for-fact ((?f foo)) TRUE
+   (retract ?f)
+   (bind ?x ?f:list)
+   (assert (foo (list ?x 3))))
+(assert (foo (list 3 4)) (foo (list 5 6)))   
+
+(do-for-all-facts ((?f foo)) TRUE
+   (retract ?f)
+   (bind ?x ?f:list)
+   (assert (foo (list ?x 3)))) 
+(unwatch facts)
+(clear)

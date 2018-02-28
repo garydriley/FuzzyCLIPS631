@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*             DEFGLOBAL PARSER HEADER FILE            */
    /*******************************************************/
@@ -17,6 +17,18 @@
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Made the construct redefinition message more   */
+/*            prominent.                                     */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW and       */
+/*            MAC_MCW).                                      */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Moved WatchGlobals global to defglobalData.    */
 /*                                                           */
 /*************************************************************/
 
@@ -42,11 +54,11 @@ struct defglobal;
 #define LOCALE extern
 #endif
 
-   LOCALE intBool                 ParseDefglobal(void *,char *);
+   LOCALE intBool                 ParseDefglobal(void *,const char *);
    LOCALE intBool                 ReplaceGlobalVariable(void *,struct expr *);
-   LOCALE void                    GlobalReferenceErrorMessage(void *,char *);
+   LOCALE void                    GlobalReferenceErrorMessage(void *,const char *);
 
-#endif
+#endif /* _H_globlpsr */
 
 
 

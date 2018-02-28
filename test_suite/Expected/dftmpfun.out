@@ -3,7 +3,7 @@ FuzzyCLIPS> (batch "dftmpfun.bat")
 TRUE
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (assert (foo))
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (deftemplate bar)
 FuzzyCLIPS> 
 (deftemplate yak 

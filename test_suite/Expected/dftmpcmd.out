@@ -63,12 +63,15 @@ FuzzyCLIPS> (assert (d3 (x 7)))
 [CSTRNCHK1] A literal slot value found in the assert command
 does not match the allowed types for slot x.
 FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+For a total of 1 fact.
 FuzzyCLIPS> (assert (d3 (x =(read))))
 7
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (facts)
-f-0     (d3 (x 7)) CF 1.00 
-For a total of 1 fact.
+f-0     (initial-fact) CF 1.00 
+f-1     (d3 (x 7)) CF 1.00 
+For a total of 2 facts.
 FuzzyCLIPS> (retract *)
 FuzzyCLIPS> (set-dynamic-constraint-checking)
 [ARGACCES4] Function set-dynamic-constraint-checking expected exactly 1 argument(s)
@@ -88,11 +91,11 @@ FuzzyCLIPS> (facts)
 FuzzyCLIPS> (assert (d3 (x =(read))))
 8
 
-[CSTRNCHK1] Slot value 8 found in fact f-1     
+[CSTRNCHK1] Slot value 8 found in fact f-2     
 does not match the allowed types for slot x.
-<Fact-1>
+<Fact-2>
 FuzzyCLIPS> (facts)
-f-1     (d3 (x 8)) CF 1.00 
+f-2     (d3 (x 8)) CF 1.00 
 For a total of 1 fact.
 FuzzyCLIPS> (retract *)
 FuzzyCLIPS> (set-dynamic-constraint-checking FALSE)

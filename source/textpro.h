@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*             TEXT PROCESSING HEADER FILE             */
    /*******************************************************/
@@ -10,13 +10,38 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.23: Modified error messages so that they were      */
+/*            directly printed rather than storing them in   */
+/*            a string buffer which might not be large       */
+/*            enough to contain the entire message. DR0855   */
+/*            Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
 /*      6.24: Added get-region function.                     */
+/*                                                           */
+/*            Added environment parameter to GenClose.       */
+/*            Added environment parameter to GenOpen.        */
+/*                                                           */
+/*      6.30: Removed HELP_FUNCTIONS compilation flag and    */
+/*            associated functionality.                      */
+/*                                                           */
+/*            Used genstrcpy and genstrncpy instead of       */
+/*            strcpy and strncpy.                            */
+/*                                                           */             
+/*            Support for long long integers.                */
+/*                                                           */
+/*            Changed integer type/precision.                */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_TBC).         */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -41,13 +66,9 @@
    int                                   TossCommand(void *);
 #endif
 
-#if HELP_FUNCTIONS
-   LOCALE void                           HelpFunction(void *);
-   LOCALE void                           HelpPathFunction(void *);
-#endif
-
    LOCALE void                           HelpFunctionDefinitions(void *);
-#endif
+
+#endif /* _H_textpro */
 
 
 

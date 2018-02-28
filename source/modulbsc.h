@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*         DEFMODULE BASIC COMMANDS HEADER FILE        */
    /*******************************************************/
@@ -15,9 +15,18 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW and       */
+/*            MAC_MCW).                                      */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Converted API macros to function calls.        */
 /*                                                           */
 /*************************************************************/
 
@@ -38,20 +47,21 @@
 #define LOCALE extern
 #endif
 
-#if ENVIRONMENT_API_ONLY
-#define GetDefmoduleList(theEnv,a) EnvGetDefmoduleList(theEnv,a)
-#define ListDefmodules(theEnv,a) EnvListDefmodules(theEnv,a)
-#else
-#define GetDefmoduleList(a) EnvGetDefmoduleList(GetCurrentEnvironment(),a)
-#define ListDefmodules(a) EnvListDefmodules(GetCurrentEnvironment(),a)
-#endif
-
    LOCALE void                           DefmoduleBasicCommands(void *);
    LOCALE void                           EnvGetDefmoduleList(void *,DATA_OBJECT_PTR);
    LOCALE void                           PPDefmoduleCommand(void *);
-   LOCALE int                            PPDefmodule(void *,char *,char *);
+   LOCALE int                            PPDefmodule(void *,const char *,const char *);
    LOCALE void                           ListDefmodulesCommand(void *);
-   LOCALE void                           EnvListDefmodules(void *,char *);
+   LOCALE void                           EnvListDefmodules(void *,const char *);
 
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+   LOCALE void                           GetDefmoduleList(DATA_OBJECT_PTR);
+#if DEBUGGING_FUNCTIONS
+   LOCALE void                           ListDefmodules(const char *);
 #endif
+
+#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+
+#endif /* _H_modulbsc */
 

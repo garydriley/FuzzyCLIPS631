@@ -110,36 +110,36 @@
  ******************************************************************/
  
   static struct fuzzy_value   *ParseLExpr(void *theEnv,
-                                          char *readSource,
+                                          const char *readSource,
                                           struct token *tempToken,
                                           struct fuzzyLv *lvp,
                                           int *error);
   static struct fuzzy_value   *ParseLTerm(void *theEnv,
-                                          char *readSource,
+                                          const char *readSource,
                                           struct token *tempToken,
                                           struct fuzzyLv *lvp,
                                           int *error);
   static struct fuzzy_value   *ParseModExpr(void *theEnv,
-                                            char *readSource,
+                                            const char *readSource,
                                             struct token *tempToken,
                                             struct fuzzyLv *lvp,
                                             int *error);
   static struct fuzzy_value   *PrimaryTerm(void *theEnv,
-                                           char *readSource,
+                                           const char *readSource,
                                            struct token *tempToken,
                                            struct fuzzyLv *lvp,
                                            int *error);
   static char                 *modifyName(void *theEnv,char *str1, char *str2);
   static struct primary_term  *FindPrimaryTerm(struct fuzzyLv *lvp, void *pt_name);
   static struct expr          *assertParseFuzzySet(void *theEnv,
-                                                   char *readSource,
+                                                   const char *readSource,
                                                    struct token *tempToken,
                                                    int  *error,
                                                    struct deftemplate *t,
                                                    int constantsOnly,
                                                    int *onlyConstantsFound);
   static struct expr          *assertParseStandardSet(void *theEnv,
-                                                      char *readSource,
+                                                      const char *readSource,
                                                       struct token *tempToken,
                                                       int  *error,
                                                       struct deftemplate *t,
@@ -147,7 +147,7 @@
                                                       int *onlyConstantsFound,
                                                       int function_type);
   static struct expr          *assertParseSingletonSet(void *theEnv,
-                                                       char *readSource,
+                                                       const char *readSource,
                                                       struct token *tempToken,
                                                       int  *error,
                                                       struct deftemplate *t,
@@ -273,7 +273,7 @@ globle void CompactFuzzyValue(
 
 globle struct expr *ParseAssertFuzzyFact(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *tempToken,
   int *error,
   int endType,
@@ -417,7 +417,7 @@ globle struct expr *ParseAssertFuzzyFact(
 
 globle struct fuzzy_value *ParseLinguisticExpr(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *tempToken,
   struct fuzzyLv *lvp,
   int *error)
@@ -454,7 +454,7 @@ globle struct fuzzy_value *ParseLinguisticExpr(
 /***************************************************************/
 static struct fuzzy_value *ParseLExpr(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *tempToken,
   struct fuzzyLv *lvp,
   int *error)
@@ -507,7 +507,7 @@ static struct fuzzy_value *ParseLExpr(
 /***************************************************************/
 static struct fuzzy_value *ParseLTerm(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *tempToken,
   struct fuzzyLv *lvp,
   int *error)
@@ -562,7 +562,7 @@ static struct fuzzy_value *ParseLTerm(
 /***************************************************************/
 static struct fuzzy_value *ParseModExpr(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *tempToken,
   struct fuzzyLv *lvp,
   int *error)
@@ -646,7 +646,7 @@ static struct fuzzy_value *ParseModExpr(
 /***************************************************************/
 static struct fuzzy_value *PrimaryTerm(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *tempToken,
   struct fuzzyLv *lvp,
   int *error)
@@ -774,7 +774,7 @@ static struct primary_term *FindPrimaryTerm(
 
 static struct expr *assertParseFuzzySet(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *tempToken,
   int  *error,
   struct deftemplate *theDeftemplate,
@@ -789,7 +789,7 @@ static struct expr *assertParseFuzzySet(
           GetToken(theEnv,readSource,tempToken);
           if (tempToken->type == SYMBOL) /* check for the s, z, or PI functions */
             {
-              char *tokenStr = ValueToString(tempToken->value);
+              const char *tokenStr = ValueToString(tempToken->value);
               
               if (strcmp(tokenStr,"S") == 0 ||
                   strcmp(tokenStr,"s") == 0)
@@ -845,7 +845,7 @@ static struct expr *assertParseFuzzySet(
  **********************************************************************/
 static struct expr *assertParseStandardSet(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *tempToken,
   int  *error,
   struct deftemplate *theDeftemplate,
@@ -921,7 +921,7 @@ static struct expr *assertParseStandardSet(
  **********************************************************************/
 static struct expr *assertParseSingletonSet(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *tempToken,
   int  *error,
   struct deftemplate *theDeftemplate,
@@ -1633,7 +1633,7 @@ int length)
  ****************************************************************/
 globle struct expr *tokenToFloatExpression ( 
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *tempToken,
   int  *error,
   int constantsOnly)

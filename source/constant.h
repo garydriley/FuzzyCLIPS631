@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/12/06            */
+   /*             CLIPS Version 6.31  02/09/18            */
    /*                                                     */
    /*                CONSTANTS HEADER FILE                */
    /*******************************************************/
@@ -19,6 +19,14 @@
 /*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Moved default type constants (NO_DEFAULT,      */
+/*            STATIC_DEFAULT, and DYNAMIC_DEFAULT) to        */
+/*            constant.h                                     */
+/*                                                           */
+/*            Added DATA_OBJECT_ARRAY primitive type.        */
+/*                                                           */
+/*            Added NESTED_RHS constant.                     */
 /*                                                           */
 /*************************************************************/
 
@@ -42,6 +50,7 @@
 #define ON            1
 #define LHS           0
 #define RHS           1
+#define NESTED_RHS    2
 #define NEGATIVE      0
 #define POSITIVE      1
 #define EOS        '\0'
@@ -57,6 +66,10 @@
 #define LOCAL_SAVE    1
 #define VISIBLE_SAVE  2
 
+#define NO_DEFAULT      0
+#define STATIC_DEFAULT  1
+#define DYNAMIC_DEFAULT 2
+
 #ifndef WPROMPT_STRING
 #define WPROMPT_STRING "wclips"
 #endif
@@ -70,15 +83,15 @@
 #endif
 
 #ifndef VERSION_STRING
-#define VERSION_STRING "6.24"
+#define VERSION_STRING "6.31"
 #endif
 
 #ifndef CREATION_DATE_STRING
-#define CREATION_DATE_STRING "02/21/18"
+#define CREATION_DATE_STRING "2/26/18"
 #endif
 
 #ifndef BANNER_STRING
-#define BANNER_STRING "        FuzzyCLIPS (V6.24 02/21/18)\n"
+#define BANNER_STRING "         FuzzyCLIPS (6.31 2/26/18)\n"
 #endif
 
 /*************************/
@@ -149,6 +162,7 @@
 #define SF_WILDCARD                    37
 #define MF_WILDCARD                    38
 #define BITMAPARRAY                    39
+#define DATA_OBJECT_ARRAY              40
 
 #define FACT_PN_CMP1                   50
 #define FACT_JN_CMP1                   51
@@ -263,9 +277,3 @@ typedef long int FACT_ID;
 #define CREATOR_CODE   'CLIS'
 
 #endif
-
-
-
-
-
-

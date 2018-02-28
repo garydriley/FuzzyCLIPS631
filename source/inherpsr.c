@@ -1,22 +1,27 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.20  01/31/02          */
+   /*               CLIPS Version 6.30  08/16/14          */
    /*                                                     */
    /*             MULTIPLE INHERITANCE PARSER MODULE      */
    /*******************************************************/
 
-/**************************************************************/
-/* Purpose: Parsing Routines for Multiple Inheritance         */
-/*                                                            */
-/* Principal Programmer(s):                                   */
-/*      Brian L. Donnell                                      */
-/*                                                            */
-/* Contributing Programmer(s):                                */
-/*                                                            */
-/* Revision History:                                          */
-/*                                                            */
-/**************************************************************/
+/*************************************************************/
+/* Purpose: Parsing Routines for Multiple Inheritance        */
+/*                                                           */
+/* Principal Programmer(s):                                  */
+/*      Brian L. Dantes                                      */
+/*                                                           */
+/* Contributing Programmer(s):                               */
+/*                                                           */
+/* Revision History:                                         */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*************************************************************/
 
 /* =========================================
    *****************************************
@@ -67,10 +72,10 @@ struct successor
    ***************************************** */
 
 static PARTIAL_ORDER *InitializePartialOrderTable(void *,PARTIAL_ORDER *,PACKED_CLASS_LINKS *);
-static void RecordPartialOrders(void *,PARTIAL_ORDER *,DEFCLASS *,PACKED_CLASS_LINKS *,unsigned);
+static void RecordPartialOrders(void *,PARTIAL_ORDER *,DEFCLASS *,PACKED_CLASS_LINKS *,long);
 static PARTIAL_ORDER *FindPartialOrder(PARTIAL_ORDER *,DEFCLASS *);
 static void PrintPartialOrderLoop(void *,PARTIAL_ORDER *);
-static void PrintClassLinks(void *,char *,char *,CLASS_LINK *);
+static void PrintClassLinks(void *,const char *,const char *,CLASS_LINK *);
 
 /* =========================================
    *****************************************
@@ -113,7 +118,7 @@ static void PrintClassLinks(void *,char *,char *,CLASS_LINK *);
  ***************************************************************/
 globle PACKED_CLASS_LINKS *ParseSuperclasses(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   SYMBOL_HN *newClassName)
   {
    CLASS_LINK *clink = NULL,*cbot = NULL,*ctmp;
@@ -314,7 +319,7 @@ globle PACKED_CLASS_LINKS *FindPrecedenceList(
    SUCCESSOR *stmp;
    CLASS_LINK *ptop,*pbot,*ptmp;
    PACKED_CLASS_LINKS *plinks;
-   register unsigned i;
+   long i;
 
    /* =====================================================================
       Recursively add all superclasses in a pre-order depth-first traversal
@@ -547,7 +552,7 @@ static PARTIAL_ORDER *InitializePartialOrderTable(
   PACKED_CLASS_LINKS *supers)
   {
    register PARTIAL_ORDER *pop,*poprv;
-   register unsigned i;
+   long i;
 
    for (i = 0 ; i < supers->classCount ; i++)
      {
@@ -626,7 +631,7 @@ static void RecordPartialOrders(
   PARTIAL_ORDER *po_table,
   DEFCLASS *cls,
   PACKED_CLASS_LINKS *successors,
-  unsigned starti)
+  long starti)
   {
    register PARTIAL_ORDER *clspo;
    register SUCCESSOR *stmp;
@@ -819,8 +824,8 @@ static void PrintPartialOrderLoop(
  ***************************************************/
 static void PrintClassLinks(
   void *theEnv,
-  char *logicalName,
-  char *title,
+  const char *logicalName,
+  const char *title,
   CLASS_LINK *clink)
   {
    if (title != NULL)

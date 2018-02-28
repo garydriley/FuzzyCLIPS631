@@ -55,11 +55,14 @@ foo
 FuzzyCLIPS> (fact-relation 2)
 a
 FuzzyCLIPS> (fact-relation 3)
+[PRNTUTIL1] Unable to find fact f-3.
 FALSE
 FuzzyCLIPS> (retract 1 2)
 FuzzyCLIPS> (fact-relation ?*w*)
+[PRNTUTIL11] The fact f-1 has been retracted.
 FALSE
 FuzzyCLIPS> (fact-relation ?*x*)
+[PRNTUTIL11] The fact f-2 has been retracted.
 FALSE
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (reset)
@@ -113,6 +116,12 @@ FALSE
 FuzzyCLIPS> (fact-slot-value 4 implied)
 [PRNTUTIL1] Unable to find fact f-4.
 FALSE
+FuzzyCLIPS> (fact-slot-value ?*w1* x)
+[PRNTUTIL11] The fact f-1 has been retracted.
+FALSE
+FuzzyCLIPS> (fact-slot-value ?*x1* implied)
+[PRNTUTIL11] The fact f-4 has been retracted.
+FALSE
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (deftemplate foo1)
@@ -150,6 +159,12 @@ FuzzyCLIPS> (fact-slot-names 1)
 FALSE
 FuzzyCLIPS> (fact-slot-names 5)
 [PRNTUTIL1] Unable to find fact f-5.
+FALSE
+FuzzyCLIPS> (fact-slot-names ?*w1*)
+[PRNTUTIL11] The fact f-1 has been retracted.
+FALSE
+FuzzyCLIPS> (fact-slot-names ?*x1*)
+[PRNTUTIL11] The fact f-5 has been retracted.
 FALSE
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (dribble-off)

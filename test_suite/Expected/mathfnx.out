@@ -849,5 +849,20 @@ FuzzyCLIPS> (mod 5 2)                          ; 10.6.2.13 : 1
 1
 FuzzyCLIPS> (format nil "%0.6f" (mod 3.7 1.2)) ; 10.6.2.13 : 0.1
 "0.100000"
+FuzzyCLIPS> (div -9223372036854775808 -1)      ; Error
+[PRNTUTIL17] Over or underflow of long long integer in 'div' function.
+1
+FuzzyCLIPS> (mod -9223372036854775808 -1)      ; Error
+[PRNTUTIL17] Over or underflow of long long integer in 'mod' function.
+0
+FuzzyCLIPS> (set-auto-float-dividend FALSE)
+TRUE
+FuzzyCLIPS> (/ -9223372036854775808 -1)        ; Error in 6.3
+[PRNTUTIL17] Over or underflow of long long integer in '/' function.
+1
+FuzzyCLIPS> (set-auto-float-dividend TRUE)
+FALSE
+FuzzyCLIPS> (/ -9223372036854775808 -1)
+9.22337203685478e+18
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (dribble-off)

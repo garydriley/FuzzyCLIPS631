@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.20  01/31/02          */
+   /*               CLIPS Version 6.30  08/16/14          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,11 +10,17 @@
 /* Purpose: Deffunction Construct Compiler Code              */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Added support for path name argument to        */
+/*            constructs-to-c.                               */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -40,12 +46,12 @@
 #define LOCALE extern
 #endif
 
-LOCALE void SetupDeffunctionCompiler(void *);
-LOCALE void PrintDeffunctionReference(void *,FILE *,DEFFUNCTION *,int,int);
-LOCALE void DeffunctionCModuleReference(void *,FILE *,int,int,int);
+   LOCALE void                           SetupDeffunctionCompiler(void *);
+   LOCALE void                           PrintDeffunctionReference(void *,FILE *,DEFFUNCTION *,int,int);
+   LOCALE void                           DeffunctionCModuleReference(void *,FILE *,int,int,int);
 
-#endif
+#endif /* DEFFUNCTION_CONSTRUCT && CONSTRUCT_COMPILER && (! RUN_TIME) */
 
-#endif
+#endif /* _H_dffnxcmp */
 
 

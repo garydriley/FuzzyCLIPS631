@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.31  01/15/18            */
    /*                                                     */
    /*              EXPRESSION PARSER MODULE               */
    /*******************************************************/
@@ -13,14 +13,35 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Changed name of variable exp to theExp         */
 /*            because of Unix compiler warnings of shadowed  */
 /*            definitions.                                   */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Module specifier can be used within an         */
+/*            expression to refer to a deffunction or        */
+/*            defgeneric exported by the specified module,   */
+/*            but not necessarily imported by the current    */
+/*            module.                                        */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Converted API macros to function calls.        */
+/*                                                           */
+/*            Changed find construct functionality so that   */
+/*            imported modules are search when locating a    */
+/*            named construct.                               */
+/*                                                           */
+/*      6.31: Fixed bug where sequence expansion was always  */
+/*            occurring when using $ with global variables.  */
+/*                                                           */
+/*            Fast router used for ParseConstantArguments.   */
 /*                                                           */
 /*************************************************************/
 
@@ -68,7 +89,7 @@
 /***************************************************/
 globle struct expr *Function0Parse(
   void *theEnv,
-  char *logicalName)
+  const char *logicalName)
   {
    struct token theToken;
    struct expr *top;
@@ -98,7 +119,7 @@ globle struct expr *Function0Parse(
 /*******************************************************/
 globle struct expr *Function1Parse(
   void *theEnv,
-  char *logicalName)
+  const char *logicalName)
   {
    struct token theToken;
    struct expr *top;
@@ -130,11 +151,14 @@ globle struct expr *Function1Parse(
 /****************************************************/
 globle struct expr *Function2Parse(
   void *theEnv,
-  char *logicalName,
-  char *name)
+  const char *logicalName,
+  const char *name)
   {
    struct FunctionDefinition *theFunction;
    struct expr *top;
+   int moduleSpecified = FALSE;
+   unsigned position;
+   struct symbolHashNode *moduleName = NULL, *constructName = NULL;
 #if DEFGENERIC_CONSTRUCT
    void *gfunc;
 #endif
@@ -146,10 +170,11 @@ globle struct expr *Function2Parse(
    /* Module specification cannot be used in a function call. */
    /*=========================================================*/
 
-   if (FindModuleSeparator(name))
-     {
-      IllegalModuleSpecifierMessage(theEnv);
-      return(NULL);
+   if ((position = FindModuleSeparator(name)) != FALSE)
+     { 
+      moduleName = ExtractModuleName(theEnv,position,name);
+      constructName = ExtractConstructName(theEnv,position,name);
+      moduleSpecified = TRUE; 
      }
 
    /*================================*/
@@ -159,16 +184,35 @@ globle struct expr *Function2Parse(
    theFunction = FindFunction(theEnv,name);
 
 #if DEFGENERIC_CONSTRUCT
-   gfunc = (void *) LookupDefgenericInScope(theEnv,name);
+   if (moduleSpecified)
+     { 
+      if (ConstructExported(theEnv,"defgeneric",moduleName,constructName) ||
+          EnvGetCurrentModule(theEnv) == EnvFindDefmodule(theEnv,ValueToString(moduleName)))
+        { gfunc = (void *) EnvFindDefgenericInModule(theEnv,name); }
+      else
+        { gfunc = NULL; }
+     }
+   else
+     { gfunc = (void *) LookupDefgenericInScope(theEnv,name); }
 #endif
 
 #if DEFFUNCTION_CONSTRUCT
-   if ((theFunction == NULL)
 #if DEFGENERIC_CONSTRUCT
-        && (gfunc == NULL)
+   if ((theFunction == NULL)
+        && (gfunc == NULL))
+#else
+   if (theFunction == NULL)
 #endif
-     )
-     dptr = (void *) LookupDeffunctionInScope(theEnv,name);
+     if (moduleSpecified)
+       { 
+        if (ConstructExported(theEnv,"deffunction",moduleName,constructName) ||
+            EnvGetCurrentModule(theEnv) == EnvFindDefmodule(theEnv,ValueToString(moduleName)))
+          { dptr = (void *) EnvFindDeffunctionInModule(theEnv,name); }
+        else
+          { dptr = NULL; }
+       }
+     else
+       { dptr = (void *) LookupDeffunctionInScope(theEnv,name); }
    else
      dptr = NULL;
 #endif
@@ -310,8 +354,14 @@ globle intBool ReplaceSequenceExpansionOps(
 
    while (actions != NULL)
      {
-      if ((ExpressionData(theEnv)->SequenceOpMode == FALSE) && (actions->type == MF_VARIABLE))
-        actions->type = SF_VARIABLE;
+      if (ExpressionData(theEnv)->SequenceOpMode == FALSE)
+        {
+         if (actions->type == MF_VARIABLE)
+           { actions->type = SF_VARIABLE; }
+         else if (actions->type == MF_GBL_VARIABLE)
+           { actions->type = GBL_VARIABLE; }
+        }
+        
       if ((actions->type == MF_VARIABLE) || (actions->type == MF_GBL_VARIABLE) ||
           (actions->value == expmult))
         {
@@ -401,8 +451,8 @@ globle void PopRtnBrkContexts(
 globle int CheckExpressionAgainstRestrictions(
   void *theEnv,
   struct expr *theExpression,
-  char *restrictions,
-  char *functionName)
+  const char *restrictions,
+  const char *functionName)
   {
    char theChar[2];
    int i = 0, j = 1;
@@ -529,7 +579,7 @@ globle int CheckExpressionAgainstRestrictions(
 globle struct expr *CollectArguments(
   void *theEnv,
   struct expr *top,
-  char *logicalName)
+  const char *logicalName)
   {
    int errorFlag;
    struct expr *lastOne, *nextOne;
@@ -576,7 +626,7 @@ globle struct expr *CollectArguments(
 /********************************************/
 globle struct expr *ArgumentParse(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   int *errorFlag)
   {
    struct expr *top;
@@ -635,7 +685,7 @@ globle struct expr *ArgumentParse(
 /************************************************************/
 globle struct expr *ParseAtomOrExpression(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   struct token *useToken)
   {
    struct token theToken, *thisToken;
@@ -681,10 +731,10 @@ globle struct expr *ParseAtomOrExpression(
 /*********************************************/
 globle struct expr *GroupActions(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   struct token *theToken,
   int readFirstToken,
-  char *endWord,
+  const char *endWord,
   int functionNameParsed)
   {
    struct expr *top, *nextOne, *lastOne = NULL;
@@ -833,28 +883,31 @@ globle intBool EnvGetSequenceOperatorRecognition(
 /*******************************************/
 globle EXPRESSION *ParseConstantArguments(
   void *theEnv,
-  char *argstr,
+  const char *argstr,
   int *error)
   {
    EXPRESSION *top = NULL,*bot = NULL,*tmp;
-   char *router = "***FNXARGS***";
+   const char *router = "***FNXARGS***";
    struct token tkn;
+   const char *oldRouter;
+   const char *oldString;
+   long oldIndex;
 
    *error = FALSE;
 
    if (argstr == NULL) return(NULL);
 
-   /*=====================================*/
-   /* Open the string as an input source. */
-   /*=====================================*/
+   /*=============================*/
+   /* Use the fast router bypass. */
+   /*=============================*/
 
-   if (OpenStringSource(theEnv,router,argstr,0) == 0)
-     {
-      PrintErrorID(theEnv,"EXPRNPSR",6,FALSE);
-      EnvPrintRouter(theEnv,WERROR,"Cannot read arguments for external call.\n");
-      *error = TRUE;
-      return(NULL);
-     }
+   oldRouter = RouterData(theEnv)->FastCharGetRouter;
+   oldString = RouterData(theEnv)->FastCharGetString;
+   oldIndex  = RouterData(theEnv)->FastCharGetIndex;
+
+   RouterData(theEnv)->FastCharGetRouter = router;
+   RouterData(theEnv)->FastCharGetString = argstr;
+   RouterData(theEnv)->FastCharGetIndex  = 0;
 
    /*======================*/
    /* Parse the constants. */
@@ -883,11 +936,13 @@ globle EXPRESSION *ParseConstantArguments(
       GetToken(theEnv,router,&tkn);
      }
 
-   /*================================*/
-   /* Close the string input source. */
-   /*================================*/
+   /*===========================================*/
+   /* Restore the old state of the fast router. */
+   /*===========================================*/
 
-   CloseStringSource(theEnv,router);
+   RouterData(theEnv)->FastCharGetRouter = oldRouter;
+   RouterData(theEnv)->FastCharGetString = oldString;
+   RouterData(theEnv)->FastCharGetIndex  = oldIndex;
 
    /*=======================*/
    /* Return the arguments. */
@@ -927,3 +982,23 @@ globle struct expr *RemoveUnneededProgn(
 
    return(theExpression);
   }
+
+/*#####################################*/
+/* ALLOW_ENVIRONMENT_GLOBALS Functions */
+/*#####################################*/
+
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+globle intBool SetSequenceOperatorRecognition(
+  int value)
+  {
+   return EnvSetSequenceOperatorRecognition(GetCurrentEnvironment(),value);
+  }
+
+globle intBool GetSequenceOperatorRecognition()
+  {
+   return EnvGetSequenceOperatorRecognition(GetCurrentEnvironment());
+  }
+
+#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+

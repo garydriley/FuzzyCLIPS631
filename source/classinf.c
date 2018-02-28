@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  07/01/05            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*        CLASS INFO PROGRAMMATIC ACCESS MODULE        */
    /*******************************************************/
@@ -10,11 +10,12 @@
 /* Purpose: Class Information Interface Support Routines      */
 /*                                                            */
 /* Principal Programmer(s):                                   */
-/*      Brian L. Donnell                                      */
+/*      Brian L. Dantes                                       */
 /*                                                            */
 /* Contributing Programmer(s):                                */
 /*                                                            */
 /* Revision History:                                          */
+/*                                                            */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859   */
 /*                                                            */
 /*            Changed name of variable exp to theExp          */
@@ -27,6 +28,16 @@
 /*            DEFRULE_CONSTRUCT.                              */
 /*                                                            */
 /*            Renamed BOOLEAN macro type to intBool.          */
+/*                                                            */
+/*      6.30: Borland C (IBM_TBC) and Metrowerks CodeWarrior  */
+/*            (MAC_MCW, IBM_MCW) are no longer supported.     */
+/*                                                            */
+/*            Changed integer type/precision.                 */
+/*                                                            */
+/*            Added const qualifiers to remove C++            */
+/*            deprecation warnings.                           */
+/*                                                            */
+/*            Converted API macros to function calls.         */
 /*                                                            */
 /**************************************************************/
 
@@ -68,10 +79,10 @@
    =========================================
    ***************************************** */
 
-static void SlotInfoSupportFunction(void *,DATA_OBJECT *,char *,void (*)(void *,void *,char *,DATA_OBJECT *));
+static void SlotInfoSupportFunction(void *,DATA_OBJECT *,const char *,void (*)(void *,void *,const char *,DATA_OBJECT *));
 static unsigned CountSubclasses(DEFCLASS *,int,int);
 static unsigned StoreSubclasses(void *,unsigned,DEFCLASS *,int,int,short);
-static SLOT_DESC *SlotInfoSlot(void *,DATA_OBJECT *,DEFCLASS *,char *,char *);
+static SLOT_DESC *SlotInfoSlot(void *,DATA_OBJECT *,DEFCLASS *,const char *,const char *);
 
 /*********************************************************************
   NAME         : ClassAbstractPCommand
@@ -145,7 +156,7 @@ globle int ClassReactivePCommand(
  ***********************************************************/
 globle void *ClassInfoFnxArgs(
   void *theEnv,
-  char *fnx,
+  const char *fnx,
   int *inhp)
   {
    void *clsptr;
@@ -351,14 +362,11 @@ globle void SlotCardinalityCommand(
   SIDE EFFECTS : None
   NOTES        : None
  ********************************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 globle intBool EnvClassAbstractP(
   void *theEnv,
   void *clsptr)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -375,14 +383,11 @@ globle intBool EnvClassAbstractP(
   SIDE EFFECTS : None
   NOTES        : None
  ********************************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 globle intBool EnvClassReactiveP(
   void *theEnv,
   void *clsptr)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -409,9 +414,9 @@ globle void EnvClassSlots(
   DATA_OBJECT *result,
   int inhp)
   {
-   unsigned long size;
+   long size;
    register DEFCLASS *cls;
-   register unsigned long i;
+   long i;
 
    cls = (DEFCLASS *) clsptr;
    size = inhp ? cls->instanceSlotCount : cls->slotCount;
@@ -459,7 +464,7 @@ globle void EnvGetDefmessageHandlerList(
   int inhp)
   {
    DEFCLASS *cls,*svcls,*svnxt,*supcls;
-   unsigned j;
+   long j;
    register int classi,classiLimit;
    unsigned long i, sublen, len;
 
@@ -536,7 +541,7 @@ globle void EnvClassSuperclasses(
   {
    PACKED_CLASS_LINKS *plinks;
    unsigned offset;
-   register unsigned i,j;
+   long i,j;
 
    if (inhp)
      {
@@ -579,7 +584,7 @@ globle void EnvClassSubclasses(
   DATA_OBJECT *result,
   int inhp)
   {
-   register unsigned i;
+   register int i; // Bug fix 2014-07-18: Previously unsigned and SetpDOEnd decremented to -1.
    register int id;
 
    if ((id = GetTraversalID(theEnv)) == -1)
@@ -616,7 +621,7 @@ globle void ClassSubclassAddresses(
   DATA_OBJECT *result,
   int inhp)
   {
-   register unsigned i;
+   register int i; // Bug fix 2014-07-18: Previously unsigned and SetpDOEnd decremented to -1.
    register int id;
 
    if ((id = GetTraversalID(theEnv)) == -1)
@@ -651,7 +656,7 @@ globle void ClassSubclassAddresses(
 globle void EnvSlotFacets(
   void *theEnv,
   void *clsptr,
-  char *sname,
+  const char *sname,
   DATA_OBJECT *result)
   {
    register int i;
@@ -670,28 +675,67 @@ globle void EnvSlotFacets(
    for (i = 1 ; i <= 9 ; i++)
      SetMFType(result->value,i,SYMBOL);
 #endif
-   SetMFValue(result->value,1,EnvAddSymbol(theEnv,(char *) (sp->multiple ? "MLT" : "SGL")));
+   if (sp->multiple)
+     SetMFValue(result->value,1,EnvAddSymbol(theEnv,"MLT"));
+   else
+     SetMFValue(result->value,1,EnvAddSymbol(theEnv,"SGL"));
+
    if (sp->noDefault)
      SetMFValue(result->value,2,EnvAddSymbol(theEnv,"NIL"));
    else
-     SetMFValue(result->value,2,EnvAddSymbol(theEnv,(char *) (sp->dynamicDefault ? "DYN" : "STC")));
-   SetMFValue(result->value,3,EnvAddSymbol(theEnv,(char *) (sp->noInherit ? "NIL" : "INH")));
+     {
+      if (sp->dynamicDefault)
+        SetMFValue(result->value,2,EnvAddSymbol(theEnv,"DYN"));
+      else
+        SetMFValue(result->value,2,EnvAddSymbol(theEnv,"STC"));
+     }
+   
+   if (sp->noInherit)    
+     SetMFValue(result->value,3,EnvAddSymbol(theEnv,"NIL"));
+   else
+     SetMFValue(result->value,3,EnvAddSymbol(theEnv,"INH"));
+   
    if (sp->initializeOnly)
      SetMFValue(result->value,4,EnvAddSymbol(theEnv,"INT"));
    else if (sp->noWrite)
      SetMFValue(result->value,4,EnvAddSymbol(theEnv,"R"));
    else
      SetMFValue(result->value,4,EnvAddSymbol(theEnv,"RW"));
-   SetMFValue(result->value,5,EnvAddSymbol(theEnv,(char *) (sp->shared ? "SHR" : "LCL")));
+
+   if (sp->shared)     
+     SetMFValue(result->value,5,EnvAddSymbol(theEnv,"SHR"));
+   else
+     SetMFValue(result->value,5,EnvAddSymbol(theEnv,"LCL"));
+
 #if DEFRULE_CONSTRUCT
-   SetMFValue(result->value,6,EnvAddSymbol(theEnv,(char *) (sp->reactive ? "RCT" : "NIL")));
-   SetMFValue(result->value,7,EnvAddSymbol(theEnv,(char *) (sp->composite ? "CMP" : "EXC")));
-   SetMFValue(result->value,8,EnvAddSymbol(theEnv,(char *) (sp->publicVisibility ? "PUB" : "PRV")));
+   if (sp->reactive)   
+     SetMFValue(result->value,6,EnvAddSymbol(theEnv,"RCT"));
+   else
+     SetMFValue(result->value,6,EnvAddSymbol(theEnv,"NIL"));
+   
+   if (sp->composite)
+     SetMFValue(result->value,7,EnvAddSymbol(theEnv,"CMP"));
+   else
+     SetMFValue(result->value,7,EnvAddSymbol(theEnv,"EXC"));
+
+   if (sp->publicVisibility)   
+     SetMFValue(result->value,8,EnvAddSymbol(theEnv,"PUB"));
+   else
+     SetMFValue(result->value,8,EnvAddSymbol(theEnv,"PRV"));
+   
    SetMFValue(result->value,9,EnvAddSymbol(theEnv,GetCreateAccessorString((void *) sp)));
    SetMFValue(result->value,10,sp->noWrite ? EnvAddSymbol(theEnv,"NIL") : (void *) sp->overrideMessage);
 #else
-   SetMFValue(result->value,6,EnvAddSymbol(theEnv,(char *) (sp->composite ? "CMP" : "EXC")));
-   SetMFValue(result->value,7,EnvAddSymbol(theEnv,(char *) (sp->publicVisibility ? "PUB" : "PRV")));
+   if (sp->composite)
+     SetMFValue(result->value,6,EnvAddSymbol(theEnv,"CMP"));
+   else
+     SetMFValue(result->value,6,EnvAddSymbol(theEnv,"EXC"));
+
+   if (sp->publicVisibility)
+     SetMFValue(result->value,7,EnvAddSymbol(theEnv,"PUB"));
+   else
+     SetMFValue(result->value,7,EnvAddSymbol(theEnv,"PRV"));
+
    SetMFValue(result->value,8,EnvAddSymbol(theEnv,GetCreateAccessorString((void *) sp)));
    SetMFValue(result->value,9,sp->noWrite ? EnvAddSymbol(theEnv,"NIL") : (void *) sp->overrideMessage);
 #endif
@@ -700,7 +744,7 @@ globle void EnvSlotFacets(
 globle void EnvSlotSources(
   void *theEnv,
   void *clsptr,
-  char *sname,
+  const char *sname,
   DATA_OBJECT *result)
   {
    register unsigned i;
@@ -746,7 +790,7 @@ globle void EnvSlotSources(
 globle void EnvSlotTypes(
   void *theEnv,
   void *clsptr,
-  char *sname,
+  const char *sname,
   DATA_OBJECT *result)
   {
    register unsigned i,j;
@@ -828,7 +872,7 @@ DefclassData(theEnv)->PrimitiveClassMap[j]));
 globle void EnvSlotAllowedValues(
   void *theEnv,
   void *clsptr,
-  char *sname,
+  const char *sname,
   DATA_OBJECT *result)
   {
    register int i;
@@ -859,7 +903,7 @@ globle void EnvSlotAllowedValues(
 globle void EnvSlotAllowedClasses(
   void *theEnv,
   void *clsptr,
-  char *sname,
+  const char *sname,
   DATA_OBJECT *result)
   {
    register int i;
@@ -890,7 +934,7 @@ globle void EnvSlotAllowedClasses(
 globle void EnvSlotRange(
   void *theEnv,
   void *clsptr,
-  char *sname,
+  const char *sname,
   DATA_OBJECT *result)
   {
    register SLOT_DESC *sp;
@@ -919,7 +963,7 @@ globle void EnvSlotRange(
 globle void EnvSlotCardinality(
   void *theEnv,
   void *clsptr,
-  char *sname,
+  const char *sname,
   DATA_OBJECT *result)
   {
    register SLOT_DESC *sp;
@@ -970,8 +1014,8 @@ globle void EnvSlotCardinality(
 static void SlotInfoSupportFunction(
   void *theEnv,
   DATA_OBJECT *result,
-  char *fnxname,
-  void (*fnx)(void *,void *,char *,DATA_OBJECT *))
+  const char *fnxname,
+  void (*fnx)(void *,void *,const char *,DATA_OBJECT *))
   {
    SYMBOL_HN *ssym;
    DEFCLASS *cls;
@@ -1001,7 +1045,7 @@ static unsigned CountSubclasses(
   int inhp,
   int tvid)
   {
-   register unsigned i,cnt;
+   long i,cnt;
    register DEFCLASS *subcls;
 
    for (cnt = 0 , i = 0 ; i < cls->directSubclasses.classCount ; i++)
@@ -1039,7 +1083,7 @@ static unsigned StoreSubclasses(
   int tvid,
   short storeName)
   {
-   register unsigned i,classi;
+   long i,classi;
    register DEFCLASS *subcls;
 
    for (i = si , classi = 0 ; classi < cls->directSubclasses.classCount ; classi++)
@@ -1084,8 +1128,8 @@ static SLOT_DESC *SlotInfoSlot(
   void *theEnv,
   DATA_OBJECT *result,
   DEFCLASS *cls,
-  char *sname,
-  char *fnxname)
+  const char *sname,
+  const char *fnxname)
   {
    SYMBOL_HN *ssym;
    int i;
@@ -1108,5 +1152,116 @@ static SLOT_DESC *SlotInfoSlot(
    result->begin = 0;
    return(cls->instanceTemplate[i]);
   }
+
+/*##################################*/
+/* Additional Environment Functions */
+/*##################################*/
+
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+globle intBool ClassAbstractP(
+  void *clsptr)
+  {
+   return EnvClassAbstractP(GetCurrentEnvironment(),clsptr);
+  }
+
+#if DEFRULE_CONSTRUCT
+globle intBool ClassReactiveP(
+  void *clsptr)
+  {
+   return EnvClassReactiveP(GetCurrentEnvironment(),clsptr);
+  }
+#endif
+
+globle void ClassSlots(
+  void *clsptr,
+  DATA_OBJECT *result,
+  int inhp)
+  {
+   EnvClassSlots(GetCurrentEnvironment(),clsptr,result,inhp);
+  }
+
+globle void ClassSubclasses(
+  void *clsptr,
+  DATA_OBJECT *result,
+  int inhp)
+  {
+   EnvClassSubclasses(GetCurrentEnvironment(),clsptr,result,inhp);
+  }
+
+globle void ClassSuperclasses(
+  void *clsptr,
+  DATA_OBJECT *result,
+  int inhp)
+  {
+   EnvClassSuperclasses(GetCurrentEnvironment(),clsptr,result,inhp);
+  }
+
+globle void SlotAllowedValues(
+  void *clsptr,
+  const char *sname,
+  DATA_OBJECT *result)
+  {
+   EnvSlotAllowedValues(GetCurrentEnvironment(),clsptr,sname,result);
+  }
+
+globle void SlotAllowedClasses(
+  void *clsptr,
+  const char *sname,
+  DATA_OBJECT *result)
+  {
+   EnvSlotAllowedClasses(GetCurrentEnvironment(),clsptr,sname,result);
+  }
+
+globle void SlotCardinality(
+  void *clsptr,
+  const char *sname,
+  DATA_OBJECT *result)
+  {
+   EnvSlotCardinality(GetCurrentEnvironment(),clsptr,sname,result);
+  }
+
+globle void SlotFacets(
+  void *clsptr,
+  const char *sname,
+  DATA_OBJECT *result)
+  {
+   EnvSlotFacets(GetCurrentEnvironment(),clsptr,sname,result);
+  }
+
+globle void SlotRange(
+  void *clsptr,
+  const char *sname,
+  DATA_OBJECT *result)
+  {
+   EnvSlotRange(GetCurrentEnvironment(),clsptr,sname,result);
+  }
+
+globle void SlotSources(
+  void *clsptr,
+  const char *sname,
+  DATA_OBJECT *result)
+  {
+   EnvSlotSources(GetCurrentEnvironment(),clsptr,sname,result);
+  }
+
+globle void SlotTypes(
+  void *clsptr,
+  const char *sname,
+  DATA_OBJECT *result)
+  {
+   EnvSlotTypes(GetCurrentEnvironment(),clsptr,sname,result);
+  }
+
+globle void GetDefmessageHandlerList(
+  void *clsptr,
+  DATA_OBJECT *result,
+  int inhp)
+  {
+   EnvGetDefmessageHandlerList(GetCurrentEnvironment(),clsptr,result,inhp);
+  }
+
+#endif
+
 
 #endif

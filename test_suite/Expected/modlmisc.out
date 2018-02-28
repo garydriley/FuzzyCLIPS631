@@ -337,6 +337,7 @@ FuzzyCLIPS> (defrule A::foo
   =>)
 FuzzyCLIPS> (watch focus)
 FuzzyCLIPS> (reset)
+<== Focus A to MAIN
 <== Focus MAIN
 ==> Focus MAIN
 ==> Focus A from MAIN

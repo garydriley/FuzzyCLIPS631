@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*                FACT BUILD HEADER FILE               */
    /*******************************************************/
@@ -15,6 +15,11 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Added support for hashed alpha memories.       */
+/*                                                           */
+/*            Added support for hashed comparisons to        */
+/*            constants.                                     */
 /*                                                           */
 /*************************************************************/
 
@@ -57,4 +62,4 @@ struct factPatternNode
    LOCALE void                           DestroyFactPatternNetwork(void *,
                                                                    struct factPatternNode *);
 
-#endif
+#endif /* _H_factbld */

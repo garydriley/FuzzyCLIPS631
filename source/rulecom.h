@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*             DEFRULE COMMANDS HEADER FILE            */
    /*******************************************************/
@@ -16,11 +16,36 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*      6.24: Removed CONFLICT_RESOLUTION_STRATEGIES         */
+/*            INCREMENTAL_RESET, and LOGICAL_DEPENDENCIES    */
+/*            compilation flags.                             */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW and       */
+/*            MAC_MCW).                                      */
+/*                                                           */
+/*            Added support for hashed memories.             */
+/*                                                           */
+/*            Improvements to matches command.               */
+/*                                                           */
+/*            Add join-activity and join-activity-reset      */
+/*            commands.                                      */
+/*                                                           */
+/*            Added get-beta-memory-resizing and             */
+/*            set-beta-memory-resizing functions.            */
+/*                                                           */
+/*            Added timetag function.                        */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Converted API macros to function calls.        */
 /*                                                           */
 /*************************************************************/
 
@@ -41,20 +66,54 @@
 #define LOCALE extern
 #endif
 
-#if ENVIRONMENT_API_ONLY
-#define Matches(theEnv,a) EnvMatches(theEnv,a)
-#else
-#define Matches(a) EnvMatches(GetCurrentEnvironment(),a)
-#endif
+struct joinInformation
+  {
+   int whichCE;
+   struct joinNode *theJoin;
+   int patternBegin;
+   int patternEnd;
+   int marked;
+   struct betaMemory *theMemory;
+   struct joinNode *nextJoin;
+  };
 
-   LOCALE intBool                        EnvMatches(void *,void *);
+#define VERBOSE  0
+#define SUCCINCT 1
+#define TERSE    2
+
+   LOCALE intBool                        EnvGetBetaMemoryResizing(void *);
+   LOCALE intBool                        EnvSetBetaMemoryResizing(void *,intBool);
+   LOCALE int                            GetBetaMemoryResizingCommand(void *);
+   LOCALE int                            SetBetaMemoryResizingCommand(void *);
+
+   LOCALE void                           EnvMatches(void *,void *,int,DATA_OBJECT *);
+   LOCALE void                           EnvJoinActivity(void *,void *,int,DATA_OBJECT *);
    LOCALE void                           DefruleCommands(void *);
-   LOCALE void                           MatchesCommand(void *);
+   LOCALE void                           MatchesCommand(void *,DATA_OBJECT *);
+   LOCALE void                           JoinActivityCommand(void *,DATA_OBJECT *);
+   LOCALE long long                      TimetagFunction(void *);
+   LOCALE long                           EnvAlphaJoinCount(void *,void *);
+   LOCALE long                           EnvBetaJoinCount(void *,void *);
+   LOCALE struct joinInformation        *EnvCreateJoinArray(void *,long);
+   LOCALE void                           EnvFreeJoinArray(void *,struct joinInformation *,long);
+   LOCALE void                           EnvAlphaJoins(void *,void *,long,struct joinInformation *);
+   LOCALE void                           EnvBetaJoins(void *,void *,long,struct joinInformation *);
+   LOCALE void                           JoinActivityResetCommand(void *);
 #if DEVELOPER
    LOCALE void                           ShowJoinsCommand(void *);
    LOCALE long                           RuleComplexityCommand(void *);
+   LOCALE void                           ShowAlphaHashTable(void *);
 #endif
 
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+#if DEBUGGING_FUNCTIONS
+   LOCALE void                           Matches(void *,int,DATA_OBJECT *);
+   LOCALE void                           JoinActivity(void *,int,DATA_OBJECT *);
 #endif
+   LOCALE intBool                        GetBetaMemoryResizing(void);
+   LOCALE intBool                        SetBetaMemoryResizing(int);
 
+#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
+#endif /* _H_rulecom */

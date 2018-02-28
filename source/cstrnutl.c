@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  07/01/05            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*             CONSTRAINT UTILITY MODULE               */
    /*******************************************************/
@@ -14,10 +14,13 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian Donnell                                        */
+/*      Brian Dantes                                         */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.24: Added allowed-classes slot facet.              */
+/*                                                           */
+/*      6.30: Support for long long integers.                */
 /*                                                           */
 /*************************************************************/
 
@@ -532,6 +535,7 @@ globle CONSTRAINT_RECORD *FunctionCallToConstraintRecord(
         break;
 
       case 'i':
+      case 'g':
       case 'l':
         rv->integersAllowed = TRUE;
         break;
@@ -578,6 +582,10 @@ globle CONSTRAINT_RECORD *FunctionCallToConstraintRecord(
 
       case 'x':
         rv->instanceAddressesAllowed = TRUE;
+        break;
+
+      case 'y':
+        rv->factAddressesAllowed = TRUE;
         break;
 
       case 'v':

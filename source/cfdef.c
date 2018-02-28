@@ -94,8 +94,8 @@ globle void InitializeCF(
 /****************************************************************/
 globle struct expr *ParseDeclareUncertainty(
   void *theEnv,
-  char *readSource,
-  char *ruleName,
+  const char *readSource,
+  const char *ruleName,
   int *error,
   double *cfVALUE)
   {
@@ -167,9 +167,9 @@ globle struct expr *ParseDeclareUncertainty(
 /*****************************************************************/
 /* printCF: prints certainty factor                              */
 /*****************************************************************/  
-globle VOID printCF(
+globle void printCF(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   double cf)
   {
    char printSpace[20];
@@ -336,6 +336,9 @@ globle double computeStdConclCF(
    */ 
 	for (i=(unsigned int)((binds->bcount)-1); i>=0; i--, jNode = jNode->lastLevel)
      {
+      if (antecedent_binds[i].gm.theMatch == NULL)
+        continue;
+        
        /* find the fact that matched a pattern */
        tmpFact = (struct fact *)(antecedent_binds[i].gm.theMatch->matchingItem);
 
@@ -511,7 +514,7 @@ globle double computeFuzzyCrispConclCF(
     not yet been calculated and should now be calculated )
  ********************************************************************/
  
-globle VOID changeCFofNewFact(
+globle void changeCFofNewFact(
   void *theEnv,
   struct fact *newFact)
   {
@@ -675,7 +678,7 @@ globle double getcf(
     Sets the threshold cf to desired CRISP value and changes
     threshold_on to TRUE.
  *******************************************************************/
-globle VOID set_threshold(
+globle void set_threshold(
   void *theEnv)
   {
     DATA_OBJECT theArgument;
@@ -747,7 +750,7 @@ globle double get_threshold(
 
 
  *******************************************************************/
-globle VOID changeCFofExistingFact(
+globle void changeCFofExistingFact(
   void *theEnv,
   struct fact *newFact,
   struct fact *oldFact)
@@ -786,7 +789,7 @@ globle VOID changeCFofExistingFact(
 
 
  *******************************************************************/
-globle VOID changeCFofNewVsExistingFact(
+globle void changeCFofNewVsExistingFact(
   struct fact *newFact,
   struct fact *oldFact)
   {
@@ -808,7 +811,7 @@ globle VOID changeCFofNewVsExistingFact(
 
 globle void cfInformationError(
   void *theEnv,
-  char *name)
+  const char *name)
 {
    PrintErrorID(theEnv,"Certainty Factors ",901,TRUE);
    EnvPrintRouter(theEnv,WERROR,"This error occurred while evaluating a Certainty Factor");
@@ -821,7 +824,7 @@ globle void cfInformationError(
 }
 
 
-globle VOID   cfRangeError(
+globle void   cfRangeError(
   void *theEnv)
 
 {
@@ -831,7 +834,7 @@ globle VOID   cfRangeError(
 }
 
 
-globle VOID   cfNonNumberError(
+globle void   cfNonNumberError(
   void *theEnv)
 
 {

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*        DEFFACTS CONSTRUCT COMPILER HEADER FILE      */
    /*******************************************************/
@@ -15,6 +15,13 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Added support for path name argument to        */
+/*            constructs-to-c.                               */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
 /*                                                           */
 /*************************************************************/
 
@@ -35,4 +42,4 @@
    LOCALE void                           DeffactsCompilerSetup(void *);
    LOCALE void                           DeffactsCModuleReference(void *,FILE *,int,int,int);
 
-#endif
+#endif /* _H_dffctcmp */

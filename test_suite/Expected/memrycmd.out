@@ -4,16 +4,16 @@ TRUE
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (mem-used 10)
 [ARGACCES4] Function mem-used expected exactly 0 argument(s)
-FuzzyCLIPS> (mem-used)
-53348 ;; Different number OK
+FuzzyCLIPS> (progn (mem-used) TRUE)
+TRUE
 FuzzyCLIPS> (mem-requests 20)
 [ARGACCES4] Function mem-requests expected exactly 0 argument(s)
-FuzzyCLIPS> (mem-requests)
-2034 ;; Different number OK
+FuzzyCLIPS> (progn (mem-requests) TRUE)
+TRUE
 FuzzyCLIPS> (release-mem 10)
 [ARGACCES4] Function release-mem expected exactly 0 argument(s)
-FuzzyCLIPS> (release-mem)
-1332 ;; Different number OK
+FuzzyCLIPS> (progn (release-mem) TRUE)
+TRUE
 FuzzyCLIPS> (conserve-mem)
 [ARGACCES4] Function conserve-mem expected exactly 1 argument(s)
 FuzzyCLIPS> (conserve-mem on off)

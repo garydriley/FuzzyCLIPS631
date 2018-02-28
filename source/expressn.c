@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*                  EXPRESSION MODULE                  */
    /*******************************************************/
@@ -14,7 +14,7 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -24,6 +24,14 @@
 /*                                                           */
 /*      6.24: Corrected link errors with non-default         */
 /*            setup.h configuration settings.                */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW and       */
+/*            MAC_MCW).                                      */
+/*                                                           */
+/*            Changed integer type/precision.                */
+/*                                                           */
+/*            Changed expression hashing value.              */
 /*                                                           */
 /*************************************************************/
 
@@ -119,7 +127,7 @@ static void DeallocateExpressionData(
    rm(theEnv,ExpressionData(theEnv)->ExpressionHashTable,
       (int) (sizeof(EXPRESSION_HN *) * EXPRESSION_HASH_SIZE));
 #else
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 #endif
@@ -127,7 +135,7 @@ static void DeallocateExpressionData(
 #if (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE)
    if ((ExpressionData(theEnv)->NumberOfExpressions != 0) && Bloaded(theEnv))
      {
-      genlongfree(theEnv,(void *) ExpressionData(theEnv)->ExpressionArray,
+      genfree(theEnv,(void *) ExpressionData(theEnv)->ExpressionArray,
                   ExpressionData(theEnv)->NumberOfExpressions * sizeof(struct expr));
      }
 #endif
@@ -344,13 +352,20 @@ static unsigned HashExpression(
   EXPRESSION *theExp)
   {
    unsigned long tally = PRIME_THREE;
-
+   union
+     {
+      void *vv;
+      unsigned long uv;
+     } fis;
+     
    if (theExp->argList != NULL)
      tally += HashExpression(theExp->argList) * PRIME_ONE;
    while (theExp != NULL)
      {
       tally += (unsigned long) (theExp->type * PRIME_TWO);
-      tally += (unsigned long) theExp->value;
+      fis.uv = 0;
+      fis.vv = theExp->value;
+      tally += fis.uv;
       theExp = theExp->nextArg;
      }
    return((unsigned) (tally % EXPRESSION_HASH_SIZE));

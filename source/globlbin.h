@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*             DEFGLOBAL BINARY HEADER FILE            */
    /*******************************************************/
@@ -13,9 +13,13 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
+/*                                                           */
+/*            Moved WatchGlobals global to defglobalData.    */
 /*                                                           */
 /*************************************************************/
 
@@ -65,10 +69,7 @@ struct defglobalBinaryData
    LOCALE void                           DefglobalBinarySetup(void *);
    LOCALE void                          *BloadDefglobalModuleReference(void *,int);
 
-#ifndef _GLOBLBIN_SOURCE_
-   extern struct defglobal *DefglobalArray;
-#endif
-#endif
+#endif /* _H_globlbin */
 
 
 

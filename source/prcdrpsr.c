@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.31  09/16/17            */
    /*                                                     */
    /*          PROCEDURAL FUNCTIONS PARSER MODULE         */
    /*******************************************************/
@@ -11,16 +11,31 @@
 /*                                                           */
 /* Principal Programmer(s):                                  */
 /*      Gary D. Riley                                        */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Changed name of variable exp to theExp         */
 /*            because of Unix compiler warnings of shadowed  */
 /*            definitions.                                   */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Local variables set with the bind function     */
+/*            persist until a reset/clear command is issued. */
+/*                                                           */
+/*            Support for long long integers.                */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Fixed linkage issue when BLOAD_ONLY compiler   */
+/*            flag is set to 1.                              */
+/*                                                           */
+/*      6.31: Fixed 'while' function bug with optional use   */
+/*            of 'do' keyword.                               */
 /*                                                           */
 /*************************************************************/
 
@@ -67,17 +82,20 @@ struct procedureParserData
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-#if (! RUN_TIME) && (! BLOAD_ONLY)
-   static struct expr            *WhileParse(void *,struct expr *,char *);
-   static struct expr            *LoopForCountParse(void *,struct expr *,char *);
+#if (! RUN_TIME)
+   static void                    DeallocateProceduralFunctionData(void *);
+#if (! BLOAD_ONLY)
+   static struct expr            *WhileParse(void *,struct expr *,const char *);
+   static struct expr            *LoopForCountParse(void *,struct expr *,const char *);
    static void                    ReplaceLoopCountVars(void *,SYMBOL_HN *,EXPRESSION *,int);
-   static struct expr            *IfParse(void *,struct expr *,char *);
-   static struct expr            *PrognParse(void *,struct expr *,char *);
-   static struct expr            *BindParse(void *,struct expr *,char *);
+   static struct expr            *IfParse(void *,struct expr *,const char *);
+   static struct expr            *PrognParse(void *,struct expr *,const char *);
+   static struct expr            *BindParse(void *,struct expr *,const char *);
    static int                     AddBindName(void *,struct symbolHashNode *,CONSTRAINT_RECORD *);
-   static struct expr            *ReturnParse(void *,struct expr *,char *);
-   static struct expr            *BreakParse(void *,struct expr *,char *);
-   static struct expr            *SwitchParse(void *,struct expr *,char *);
+   static struct expr            *ReturnParse(void *,struct expr *,const char *);
+   static struct expr            *BreakParse(void *,struct expr *,const char *);
+   static struct expr            *SwitchParse(void *,struct expr *,const char *);
+#endif
 #endif
 
 #if ! RUN_TIME
@@ -87,7 +105,7 @@ struct procedureParserData
 globle void ProceduralFunctionParsers(
   void *theEnv)
   {
-   AllocateEnvironmentData(theEnv,PRCDRPSR_DATA,sizeof(struct procedureParserData),NULL);
+   AllocateEnvironmentData(theEnv,PRCDRPSR_DATA,sizeof(struct procedureParserData),DeallocateProceduralFunctionData);
 
 #if (! BLOAD_ONLY)
    AddFunctionParser(theEnv,"bind",BindParse);
@@ -99,6 +117,23 @@ globle void ProceduralFunctionParsers(
    AddFunctionParser(theEnv,"break",BreakParse);
    AddFunctionParser(theEnv,"switch",SwitchParse);
 #endif
+  }
+
+/*************************************************************/
+/* DeallocateProceduralFunctionData: Deallocates environment */
+/*    data for procedural functions.                         */
+/*************************************************************/
+static void DeallocateProceduralFunctionData(
+  void *theEnv)
+  { 
+   struct BindInfo *temp_bind;
+
+   while (ProcedureParserData(theEnv)->ListOfParsedBindNames != NULL)
+     {
+      temp_bind = ProcedureParserData(theEnv)->ListOfParsedBindNames->next;
+      rtn_struct(theEnv,BindInfo,ProcedureParserData(theEnv)->ListOfParsedBindNames);
+      ProcedureParserData(theEnv)->ListOfParsedBindNames = temp_bind;
+     }
   }
 
 /********************************************************/
@@ -158,10 +193,10 @@ globle intBool ParsedBindNamesEmpty(
 static struct expr *WhileParse(
   void *theEnv,
   struct expr *parse,
-  char *infile)
+  const char *infile)
   {
    struct token theToken;
-   int read_first_paren;
+   int read_first_token;
 
    /*===============================*/
    /* Process the while expression. */
@@ -183,26 +218,20 @@ static struct expr *WhileParse(
    GetToken(theEnv,infile,&theToken);
    if ((theToken.type == SYMBOL) && (strcmp(ValueToString(theToken.value),"do") == 0))
      {
-      read_first_paren = TRUE;
+      read_first_token = TRUE;
       PPBackup(theEnv);
       SavePPBuffer(theEnv," ");
       SavePPBuffer(theEnv,theToken.printForm);
       IncrementIndentDepth(theEnv,3);
       PPCRAndIndent(theEnv);
      }
-   else if (theToken.type == LPAREN)
+   else
      {
-      read_first_paren = FALSE;
+      read_first_token = FALSE;
       PPBackup(theEnv);
       IncrementIndentDepth(theEnv,3);
       PPCRAndIndent(theEnv);
       SavePPBuffer(theEnv,theToken.printForm);
-     }
-   else
-     {
-      SyntaxErrorMessage(theEnv,"while function");
-      ReturnExpression(theEnv,parse);
-      return(NULL);
      }
 
    /*============================*/
@@ -211,7 +240,7 @@ static struct expr *WhileParse(
    if (ExpressionData(theEnv)->svContexts->rtn == TRUE)
      ExpressionData(theEnv)->ReturnContext = TRUE;
    ExpressionData(theEnv)->BreakContext = TRUE;
-   parse->argList->nextArg = GroupActions(theEnv,infile,&theToken,read_first_paren,NULL,FALSE);
+   parse->argList->nextArg = GroupActions(theEnv,infile,&theToken,read_first_token,NULL,FALSE);
 
    if (parse->argList->nextArg == NULL)
      {
@@ -247,7 +276,7 @@ static struct expr *WhileParse(
 static struct expr *LoopForCountParse(
   void *theEnv,
   struct expr *parse,
-  char *infile)
+  const char *infile)
   {
    struct token theToken;
    SYMBOL_HN *loopVar = NULL;
@@ -267,7 +296,7 @@ static struct expr *LoopForCountParse(
       ========================================== */
    if (theToken.type != LPAREN)
      {
-      parse->argList = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,1L));
+      parse->argList = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,1LL));
       parse->argList->nextArg = ParseAtomOrExpression(theEnv,infile,&theToken);
       if (parse->argList->nextArg == NULL)
         {
@@ -282,7 +311,7 @@ static struct expr *LoopForCountParse(
         {
          if (theToken.type != SYMBOL)
            goto LoopForCountParseError;
-         parse->argList = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,1L));
+         parse->argList = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,1LL));
          parse->argList->nextArg = Function2Parse(theEnv,infile,ValueToString(theToken.value));
          if (parse->argList->nextArg == NULL)
            {
@@ -313,7 +342,7 @@ static struct expr *LoopForCountParse(
             PPBackup(theEnv);
             PPBackup(theEnv);
             SavePPBuffer(theEnv,theToken.printForm);
-            tmpexp = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,1L));
+            tmpexp = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,1LL));
             tmpexp->nextArg = parse->argList;
             parse->argList = tmpexp;
            }
@@ -442,7 +471,7 @@ static void ReplaceLoopCountVars(
         {
          theExp->type = FCALL;
          theExp->value = (void *) FindFunction(theEnv,"(get-loop-count)");
-         theExp->argList = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,(long) depth));
+         theExp->argList = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,(long long) depth));
         }
       else if (theExp->argList != NULL)
         {
@@ -465,7 +494,7 @@ static void ReplaceLoopCountVars(
 static struct expr *IfParse(
   void *theEnv,
   struct expr *top,
-  char *infile)
+  const char *infile)
   {
    struct token theToken;
 
@@ -586,7 +615,7 @@ static struct expr *IfParse(
 static struct expr *PrognParse(
   void *theEnv,
   struct expr *top,
-  char *infile)
+  const char *infile)
   {
    struct token tkn;
    struct expr *tmp;
@@ -612,7 +641,7 @@ static struct expr *PrognParse(
 static struct expr *BindParse(
   void *theEnv,
   struct expr *top,
-  char *infile)
+  const char *infile)
   {
    struct token theToken;
    SYMBOL_HN *variableName;
@@ -695,7 +724,7 @@ static struct expr *BindParse(
 static struct expr *ReturnParse(
   void *theEnv,
   struct expr *top,
-  char *infile)
+  const char *infile)
   {
    int error_flag = FALSE;
    struct token theToken;
@@ -748,7 +777,7 @@ static struct expr *ReturnParse(
 static struct expr *BreakParse(
   void *theEnv,
   struct expr *top,
-  char *infile)
+  const char *infile)
   {
    struct token theToken;
 
@@ -780,7 +809,7 @@ static struct expr *BreakParse(
 static struct expr *SwitchParse(
   void *theEnv,
   struct expr *top,
-  char *infile)
+  const char *infile)
   {
    struct token theToken;
    EXPRESSION *theExp,*chk;

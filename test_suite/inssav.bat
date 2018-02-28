@@ -9,6 +9,7 @@
 (bsave-instances "Temp//inssav1.bin")
 (bload-instances inssav.clp)
 (save-instances "Actual//inssav1.out")
+
 (progn
   (bind ?start (time))
   (restore-instances "Actual//inssav1.out")
@@ -16,10 +17,9 @@
   (bind ?start (time))
   (bload-instances "Temp//inssav1.bin")
   (bind ?bt (- (time) ?start))
-  (printout t "BINARY-LOAD TIME: " ?bt " seconds" crlf)
-  (printout t "TEXT-LOAD TIME: " ?tt " seconds" crlf)
-  (printout t "RATIO B/T: " (if (eq ?tt 0.0) then "Infinite" else (/ ?bt ?tt)) crlf)
-)
+  (if (> ?bt ?tt)
+     then
+     (printout t "Binary load time exceeded text load time" crlf)))
 (save-instances "Actual//inssav1.out")
 (file-message "Actual//inssav1.out" "D E")
 (save-instances "Actual//inssav2.out" gobbledy-gook)

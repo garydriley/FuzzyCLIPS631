@@ -1,0 +1,63 @@
+TRUE
+FuzzyCLIPS> (batch "utf8.bat")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (str-length "Привет мир")          ; UTF-8 Support
+10
+FuzzyCLIPS> (str-length "여러분 안녕하세요")       ; UTF-8 Support
+9
+FuzzyCLIPS> (str-length "Olá Mundo")           ; UTF-8 Support
+9
+FuzzyCLIPS> (sub-string 8 10 "Привет мир")     ; UTF-8 Support
+"мир"
+FuzzyCLIPS> (sub-string 5 8 "여러분 안녕하세요")  ; UTF-8 Support
+"안녕하세"
+FuzzyCLIPS> (sub-string 3 5 "Olá Mundo")       ; UTF-8 Support
+"á M"
+FuzzyCLIPS> (str-index "" "Привет мир")        ; UTF-8 Support
+11
+FuzzyCLIPS> (str-index "" "여러분 안녕하세요")     ; UTF-8 Support
+10
+FuzzyCLIPS> (str-index "" "Olá Mundo")         ; UTF-8 Support
+10
+FuzzyCLIPS> (str-index "ет" "Привет мир")      ; UTF-8 Support
+5
+FuzzyCLIPS> (str-index "여러분" "여러분 안녕하세요")  ; UTF-8 Support
+1
+FuzzyCLIPS> (str-index "á" "Olá Mundo")        ; UTF-8 Support
+3
+FuzzyCLIPS> Привет мир                         ; UTF-8 Support
+Привет
+FuzzyCLIPS> 여러분 안녕하세요                      ; UTF-8 Support
+여러분
+FuzzyCLIPS> Olá Mundo                          ; UTF-8 Support
+Olá
+FuzzyCLIPS> 78Пр                               ; UTF-8 Support
+78Пр
+FuzzyCLIPS> 7여                                 ; UTF-8 Support
+7여
+FuzzyCLIPS> 3.4Пр                              ; UTF-8 Support
+3.4Пр
+FuzzyCLIPS> 5.1여                               ; UTF-8 Support
+5.1여
+FuzzyCLIPS> 3eПр                               ; UTF-8 Support
+3eПр
+FuzzyCLIPS> 5.1e여                              ; UTF-8 Support
+5.1e여
+FuzzyCLIPS> 3e+Пр                              ; UTF-8 Support
+3e+Пр
+FuzzyCLIPS> 5.1e-여                             ; UTF-8 Support
+5.1e-여
+FuzzyCLIPS> ?Привет                            ; UTF-8 Support
+[EVALUATN1] Variable Привет is unbound
+FALSE
+FuzzyCLIPS> ?여러분                              ; UTF-8 Support
+[EVALUATN1] Variable 여러분 is unbound
+FALSE
+FuzzyCLIPS> $?Привет                           ; UTF-8 Support
+[EVALUATN1] Variable Привет is unbound
+FALSE
+FuzzyCLIPS> $?여러분                             ; UTF-8 Support
+[EVALUATN1] Variable 여러분 is unbound
+FALSE
+FuzzyCLIPS> (dribble-off)

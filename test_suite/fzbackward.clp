@@ -52,9 +52,9 @@
  (goal (output ?node))
  (function ?node input)
 =>
-  (printout t "Please enter a value for node: " ?node " " t)
+  (printout t "Please enter a value for node: " ?node " " crlf)
   (bind ?in (read))
-  (printout t "Enter Certainty Factor for node (0.0 to 1.0): " ?node " " t)
+  (printout t "Enter Certainty Factor for node (0.0 to 1.0): " ?node " " crlf)
   (bind ?cf (read))
   (if (> ?cf 1.0) then (bind ?cf 1.0))
   (if (< ?cf 0.0) then (bind ?cf 0.0))
@@ -89,12 +89,12 @@
         (retract ?x)
         (retract ?y)
         (printout t "The output value at node " ?node " is " ?value 
-                    " with certainty of " (get-cf ?z) t))
+                    " with certainty of " (get-cf ?z) crlf))
 
 (defrule user-input
  (not (goal (output ?)))
 =>
- (printout t "which node are you interested in? (a-j or q to quit)" t)
+ (printout t "which node are you interested in? (a-j or q to quit)" crlf)
  (bind ?target (read))
  (if (eq ?target "q") then (halt))
  (assert (target ?target))

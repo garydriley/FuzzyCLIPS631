@@ -26,6 +26,7 @@ FuzzyCLIPS> (fact-index ?*gfi* ?*gfi*)         ; 10.9.1
 [ARGACCES4] Function fact-index expected exactly 1 argument(s)
 FuzzyCLIPS> (retract ?*gfi*)                   ; 10.9.1
 FuzzyCLIPS> (fact-index ?*gfi*)                ; 10.9.1
+[PRNTUTIL11] The fact f-4 has been retracted.
 -1
 FuzzyCLIPS> (clear)                            ; 10.9.1
 FuzzyCLIPS> (setgen 10)                        ; 10.9.4
@@ -41,7 +42,7 @@ FuzzyCLIPS> (setgen 30.3)                      ; 10.9.4
 FuzzyCLIPS> (setgen 20)                        ; 10.9.4  
 20
 FuzzyCLIPS> (assert (gen20 gen21 gen22))       ; 10.9.4
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (gensym)                           ; 10.9.2
 gen20
 FuzzyCLIPS> (gensym a)                         ; 10.9.2
@@ -83,11 +84,11 @@ FuzzyCLIPS> (= ?*r2* (random))                 ; 10.9.5
 TRUE
 FuzzyCLIPS> (= ?*r3* (random))                 ; 10.9.5
 TRUE
-FuzzyCLIPS> (random)                           ; 10.9.5
-20718 ;; Different number is OK
-FuzzyCLIPS> (random 10)                        ; 10.9.5
+FuzzyCLIPS> (progn (random) TRUE)              ; 10.9.5
+TRUE
+FuzzyCLIPS> (progn (random 10) TRUE)           ; 10.9.5
 [MISCFUN2] Function random expected either 0 or 2 arguments
-6314  ;; Different number is OK
+TRUE
 FuzzyCLIPS> (if)                               ; 10.9.7
 
 [EXPRNPSR2] Expected a constant, variable, or expression.
@@ -117,9 +118,24 @@ FuzzyCLIPS> (while)                            ; 10.9.8
 
 [EXPRNPSR2] Expected a constant, variable, or expression.
 FuzzyCLIPS> (while FALSE)                      ; 10.9.8
-
-[PRNTUTIL2] Syntax Error:  Check appropriate syntax for while function.
+FALSE
 FuzzyCLIPS> (while FALSE do)                   ; 10.9.8
+FALSE
+FuzzyCLIPS> (while FALSE 3)                    ; 10.9.8
+FALSE
+FuzzyCLIPS> (while FALSE 3 4)                  ; 10.9.8
+FALSE
+FuzzyCLIPS> (while FALSE (+ 2 3))              ; 10.9.8
+FALSE
+FuzzyCLIPS> (while FALSE a (+ 2 3))            ; 10.9.8
+FALSE
+FuzzyCLIPS> (while FALSE do 3)                 ; 10.9.8
+FALSE
+FuzzyCLIPS> (while FALSE do 3 4)               ; 10.9.8
+FALSE
+FuzzyCLIPS> (while FALSE do (+ 2 3))           ; 10.9.8
+FALSE
+FuzzyCLIPS> (while FALSE do a (+ 2 3))         ; 10.9.8
 FALSE
 FuzzyCLIPS> (clear)                            ; 10.9.8
 FuzzyCLIPS> (defglobal ?*t* = 10)              ; 10.9.8
@@ -130,8 +146,8 @@ FuzzyCLIPS> (while (> ?*t* 0) do
 10... 9... 8... 7... 6... 5... 4... 3... 2... 1... 
 FALSE
 FuzzyCLIPS> (clear)                            ; 10.9.8
-FuzzyCLIPS> (time)                             ; 10.9.9
-21190.41666666667 ;; Different number is OK
+FuzzyCLIPS> (progn (time) TRUE)                ; 10.9.9
+TRUE
 FuzzyCLIPS> (<= (time) (time))                 ; 10.9.9
 TRUE
 FuzzyCLIPS> (time a)                           ; 10.9.9
@@ -322,5 +338,24 @@ FuzzyCLIPS> (foo)
 FuzzyCLIPS> (while TRUE do
   (progn (break) (printout t ERROR crlf)))
 FALSE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defclass A (is-a USER))
+FuzzyCLIPS> (bind ?v (instance-address (make-instance [a1] of A)))
+<Instance-a1>
+FuzzyCLIPS> (timetag ?v)
+5
+FuzzyCLIPS> (send ?v delete)
+TRUE
+FuzzyCLIPS> (timetag ?v)
+[PRNTUTIL1] Unable to find instance a1.
+-1
+FuzzyCLIPS> (bind ?v (assert (a b c)))
+<Fact-1>
+FuzzyCLIPS> (timetag ?v)
+7
+FuzzyCLIPS> (retract ?v)
+FuzzyCLIPS> (timetag ?v)
+[PRNTUTIL11] The fact f-1 has been retracted.
+-1
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (dribble-off)

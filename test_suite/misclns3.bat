@@ -66,7 +66,7 @@
 (assert (foo))
 (list-deftemplates)
 (undeftemplate foo)
-(retract 0)
+(retract 1)
 (undeftemplate foo)
 (clear) ;; CR0265
 (defglobal ?*x* = 3)
@@ -83,7 +83,7 @@
 (trunc) ;; CR0271
 (clear) ;; CR0272
 (defmodule A)
-(defrule A::foo =>)
+(defrule A::foo (not (b)) =>)
 (deftemplate A::bar)
 (deffacts A::yak)
 (defglobal A ?*woz* = 3)

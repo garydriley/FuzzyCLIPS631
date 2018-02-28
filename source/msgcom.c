@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.24  06/02/06          */
+   /*               CLIPS Version 6.30  08/22/14          */
    /*                                                     */
    /*                OBJECT MESSAGE COMMANDS              */
    /*******************************************************/
@@ -10,11 +10,12 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Changed name of variable log to logName        */
 /*            because of Unix compiler warnings of shadowed  */
 /*            definitions.                                   */
@@ -24,6 +25,20 @@
 /*                                                           */
 /*            Corrected code to remove run-time program      */
 /*            compiler warnings.                             */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Added DeallocateMessageHandlerData to          */
+/*            deallocate message handler environment data.   */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Converted API macros to function calls.        */
 /*                                                           */
 /*************************************************************/
 
@@ -46,6 +61,8 @@
 #include "insfun.h"
 #include "insmoddp.h"
 #include "msgfun.h"
+#include "msgpass.h"
+#include "memalloc.h"
 #include "prccode.h"
 #include "router.h"
 
@@ -80,22 +97,24 @@ static void CreateSystemHandlers(void *);
 #endif
 
 #if (! BLOAD_ONLY) && (! RUN_TIME)
-static int WildDeleteHandler(void *,DEFCLASS *,SYMBOL_HN *,char *);
+static int WildDeleteHandler(void *,DEFCLASS *,SYMBOL_HN *,const char *);
 #endif
 
 #if DEBUGGING_FUNCTIONS
 static unsigned DefmessageHandlerWatchAccess(void *,int,unsigned,EXPRESSION *);
-static unsigned DefmessageHandlerWatchPrint(void *,char *,int,EXPRESSION *);
-static unsigned DefmessageHandlerWatchSupport(void *,char *,char *,int,
-                                              void (*)(void *,char *,void *,unsigned),
-                                              void (*)(void *,int,void *,unsigned),
+static unsigned DefmessageHandlerWatchPrint(void *,const char *,int,EXPRESSION *);
+static unsigned DefmessageHandlerWatchSupport(void *,const char *,const char *,int,
+                                              void (*)(void *,const char *,void *,int),
+                                              void (*)(void *,int,void *,int),
                                               EXPRESSION *);
-static unsigned WatchClassHandlers(void *,void *,char *,int,char *,int,int,
-                                  void (*)(void *,char *,void *,unsigned),
-                                  void (*)(void *,int,void *,unsigned));
-static void PrintHandlerWatchFlag(void *,char *,void *,unsigned);
+static unsigned WatchClassHandlers(void *,void *,const char *,int,const char *,int,int,
+                                  void (*)(void *,const char *,void *,int),
+                                  void (*)(void *,int,void *,int));
+static void PrintHandlerWatchFlag(void *,const char *,void *,int);
 #endif
 
+static void DeallocateMessageHandlerData(void *);
+  
 /* =========================================
    *****************************************
           EXTERNALLY VISIBLE FUNCTIONS
@@ -123,15 +142,15 @@ globle void SetupMessageHandlers(
                                         PrintHandlerSlotGetFunction,
                                         PrintHandlerSlotGetFunction,NULL,
                                         HandlerSlotGetFunction,
-                                        NULL,NULL,NULL,NULL,NULL,NULL },
+                                        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL },
 
                  handlerPutInfo = { "HANDLER_PUT", HANDLER_PUT,0,1,1,
                                         PrintHandlerSlotPutFunction,
                                         PrintHandlerSlotPutFunction,NULL,
                                         HandlerSlotPutFunction,
-                                        NULL,NULL,NULL,NULL,NULL,NULL };
+                                        NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
 
-   AllocateEnvironmentData(theEnv,MESSAGE_HANDLER_DATA,sizeof(struct messageHandlerData),NULL);
+   AllocateEnvironmentData(theEnv,MESSAGE_HANDLER_DATA,sizeof(struct messageHandlerData),DeallocateMessageHandlerData);
    memcpy(&MessageHandlerData(theEnv)->HandlerGetInfo,&handlerGetInfo,sizeof(struct entityRecord));   
    memcpy(&MessageHandlerData(theEnv)->HandlerPutInfo,&handlerPutInfo,sizeof(struct entityRecord));   
 
@@ -199,6 +218,38 @@ globle void SetupMessageHandlers(
 #endif
   }
 
+/*******************************************************/
+/* DeallocateMessageHandlerData: Deallocates environment */
+/*    data for the message handler functionality.        */
+/******************************************************/
+static void DeallocateMessageHandlerData(
+  void *theEnv)
+  {
+   HANDLER_LINK *tmp, *mhead, *chead;
+    
+   mhead = MessageHandlerData(theEnv)->TopOfCore;
+   while (mhead != NULL)
+     { 
+      tmp = mhead;
+      mhead = mhead->nxt;
+      rtn_struct(theEnv,messageHandlerLink,tmp);
+     }
+     
+   chead = MessageHandlerData(theEnv)->OldCore;
+   while (chead != NULL)
+     { 
+      mhead = chead;
+      chead = chead->nxtInStack;
+      
+      while (mhead != NULL)
+        {
+         tmp = mhead;
+         mhead = mhead->nxt;
+         rtn_struct(theEnv,messageHandlerLink,tmp);
+        }
+     }
+  }
+
 /*****************************************************
   NAME         : EnvGetDefmessageHandlerName
   DESCRIPTION  : Gets the name of a message-handler
@@ -209,15 +260,12 @@ globle void SetupMessageHandlers(
   SIDE EFFECTS : None
   NOTES        : None
  *****************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
-char *EnvGetDefmessageHandlerName(
+globle const char *EnvGetDefmessageHandlerName(
   void *theEnv,
   void *ptr,
-  unsigned theIndex)
+  int theIndex)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -234,10 +282,10 @@ char *EnvGetDefmessageHandlerName(
   SIDE EFFECTS : None
   NOTES        : None
  *****************************************************/
-globle char *EnvGetDefmessageHandlerType(
+globle const char *EnvGetDefmessageHandlerType(
   void *theEnv,
   void *ptr,
-  unsigned theIndex)
+  int theIndex)
   {
    return(MessageHandlerData(theEnv)->hndquals[((DEFCLASS *) ptr)->handlers[theIndex-1].type]);
   }
@@ -253,22 +301,19 @@ globle char *EnvGetDefmessageHandlerType(
   NOTES        : If index == 0, the first handler array index
                  (i.e. 1) returned
  **************************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
-globle unsigned EnvGetNextDefmessageHandler(
+globle int EnvGetNextDefmessageHandler(
   void *theEnv,
   void *ptr,
-  unsigned theIndex)
+  int theIndex)
   {
    DEFCLASS *cls;
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
    cls = (DEFCLASS *) ptr;
    if (theIndex == 0)
-     return((cls->handlers != NULL) ? 1U : 0U);
+     return((cls->handlers != NULL) ? 1 : 0);
    if (theIndex == cls->handlerCount)
      return(0);
    return(theIndex+1);
@@ -286,7 +331,7 @@ globle unsigned EnvGetNextDefmessageHandler(
  *****************************************************/
 globle HANDLER *GetDefmessageHandlerPointer(
   void *ptr,
-  unsigned theIndex)
+  int theIndex)
   {
    return(&((DEFCLASS *) ptr)->handlers[theIndex-1]);
   }
@@ -304,15 +349,12 @@ globle HANDLER *GetDefmessageHandlerPointer(
   SIDE EFFECTS : None
   NOTES        : None
  *********************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 globle unsigned EnvGetDefmessageHandlerWatch(
   void *theEnv,
   void *theClass,
-  unsigned theIndex)
+  int theIndex)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -331,16 +373,13 @@ globle unsigned EnvGetDefmessageHandlerWatch(
   SIDE EFFECTS : Watch flag for the handler set
   NOTES        : None
  *********************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 globle void EnvSetDefmessageHandlerWatch(
   void *theEnv,
   int newState,
   void *theClass,
-  unsigned theIndex)
+  int theIndex)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -365,8 +404,8 @@ globle void EnvSetDefmessageHandlerWatch(
 globle unsigned EnvFindDefmessageHandler(
   void *theEnv,
   void *ptr,
-  char *hname,
-  char *htypestr)
+  const char *hname,
+  const char *htypestr)
   {
    unsigned htype;
    SYMBOL_HN *hsym;
@@ -397,7 +436,7 @@ globle unsigned EnvFindDefmessageHandler(
 globle int EnvIsDefmessageHandlerDeletable(
   void *theEnv,
   void *ptr,
-  unsigned theIndex)
+  int theIndex)
   {
    DEFCLASS *cls;
 
@@ -431,7 +470,7 @@ globle void UndefmessageHandlerCommand(
    EnvPrintRouter(theEnv,WERROR,"Unable to delete message-handlers.\n");
 #else
    SYMBOL_HN *mname;
-   char *tname;
+   const char *tname;
    DATA_OBJECT tmp;
    DEFCLASS *cls;
 
@@ -480,13 +519,8 @@ globle void UndefmessageHandlerCommand(
 globle int EnvUndefmessageHandler(
   void *theEnv,
   void *vptr,
-  unsigned mhi)
+  int mhi)
   {
-#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
-#pragma unused(vptr)
-#pragma unused(mhi)
-#endif
-
 #if RUN_TIME || BLOAD_ONLY
    PrintErrorID(theEnv,"MSGCOM",3,FALSE);
    EnvPrintRouter(theEnv,WERROR,"Unable to delete message-handlers.\n");
@@ -541,7 +575,7 @@ globle void PPDefmessageHandlerCommand(
   {
    DATA_OBJECT temp;
    SYMBOL_HN *csym,*msym;
-   char *tname;
+   const char *tname;
    DEFCLASS *cls = NULL;
    unsigned mtype;
    HANDLER *hnd;
@@ -653,15 +687,12 @@ globle void PreviewSendCommand(
   SIDE EFFECTS : None
   NOTES        : None
  ********************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
-globle char *EnvGetDefmessageHandlerPPForm(
+globle const char *EnvGetDefmessageHandlerPPForm(
   void *theEnv,
   void *ptr,
-  unsigned theIndex)
+  int theIndex)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -681,7 +712,7 @@ globle char *EnvGetDefmessageHandlerPPForm(
  *******************************************************************/
 globle void EnvListDefmessageHandlers(
   void *theEnv,
-  char *logName,
+  const char *logName,
   void *vptr,
   int inhp)
   {
@@ -729,9 +760,9 @@ globle void EnvListDefmessageHandlers(
  ********************************************************************/
 globle void EnvPreviewSend(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   void *clsptr,
-  char *msgname)
+  const char *msgname)
   {
    HANDLER_LINK *core;
    SYMBOL_HN *msym;
@@ -760,11 +791,11 @@ globle void EnvPreviewSend(
  ****************************************************/
 globle long DisplayHandlersInLinks(
   void *theEnv,
-  char *logName,
+  const char *logName,
   PACKED_CLASS_LINKS *plinks,
-  unsigned theIndex)
+  int theIndex)
   {
-   register unsigned i;
+   long i;
    long cnt;
 
    cnt = (long) plinks->classArray[theIndex]->handlerCount;
@@ -829,7 +860,7 @@ static int WildDeleteHandler(
   void *theEnv,
   DEFCLASS *cls,
   SYMBOL_HN *msym,
-  char *tname)
+  const char *tname)
   {
    int mtype;
 
@@ -875,24 +906,25 @@ static int WildDeleteHandler(
   SIDE EFFECTS : Watch flags set in specified classes
   NOTES        : Accessory function for AddWatchItem()
  ******************************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 static unsigned DefmessageHandlerWatchAccess(
   void *theEnv,
   int code,
   unsigned newState,
   EXPRESSION *argExprs)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(code)
 #endif
-   return(DefmessageHandlerWatchSupport(theEnv,(char *) (newState ? "watch" : "unwatch"),NULL,(int) newState,
+   if (newState)
+     return(DefmessageHandlerWatchSupport(theEnv,"watch",NULL,newState,
+                                        NULL,EnvSetDefmessageHandlerWatch,argExprs));
+   else
+     return(DefmessageHandlerWatchSupport(theEnv,"unwatch",NULL,newState,
                                         NULL,EnvSetDefmessageHandlerWatch,argExprs));
   }
 
 /***********************************************************************
-  NAME         : DefclassWatchPrint
+  NAME         : DefmessageHandlerWatchPrint
   DESCRIPTION  : Parses a list of class names passed by
                  AddWatchItem() and displays the traces accordingly
   INPUTS       : 1) The logical name of the output
@@ -905,16 +937,13 @@ static unsigned DefmessageHandlerWatchAccess(
   SIDE EFFECTS : Watch flags displayed for specified classes
   NOTES        : Accessory function for AddWatchItem()
  ***********************************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 static unsigned DefmessageHandlerWatchPrint(
   void *theEnv,
-  char *logName,
+  const char *logName,
   int code,
   EXPRESSION *argExprs)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(code)
 #endif
    return(DefmessageHandlerWatchSupport(theEnv,"list-watch-items",logName,-1,
@@ -938,16 +967,16 @@ static unsigned DefmessageHandlerWatchPrint(
  *******************************************************/
 static unsigned DefmessageHandlerWatchSupport(
   void *theEnv,
-  char *funcName,
-  char *logName,
+  const char *funcName,
+  const char *logName,
   int newState,
-  void (*printFunc)(void *,char *,void *,unsigned),
-  void (*traceFunc)(void *,int,void *,unsigned),
+  void (*printFunc)(void *,const char *,void *,int),
+  void (*traceFunc)(void *,int,void *,int),
   EXPRESSION *argExprs)
   {
    struct defmodule *theModule;
    void *theClass;
-   char *theHandlerStr;
+   const char *theHandlerStr;
    int theType;
    int argIndex = 2;
    DATA_OBJECT tmpData;
@@ -1066,13 +1095,13 @@ static unsigned DefmessageHandlerWatchSupport(
 static unsigned WatchClassHandlers(
   void *theEnv,
   void *theClass,
-  char *theHandlerStr,
+  const char *theHandlerStr,
   int theType,
-  char *logName,
+  const char *logName,
   int newState,
   int indentp,
-  void (*printFunc)(void *,char *,void *,unsigned),
-  void (*traceFunc)(void *,int,void *,unsigned))
+  void (*printFunc)(void *,const char *,void *,int),
+  void (*traceFunc)(void *,int,void *,int))
   {
    unsigned theHandler;
    int found = FALSE;
@@ -1116,18 +1145,116 @@ static unsigned WatchClassHandlers(
  ***************************************************/
 static void PrintHandlerWatchFlag(
   void *theEnv,
-  char *logName,
+  const char *logName,
   void *theClass,
-  unsigned theHandler)
+  int theHandler)
   {
    EnvPrintRouter(theEnv,logName,EnvGetDefclassName(theEnv,theClass));
    EnvPrintRouter(theEnv,logName," ");
    EnvPrintRouter(theEnv,logName,EnvGetDefmessageHandlerName(theEnv,theClass,theHandler));
    EnvPrintRouter(theEnv,logName," ");
    EnvPrintRouter(theEnv,logName,EnvGetDefmessageHandlerType(theEnv,theClass,theHandler));
-   EnvPrintRouter(theEnv,logName,(char *) (EnvGetDefmessageHandlerWatch(theEnv,theClass,theHandler) ? " = on\n" : " = off\n"));
+   
+   if (EnvGetDefmessageHandlerWatch(theEnv,theClass,theHandler))
+     EnvPrintRouter(theEnv,logName," = on\n");
+   else
+     EnvPrintRouter(theEnv,logName," = off\n");
   }
 
 #endif /* DEBUGGING_FUNCTIONS */
-#endif
+
+/*#####################################*/
+/* ALLOW_ENVIRONMENT_GLOBALS Functions */
+/*#####################################*/
+
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+globle unsigned FindDefmessageHandler(
+  void *ptr,
+  const char *hname,
+  const char *htypestr)
+  {
+   return EnvFindDefmessageHandler(GetCurrentEnvironment(),ptr,hname,htypestr);
+  }
+
+globle const char *GetDefmessageHandlerName(
+  void *ptr,
+  int theIndex)
+  {
+   return EnvGetDefmessageHandlerName(GetCurrentEnvironment(),ptr,theIndex);
+  }
+
+globle const char *GetDefmessageHandlerType(
+  void *ptr,
+  int theIndex)
+  {
+   return EnvGetDefmessageHandlerType(GetCurrentEnvironment(),ptr,theIndex);
+  }
+
+globle int GetNextDefmessageHandler(
+  void *ptr,
+  int theIndex)
+  {
+   return EnvGetNextDefmessageHandler(GetCurrentEnvironment(),ptr,theIndex);
+  }
+
+globle int IsDefmessageHandlerDeletable(
+  void *ptr,
+  int theIndex)
+  {
+   return EnvIsDefmessageHandlerDeletable(GetCurrentEnvironment(),ptr,theIndex);
+  }
+
+globle int UndefmessageHandler(
+  void *vptr,
+  int mhi)
+  {
+   return EnvUndefmessageHandler(GetCurrentEnvironment(),vptr,mhi);
+  }
+
+#if DEBUGGING_FUNCTIONS
+
+globle const char *GetDefmessageHandlerPPForm(
+  void *ptr,
+  int theIndex)
+  {
+   return EnvGetDefmessageHandlerPPForm(GetCurrentEnvironment(),ptr,theIndex);
+  }
+
+globle unsigned GetDefmessageHandlerWatch(
+  void *theClass,
+  int theIndex)
+  {
+   return EnvGetDefmessageHandlerWatch(GetCurrentEnvironment(),theClass,theIndex);
+  }
+
+globle void ListDefmessageHandlers(
+  const char *logName,
+  void *vptr,
+  int inhp)
+  {
+   EnvListDefmessageHandlers(GetCurrentEnvironment(),logName,vptr,inhp);
+  }
+
+globle void PreviewSend(
+  const char *logicalName,
+  void *clsptr,
+  const char *msgname)
+  {
+   EnvPreviewSend(GetCurrentEnvironment(),logicalName,clsptr,msgname);
+  }
+
+globle void SetDefmessageHandlerWatch(
+  int newState,
+  void *theClass,
+  int theIndex)
+  {
+   EnvSetDefmessageHandlerWatch(GetCurrentEnvironment(),newState,theClass,theIndex);
+  }
+
+#endif /* DEBUGGING_FUNCTIONS */
+
+#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+
+#endif /* OBJECT_SYSTEM */
 

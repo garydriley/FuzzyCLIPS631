@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.20  01/31/02          */
+   /*               CLIPS Version 6.30  08/16/14          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,11 +10,19 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/* Revision History:                                         */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
@@ -49,15 +57,12 @@ struct definstancesBinaryData
 #define LOCALE extern
 #endif
 
-LOCALE void SetupDefinstancesBload(void *);
-LOCALE void *BloadDefinstancesModuleRef(void *,int);
+   LOCALE void                           SetupDefinstancesBload(void *);
+   LOCALE void                          *BloadDefinstancesModuleRef(void *,int);
 
-#ifndef _DFINSBIN_SOURCE_
-#endif
+#endif /* DEFINSTANCES_CONSTRUCT && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) */
 
-#endif
-
-#endif
+#endif /* _H_dfinsbin */
 
 
 

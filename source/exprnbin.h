@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*           EXPRESSION BLOAD/BSAVE HEADER FILE        */
    /*******************************************************/
@@ -12,11 +12,13 @@
 /*                                                           */
 /* Principal Programmer(s):                                  */
 /*      Gary D. Riley                                        */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
@@ -51,7 +53,7 @@
    LOCALE void                        BsaveConstructExpressions(void *,FILE *);
    LOCALE void                        BsaveExpression(void *,struct expr *,FILE *);
 
-#endif
+#endif /* _H_exprnbin */
 
 
 

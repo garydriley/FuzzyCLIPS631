@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  07/01/05            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,7 +10,7 @@
 /* Purpose: Generic Function Construct Compiler Code         */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
@@ -18,6 +18,18 @@
 /*                                                           */
 /*      6.24: Added pragmas to remove unused parameter       */
 /*            warnings.                                      */
+/*                                                           */
+/*      6.30: Added support for path name argument to        */
+/*            constructs-to-c.                               */
+/*                                                           */
+/*            Changed integer type/precision.                */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW and       */
+/*            MAC_MCW).                                      */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -74,7 +86,7 @@
    ***************************************** */
 
 static void ReadyDefgenericsForCode(void *);
-static int DefgenericsToCode(void *,char *,int,FILE *,int,int);
+static int DefgenericsToCode(void *,const char *,const char *,char *,int,FILE *,int,int);
 static void CloseDefgenericFiles(void *,FILE *[SAVE_ITEMS],int [SAVE_ITEMS],
                                  struct CodeGeneratorFile [SAVE_ITEMS],int);
 static void DefgenericModuleToCode(void *,FILE *,struct defmodule *,int,int);
@@ -199,7 +211,9 @@ static void ReadyDefgenericsForCode(
  *******************************************************/
 static int DefgenericsToCode(
   void *theEnv,
-  char *fileName,
+  const char *fileName,
+  const char *pathName,
+  char *fileNameBuffer,
   int fileID,
   FILE *headerFP,
   int imageID,
@@ -210,7 +224,7 @@ static int DefgenericsToCode(
    DEFGENERIC *theDefgeneric;
    DEFMETHOD *theMethod;
    RESTRICTION *theRestriction;
-   register unsigned i,j,k;
+   short i,j,k;
    int moduleCount = 0;
    int itemArrayCounts[SAVE_ITEMS];
    int itemArrayVersions[SAVE_ITEMS];
@@ -225,6 +239,8 @@ static int DefgenericsToCode(
       itemFiles[i] = NULL;
       itemReopenFlags[i] = FALSE;
       itemCodeFiles[i].filePrefix = NULL;
+      itemCodeFiles[i].pathName = pathName;
+      itemCodeFiles[i].fileNameBuffer = fileNameBuffer;
      }
 
    /* ===========================================
@@ -243,7 +259,7 @@ static int DefgenericsToCode(
       EnvSetCurrentModule(theEnv,(void *) theModule);
 
       itemFiles[MODULEI] =
-         OpenFileIfNeeded(theEnv,itemFiles[MODULEI],fileName,fileID,imageID,&fileCount,
+         OpenFileIfNeeded(theEnv,itemFiles[MODULEI],fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                           itemArrayVersions[MODULEI],headerFP,
                           "DEFGENERIC_MODULE",ModulePrefix(DefgenericData(theEnv)->DefgenericCodeItem),
                           itemReopenFlags[MODULEI],&itemCodeFiles[MODULEI]);
@@ -261,7 +277,7 @@ static int DefgenericsToCode(
       while (theDefgeneric != NULL)
         {
          itemFiles[GENERICI] =
-            OpenFileIfNeeded(theEnv,itemFiles[GENERICI],fileName,fileID,imageID,&fileCount,
+            OpenFileIfNeeded(theEnv,itemFiles[GENERICI],fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                              itemArrayVersions[GENERICI],headerFP,
                              "DEFGENERIC",ConstructPrefix(DefgenericData(theEnv)->DefgenericCodeItem),
                              itemReopenFlags[GENERICI],&itemCodeFiles[GENERICI]);
@@ -284,7 +300,7 @@ static int DefgenericsToCode(
                generic function go into the same array
                =========================================== */
             itemFiles[METHODI] =
-                OpenFileIfNeeded(theEnv,itemFiles[METHODI],fileName,fileID,imageID,&fileCount,
+                OpenFileIfNeeded(theEnv,itemFiles[METHODI],fileName,pathName,fileNameBuffer,fileID,imageID,&fileCount,
                                  itemArrayVersions[METHODI],headerFP,
                                  "DEFMETHOD",MethodPrefix(),
                                  itemReopenFlags[METHODI],&itemCodeFiles[METHODI]);
@@ -305,14 +321,14 @@ static int DefgenericsToCode(
                      particular method go into the same array
                      ======================================== */
                   itemFiles[RESTRICTIONI] =
-                     OpenFileIfNeeded(theEnv,itemFiles[RESTRICTIONI],fileName,fileID,
+                     OpenFileIfNeeded(theEnv,itemFiles[RESTRICTIONI],fileName,pathName,fileNameBuffer,fileID,
                                       imageID,&fileCount,
                                       itemArrayVersions[RESTRICTIONI],headerFP,
                                       "RESTRICTION",RestrictionPrefix(),
                                       itemReopenFlags[RESTRICTIONI],&itemCodeFiles[RESTRICTIONI]);
                   if (itemFiles[RESTRICTIONI] == NULL)
                     goto GenericCodeError;
-                  for (j = 0 ; j < (unsigned) theMethod->restrictionCount ; j++)
+                  for (j = 0 ; j < theMethod->restrictionCount ; j++)
                     {
                      theRestriction = &theMethod->restrictions[j];
                      if (j > 0)
@@ -327,7 +343,7 @@ static int DefgenericsToCode(
                            restriction go into the same array
                            ========================================= */
                         itemFiles[TYPEI] =
-                           OpenFileIfNeeded(theEnv,itemFiles[TYPEI],fileName,fileID,
+                           OpenFileIfNeeded(theEnv,itemFiles[TYPEI],fileName,pathName,fileNameBuffer,fileID,
                                             imageID,&fileCount,
                                             itemArrayVersions[TYPEI],headerFP,
                                             "void *",TypePrefix(),
@@ -485,7 +501,7 @@ static void SingleDefgenericToCode(
       fprintf(theFile,"&%s%d_%d[%d]",MethodPrefix(),imageID,
                       methodArrayVersion,methodArrayCount);
      }
-   fprintf(theFile,",%u,0}",theDefgeneric->mcnt);
+   fprintf(theFile,",%hd,0}",theDefgeneric->mcnt);
   }
 
 /****************************************************************
@@ -511,7 +527,7 @@ static void MethodToCode(
   int restrictionArrayVersion,
   int restrictionArrayCount)
   {
-   fprintf(theFile,"{%u,0,%d,%d,%d,%d,%u,0,",
+   fprintf(theFile,"{%hd,0,%hd,%hd,%hd,%hd,%u,0,",
                    theMethod->index,theMethod->restrictionCount,
                    theMethod->minRestrictions,theMethod->maxRestrictions,
                    theMethod->localVarCount,theMethod->system);
@@ -554,7 +570,7 @@ static void RestrictionToCode(
      fprintf(theFile,"&%s%d_%d[%d],",TypePrefix(),imageID,
                                      typeArrayVersion,typeArrayCount);
    ExpressionToCode(theEnv,theFile,theRestriction->query);
-   fprintf(theFile,",%u}",theRestriction->tcnt);
+   fprintf(theFile,",%hd}",theRestriction->tcnt);
   }
 
 /****************************************************************
@@ -580,7 +596,7 @@ static void TypeToCode(
    PrintClassReference(theEnv,theFile,(DEFCLASS *) theType,imageID,maxIndices);
 #else
 
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(imageID)
 #pragma unused(maxIndices)
 #endif

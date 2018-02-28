@@ -285,6 +285,7 @@
 (agenda *)
 (refresh-agenda *)
 (agenda *)
+(set-salience-evaluation when-defined)
 (set-break FOO::d1)
 (set-break BAR::d3)
 (show-breaks BOGUS)

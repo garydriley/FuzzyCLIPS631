@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.24  07/01/05          */
+   /*               CLIPS Version 6.30  08/16/14          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,18 +10,25 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Added fact-set queries.                        */
 /*                                                           */
 /*      6.24: Corrected errors when compiling as a C++ file. */
 /*            DR0868                                         */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Changed garbage collection algorithm.          */
+/*                                                           */
+/*            Fixes for run-time use of query functions.     */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -85,21 +92,16 @@ struct factQueryData
 
 #define QUERY_DELIMETER_STRING     "(QDS)"
 
-LOCALE void SetupFactQuery(void *);
-LOCALE void GetQueryFact(void *,DATA_OBJECT *);
-LOCALE void GetQueryFactSlot(void *,DATA_OBJECT *);
-LOCALE intBool AnyFacts(void *);
-LOCALE void QueryFindFact(void *,DATA_OBJECT *);
-LOCALE void QueryFindAllFacts(void *,DATA_OBJECT *);
-LOCALE void QueryDoForFact(void *,DATA_OBJECT *);
-LOCALE void QueryDoForAllFacts(void *,DATA_OBJECT *);
-LOCALE void DelayedQueryDoForAllFacts(void *,DATA_OBJECT *);
+   LOCALE void                           SetupFactQuery(void *);
+   LOCALE void                           GetQueryFact(void *,DATA_OBJECT *);
+   LOCALE void                           GetQueryFactSlot(void *,DATA_OBJECT *);
+   LOCALE intBool                        AnyFacts(void *);
+   LOCALE void                           QueryFindFact(void *,DATA_OBJECT *);
+   LOCALE void                           QueryFindAllFacts(void *,DATA_OBJECT *);
+   LOCALE void                           QueryDoForFact(void *,DATA_OBJECT *);
+   LOCALE void                           QueryDoForAllFacts(void *,DATA_OBJECT *);
+   LOCALE void                           DelayedQueryDoForAllFacts(void *,DATA_OBJECT *);
 
-#endif
+#endif /* FACT_SET_QUERIES */
 
-#endif
-
-
-
-
-
+#endif /* _H_factqury */

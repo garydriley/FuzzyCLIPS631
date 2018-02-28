@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*             FILE I/O ROUTER HEADER FILE             */
    /*******************************************************/
@@ -17,6 +17,25 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Added environment parameter to GenClose.       */
+/*            Added environment parameter to GenOpen.        */
+/*                                                           */
+/*            Added pragmas to remove compilation warnings.  */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Used gengetc and genungetchar rather than      */
+/*            getc and ungetc.                               */
+/*                                                           */
+/*            Replaced BASIC_IO and ADVANCED_IO compiler     */
+/*            flags with the single IO_FUNCTIONS compiler    */
+/*            flag.                                          */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_filertr
@@ -31,7 +50,7 @@
    
 struct fileRouter
   {
-   char *logicalName;
+   const char *logicalName;
    FILE *stream;
    struct fileRouter *next;
   };
@@ -54,13 +73,13 @@ struct fileRouterData
 #endif
 
    LOCALE void                           InitializeFileRouter(void *);
-   LOCALE FILE                          *FindFptr(void *,char *);
-   LOCALE int                            OpenAFile(void *,char *,char *,char *);
+   LOCALE FILE                          *FindFptr(void *,const char *);
+   LOCALE int                            OpenAFile(void *,const char *,const char *,const char *);
    LOCALE int                            CloseAllFiles(void *);
-   LOCALE int                            CloseFile(void *,char *);
-   LOCALE int                            FindFile(void *,char *);
+   LOCALE int                            CloseFile(void *,const char *);
+   LOCALE int                            FindFile(void *,const char *);
 
-#endif
+#endif /* _H_filertr */
 
 
 

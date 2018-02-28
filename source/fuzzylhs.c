@@ -101,7 +101,7 @@
 
 globle struct fuzzy_value *GetFuzzyLHSPattern(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *theToken,
   struct  fuzzyLv *fzTemplate,
   int *error)

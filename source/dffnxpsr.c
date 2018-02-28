@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.24  06/05/06          */
+   /*               CLIPS Version 6.30  01/25/15          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,7 +10,7 @@
 /* Purpose: Deffunction Parsing Routines                     */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
@@ -25,6 +25,23 @@
 /*                                                           */
 /*            Added pragmas to prevent unused variable       */
 /*            warnings.                                      */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            ENVIRONMENT_API_ONLY no longer supported.      */
+/*                                                           */
+/*            GetConstructNameAndComment API change.         */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Converted API macros to function calls.        */
+/*                                                           */
+/*            Changed find construct functionality so that   */
+/*            imported modules are search when locating a    */
+/*            named construct.                               */
 /*                                                           */
 /*************************************************************/
 
@@ -72,7 +89,7 @@
    =========================================
    ***************************************** */
 
-static intBool ValidDeffunctionName(void *,char *);
+static intBool ValidDeffunctionName(void *,const char *);
 static DEFFUNCTION *AddDeffunction(void *,SYMBOL_HN *,EXPRESSION *,int,int,int,int);
 
 /* =========================================
@@ -94,7 +111,7 @@ static DEFFUNCTION *AddDeffunction(void *,SYMBOL_HN *,EXPRESSION *,int,int,int,i
  ***************************************************************************/
 globle intBool ParseDeffunction(
   void *theEnv,
-  char *readSource)
+  const char *readSource)
   {
    SYMBOL_HN *deffunctionName;
    EXPRESSION *actions;
@@ -122,8 +139,8 @@ globle intBool ParseDeffunction(
       Parse the name and comment fields of the deffunction.
       ===================================================== */
    deffunctionName = GetConstructNameAndComment(theEnv,readSource,&DeffunctionData(theEnv)->DFInputToken,"deffunction",
-                                                EnvFindDeffunction,NULL,
-                                                "!",TRUE,TRUE,TRUE);
+                                                EnvFindDeffunctionInModule,NULL,
+                                                "!",TRUE,TRUE,TRUE,FALSE);
    if (deffunctionName == NULL)
      return(TRUE);
 
@@ -144,7 +161,7 @@ globle intBool ParseDeffunction(
 
    if (ConstructData(theEnv)->CheckSyntaxMode)
      {
-      dptr = (DEFFUNCTION *) EnvFindDeffunction(theEnv,ValueToString(deffunctionName));
+      dptr = (DEFFUNCTION *) EnvFindDeffunctionInModule(theEnv,ValueToString(deffunctionName));
       if (dptr == NULL)
         { dptr = AddDeffunction(theEnv,deffunctionName,NULL,min,max,0,TRUE); }
       else
@@ -282,7 +299,7 @@ globle intBool ParseDeffunction(
  ************************************************************/
 static intBool ValidDeffunctionName(
   void *theEnv,
-  char *theDeffunctionName)
+  const char *theDeffunctionName)
   {
    struct constructHeader *theDeffunction;
 #if DEFGENERIC_CONSTRUCT
@@ -343,7 +360,7 @@ static intBool ValidDeffunctionName(
      }
 #endif
 
-   theDeffunction = (struct constructHeader *) EnvFindDeffunction(theEnv,theDeffunctionName);
+   theDeffunction = (struct constructHeader *) EnvFindDeffunctionInModule(theEnv,theDeffunctionName);
    if (theDeffunction != NULL)
      {
       /* ===========================================
@@ -381,9 +398,6 @@ static intBool ValidDeffunctionName(
   SIDE EFFECTS : Deffunction structures allocated
   NOTES        : Assumes deffunction is not executing
  ****************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 static DEFFUNCTION *AddDeffunction(
   void *theEnv,
   SYMBOL_HN *name,
@@ -398,7 +412,7 @@ static DEFFUNCTION *AddDeffunction(
 #if DEBUGGING_FUNCTIONS
    unsigned DFHadWatch = FALSE;
 #else
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(headerp)
 #endif
 #endif
@@ -409,7 +423,7 @@ static DEFFUNCTION *AddDeffunction(
    /* use the existing structure and remove the pretty print form   */
    /* and interpretive code.                                        */
    /*===============================================================*/
-   dfuncPtr = (DEFFUNCTION *) EnvFindDeffunction(theEnv,ValueToString(name));
+   dfuncPtr = (DEFFUNCTION *) EnvFindDeffunctionInModule(theEnv,ValueToString(name));
    if (dfuncPtr == NULL)
      {
       dfuncPtr = get_struct(theEnv,deffunctionStruct);
@@ -435,7 +449,7 @@ static DEFFUNCTION *AddDeffunction(
       dfuncPtr->busy = oldbusy;
       ReturnPackedExpression(theEnv,dfuncPtr->code);
       dfuncPtr->code = NULL;
-      SetDeffunctionPPForm((void *) dfuncPtr,NULL);
+      EnvSetDeffunctionPPForm(theEnv,(void *) dfuncPtr,NULL);
 
       /* =======================================
          Remove the deffunction from the list so
@@ -470,7 +484,7 @@ static DEFFUNCTION *AddDeffunction(
 #if DEBUGGING_FUNCTIONS
    EnvSetDeffunctionWatch(theEnv,DFHadWatch ? TRUE : DeffunctionData(theEnv)->WatchDeffunctions,(void *) dfuncPtr);
    if ((EnvGetConserveMemory(theEnv) == FALSE) && (headerp == FALSE))
-     SetDeffunctionPPForm((void *) dfuncPtr,CopyPPBuffer(theEnv));
+     EnvSetDeffunctionPPForm(theEnv,(void *) dfuncPtr,CopyPPBuffer(theEnv));
 #endif
    return(dfuncPtr);
   }

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  07/01/05            */
+   /*             CLIPS Version 6.30  08/22/14            */
    /*                                                     */
    /*            CONSTRAINT CHECKING HEADER FILE          */
    /*******************************************************/
@@ -20,6 +20,19 @@
 /*      6.24: Added allowed-classes slot facet.              */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW and       */
+/*            MAC_MCW).                                      */
+/*                                                           */
+/*            Support for long long integers.                */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Dynamic constraint checking for the            */
+/*            allowed-classes constraint now searches        */
+/*            imported modules.                              */
 /*                                                           */
 /*************************************************************/
 
@@ -56,7 +69,7 @@
    LOCALE intBool                        CheckAllowedClassesConstraint(void *,int,void *,CONSTRAINT_RECORD *);
    LOCALE int                            ConstraintCheckExpressionChain(void *,struct expr *,
                                                                      CONSTRAINT_RECORD *);
-   LOCALE void                           ConstraintViolationErrorMessage(void *,char *,char *,int,int,
+   LOCALE void                           ConstraintViolationErrorMessage(void *,const char *,const char *,int,int,
                                                                       struct symbolHashNode *,
                                                                       int,int,CONSTRAINT_RECORD *,
                                                                       int);
@@ -70,7 +83,7 @@
    LOCALE intBool                        UnmatchableConstraint(struct constraintRecord *);
 #endif
 
-#endif
+#endif /* _H_cstrnchk */
 
 
 

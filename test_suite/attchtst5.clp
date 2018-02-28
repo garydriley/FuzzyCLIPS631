@@ -1,0 +1,8 @@
+(defclass A (is-a USER) (multislot sa))
+(defclass B (is-a USER) (slot sb))
+(defclass C (is-a USER) (multislot sc))
+(defclass D (is-a USER) (slot sd))
+(defclass E (is-a USER) (multislot se))
+(defclass F (is-a USER) (slot sf))
+(defclass G (is-a USER) (multislot sg))
+(defclass H (is-a USER) (slot sh))

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.21  06/15/03            */
+   /*             CLIPS Version 6.31  07/10/15            */
    /*                                                     */
    /*                    REORDER MODULE                   */
    /*******************************************************/
@@ -25,6 +25,27 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.30: Support for join network changes.              */
+/*                                                           */
+/*            Changes to the algorithm for processing        */
+/*            not/and CE groups.                             */
+/*                                                           */
+/*            Additional optimizations for combining         */
+/*            conditional elements.                          */
+/*                                                           */
+/*            Added support for hashed alpha memories.       */
+/*                                                           */
+/*      6.31: Fixed crash bug that occurred from             */
+/*            AssignPatternIndices incorrectly               */
+/*            assigning the wrong join depth to              */
+/*            multiply nested nand  groups.                  */
+/*                                                           */
+/*            Removed the marked flag used for not/and       */
+/*            unification.                                   */
+/*                                                           */
+/*            Fix for incorrect join depth computed by       */
+/*            AssignPatternIndices for not/and groups.       */
+/*                                                           */
 /*************************************************************/
 
 #define _REORDER_SOURCE_
@@ -45,29 +66,54 @@
 #include "router.h"
 #include "rulelhs.h"
 
+#if DEVELOPER && DEBUGGING_FUNCTIONS
+#include "watch.h"
+#include "rulepsr.h"
+#endif
+
 #include "reorder.h"
 
+struct variableReference
+   { 
+    struct symbolHashNode *name;
+    int depth;
+    struct variableReference *next;
+   };
+ 
+struct groupReference
+   { 
+    struct lhsParseNode *theGroup;
+    int depth;
+    struct groupReference *next;
+   };
+     
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
    static struct lhsParseNode    *ReverseAndOr(void *,struct lhsParseNode *,struct lhsParseNode *,int);
-   static struct lhsParseNode    *PerformReorder1(void *,struct lhsParseNode *,int *);
-   static struct lhsParseNode    *PerformReorder2(void *,struct lhsParseNode *,int *);
-   static struct lhsParseNode    *CompressCEs(void *,struct lhsParseNode *,int *);
+   static struct lhsParseNode    *PerformReorder1(void *,struct lhsParseNode *,int *,int);
+   static struct lhsParseNode    *PerformReorder2(void *,struct lhsParseNode *,int *,int);
+   static struct lhsParseNode    *CompressCEs(void *,struct lhsParseNode *,int *,int);
    static void                    IncrementNandDepth(void *,struct lhsParseNode *,int);
-   static struct lhsParseNode    *CreateInitialPattern(void *,struct patternParser *);
-   static struct lhsParseNode    *ReorderDriver(void *,struct lhsParseNode *,int *,int);
-   static void                    AddRemainingInitialPatterns(void *,struct lhsParseNode *,struct patternParser *);
-   static void                    PrintNodes(void *,char *,struct lhsParseNode *);
-   static struct lhsParseNode    *AssignPatternIndices(struct lhsParseNode *,short);
+   static struct lhsParseNode    *CreateInitialPattern(void *);
+   static struct lhsParseNode    *ReorderDriver(void *,struct lhsParseNode *,int *,int,int);
+   static struct lhsParseNode    *AddRemainingInitialPatterns(void *,struct lhsParseNode *);
+   static struct lhsParseNode    *AssignPatternIndices(struct lhsParseNode *,short,int,short);
    static void                    PropagateIndexSlotPatternValues(struct lhsParseNode *,
                                                                   short,short,
                                                                   struct symbolHashNode *,
                                                                   short);
-
+   static void                    PropagateJoinDepth(struct lhsParseNode *,short);
+   static void                    PropagateNandDepth(struct lhsParseNode *,int,int);
+   static void                    MarkExistsNands(struct lhsParseNode *);
+   static int                     PropagateWhichCE(struct lhsParseNode *,int);
+   /*
+   static void                    PrintNodes(void *,const char *,struct lhsParseNode *);
+   */
+   
 /********************************************/
-/* ReorderPatterns: Reorders a group of CEs */
+/* ReorderPatterns: Reorders a group of CEs */     
 /*   to accommodate KB Rete topology.       */
 /********************************************/
 globle struct lhsParseNode *ReorderPatterns(
@@ -75,33 +121,36 @@ globle struct lhsParseNode *ReorderPatterns(
   struct lhsParseNode *theLHS,
   int *anyChange)
   {
-   struct lhsParseNode *newLHS, *patternPtr, *tempLHS, *lastLHS;
-   unsigned int whichCE;
+   struct lhsParseNode *newLHS, *tempLHS, *lastLHS;
 
+   /*=============================================*/
+   /* If the LHS of the rule was left unspecified */
+   /* (e.g., (defrule x => ...)), then nothing    */
+   /* more needs to be done.                      */
+   /*=============================================*/
+
+   if (theLHS == NULL) return(theLHS);
+   
    /*===========================================================*/
    /* The LHS of a rule is enclosed within an implied "and" CE. */
    /*===========================================================*/
 
    newLHS = GetLHSParseNode(theEnv);
    newLHS->type = AND_CE;
+   newLHS->right = theLHS;
 
-   /*=============================================*/
-   /* If the LHS of the rule was left unspecified */
-   /* (e.g., (defrule x => ...)), then add an     */
-   /* initial fact or instance pattern to the LHS */
-   /* of the rule. Otherwise, attach the user     */
-   /* specified LHS to the implied "and" Ce.      */
-   /*=============================================*/
-
-   if (theLHS == NULL) newLHS->right = CreateInitialPattern(theEnv,NULL);
-   else newLHS->right = theLHS;
-
+   /*==============================================================*/
+   /* Mark the nodes to indicate which CE they're associated with. */
+   /*==============================================================*/
+   
+   PropagateWhichCE(newLHS,0);
+   
    /*=======================================================*/
    /* Reorder the patterns to support the KB Rete topology. */
    /*=======================================================*/
 
-   newLHS = ReorderDriver(theEnv,newLHS,anyChange,1);
-   newLHS = ReorderDriver(theEnv,newLHS,anyChange,2);
+   newLHS = ReorderDriver(theEnv,newLHS,anyChange,1,1);
+   newLHS = ReorderDriver(theEnv,newLHS,anyChange,2,1);
 
    /*===========================================*/
    /* The top level and CE may have disappeared */
@@ -137,6 +186,20 @@ globle struct lhsParseNode *ReorderPatterns(
       newLHS->right = theLHS;
      }
 
+   /*================================================*/
+   /* Mark exist not/and groups within the patterns. */
+   /*================================================*/
+
+   if (newLHS->type == OR_CE)
+     {
+      for (theLHS = newLHS->right;
+           theLHS != NULL;
+           theLHS = theLHS->bottom)
+        { MarkExistsNands(theLHS->right); }
+     }
+   else
+     { MarkExistsNands(newLHS->right); }
+
    /*=====================================================*/
    /* Add initial patterns where needed (such as before a */
    /* "test" CE or "not" CE which is the first CE within  */
@@ -159,15 +222,7 @@ globle struct lhsParseNode *ReorderPatterns(
    for (;
         theLHS != NULL;
         theLHS = theLHS->bottom)
-     {
-      whichCE = 1;
-      for (patternPtr = theLHS->right;
-           patternPtr != NULL;
-           patternPtr = patternPtr->bottom)
-        { if (patternPtr->userCE) patternPtr->whichCE = whichCE++; }
-
-      AssignPatternIndices(theLHS->right,1);
-     }
+     { AssignPatternIndices(theLHS->right,1,1,0); }
 
    /*===========================*/
    /* Return the processed LHS. */
@@ -184,7 +239,8 @@ static struct lhsParseNode *ReorderDriver(
   void *theEnv,
   struct lhsParseNode *theLHS,
   int *anyChange,
-  int pass)
+  int pass,
+  int depth)
   {
    struct lhsParseNode *argPtr;
    struct lhsParseNode *before, *save;
@@ -213,8 +269,8 @@ static struct lhsParseNode *ReorderDriver(
           (theLHS->type == NOT_CE) ||
           (theLHS->type == OR_CE))
         {
-         if (pass == 1) theLHS = PerformReorder1(theEnv,theLHS,&newChange);
-         else theLHS = PerformReorder2(theEnv,theLHS,&newChange);
+         if (pass == 1) theLHS = PerformReorder1(theEnv,theLHS,&newChange,depth);
+         else theLHS = PerformReorder2(theEnv,theLHS,&newChange,depth);
 
          if (newChange)
            {
@@ -222,7 +278,7 @@ static struct lhsParseNode *ReorderDriver(
             change = TRUE;
            }
 
-         theLHS = CompressCEs(theEnv,theLHS,&newChange);
+         theLHS = CompressCEs(theEnv,theLHS,&newChange,depth);
 
          if (newChange)
            {
@@ -257,14 +313,14 @@ static struct lhsParseNode *ReorderDriver(
             if (before == NULL)
               {
                argPtr->bottom = NULL;
-               theLHS->right = ReorderDriver(theEnv,argPtr,&newChange,pass);
+               theLHS->right = ReorderDriver(theEnv,argPtr,&newChange,pass,depth+1);
                theLHS->right->bottom = save;
                before = theLHS->right;
               }
             else
               {
                argPtr->bottom = NULL;
-               before->bottom = ReorderDriver(theEnv,argPtr,&newChange,pass);
+               before->bottom = ReorderDriver(theEnv,argPtr,&newChange,pass,depth+1);
                before->bottom->bottom = save;
                before = before->bottom;
               }
@@ -293,6 +349,38 @@ static struct lhsParseNode *ReorderDriver(
    return(theLHS);
   }
 
+/********************/
+/* MarkExistsNands: */
+/********************/
+static void MarkExistsNands(
+  struct lhsParseNode *theLHS)
+  {      
+   int currentDepth = 1;
+   struct lhsParseNode *tmpLHS;
+    
+   while (theLHS != NULL)
+     {
+      if (IsExistsSubjoin(theLHS,currentDepth))
+        {
+         theLHS->existsNand = TRUE;
+         
+         for (tmpLHS = theLHS;
+              tmpLHS != NULL;
+              tmpLHS = tmpLHS->bottom)
+           {
+            tmpLHS->beginNandDepth--;
+            if (tmpLHS->endNandDepth <= currentDepth)
+              { break; }
+            else
+              { tmpLHS->endNandDepth--; }
+           }
+        }
+      
+      currentDepth = theLHS->endNandDepth;
+      theLHS = theLHS->bottom;
+     }
+  }
+
 /****************************************************************/
 /* AddInitialPatterns: Add initial patterns to CEs where needed */
 /*   (such as before a "test" CE or "not" CE which is the first */
@@ -303,7 +391,6 @@ globle void AddInitialPatterns(
   struct lhsParseNode *theLHS)
   {
    struct lhsParseNode *thePattern;
-   struct patternParser *lastType;
 
    /*====================================================*/
    /* If there are multiple disjuncts for the rule, then */
@@ -320,47 +407,11 @@ globle void AddInitialPatterns(
       return;
      }
 
-   /*======================================================*/
-   /* Determine what the default pattern type for the rule */
-   /* should be (in case the rule begins with a test CE).  */
-   /* The default pattern type is the type of the data     */
-   /* entity associated with the first pattern CE found in */
-   /* the LHS of the rule.                                 */
-   /*======================================================*/
-
-   for (lastType = NULL, thePattern = theLHS->right;
-        thePattern != NULL;
-        thePattern = thePattern->bottom)
-     {
-      if (thePattern->type == PATTERN_CE)
-        {
-         lastType = thePattern->patternType;
-         break;
-        }
-     }
-
-   /*===================================================*/
-   /* Add an initial pattern to the first CE of a rule  */
-   /* if the CE is a "test" CE, "not" CE or a join from */
-   /* the right.                                        */
-   /*===================================================*/
-
-   if ((theLHS->right->negated) ||
-       (theLHS->right->type == TEST_CE) ||
-       (theLHS->right->beginNandDepth > 1))
-     {
-      thePattern = CreateInitialPattern(theEnv,lastType);
-
-      thePattern->logical = (theLHS->logical || theLHS->right->logical);
-      thePattern->bottom = theLHS->right;
-      theLHS->right = thePattern;
-     }
-
    /*================================*/
    /* Handle the remaining patterns. */
    /*================================*/
 
-   AddRemainingInitialPatterns(theEnv,theLHS->right,lastType);
+   theLHS->right = AddRemainingInitialPatterns(theEnv,theLHS->right);
   }
 
 /***********************************************************/
@@ -371,7 +422,8 @@ globle void AddInitialPatterns(
 static struct lhsParseNode *PerformReorder1(
   void *theEnv,
   struct lhsParseNode *theLHS,
-  int *newChange)
+  int *newChange,
+  int depth)
   {
    struct lhsParseNode *argPtr, *lastArg, *nextArg;
    struct lhsParseNode *tempArg, *newNode;
@@ -433,9 +485,12 @@ static struct lhsParseNode *PerformReorder1(
 
                tempArg->type = NOT_CE;
                tempArg->negated = FALSE;
+               tempArg->exists = FALSE;
+               tempArg->existsNand = FALSE;
                tempArg->logical = FALSE;
                tempArg->value = NULL;
                tempArg->expression = NULL;
+               tempArg->secondaryExpression = NULL;
                tempArg->right = newNode;
 
                tempArg = tempArg->bottom;
@@ -500,7 +555,8 @@ static struct lhsParseNode *PerformReorder1(
 static struct lhsParseNode *PerformReorder2(
   void *theEnv,
   struct lhsParseNode *theLHS,
-  int *newChange)
+  int *newChange,
+  int depth)
   {
    struct lhsParseNode *argPtr;
    int change;
@@ -519,12 +575,71 @@ static struct lhsParseNode *PerformReorder2(
       for (argPtr = theLHS->right;
            argPtr != NULL;)
         {
+         /*=======================================================*/
+         /* A sequence of three not CEs grouped within each other */
+         /* can be replaced with a single not CE. For example,    */
+         /* (not (not (not (a)))) can be replaced with (not (a)). */
+         /*=======================================================*/
+         
+         if ((theLHS->type == NOT_CE) &&
+             (argPtr->type == NOT_CE) &&
+             (argPtr->right != NULL) &&
+             (argPtr->right->type == NOT_CE))
+           {
+            change = TRUE;
+            *newChange = TRUE; 
+            
+            theLHS->right = argPtr->right->right;
+
+            argPtr->right->right = NULL;
+            ReturnLHSParseNodes(theEnv,argPtr);
+
+            break;
+           }
+
+         /*==========================================*/
+         /* Replace two not CEs containing a pattern */
+         /* CE with an exists pattern CE.            */
+         /*==========================================*/
+
+         else if ((theLHS->type == NOT_CE) && 
+                  (argPtr->type == NOT_CE) &&
+                  (argPtr->right != NULL) &&
+                  (argPtr->right->type == PATTERN_CE))
+           {
+            change = TRUE;
+            *newChange = TRUE;
+
+            CopyLHSParseNode(theEnv,theLHS,argPtr->right,FALSE);
+
+            theLHS->negated = TRUE;
+            theLHS->exists = TRUE;
+            theLHS->existsNand = FALSE;
+            theLHS->right = argPtr->right->right;
+
+            argPtr->right->networkTest = NULL; 
+            argPtr->right->externalNetworkTest = NULL;
+            argPtr->right->secondaryNetworkTest = NULL;
+            argPtr->right->externalRightHash = NULL;
+            argPtr->right->externalLeftHash = NULL;
+            argPtr->right->leftHash = NULL;
+            argPtr->right->rightHash = NULL;
+            argPtr->right->betaHash = NULL;
+            argPtr->right->expression = NULL;
+            argPtr->right->secondaryExpression = NULL;
+            argPtr->right->userData = NULL;
+            argPtr->right->right = NULL;
+            argPtr->right->bottom = NULL;
+            ReturnLHSParseNodes(theEnv,argPtr);
+            break;
+           }
+         
          /*======================================*/
          /* Replace not CEs containing a pattern */
          /* CE with a negated pattern CE.        */
          /*======================================*/
 
-         if ((theLHS->type == NOT_CE) && (argPtr->type == PATTERN_CE))
+         else if ((theLHS->type == NOT_CE) && (argPtr->type == PATTERN_CE))
            {
             change = TRUE;
             *newChange = TRUE;
@@ -532,10 +647,22 @@ static struct lhsParseNode *PerformReorder2(
             CopyLHSParseNode(theEnv,theLHS,argPtr,FALSE);
 
             theLHS->negated = TRUE;
+            theLHS->exists = FALSE;
+            theLHS->existsNand = FALSE;
             theLHS->right = argPtr->right;
 
-            argPtr->networkTest = NULL;
+            argPtr->networkTest = NULL; 
+            argPtr->externalNetworkTest = NULL;
+            argPtr->secondaryNetworkTest = NULL;
+            argPtr->externalRightHash = NULL;
+            argPtr->externalLeftHash = NULL;
+            argPtr->constantSelector = NULL;
+            argPtr->constantValue = NULL;
+            argPtr->leftHash = NULL;
+            argPtr->rightHash = NULL;
+            argPtr->betaHash = NULL;
             argPtr->expression = NULL;
+            argPtr->secondaryExpression = NULL;
             argPtr->userData = NULL;
             argPtr->right = NULL;
             argPtr->bottom = NULL;
@@ -558,6 +685,8 @@ static struct lhsParseNode *PerformReorder2(
             theLHS->type = argPtr->type;
 
             theLHS->negated = argPtr->negated;
+            theLHS->exists = argPtr->exists;
+            theLHS->existsNand = argPtr->existsNand;
             theLHS->value = argPtr->value;
             theLHS->logical = argPtr->logical;
             theLHS->right = argPtr->right;
@@ -702,13 +831,14 @@ static struct lhsParseNode *ReverseAndOr(
    return(copyOfCEs);
   }
 
-/***********************************************************/
-/* CompressCEs:              */
-/***********************************************************/
+/****************/
+/* CompressCEs: */
+/****************/
 static struct lhsParseNode *CompressCEs(
   void *theEnv,
   struct lhsParseNode *theLHS,
-  int *newChange)
+  int *newChange,
+  int depth)
   {
    struct lhsParseNode *argPtr, *lastArg, *nextArg;
    struct lhsParseNode *tempArg;
@@ -768,19 +898,15 @@ static struct lhsParseNode *CompressCEs(
             change = TRUE;
             *newChange = TRUE;
 
-            e1 = GenConstant(theEnv,FCALL,ExpressionData(theEnv)->PTR_NOT);
-            e2 = LHSParseNodesToExpression(theEnv,argPtr->expression);
-            e1->arg_list = e2;
+            tempArg = GetLHSParseNode(theEnv);
+            tempArg->type = FCALL;
+            tempArg->value = ExpressionData(theEnv)->PTR_NOT;
+            tempArg->bottom = argPtr->expression;
+            argPtr->expression = tempArg;
 
             CopyLHSParseNode(theEnv,theLHS,argPtr,TRUE);
-
             ReturnLHSParseNodes(theEnv,argPtr);
-            ReturnLHSParseNodes(theEnv,theLHS->expression);
-
-            theLHS->expression = ExpressionToLHSParseNodes(theEnv,e1);
             theLHS->right = NULL;
-            ReturnExpression(theEnv,e1);
-
             break;
            }
 
@@ -798,14 +924,83 @@ static struct lhsParseNode *CompressCEs(
             change = TRUE;
             *newChange = TRUE;
 
-            e1 = LHSParseNodesToExpression(theEnv,argPtr->expression);
-            e2 = LHSParseNodesToExpression(theEnv,argPtr->bottom->expression);
-            e1 = CombineExpressions(theEnv,e1,e2);
+            argPtr->expression = CombineLHSParseNodes(theEnv,argPtr->expression,argPtr->bottom->expression);
+            argPtr->bottom->expression = NULL;
 
-            ReturnLHSParseNodes(theEnv,argPtr->expression);
-            argPtr->expression = ExpressionToLHSParseNodes(theEnv,e1);
-            ReturnExpression(theEnv,e1);
+            tempArg = argPtr->bottom;
+            argPtr->bottom = tempArg->bottom;
+            tempArg->bottom = NULL;
 
+            ReturnLHSParseNodes(theEnv,tempArg);
+           }
+
+         /*========================================================*/
+         /* A test CE can be attached to the preceding pattern CE. */
+         /*========================================================*/
+
+         else if ((theLHS->type == AND_CE) && (argPtr->type == PATTERN_CE) &&
+                  ((argPtr->bottom != NULL) ? argPtr->bottom->type == TEST_CE :
+                                              FALSE) &&
+                   (argPtr->negated == FALSE) &&
+                   (argPtr->exists == FALSE) &&
+                   (argPtr->beginNandDepth == argPtr->endNandDepth) &&
+                   (argPtr->endNandDepth == argPtr->bottom->beginNandDepth))
+           {
+            int endNandDepth;
+            change = TRUE;
+            *newChange = TRUE;
+            
+            endNandDepth = argPtr->bottom->endNandDepth;
+            
+            if (argPtr->negated || argPtr->exists)
+              {
+               e1 = LHSParseNodesToExpression(theEnv,argPtr->secondaryExpression);
+               e2 = LHSParseNodesToExpression(theEnv,argPtr->bottom->expression);
+               e1 = CombineExpressions(theEnv,e1,e2);
+               ReturnLHSParseNodes(theEnv,argPtr->secondaryExpression);
+               argPtr->secondaryExpression = ExpressionToLHSParseNodes(theEnv,e1);
+               ReturnExpression(theEnv,e1);
+              }
+            else
+              {
+               argPtr->expression = CombineLHSParseNodes(theEnv,argPtr->expression,argPtr->bottom->expression);
+               argPtr->bottom->expression = NULL;
+              }
+            
+            if ((theLHS->right == argPtr) && ((argPtr->beginNandDepth - 1) == endNandDepth))
+              {
+               if (argPtr->negated)
+                 {
+                  argPtr->negated = FALSE;
+                  argPtr->exists = TRUE;
+                  e1 = LHSParseNodesToExpression(theEnv,argPtr->secondaryExpression);
+                  e1 = NegateExpression(theEnv,e1);
+                  ReturnLHSParseNodes(theEnv,argPtr->secondaryExpression);
+                  argPtr->secondaryExpression = ExpressionToLHSParseNodes(theEnv,e1);
+                  ReturnExpression(theEnv,e1);
+                 }
+               else if (argPtr->exists)
+                 {
+                  argPtr->negated = TRUE;
+                  argPtr->exists = FALSE;
+                  e1 = LHSParseNodesToExpression(theEnv,argPtr->secondaryExpression);
+                  e1 = NegateExpression(theEnv,e1);
+                  ReturnLHSParseNodes(theEnv,argPtr->secondaryExpression);
+                  argPtr->secondaryExpression = ExpressionToLHSParseNodes(theEnv,e1);
+                  ReturnExpression(theEnv,e1);
+                 }
+               else
+                 {
+                  argPtr->negated = TRUE;
+                 }
+               PropagateNandDepth(argPtr,endNandDepth,endNandDepth);
+              }
+
+            /*========================================*/
+            /* Detach the test CE from its parent and */
+            /* dispose of the data structures.        */
+            /*========================================*/
+            
             tempArg = argPtr->bottom;
             argPtr->bottom = tempArg->bottom;
             tempArg->bottom = NULL;
@@ -826,6 +1021,40 @@ static struct lhsParseNode *CompressCEs(
 
             CopyLHSParseNode(theEnv,theLHS,argPtr,TRUE);
             theLHS->right = NULL;
+            ReturnLHSParseNodes(theEnv,argPtr);
+            break;
+           }
+
+         /*=======================================================*/
+         /* Replace and CEs containing a single pattern CE with   */
+         /* just a pattern CE if this is not the top most and CE. */
+         /*=======================================================*/
+
+         else if ((theLHS->type == AND_CE) && (argPtr->type == PATTERN_CE) &&
+                  (theLHS->right == argPtr) && (argPtr->bottom == NULL) && (depth > 1))
+           {
+            change = TRUE;
+            *newChange = TRUE;
+
+            CopyLHSParseNode(theEnv,theLHS,argPtr,FALSE);
+
+            theLHS->right = argPtr->right;
+
+            argPtr->networkTest = NULL; 
+            argPtr->externalNetworkTest = NULL;
+            argPtr->secondaryNetworkTest = NULL;
+            argPtr->externalRightHash = NULL;
+            argPtr->externalLeftHash = NULL;
+            argPtr->constantSelector = NULL;
+            argPtr->constantValue = NULL;
+            argPtr->leftHash = NULL;
+            argPtr->rightHash = NULL;
+            argPtr->betaHash = NULL;
+            argPtr->expression = NULL;
+            argPtr->secondaryExpression = NULL;
+            argPtr->userData = NULL;
+            argPtr->right = NULL;
+            argPtr->bottom = NULL;
             ReturnLHSParseNodes(theEnv,argPtr);
             break;
            }
@@ -882,6 +1111,8 @@ globle void CopyLHSParseNode(
    dest->type = src->type;
    dest->value = src->value;
    dest->negated = src->negated;
+   dest->exists = src->exists;
+   dest->existsNand = src->existsNand;
    dest->bindingVariable = src->bindingVariable;
    dest->withinMultifieldSlot = src->withinMultifieldSlot;
    dest->multifieldSlot = src->multifieldSlot;
@@ -891,6 +1122,8 @@ globle void CopyLHSParseNode(
    dest->singleFieldsAfter = src->singleFieldsAfter;
    dest->logical = src->logical;
    dest->userCE = src->userCE;
+   //dest->marked = src->marked;
+   dest->whichCE = src->whichCE;
    dest->referringNode = src->referringNode;
    dest->patternType = src->patternType;
    dest->pattern = src->pattern;
@@ -899,6 +1132,7 @@ globle void CopyLHSParseNode(
    dest->slotNumber = src->slotNumber;
    dest->beginNandDepth = src->beginNandDepth;
    dest->endNandDepth = src->endNandDepth;
+   dest->joinDepth = src->joinDepth;
 
    /*==========================================================*/
    /* The duplicate flag controls whether pointers to existing */
@@ -909,6 +1143,15 @@ globle void CopyLHSParseNode(
    if (duplicate)
      {
       dest->networkTest = CopyExpression(theEnv,src->networkTest);
+      dest->externalNetworkTest = CopyExpression(theEnv,src->externalNetworkTest);
+      dest->secondaryNetworkTest = CopyExpression(theEnv,src->secondaryNetworkTest);
+      dest->externalRightHash = CopyExpression(theEnv,src->externalRightHash);
+      dest->externalLeftHash = CopyExpression(theEnv,src->externalLeftHash);
+      dest->constantSelector = CopyExpression(theEnv,src->constantSelector);
+      dest->constantValue = CopyExpression(theEnv,src->constantValue);
+      dest->leftHash = CopyExpression(theEnv,src->leftHash);
+      dest->betaHash = CopyExpression(theEnv,src->betaHash);
+      dest->rightHash = CopyExpression(theEnv,src->rightHash);
       if (src->userData == NULL)
         { dest->userData = NULL; }
       else if (src->patternType->copyUserDataFunction == NULL)
@@ -916,6 +1159,7 @@ globle void CopyLHSParseNode(
       else
         { dest->userData = (*src->patternType->copyUserDataFunction)(theEnv,src->userData); }
       dest->expression = CopyLHSParseNodes(theEnv,src->expression);
+      dest->secondaryExpression = CopyLHSParseNodes(theEnv,src->secondaryExpression);
       dest->constraints = CopyConstraintRecord(theEnv,src->constraints);
       if (dest->constraints != NULL) dest->derivedConstraints = TRUE;
       else dest->derivedConstraints = FALSE;
@@ -923,8 +1167,18 @@ globle void CopyLHSParseNode(
    else
      {
       dest->networkTest = src->networkTest;
+      dest->externalNetworkTest = src->externalNetworkTest;
+      dest->secondaryNetworkTest = src->secondaryNetworkTest;
+      dest->externalRightHash = src->externalRightHash;
+      dest->externalLeftHash = src->externalLeftHash;
+      dest->constantSelector = src->constantSelector;
+      dest->constantValue = src->constantValue;
+      dest->leftHash = src->leftHash;
+      dest->betaHash = src->betaHash;
+      dest->rightHash = src->rightHash;
       dest->userData = src->userData;
       dest->expression = src->expression;
+      dest->secondaryExpression = src->secondaryExpression;
       dest->derivedConstraints = FALSE;
       dest->constraints = src->constraints;
      }
@@ -943,6 +1197,8 @@ globle struct lhsParseNode *GetLHSParseNode(
    newNode->type = UNKNOWN_VALUE;
    newNode->value = NULL;
    newNode->negated = FALSE;
+   newNode->exists = FALSE;
+   newNode->existsNand = FALSE;
    newNode->bindingVariable = FALSE;
    newNode->withinMultifieldSlot = FALSE;
    newNode->multifieldSlot = FALSE;
@@ -953,6 +1209,8 @@ globle struct lhsParseNode *GetLHSParseNode(
    newNode->logical = FALSE;
    newNode->derivedConstraints = FALSE;
    newNode->userCE = TRUE;
+   //newNode->marked = FALSE;
+   newNode->whichCE = 0;
    newNode->constraints = NULL;
    newNode->referringNode = NULL;
    newNode->patternType = NULL;
@@ -962,9 +1220,20 @@ globle struct lhsParseNode *GetLHSParseNode(
    newNode->slotNumber = -1;
    newNode->beginNandDepth = 1;
    newNode->endNandDepth = 1;
+   newNode->joinDepth = 0;
    newNode->userData = NULL;
    newNode->networkTest = NULL;
+   newNode->externalNetworkTest = NULL;
+   newNode->secondaryNetworkTest = NULL;
+   newNode->externalRightHash = NULL;
+   newNode->externalLeftHash = NULL;
+   newNode->constantSelector = NULL;
+   newNode->constantValue = NULL;
+   newNode->leftHash = NULL;
+   newNode->betaHash = NULL;
+   newNode->rightHash = NULL;
    newNode->expression = NULL;
+   newNode->secondaryExpression = NULL;
    newNode->right = NULL;
    newNode->bottom = NULL;
 
@@ -982,9 +1251,19 @@ globle void ReturnLHSParseNodes(
    if (waste != NULL)
      {
       ReturnExpression(theEnv,waste->networkTest);
+      ReturnExpression(theEnv,waste->externalNetworkTest);
+      ReturnExpression(theEnv,waste->secondaryNetworkTest);
+      ReturnExpression(theEnv,waste->externalRightHash);
+      ReturnExpression(theEnv,waste->externalLeftHash);
+      ReturnExpression(theEnv,waste->constantSelector);
+      ReturnExpression(theEnv,waste->constantValue);
+      ReturnExpression(theEnv,waste->leftHash);
+      ReturnExpression(theEnv,waste->betaHash);
+      ReturnExpression(theEnv,waste->rightHash);
       ReturnLHSParseNodes(theEnv,waste->right);
       ReturnLHSParseNodes(theEnv,waste->bottom);
       ReturnLHSParseNodes(theEnv,waste->expression);
+      ReturnLHSParseNodes(theEnv,waste->secondaryExpression);
       if (waste->derivedConstraints) RemoveConstraint(theEnv,waste->constraints);
       if ((waste->userData != NULL) &&
           (waste->patternType->returnUserDataFunction != NULL))
@@ -1151,8 +1430,7 @@ static void IncrementNandDepth(
 /*  CE or when no CEs are specified in the LHS of a rule.  */
 /***********************************************************/
 static struct lhsParseNode *CreateInitialPattern(
-  void *theEnv,
-  struct patternParser *theParser)
+  void *theEnv)
   {
    struct lhsParseNode *topNode;
 
@@ -1164,54 +1442,8 @@ static struct lhsParseNode *CreateInitialPattern(
    topNode->type = PATTERN_CE;
    topNode->userCE = FALSE;
    topNode->bottom = NULL;
-
-   /*==============================================*/
-   /* If a pattern type was not supplied, then try */
-   /* to use the (initial-fact) fact pattern.      */
-   /*==============================================*/
-
-   if (theParser == NULL)
-     { theParser = FindPatternParser(theEnv,"facts"); }
-
-   /*====================================================*/
-   /* If a pattern type was supplied or the initial fact */
-   /* pattern is available, create the initial pattern   */
-   /* with one of those in the given order.              */
-   /*====================================================*/
-
-   if (theParser != NULL)
-     {
-      topNode->right = (*theParser->initialPatternFunction)(theEnv);
-      PropagatePatternType(topNode,theParser);
-      return(topNode);
-     }
-
-   /*=============================================*/
-   /* If neither a pattern type was supplied nor  */
-   /* the initial fact pattern was available, use */
-   /* any available initial pattern.              */
-   /*=============================================*/
-
-   for (theParser = PatternData(theEnv)->ListOfPatternParsers;
-        theParser != NULL;
-        theParser = theParser->next)
-     {
-      if (theParser->initialPatternFunction != NULL)
-        {
-         topNode->right = (*theParser->initialPatternFunction)(theEnv);
-         PropagatePatternType(topNode,theParser);
-         return(topNode);
-        }
-     }
-
-   /*===========================================*/
-   /* There must be at least one pattern parser */
-   /* capable of creating an initial pattern.   */
-   /*===========================================*/
-
-   SystemError(theEnv,"REORDER",2);
-
-   return(NULL);
+   
+   return(topNode);
   }
 
 /*****************************************************************/
@@ -1220,195 +1452,40 @@ static struct lhsParseNode *CreateInitialPattern(
 /*   pattern has been added to the beginning of the rule if one  */
 /*   was needed.                                                 */
 /*****************************************************************/
-static void AddRemainingInitialPatterns(
+static struct lhsParseNode *AddRemainingInitialPatterns(
   void *theEnv,
-  struct lhsParseNode *theLHS,
-  struct patternParser *defaultType)
+  struct lhsParseNode *theLHS)
   {
-   struct lhsParseNode *trackNode, *tempNode, *lastNode;
-
-   /*====================================================*/
-   /* Set the mark flag for each CE in the LHS to FALSE. */
-   /*====================================================*/
-
-   for (trackNode = theLHS; trackNode != NULL; trackNode = trackNode->bottom)
-     { trackNode->marked = FALSE; }
-
-   /*==================================*/
-   /* Loop through each CE in the LHS. */
-   /*==================================*/
-
-   lastNode = NULL;
+   struct lhsParseNode *lastNode = NULL, *thePattern, *rv = theLHS;
+   int currentDepth = 1;
+   
    while (theLHS != NULL)
      {
-      /*===================================*/
-      /* A "not" CE will not propagate its */
-      /* pattern type to following CEs.    */
-      /*===================================*/
-
-      if ((theLHS->negated) && (theLHS->marked))
-        { trackNode = NULL; }
-
-      /*==================================================*/
-      /* A "test" or "not" CE was found that has not been */
-      /* marked. Add an initial pattern before the CE.    */
-      /*==================================================*/
-
-      else if (((theLHS->type == TEST_CE) || (theLHS->negated)) &&
-               (theLHS->marked == FALSE))
+      if ((theLHS->type == TEST_CE) &&
+          (theLHS->beginNandDepth  > currentDepth))
         {
-         if (theLHS->negated) tempNode = CreateInitialPattern(theEnv,theLHS->patternType);
-         else tempNode = CreateInitialPattern(theEnv,defaultType);
-
-         tempNode->logical = theLHS->logical;
-         tempNode->beginNandDepth = theLHS->beginNandDepth;
-         tempNode->endNandDepth = theLHS->beginNandDepth;
-
+         thePattern = CreateInitialPattern(theEnv);
+         thePattern->beginNandDepth = theLHS->beginNandDepth;
+         thePattern->endNandDepth = theLHS->beginNandDepth;
+         thePattern->logical = theLHS->logical;
+         thePattern->existsNand = theLHS->existsNand;
+         theLHS->existsNand = FALSE;
+     
+         thePattern->bottom = theLHS;
+               
          if (lastNode == NULL)
-           { SystemError(theEnv,"REORDER",3); }
-
-         lastNode->bottom = tempNode;
-         tempNode->bottom = theLHS;
-         theLHS = tempNode;
-
-         trackNode = theLHS->bottom;
+           { rv = thePattern; }
+         else
+           { lastNode->bottom = thePattern; }
         }
-
-      /*===================================================*/
-      /* If a pattern CE is found, then propagate its type */
-      /* to following test CEs in the same lexical scope.  */
-      /*===================================================*/
-
-      else
-        { trackNode = theLHS->bottom; }
-
-      /*=======================================================*/
-      /* Mark the pattern type of a "test" or "not" CE as the  */
-      /* same type as the last pattern CE found that is within */
-      /* the same lexical scope as the "test" or "not" CE.     */
-      /*=======================================================*/
-
-      for (;
-           trackNode != NULL;
-           trackNode = trackNode->bottom)
-        {
-         /*=====================================*/
-         /* If the CE isn't in the same lexical */
-         /* scope, move on to the next CE.      */
-         /*=====================================*/
-
-         if (trackNode->beginNandDepth != theLHS->beginNandDepth)
-           { continue; }
-
-         /*=======================================================*/
-         /* Mark a negated CE that is in the same lexical scope.  */
-         /* This signifies that there is a preceeding non-negated */
-         /* pattern and thus no need for an initial pattern to be */
-         /* placed before this CE.                                */
-         /*=======================================================*/
-
-         else if (trackNode->negated)
-           { trackNode->marked = TRUE; }
-
-         /*====================================================*/
-         /* If another non-negated pattern in the same lexical */
-         /* scope if found, stop propagation of the current    */
-         /* pattern type.                                      */
-         /*====================================================*/
-
-         else if (trackNode->type == PATTERN_CE)
-           { break; }
-
-         /*====================================================*/
-         /* A "test" CE in the same lexical scope is marked to */
-         /* indicate that it has a non-negated pattern that it */
-         /* can be attached to.                                */
-         /*====================================================*/
-
-         else if (trackNode->type == TEST_CE)
-           {
-            trackNode->marked = TRUE;
-            trackNode->patternType = theLHS->patternType;
-           }
-        }
-
-      /*====================================*/
-      /* Move on to the next CE in the LHS. */
-      /*====================================*/
-
+        
       lastNode = theLHS;
+      currentDepth = theLHS->endNandDepth;
       theLHS = theLHS->bottom;
      }
-  }
-
-/**********************************************/
-/* PrintNodes: Debugging routine which prints */
-/*   the representation of a CE.              */
-/**********************************************/
-static void PrintNodes(
-  void *theEnv,
-  char *fileid,
-  struct lhsParseNode *theNode)
-  {
-   if (theNode == NULL) return;
-
-   while (theNode != NULL)
-     {
-      switch (theNode->type)
-        {
-         case PATTERN_CE:
-           EnvPrintRouter(theEnv,fileid,"(");
-           if (theNode->negated) EnvPrintRouter(theEnv,fileid,"n");
-           if (theNode->logical) EnvPrintRouter(theEnv,fileid,"l");
-           PrintLongInteger(theEnv,fileid,(long) theNode->beginNandDepth);
-           EnvPrintRouter(theEnv,fileid,"-");
-           PrintLongInteger(theEnv,fileid,(long) theNode->endNandDepth);
-           EnvPrintRouter(theEnv,fileid," ");
-           EnvPrintRouter(theEnv,fileid,ValueToString(theNode->right->bottom->value));
-           EnvPrintRouter(theEnv,fileid,")");
-           break;
-
-         case TEST_CE:
-           EnvPrintRouter(theEnv,fileid,"(test ");
-           PrintLongInteger(theEnv,fileid,(long) theNode->beginNandDepth);
-           EnvPrintRouter(theEnv,fileid,"-");
-           PrintLongInteger(theEnv,fileid,(long) theNode->endNandDepth);
-           EnvPrintRouter(theEnv,fileid,")");
-           break;
-
-         case NOT_CE:
-           if (theNode->logical) EnvPrintRouter(theEnv,fileid,"(lnot ");
-           else EnvPrintRouter(theEnv,fileid,"(not ");;
-           PrintNodes(theEnv,fileid,theNode->right);
-           EnvPrintRouter(theEnv,fileid,")");
-           break;
-
-         case OR_CE:
-           if (theNode->logical) EnvPrintRouter(theEnv,fileid,"(lor ");
-           else EnvPrintRouter(theEnv,fileid,"(or ");
-           PrintNodes(theEnv,fileid,theNode->right);
-           EnvPrintRouter(theEnv,fileid,")");
-           break;
-
-         case AND_CE:
-           if (theNode->logical) EnvPrintRouter(theEnv,fileid,"(land ");
-           else EnvPrintRouter(theEnv,fileid,"(and ");
-           PrintNodes(theEnv,fileid,theNode->right);
-           EnvPrintRouter(theEnv,fileid,")");
-           break;
-
-         default:
-           EnvPrintRouter(theEnv,fileid,"(unknown)");
-           break;
-
-        }
-
-      theNode = theNode->bottom;
-      if (theNode != NULL) EnvPrintRouter(theEnv,fileid," ");
-     }
-
-   return;
-  }
+     
+   return(rv);
+  }   
 
 /*************************************************************/
 /* AssignPatternIndices: For each pattern CE in the LHS of a */
@@ -1425,12 +1502,11 @@ static void PrintNodes(
 /*************************************************************/
 static struct lhsParseNode *AssignPatternIndices(
   struct lhsParseNode *theLHS,
-  short startIndex)
+  short startIndex,
+  int nandDepth,
+  short joinDepth)
   {
-   int depth;
    struct lhsParseNode *theField;
-
-   depth = theLHS->beginNandDepth;
 
    /*====================================*/
    /* Loop through the CEs at this level */
@@ -1449,21 +1525,32 @@ static struct lhsParseNode *AssignPatternIndices(
       /* return to the previous level.                              */
       /*============================================================*/
 
-      if (theLHS->beginNandDepth > depth)
+      if (theLHS->beginNandDepth > nandDepth)
         {
-         theLHS = AssignPatternIndices(theLHS,startIndex);
-         if (theLHS->endNandDepth < depth) return(theLHS);
+         theLHS = AssignPatternIndices(theLHS,startIndex,nandDepth+1,joinDepth);
+
+         if (theLHS->endNandDepth < nandDepth) return(theLHS);
          startIndex++;
+         joinDepth++;
         }
 
       /*=====================================================*/
       /* A test CE is not assigned a pattern index, however, */
       /* if it is the last CE at the end of this level, then */
-      /* return to the previous level.                       */
+      /* return to the previous level. If this is the first  */
+      /* CE in a group, it will have a join created so the   */
+      /* depth should be incremented.                        */
       /*=====================================================*/
 
       else if (theLHS->type == TEST_CE)
-        { if (theLHS->endNandDepth < depth) return(theLHS); }
+        {
+         if (joinDepth == 0)
+           { joinDepth++; }
+         theLHS->joinDepth = joinDepth - 1;
+         PropagateJoinDepth(theLHS->expression,(short) (joinDepth - 1));
+         PropagateNandDepth(theLHS->expression,theLHS->beginNandDepth,theLHS->endNandDepth);
+         if (theLHS->endNandDepth < nandDepth) return(theLHS);
+        }
 
       /*==========================================================*/
       /* The fields of a pattern CE need to be assigned a pattern */
@@ -1474,7 +1561,16 @@ static struct lhsParseNode *AssignPatternIndices(
 
       else if (theLHS->type == PATTERN_CE)
         {
+         if (theLHS->expression != NULL)
+           {
+            PropagateJoinDepth(theLHS->expression,(short) joinDepth);
+            PropagateNandDepth(theLHS->expression,theLHS->beginNandDepth,theLHS->endNandDepth);
+           }
+           
          theLHS->pattern = startIndex;
+         theLHS->joinDepth = joinDepth;
+         PropagateJoinDepth(theLHS->right,joinDepth);
+         PropagateNandDepth(theLHS->right,theLHS->beginNandDepth,theLHS->endNandDepth);
          for (theField = theLHS->right; theField != NULL; theField = theField->right)
            {
             theField->pattern = startIndex;
@@ -1483,8 +1579,9 @@ static struct lhsParseNode *AssignPatternIndices(
                                             theField->slotNumber);
            }
 
-         if (theLHS->endNandDepth < depth) return(theLHS);
+         if (theLHS->endNandDepth < nandDepth) return(theLHS);
          startIndex++;
+         joinDepth++;
         }
 
       /*=========================*/
@@ -1570,6 +1667,301 @@ static void PropagateIndexSlotPatternValues(
         }
      }
    }
+
+/***************************************************/
+/* AssignPatternMarkedFlag: Recursively assigns    */
+/*   value to the marked field of a LHSParseNode.  */
+/***************************************************/
+/*
+globle void AssignPatternMarkedFlag(
+  struct lhsParseNode *theField,
+  short markedValue)
+  {
+   while (theField != NULL)
+     {
+      theField->marked = markedValue;
+      if (theField->bottom != NULL)
+        { AssignPatternMarkedFlag(theField->bottom,markedValue); }
+      if (theField->expression != NULL)
+        { AssignPatternMarkedFlag(theField->expression,markedValue); }
+      if (theField->secondaryExpression != NULL)
+        { AssignPatternMarkedFlag(theField->secondaryExpression,markedValue); }
+      theField = theField->right;
+     }
+  }
+*/
+/*****************************************************************/
+/* PropagateJoinDepth: Recursively assigns a joinDepth to each   */
+/*   node in a LHS node by following the right and bottom links. */
+/*****************************************************************/
+static void PropagateJoinDepth(
+  struct lhsParseNode *theField,
+  short joinDepth)
+  {
+   while (theField != NULL)
+     {
+      theField->joinDepth = joinDepth;
+      if (theField->bottom != NULL)
+        { PropagateJoinDepth(theField->bottom,joinDepth); }
+      if (theField->expression != NULL)
+        { PropagateJoinDepth(theField->expression,joinDepth); }
+      if (theField->secondaryExpression != NULL)
+        { PropagateJoinDepth(theField->secondaryExpression,joinDepth); }
+      theField = theField->right;
+     }
+  }
+
+/**************************************************************/
+/* PropagateNandDepth: Recursively assigns the not/and (nand) */
+/*   depth to each node in a LHS node by following the right, */
+/*   bottom, and expression links.                            */
+/**************************************************************/
+static void PropagateNandDepth(
+  struct lhsParseNode *theField,
+  int beginDepth,
+  int endDepth)
+  { 
+   if (theField == NULL) return;
+   
+   for (; theField != NULL; theField = theField->right)
+      { 
+       theField->beginNandDepth = beginDepth;
+       theField->endNandDepth = endDepth;
+       PropagateNandDepth(theField->expression,beginDepth,endDepth);
+       PropagateNandDepth(theField->secondaryExpression,beginDepth,endDepth);
+       PropagateNandDepth(theField->bottom,beginDepth,endDepth);
+      }
+  }
+
+/*****************************************/
+/* PropagateWhichCE: Recursively assigns */
+/*   an index indicating the user CE.    */
+/*****************************************/
+static int PropagateWhichCE(
+  struct lhsParseNode *theField,
+  int whichCE)
+  {
+   while (theField != NULL)
+     {
+      if ((theField->type == PATTERN_CE) || (theField->type == TEST_CE))
+        { whichCE++; }
+        
+      theField->whichCE = whichCE;
+      
+      whichCE = PropagateWhichCE(theField->right,whichCE);
+      PropagateWhichCE(theField->expression,whichCE);
+      
+      theField = theField->bottom;
+     }
+     
+   return whichCE;
+  }
+
+/********************/
+/* IsExistsSubjoin: */
+/********************/
+globle int IsExistsSubjoin(
+  struct lhsParseNode *theLHS,
+  int parentDepth)
+  {
+   int startDepth = theLHS->beginNandDepth;
+   
+   if ((startDepth - parentDepth) != 2)
+     { return(FALSE); }
+     
+   while (theLHS->endNandDepth >= startDepth)
+     { theLHS = theLHS->bottom; }
+   
+   if (theLHS->endNandDepth <= parentDepth)
+     { return(TRUE); }
+
+   return(FALSE);
+  }
+
+/***************************************************************************/
+/* CombineLHSParseNodes: Combines two expressions into a single equivalent */
+/*   expression. Mainly serves to merge expressions containing "and"       */
+/*   and "or" expressions without unnecessary duplication of the "and"     */
+/*   and "or" expressions (i.e., two "and" expressions can be merged by    */
+/*   placing them as arguments within another "and" expression, but it     */
+/*   is more efficient to add the arguments of one of the "and"            */
+/*   expressions to the list of arguments for the other and expression).   */
+/***************************************************************************/
+globle struct lhsParseNode *CombineLHSParseNodes(
+  void *theEnv,
+  struct lhsParseNode *expr1,
+  struct lhsParseNode *expr2)
+  {
+   struct lhsParseNode *tempPtr;
+
+   /*===========================================================*/
+   /* If the 1st expression is NULL, return the 2nd expression. */
+   /*===========================================================*/
+
+   if (expr1 == NULL) return(expr2);
+
+   /*===========================================================*/
+   /* If the 2nd expression is NULL, return the 1st expression. */
+   /*===========================================================*/
+
+   if (expr2 == NULL) return(expr1);
+
+   /*============================================================*/
+   /* If the 1st expression is an "and" expression, and the 2nd  */
+   /* expression is not an "and" expression, then include the    */
+   /* 2nd expression in the argument list of the 1st expression. */
+   /*============================================================*/
+
+   if ((expr1->value == ExpressionData(theEnv)->PTR_AND) &&
+       (expr2->value != ExpressionData(theEnv)->PTR_AND))
+     {
+      tempPtr = expr1->bottom;
+      if (tempPtr == NULL)
+        {
+         rtn_struct(theEnv,lhsParseNode,expr1);
+         return(expr2);
+        }
+
+      while (tempPtr->right != NULL)
+        { tempPtr = tempPtr->right; }
+
+      tempPtr->right = expr2;
+      return(expr1);
+     }
+
+   /*============================================================*/
+   /* If the 2nd expression is an "and" expression, and the 1st  */
+   /* expression is not an "and" expression, then include the    */
+   /* 1st expression in the argument list of the 2nd expression. */
+   /*============================================================*/
+
+   if ((expr1->value != ExpressionData(theEnv)->PTR_AND) &&
+       (expr2->value == ExpressionData(theEnv)->PTR_AND))
+     {
+      tempPtr = expr2->bottom;
+      if (tempPtr == NULL)
+        {
+         rtn_struct(theEnv,lhsParseNode,expr2);
+         return(expr1);
+        }
+
+      expr2->bottom = expr1;
+      expr1->right = tempPtr;
+
+      return(expr2);
+     }
+
+   /*===========================================================*/
+   /* If both expressions are "and" expressions, then add the   */
+   /* 2nd expression to the argument list of the 1st expression */
+   /* and throw away the extraneous "and" expression.           */
+   /*===========================================================*/
+
+   if ((expr1->value == ExpressionData(theEnv)->PTR_AND) &&
+       (expr2->value == ExpressionData(theEnv)->PTR_AND))
+     {
+      tempPtr = expr1->bottom;
+      if (tempPtr == NULL)
+        {
+         rtn_struct(theEnv,lhsParseNode,expr1);
+         return(expr2);
+        }
+
+      while (tempPtr->right != NULL)
+        { tempPtr = tempPtr->right; }
+
+      tempPtr->right = expr2->bottom;
+      rtn_struct(theEnv,lhsParseNode,expr2);
+
+      return(expr1);
+     }
+
+   /*=====================================================*/
+   /* If neither expression is an "and" expression, then  */
+   /* create an "and" expression and add both expressions */
+   /* to the argument list of that "and" expression.      */
+   /*=====================================================*/
+
+   tempPtr = GetLHSParseNode(theEnv);
+   tempPtr->type = FCALL;
+   tempPtr->value = ExpressionData(theEnv)->PTR_AND;
+   
+   tempPtr->bottom = expr1;
+   expr1->right = expr2;
+   return(tempPtr);
+  }
+
+/**********************************************/
+/* PrintNodes: Debugging routine which prints */
+/*   the representation of a CE.              */
+/**********************************************/
+/*
+static void PrintNodes(
+  void *theEnv,
+  const char *fileid,
+  struct lhsParseNode *theNode)
+  {
+   if (theNode == NULL) return;
+
+   while (theNode != NULL)
+     {
+      switch (theNode->type)
+        {
+         case PATTERN_CE:
+           EnvPrintRouter(theEnv,fileid,"(");
+           if (theNode->negated) EnvPrintRouter(theEnv,fileid,"n");
+           if (theNode->exists) EnvPrintRouter(theEnv,fileid,"x");
+           if (theNode->logical) EnvPrintRouter(theEnv,fileid,"l");
+           PrintLongInteger(theEnv,fileid,(long long) theNode->beginNandDepth);
+           EnvPrintRouter(theEnv,fileid,"-");
+           PrintLongInteger(theEnv,fileid,(long long) theNode->endNandDepth);
+           EnvPrintRouter(theEnv,fileid," ");
+           EnvPrintRouter(theEnv,fileid,ValueToString(theNode->right->bottom->value));
+           EnvPrintRouter(theEnv,fileid,")");
+           break;
+
+         case TEST_CE:
+           EnvPrintRouter(theEnv,fileid,"(test ");
+           PrintLongInteger(theEnv,fileid,(long long) theNode->beginNandDepth);
+           EnvPrintRouter(theEnv,fileid,"-");
+           PrintLongInteger(theEnv,fileid,(long long) theNode->endNandDepth);
+           EnvPrintRouter(theEnv,fileid,")");
+           break;
+
+         case NOT_CE:
+           if (theNode->logical) EnvPrintRouter(theEnv,fileid,"(lnot ");
+           else EnvPrintRouter(theEnv,fileid,"(not ");;
+           PrintNodes(theEnv,fileid,theNode->right);
+           EnvPrintRouter(theEnv,fileid,")");
+           break;
+
+         case OR_CE:
+           if (theNode->logical) EnvPrintRouter(theEnv,fileid,"(lor ");
+           else EnvPrintRouter(theEnv,fileid,"(or ");
+           PrintNodes(theEnv,fileid,theNode->right);
+           EnvPrintRouter(theEnv,fileid,")");
+           break;
+
+         case AND_CE:
+           if (theNode->logical) EnvPrintRouter(theEnv,fileid,"(land ");
+           else EnvPrintRouter(theEnv,fileid,"(and ");
+           PrintNodes(theEnv,fileid,theNode->right);
+           EnvPrintRouter(theEnv,fileid,")");
+           break;
+
+         default:
+           EnvPrintRouter(theEnv,fileid,"(unknown)");
+           break;
+
+        }
+
+      theNode = theNode->bottom;
+      if (theNode != NULL) EnvPrintRouter(theEnv,fileid," ");
+     }
+
+   return;
+  }
+*/
 
 #endif
 

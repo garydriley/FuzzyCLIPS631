@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/02/06            */
+   /*             CLIPS Version 6.30  08/22/14            */
    /*                                                     */
    /*         CONSTRUCT PROFILING FUNCTIONS MODULE        */
    /*******************************************************/
@@ -16,6 +16,7 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Modified OutputProfileInfo to allow a before   */
 /*            and after prefix so that a string buffer does  */
 /*            not need to be created to contain the entire   */
@@ -28,6 +29,14 @@
 /*                                                           */
 /*            Corrected code to remove run-time program      */
 /*            compiler warnings.                             */
+/*                                                           */
+/*      6.30: Used gensprintf instead of sprintf.            */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_TBC).         */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -63,8 +72,8 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static intBool                     OutputProfileInfo(void *,char *,struct constructProfileInfo *,
-                                                        char *,char *,char *,char **);
+   static intBool                     OutputProfileInfo(void *,const char *,struct constructProfileInfo *,
+                                                        const char *,const char *,const char *,const char **);
    static void                        OutputUserFunctionsInfo(void *);
    static void                        OutputConstructsCodeInfo(void *);
 #if (! RUN_TIME)
@@ -144,7 +153,7 @@ globle void DeleteProfileData(
 globle void ProfileCommand(
   void *theEnv)
   {
-   char *argument;
+   const char *argument;
    DATA_OBJECT theValue;
 
    if (EnvArgCountCheck(theEnv,"profile",EXACTLY,1) == -1) return;
@@ -167,7 +176,7 @@ globle void ProfileCommand(
 /******************************/
 globle intBool Profile(
   void *theEnv,
-  char *argument)
+  const char *argument)
   {
    /*======================================================*/
    /* If the argument is the symbol "user-functions", then */
@@ -262,7 +271,7 @@ globle void ProfileInfoCommand(
       
    if (ProfileFunctionData(theEnv)->LastProfileInfo != NO_PROFILE)
      {
-      sprintf(buffer,"Profile elapsed time = %g seconds\n",
+      gensprintf(buffer,"Profile elapsed time = %g seconds\n",
                       ProfileFunctionData(theEnv)->ProfileTotalTime);
       EnvPrintRouter(theEnv,WDISPLAY,buffer);
 
@@ -366,12 +375,12 @@ globle void EndProfile(
 /******************************************/
 static intBool OutputProfileInfo(
   void *theEnv,
-  char *itemName,
+  const char *itemName,
   struct constructProfileInfo *profileInfo,
-  char *printPrefixBefore,
-  char *printPrefix,
-  char *printPrefixAfter,
-  char **banner)
+  const char *printPrefixBefore,
+  const char *printPrefix,
+  const char *printPrefixAfter,
+  const char **banner)
   {
    double percent = 0.0, percentWithKids = 0.0;
    char buffer[512];
@@ -412,7 +421,7 @@ static intBool OutputProfileInfo(
       itemName = "";
      }
 
-   sprintf(buffer,ProfileFunctionData(theEnv)->OutputString,
+   gensprintf(buffer,ProfileFunctionData(theEnv)->OutputString,
                         itemName,
                         (long) profileInfo->numberOfEntries,
 
@@ -585,9 +594,6 @@ static void OutputUserFunctionsInfo(
 /*************************************************/
 /* OutputConstructsCodeInfo:       */
 /*************************************************/
-#if IBM_TBC && (! DEFFUNCTION_CONSTRUCT) && (! DEFGENERIC_CONSTRUCT) && (! OBJECT_SYSTEM) && (! DEFRULE_CONSTRUCT)
-#pragma argsused
-#endif
 static void OutputConstructsCodeInfo(
   void *theEnv)
   {
@@ -612,9 +618,9 @@ static void OutputConstructsCodeInfo(
    unsigned handlerIndex;
 #endif
 #if DEFGENERIC_CONSTRUCT || OBJECT_SYSTEM
-   char *prefix, *prefixBefore, *prefixAfter;
+   const char *prefix, *prefixBefore, *prefixAfter;
 #endif
-   char *banner;
+   const char *banner;
 
    banner = "\n*** Deffunctions ***\n\n";
 
@@ -782,11 +788,11 @@ globle double GetProfilePercentThreshold(
 /**********************************************************/
 /* SetProfileOutputString: Sets the output string global. */
 /**********************************************************/
-globle char *SetProfileOutputString(
+globle const char *SetProfileOutputString(
   void *theEnv,
-  char *value)
+  const char *value)
   {
-   char *oldOutputString;
+   const char *oldOutputString;
 
    if (value == NULL)
      { return(ProfileFunctionData(theEnv)->OutputString); }

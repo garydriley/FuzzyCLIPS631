@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*              PREDICATE FUNCTIONS MODULE             */
    /*******************************************************/
@@ -19,9 +19,16 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Support for long long integers.                */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW and       */
+/*            MAC_MCW).                                      */
 /*                                                           */
 /*************************************************************/
 
@@ -39,14 +46,6 @@
 #include "router.h"
 
 #include "prdctfun.h"
-
-/***************************************/ 
-/* LOCAL INTERNAL FUNCTION DEFINITIONS */
-/***************************************/
-
-#if FUZZY_DEFTEMPLATES
-  intBool                  FuzzyvaluepFunction(void *);
-#endif
 
 /**************************************************/
 /* PredicateFunctionDefinitions: Defines standard */
@@ -87,7 +86,7 @@ globle void PredicateFunctionDefinitions(
    EnvDefineFunction2(theEnv,"fuzzyvaluep", 'b', FuzzyvaluepFunction, "FuzzyvaluepFunction", "11");
 #endif
 #else
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 #endif
@@ -331,7 +330,7 @@ globle intBool FuzzyvaluepFunction(
 
    if (EnvArgCountCheck(theEnv,"fuzzyvaluep",EXACTLY,1) == -1) return(FALSE);
 
-   RtnUnknown(theEnv,1,&valstruct);
+   EnvRtnUnknown(theEnv,1,&valstruct);
 
    if (GetType(valstruct) != FUZZY_VALUE) return(FALSE);
 
@@ -861,7 +860,7 @@ globle intBool OddpFunction(
   void *theEnv)
   {
    DATA_OBJECT item;
-   long num, halfnum;
+   long long num, halfnum;
 
    if (EnvArgCountCheck(theEnv,"oddp",EXACTLY,1) == -1) return(FALSE);
    if (EnvArgTypeCheck(theEnv,"oddp",1,INTEGER,&item) == FALSE) return(FALSE);
@@ -882,7 +881,7 @@ globle intBool EvenpFunction(
   void *theEnv)
   {
    DATA_OBJECT item;
-   long num, halfnum;
+   long long num, halfnum;
 
    if (EnvArgCountCheck(theEnv,"evenp",EXACTLY,1) == -1) return(FALSE);
    if (EnvArgTypeCheck(theEnv,"evenp",1,INTEGER,&item) == FALSE) return(FALSE);

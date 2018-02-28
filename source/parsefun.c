@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/02/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*               PARSING FUNCTIONS MODULE              */
    /*******************************************************/
@@ -21,6 +21,18 @@
 /*                                                           */
 /*      6.24: Corrected code to remove run-time program      */
 /*            compiler warnings.                             */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Fixed function declaration issue when          */
+/*            BLOAD_ONLY compiler flag is set to 1.          */
 /*                                                           */
 /*************************************************************/
 
@@ -49,11 +61,11 @@
 struct parseFunctionData
   { 
    char *ErrorString;
-   int ErrorCurrentPosition;
-   unsigned ErrorMaximumPosition;
+   size_t ErrorCurrentPosition;
+   size_t ErrorMaximumPosition;
    char *WarningString;
-   int WarningCurrentPosition;
-   unsigned WarningMaximumPosition;
+   size_t WarningCurrentPosition;
+   size_t WarningMaximumPosition;
   };
 
 #define ParseFunctionData(theEnv) ((struct parseFunctionData *) GetEnvironmentData(theEnv,PARSEFUN_DATA))
@@ -63,8 +75,8 @@ struct parseFunctionData
 /***************************************/
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   static int                     FindErrorCapture(void *,char *);
-   static int                     PrintErrorCapture(void *,char *,char *);
+   static int                     FindErrorCapture(void *,const char *);
+   static int                     PrintErrorCapture(void *,const char *,const char *);
    static void                    DeactivateErrorCapture(void *);
    static void                    SetErrorCaptureValues(void *,DATA_OBJECT_PTR);
 #endif
@@ -128,10 +140,10 @@ globle void CheckSyntaxFunction(
 /*********************************/
 globle int CheckSyntax(
   void *theEnv,
-  char *theString,
+  const char *theString,
   DATA_OBJECT_PTR returnValue)
   {
-   char *name;
+   const char *name;
    struct token theToken;
    struct expr *top;
    short rv;
@@ -339,14 +351,11 @@ static void SetErrorCaptureValues(
 /* FindErrorCapture: Find routine */
 /*   for the check-syntax router. */
 /**********************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 static int FindErrorCapture(
   void *theEnv,
-  char *logicalName)
+  const char *logicalName)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -363,8 +372,8 @@ static int FindErrorCapture(
 /************************************/
 static int PrintErrorCapture(
   void *theEnv,
-  char *logicalName,
-  char *str)
+  const char *logicalName,
+  const char *str)
   {
    if (strcmp(logicalName,WERROR) == 0)
      {
@@ -403,14 +412,9 @@ globle void CheckSyntaxFunction(
 /************************************************/
 globle int CheckSyntax(
   void *theEnv,
-  char *theString,
+  const char *theString,
   DATA_OBJECT_PTR returnValue)
   {
-#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
-#pragma unused(theString)
-#pragma unused(returnValue)
-#endif
-
    PrintErrorID(theEnv,"PARSEFUN",1,FALSE);
    EnvPrintRouter(theEnv,WERROR,"Function check-syntax does not work in run time modules.\n");
    SetpType(returnValue,SYMBOL);

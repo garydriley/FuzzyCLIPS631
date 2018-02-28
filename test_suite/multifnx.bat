@@ -188,6 +188,19 @@
     (progn$ (?y ?inner)
        (printout t ?y " "))
     (printout t crlf)))
+(foreach)
+(foreach abc)
+(foreach (create$) (bind ?field))
+(foreach ?field (create$) (bind ?field))
+(progn (bind ?x 0) 
+   (foreach ?field (create$ 1 2 3) (bind ?x (+ ?x ?field))))
+(progn
+  (bind ?outer (create$ abc def ghi jkl mno))
+  (foreach ?x ?outer
+    (bind ?inner (subseq$ ?outer ?x-index (length$ ?outer)))
+    (foreach ?y ?inner
+       (printout t ?y " "))
+    (printout t crlf)))
 (first$)
 (first$ 1)
 (first$ (create$ a b c) a)

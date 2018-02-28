@@ -9,7 +9,7 @@
 ;;;          ------
 ;;;        = ROBERT
 ;;;
-;;;     CLIPS Version 5.0 Example
+;;;     CLIPS Version 6.0 Example
 ;;;
 ;;;     To execute, merely load, reset and run.
 ;;;     This example takes alot of memory to execute.
@@ -17,11 +17,11 @@
 
 (defrule startup
   =>
-  (printout t t "The problem is" t t)
-  (printout t "   GERALD" t)
-  (printout t " + DONALD" t)
-  (printout t "   ------" t)
-  (printout t " = ROBERT" t t)
+  (printout t crlf "The problem is" crlf crlf)
+  (printout t "   GERALD" crlf)
+  (printout t " + DONALD" crlf)
+  (printout t "   ------" crlf)
+  (printout t " = ROBERT" crlf crlf)
   (assert (number 0)
           (number 1)
           (number 2)
@@ -84,21 +84,21 @@
               (* 100000 ?g) (* 100000 ?d))
            (+ (* 100000 ?r) (* 10000 ?o) (* 1000 ?b) (* 100 ?e) (* 10 ?r) ?t)))
   =>
-  (printout t "A Solution is:" t t)
-  (printout t "  G = " ?g t)
-  (printout t "  E = " ?e t)
-  (printout t "  R = " ?r t)
-  (printout t "  A = " ?a t)
-  (printout t "  L = " ?l t)
-  (printout t "  D = " ?d t)
-  (printout t "  O = " ?o t)
-  (printout t "  N = " ?n t)
-  (printout t "  B = " ?b t)
-  (printout t "  T = " ?t t)
-  (printout t t)
-  (printout t "   " ?g ?e ?r ?a ?l ?d t)
-  (printout t " + " ?d ?o ?n ?a ?l ?d t) 
-  (printout t "   " "------" t)
-  (printout t " = " ?r ?o ?b ?e ?r ?t t t))  
+  (printout t "A Solution is:" crlf crlf)
+  (printout t "  G = " ?g crlf)
+  (printout t "  E = " ?e crlf)
+  (printout t "  R = " ?r crlf)
+  (printout t "  A = " ?a crlf)
+  (printout t "  L = " ?l crlf)
+  (printout t "  D = " ?d crlf)
+  (printout t "  O = " ?o crlf)
+  (printout t "  N = " ?n crlf)
+  (printout t "  B = " ?b crlf)
+  (printout t "  T = " ?t crlf)
+  (printout t crlf)
+  (printout t "   " ?g ?e ?r ?a ?l ?d crlf)
+  (printout t " + " ?d ?o ?n ?a ?l ?d crlf) 
+  (printout t "   " "------" crlf)
+  (printout t " = " ?r ?o ?b ?e ?r ?t crlf crlf))  
   
  

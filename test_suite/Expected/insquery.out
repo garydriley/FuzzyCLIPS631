@@ -298,52 +298,50 @@ FuzzyCLIPS> (make-instance d of D)
 FuzzyCLIPS> (do-for-all-instances ((?a A)) TRUE
   (printout t ?a crlf))
 [d]
-FuzzyCLIPS> (do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+FuzzyCLIPS> (do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D))
+(do-for-all-instances ((?a D) (?b D) (?c D) (?d D) (?e D) (?f D) (?g D) (?h D) (?i D) (?j D) (?k D) (?l D) (?m D))
      TRUE 
-  (printout t "Should get a nesting error!" crlf
-              "The allowed nesting level was increased," crlf
-              "So this error hasn't been duplicated recently." crlf)
+  (printout t "Should get a nesting error!" crlf)
 ))))))))))))))))))))
 [CLASSFUN2] Maximum number of simultaneous class hierarchy
-  traversals exceeded 128.
+  traversals exceeded 256.
 FALSE
 FuzzyCLIPS> (any-instancep)
 
@@ -596,5 +594,269 @@ FuzzyCLIPS> (deffunction quoxnar ()
      (progn (printout t INS-RETURN ?b crlf) (return))))
 FuzzyCLIPS> (quoxnar)
 INS-RETURN[initial-object]
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defclass POINT (is-a USER) (slot x) (slot y))
+FuzzyCLIPS> (definstances points ([p1] of POINT (x 1) (y 2)) ([p2] of POINT (x 3) (y 4)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (do-for-all-instances ((?f POINT)) TRUE (send ?f delete) (+ ?f:x ?f:y))
+[PRNTUTIL15] The variable/slot reference ?f:x cannot be resolved because the referenced instance [p1] has been deleted.
+[ARGACCES5] Function + expected argument #1 to be of type integer or float
+FALSE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (do-for-all-instances ((?f POINT)) TRUE (+ ?f:x ?f:z))
+[PRNTUTIL16] The variable/slot reference ?f:z is invalid because the referenced instance [p1] does not contain the specified slot.
+[ARGACCES5] Function + expected argument #2 to be of type integer or float
+FALSE
+FuzzyCLIPS> (do-for-all-instances ((?f POINT)) TRUE (+ ?f:x ?f:78))
+[PRNTUTIL14] The variable/slot reference ?f:78 is invalid because slot names must be symbols.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defclass A (is-a USER) (slot x))
+FuzzyCLIPS> (defclass B (is-a USER) (slot y))
+FuzzyCLIPS> (defclass C (is-a USER) (slot z))
 FuzzyCLIPS> 
-(dribble-off)
+(definstances init
+   (a1 of A (x 1)) 
+   (a2 of A (x 2)) 
+   (b1 of B (y 3)) 
+   (b2 of B (y 4)) 
+   (c1 of C (z 5)) 
+   (c2 of C (z 6))
+   (c3 of C (z 7)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-instances ((?a A) (?b B) (?c C)) TRUE 
+  (printout t (if (instance-existp ?a) then ?a:x else "?") " " 
+              (if (instance-existp ?b) then ?b:y else "?") " " 
+              (if (instance-existp ?c) then ?c:z else "?") crlf))
+1 3 5
+1 3 6
+1 3 7
+1 4 5
+1 4 6
+1 4 7
+2 3 5
+2 3 6
+2 3 7
+2 4 5
+2 4 6
+2 4 7
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-instances ((?a A) (?b B) (?c C)) TRUE 
+  (printout t (if (instance-existp ?a) then ?a:x else "?") " " 
+              (if (instance-existp ?b) then ?b:y else "?") " " 
+              (if (instance-existp ?c) then ?c:z else "?") crlf)
+  (if (instance-existp ?a) then (send ?a delete)))
+1 3 5
+2 3 5
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-instances ((?a A) (?b B) (?c C)) TRUE 
+  (printout t (if (instance-existp ?a) then ?a:x else "?") " " 
+              (if (instance-existp ?b) then ?b:y else "?") " " 
+              (if (instance-existp ?c) then ?c:z else "?") crlf)
+  (if (instance-existp ?b) then (send ?b delete)))
+1 3 5
+1 4 5
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-instances ((?a A) (?b B) (?c C)) TRUE 
+  (printout t (if (instance-existp ?a) then ?a:x else "?") " " 
+              (if (instance-existp ?b) then ?b:y else "?") " " 
+              (if (instance-existp ?c) then ?c:z else "?") crlf)
+  (if (instance-existp ?c) then (send ?c delete)))
+1 3 5
+1 3 6
+1 3 7
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-instances ((?a A) (?b B) (?c C)) TRUE 
+  (printout t (if (instance-existp ?a) then ?a:x else "?") " " 
+              (if (instance-existp ?b) then ?b:y else "?") " " 
+              (if (instance-existp ?c) then ?c:z else "?") crlf)
+  (if (instance-existp ?a) then (send ?a delete))
+  (if (instance-existp ?b) then (send ?b delete)))
+1 3 5
+2 4 5
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-instances ((?a A) (?b B) (?c C)) TRUE 
+  (printout t (if (instance-existp ?a) then ?a:x else "?") " " 
+              (if (instance-existp ?b) then ?b:y else "?") " " 
+              (if (instance-existp ?c) then ?c:z else "?") crlf)
+  (if (instance-existp ?b) then (send ?b delete))
+  (if (instance-existp ?c) then (send ?c delete)))
+1 3 5
+1 4 6
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-instances ((?a A) (?b B) (?c C)) TRUE 
+  (printout t (if (instance-existp ?a) then ?a:x else "?") " " 
+              (if (instance-existp ?b) then ?b:y else "?") " " 
+              (if (instance-existp ?c) then ?c:z else "?") crlf)
+  (if (instance-existp ?a) then (send ?a delete))
+  (if (instance-existp ?c) then (send ?c delete)))
+1 3 5
+2 3 6
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(do-for-all-instances ((?a A) (?b B) (?c C)) TRUE 
+  (printout t (if (instance-existp ?a) then ?a:x else "?") " " 
+              (if (instance-existp ?b) then ?b:y else "?") " " 
+              (if (instance-existp ?c) then ?c:z else "?") crlf)
+  (if (instance-existp ?a) then (send ?a delete))
+  (if (instance-existp ?b) then (send ?b delete))
+  (if (instance-existp ?c) then (send ?c delete)))
+1 3 5
+2 4 6
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(delayed-do-for-all-instances ((?a A) (?b B) (?c C)) TRUE 
+  (printout t (if (instance-existp ?a) then ?a:x else "?") " " 
+              (if (instance-existp ?b) then ?b:y else "?") " " 
+              (if (instance-existp ?c) then ?c:z else "?") crlf))
+1 3 5
+1 3 6
+1 3 7
+1 4 5
+1 4 6
+1 4 7
+2 3 5
+2 3 6
+2 3 7
+2 4 5
+2 4 6
+2 4 7
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(delayed-do-for-all-instances ((?a A) (?b B) (?c C)) TRUE 
+  (printout t (if (instance-existp ?a) then ?a:x else "?") " " 
+              (if (instance-existp ?b) then ?b:y else "?") " " 
+              (if (instance-existp ?c) then ?c:z else "?") crlf)
+  (if (instance-existp ?a) then (send ?a delete))
+  (if (instance-existp ?b) then (send ?b delete))
+  (if (instance-existp ?c) then (send ?c delete)))
+1 3 5
+2 4 6
+TRUE
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(find-all-instances ((?a A) (?b B) (?c C)) 
+  (progn (send ?a delete) (send ?b delete) (send ?c delete) FALSE))
+()
+FuzzyCLIPS> (instances)
+[initial-object] of INITIAL-OBJECT
+[c3] of C
+For a total of 2 instances.
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(find-instance ((?a A) (?b B) (?c C)) 
+  (progn (send ?a delete) (send ?b delete) (send ?c delete) FALSE))
+()
+FuzzyCLIPS> (instances)
+[initial-object] of INITIAL-OBJECT
+[c3] of C
+For a total of 2 instances.
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(find-all-instances ((?a A) (?b B) (?c C)) 
+  (progn (if (eq ?b:y 3) then (send ?b delete)) FALSE))
+()
+FuzzyCLIPS> (instances)
+[initial-object] of INITIAL-OBJECT
+[a1] of A
+[a2] of A
+[b2] of B
+[c1] of C
+[c2] of C
+[c3] of C
+For a total of 7 instances.
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(find-instance ((?a A) (?b B) (?c C)) 
+  (progn (if (eq ?b:y 3) then (send ?b delete)) FALSE))
+()
+FuzzyCLIPS> (instances)
+[initial-object] of INITIAL-OBJECT
+[a1] of A
+[a2] of A
+[b2] of B
+[c1] of C
+[c2] of C
+[c3] of C
+For a total of 7 instances.
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(find-all-instances ((?a A) (?b B) (?c C)) 
+  (progn (if (eq ?b:y 3) then (send ?b delete)) 
+         (if (eq ?c:z 5) then (send ?c delete))
+         (if (eq ?a:x 2) then TRUE else FALSE)))
+([a2] [b2] [c2] [a2] [b2] [c3])
+FuzzyCLIPS> (instances)
+[initial-object] of INITIAL-OBJECT
+[a1] of A
+[a2] of A
+[b2] of B
+[c2] of C
+[c3] of C
+For a total of 6 instances.
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> 
+(find-instance ((?a A) (?b B) (?c C)) 
+  (progn (if (eq ?b:y 3) then (send ?b delete)) 
+         (if (eq ?c:z 5) then (send ?c delete))
+         (if (eq ?a:x 2) then TRUE else FALSE)))
+([a2] [b2] [c2])
+FuzzyCLIPS> (instances)
+[initial-object] of INITIAL-OBJECT
+[a1] of A
+[a2] of A
+[b2] of B
+[c2] of C
+[c3] of C
+For a total of 6 instances.
+FuzzyCLIPS> 
+(clear)
+FuzzyCLIPS> (watch instances)
+FuzzyCLIPS> (watch slots)
+FuzzyCLIPS> (defclass FOO (is-a USER) (multislot list))
+FuzzyCLIPS> (make-instance f1 of FOO (list 1 2))
+==> instance [f1] of FOO
+::= local slot list in instance f1 <- (1 2)
+[f1]
+FuzzyCLIPS> 
+(do-for-instance ((?f FOO)) TRUE
+   (send ?f delete)
+   (bind ?x ?f:list)
+   (make-instance of FOO (list ?x 3)))
+<== instance [f1] of FOO
+[PRNTUTIL15] The variable/slot reference ?f:list cannot be resolved because the referenced instance [f1] has been deleted.
+FALSE
+FuzzyCLIPS> 
+(make-instance f2 of FOO (list 3 4))
+==> instance [f2] of FOO
+::= local slot list in instance f2 <- (3 4)
+[f2]
+FuzzyCLIPS> (make-instance f3 of FOO (list 5 6))   
+==> instance [f3] of FOO
+::= local slot list in instance f3 <- (5 6)
+[f3]
+FuzzyCLIPS> 
+(do-for-all-instances ((?f FOO)) TRUE
+   (send ?f delete)
+   (bind ?x ?f:list)
+   (make-instance of FOO (list ?x 3)))
+<== instance [f2] of FOO
+[PRNTUTIL15] The variable/slot reference ?f:list cannot be resolved because the referenced instance [f2] has been deleted.
+FALSE
+FuzzyCLIPS> (unwatch instances)
+FuzzyCLIPS> (unwatch slots)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (dribble-off)

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  07/01/05            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*          CONSTRAINT CONSTRUCTS-TO-C MODULE          */
    /*******************************************************/
@@ -14,13 +14,19 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Added allowed-classes slot facet.              */
 /*                                                           */
 /*            Added environment parameter to GenClose.       */
+/*                                                           */
+/*      6.30: Added support for path name argument to        */
+/*            constructs-to-c.                               */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -47,7 +53,9 @@
 /***********************************************/
 globle int ConstraintsToCode(
   void *theEnv,
-  char *fileName,
+  const char *fileName,
+  const char *pathName,
+  char *fileNameBuffer,
   int fileID,
   FILE *headerFP,
   int imageID,
@@ -133,7 +141,7 @@ globle int ConstraintsToCode(
    /* Create the file. */
    /*==================*/
 
-   if ((fp = NewCFile(theEnv,fileName,fileID,version,FALSE)) == NULL) return(-1);
+   if ((fp = NewCFile(theEnv,fileName,pathName,fileNameBuffer,fileID,version,FALSE)) == NULL) return(-1);
 
    /*===================*/
    /* List the entries. */
@@ -256,7 +264,7 @@ globle int ConstraintsToCode(
             arrayVersion++;
             if (count < numberOfConstraints)
               {
-               if ((fp = NewCFile(theEnv,fileName,1,version,FALSE)) == NULL) return(0);
+               if ((fp = NewCFile(theEnv,fileName,pathName,fileNameBuffer,1,version,FALSE)) == NULL) return(0);
                newHeader = TRUE;
               }
            }

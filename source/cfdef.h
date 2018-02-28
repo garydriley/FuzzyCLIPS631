@@ -64,8 +64,8 @@ struct certaintyFactorData
    LOCALE double                necessity(void *theEnv, struct fuzzy_value *f1, struct fuzzy_value *f2 );
    LOCALE double                similarity(void *theEnv, struct fuzzy_value *f1, struct fuzzy_value *f2 );
    LOCALE void                  InitializeCF(void *theEnv);
-   LOCALE struct expr           *ParseDeclareUncertainty(void *theEnv,char *readSource,
-                                                        char *ruleName,
+   LOCALE struct expr           *ParseDeclareUncertainty(void *theEnv,const char *readSource,
+                                                        const char *ruleName,
                                                         int *error,
                                                         double *cfVALUE);
    LOCALE double                computeStdConclCF(void *theEnv,double theRuleCF,
@@ -77,10 +77,10 @@ struct certaintyFactorData
    LOCALE void                  changeCFofNewFact(void *theEnv,struct fact *newfact);
    LOCALE void                  changeCFofExistingFact(void *theEnv,struct fact *fact1,struct fact *fact2);
    LOCALE void                  changeCFofNewVsExistingFact(struct fact *fact1,struct fact *fact2);
-   LOCALE void                  cfInformationError(void *,char *);
+   LOCALE void                  cfInformationError(void *,const char *);
    LOCALE void                  cfRangeError(void *theEnv);
    LOCALE void                  cfNonNumberError(void *theEnv);
-   LOCALE void                  printCF(void *theEnv,char *logicalName, double cf);
+   LOCALE void                  printCF(void *theEnv,const char *logicalName, double cf);
    LOCALE double                getcf(void *theEnv);
    LOCALE void                  set_threshold(void *theEnv);
    LOCALE double                get_threshold(void *theEnv);

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/22/14            */
    /*                                                     */
    /*                    WATCH MODULE                     */
    /*******************************************************/
@@ -15,9 +15,10 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian Donnell                                        */
+/*      Brian Dantes                                         */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Changed name of variable log to logName        */
 /*            because of Unix compiler warnings of shadowed  */
 /*            definitions.                                   */
@@ -25,6 +26,15 @@
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*            Added EnvSetWatchItem function.                */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Converted API macros to function calls.        */
 /*                                                           */
 /*************************************************************/
 
@@ -50,9 +60,9 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static struct watchItem       *ValidWatchItem(void *,char *,int *);
-   static intBool                 RecognizeWatchRouters(void *,char *);
-   static int                     CaptureWatchPrints(void *,char *,char *);
+   static struct watchItem       *ValidWatchItem(void *,const char *,int *);
+   static intBool                 RecognizeWatchRouters(void *,const char *);
+   static int                     CaptureWatchPrints(void *,const char *,const char *);
    static void                    DeallocateWatchData(void *);
 
 /**********************************************/
@@ -91,12 +101,12 @@ static void DeallocateWatchData(
 /*************************************************************/
 globle intBool AddWatchItem(
   void *theEnv,
-  char *name,
+  const char *name,
   int code,
   unsigned *flag,
   int priority,
   unsigned (*accessFunc)(void *,int,unsigned,struct expr *),
-  unsigned (*printFunc)(void *,char *,int,struct expr *))
+  unsigned (*printFunc)(void *,const char *,int,struct expr *))
   {
    struct watchItem *newPtr, *currentPtr, *lastPtr;
 
@@ -152,7 +162,7 @@ globle intBool AddWatchItem(
 /*****************************************************/
 globle intBool EnvWatch(
   void *theEnv,
-  char *itemName)
+  const char *itemName)
   {
    return(EnvSetWatchItem(theEnv,itemName,ON,NULL));
   }
@@ -162,7 +172,7 @@ globle intBool EnvWatch(
 /*********************************************************/
 globle intBool EnvUnwatch(
   void *theEnv,
-  char *itemName)
+  const char *itemName)
   {
    return(EnvSetWatchItem(theEnv,itemName,OFF,NULL));
   }
@@ -173,7 +183,7 @@ globle intBool EnvUnwatch(
 /***********************************************************************/
 globle int EnvSetWatchItem(
   void *theEnv,
-  char *itemName,
+  const char *itemName,
   unsigned newState,
   struct expr *argExprs)
   {
@@ -264,7 +274,7 @@ globle int EnvSetWatchItem(
 /******************************************************************/
 globle int EnvGetWatchItem(
   void *theEnv,
-  char *itemName)
+  const char *itemName)
   {
    struct watchItem *wPtr;
 
@@ -283,7 +293,7 @@ globle int EnvGetWatchItem(
 /****************************************************************/
 static struct watchItem *ValidWatchItem(
   void *theEnv,
-  char *itemName,
+  const char *itemName,
   int *recognized)
   {
    struct watchItem *wPtr;
@@ -304,7 +314,7 @@ static struct watchItem *ValidWatchItem(
 /*   item in the list of watchable items. If the nth item    */
 /*   does not exist, then NULL is returned.                  */
 /*************************************************************/
-globle char *GetNthWatchName(
+globle const char *GetNthWatchName(
   void *theEnv,
   int whichItem)
   {
@@ -347,7 +357,7 @@ globle void WatchCommand(
   void *theEnv)
   {
    DATA_OBJECT theValue;
-   char *argument;
+   const char *argument;
    int recognized;
    struct watchItem *wPtr;
 
@@ -394,7 +404,7 @@ globle void UnwatchCommand(
   void *theEnv)
   {
    DATA_OBJECT theValue;
-   char *argument;
+   const char *argument;
    int recognized;
    struct watchItem *wPtr;
 
@@ -512,7 +522,7 @@ globle int GetWatchItemCommand(
   void *theEnv)
   {
    DATA_OBJECT theValue;
-   char *argument;
+   const char *argument;
    int recognized;
 
    /*============================================*/
@@ -569,14 +579,11 @@ globle void WatchFunctionDefinitions(
 /**************************************************/
 /* RecognizeWatchRouters: Looks for WTRACE prints */
 /**************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 static intBool RecognizeWatchRouters(
   void *theEnv,
-  char *logName)
+  const char *logName)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -588,21 +595,52 @@ static intBool RecognizeWatchRouters(
 /**************************************************/
 /* CaptureWatchPrints: Suppresses WTRACE messages */
 /**************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 static int CaptureWatchPrints(
   void *theEnv,
-  char *logName,
-  char *str)
+  const char *logName,
+  const char *str)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(logName)
 #pragma unused(str)
 #pragma unused(theEnv)
 #endif
    return(1);
   }
+
+/*#####################################*/
+/* ALLOW_ENVIRONMENT_GLOBALS Functions */
+/*#####################################*/
+
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+globle intBool Watch(
+  const char *itemName)
+  {
+   return(EnvWatch(GetCurrentEnvironment(),itemName));
+  }
+
+globle intBool Unwatch(
+  const char *itemName)
+  {
+   return(EnvUnwatch(GetCurrentEnvironment(),itemName));
+  }
+
+globle int GetWatchItem(
+  const char *itemName)
+  {
+   return EnvGetWatchItem(GetCurrentEnvironment(),itemName);
+  }
+
+globle int SetWatchItem(
+  const char *itemName,
+  unsigned newState,
+  struct expr *argExprs)
+  {
+   return EnvSetWatchItem(GetCurrentEnvironment(),itemName,newState,argExprs);
+  }
+
+#endif
 
 #endif /* DEBUGGING_FUNCTIONS */
 

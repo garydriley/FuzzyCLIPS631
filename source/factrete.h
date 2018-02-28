@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*        FACT RETE ACCESS FUNCTIONS HEADER FILE       */
    /*******************************************************/
@@ -16,7 +16,17 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
+/*      6.24: Removed INCREMENTAL_RESET compilation flag.    */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Support for hashing optimizations.             */
 /*                                                           */
 /*************************************************************/
 

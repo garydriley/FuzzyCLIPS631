@@ -106,6 +106,7 @@ FuzzyCLIPS> (unmake-instance mea)
 <== instance [mea] of MY-EXTERNAL-ADDRESS
 TRUE
 FuzzyCLIPS> (unmake-instance *)
+<== instance [initial-object] of INITIAL-OBJECT
 <== instance [a1] of A1
 <== instance [a2] of A2
 TRUE

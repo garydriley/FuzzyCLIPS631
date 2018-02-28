@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*                DEFTEMPLATE LHS MODULE               */
    /*******************************************************/
@@ -21,6 +21,11 @@
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Support for rete network exists node.          */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -61,11 +66,11 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static struct lhsParseNode    *GetLHSSlots(void *,char *,struct token *,struct deftemplate *,int *);
-   static struct lhsParseNode    *GetSingleLHSSlot(void *,char *,struct token *,
+   static struct lhsParseNode    *GetLHSSlots(void *,const char *,struct token *,struct deftemplate *,int *);
+   static struct lhsParseNode    *GetSingleLHSSlot(void *,const char *,struct token *,
                                                    struct templateSlot *,int *,short);
 #if FUZZY_DEFTEMPLATES     /* added 03-11-96 */
-   static struct lhsParseNode    *GetFuzzySingleLHSSlot(void *,char *,struct token *,
+   static struct lhsParseNode    *GetFuzzySingleLHSSlot(void *,const char *,struct token *,
                                                    struct deftemplate *,int *,int);
 #endif
    static intBool                 MultiplyDefinedLHSSlots(void *,struct lhsParseNode *,SYMBOL_HN *);
@@ -76,7 +81,7 @@
 /*********************************************/
 globle struct lhsParseNode *DeftemplateLHSParse(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct deftemplate *theDeftemplate)
   {
    struct lhsParseNode *head, *firstSlot;
@@ -101,11 +106,13 @@ globle struct lhsParseNode *DeftemplateLHSParse(
    head = GetLHSParseNode(theEnv);
    head->type = SF_WILDCARD;
    head->negated = FALSE;
+   head->exists = FALSE;
    head->index = 0;
    head->slotNumber = 1;
    head->bottom = GetLHSParseNode(theEnv);
    head->bottom->type = SYMBOL;
    head->bottom->negated = FALSE;
+   head->bottom->exists = FALSE;
    head->bottom->value = (void *) theDeftemplate->header.name;
 
    /*==========================================*/
@@ -173,7 +180,7 @@ globle struct lhsParseNode *DeftemplateLHSParse(
 /******************************************/
 static struct lhsParseNode *GetLHSSlots(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *tempToken,
   struct deftemplate *theDeftemplate,
   int *error)
@@ -287,7 +294,7 @@ static struct lhsParseNode *GetLHSSlots(
 /*****************************************************/
 static struct lhsParseNode *GetSingleLHSSlot(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *tempToken,
   struct templateSlot *slotPtr,
   int *error,
@@ -399,7 +406,7 @@ static struct lhsParseNode *GetSingleLHSSlot(
 /*****************************************************/
 static struct lhsParseNode *GetFuzzySingleLHSSlot(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *tempToken,
   struct deftemplate *theDeftemplate,
   int *error,

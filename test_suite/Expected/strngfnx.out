@@ -90,6 +90,8 @@ FuzzyCLIPS> (sub-string -1 0 "abc")            ; 10.4.3
 ""
 FuzzyCLIPS> (sub-string 3 8 "abcdefghijkl")    ; 10.4.3
 "cdefgh"
+FuzzyCLIPS> (sub-string 1 1 "")                ; 10.4.3
+""
 FuzzyCLIPS> (str-index)                        ; 10.4.4
 [ARGACCES4] Function str-index expected exactly 2 argument(s)
 FuzzyCLIPS> (str-index "a")                    ; 10.4.4
@@ -153,6 +155,8 @@ FuzzyCLIPS> (eval "[ab]")                      ; 10.4.5
 FuzzyCLIPS> (eval "(+ 3 (* 4 5))")             ; 10.4.5
 23
 FuzzyCLIPS> (eval "(facts)")                   ; 10.4.5
+f-0     (initial-fact) CF 1.00 
+For a total of 1 fact.
 FuzzyCLIPS> (eval "?x")                        ; 10.4.5
 [STRNGFUN2] Some variables could not be accessed by the eval function.
 FALSE

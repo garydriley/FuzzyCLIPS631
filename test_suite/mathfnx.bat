@@ -409,4 +409,10 @@
 (mod 10.0 4.0)                     ; 10.6.2.13 : 2.0
 (mod 5 2)                          ; 10.6.2.13 : 1
 (format nil "%0.6f" (mod 3.7 1.2)) ; 10.6.2.13 : 0.1
+(div -9223372036854775808 -1)      ; Error
+(mod -9223372036854775808 -1)      ; Error
+(set-auto-float-dividend FALSE)
+(/ -9223372036854775808 -1)        ; Error in 6.3
+(set-auto-float-dividend TRUE)
+(/ -9223372036854775808 -1)
 (clear)

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.24  06/05/06          */
+   /*               CLIPS Version 6.30  08/16/14          */
    /*                                                     */
    /*                 BSAVE HEADER FILE                   */
    /*******************************************************/
@@ -11,13 +11,25 @@
 /*                                                           */
 /* Principal Programmer(s):                                  */
 /*      Gary D. Riley                                        */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
+/*                                                           */
+/*            Used genstrncpy instead of strncpy.            */
+/*                                                           */
+/*            Borland C (IBM_TBC) and Metrowerks CodeWarrior */
+/*            (MAC_MCW, IBM_MCW) are no longer supported.    */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Converted API macros to function calls.        */
 /*                                                           */
 /*************************************************************/
 
@@ -47,7 +59,7 @@ struct BinaryItem;
 
 struct BinaryItem
   {
-   char *name;
+   const char *name;
    void (*findFunction)(void *);
    void (*bloadStorageFunction)(void *);
    void (*bloadFunction)(void *);
@@ -87,21 +99,15 @@ struct bsaveData
 
 #define BsaveData(theEnv) ((struct bsaveData *) GetEnvironmentData(theEnv,BSAVE_DATA))
 
-#if ENVIRONMENT_API_ONLY
-#define Bsave(theEnv,a) EnvBsave(theEnv,a)
-#else
-#define Bsave(a) EnvBsave(GetCurrentEnvironment(),a)
-#endif
-
    LOCALE void                    InitializeBsaveData(void *);
    LOCALE int                     BsaveCommand(void *);
 #if BLOAD_AND_BSAVE
-   LOCALE intBool                 EnvBsave(void *,char *);
+   LOCALE intBool                 EnvBsave(void *,const char *);
    LOCALE void                    MarkNeededItems(void *,struct expr *);
    LOCALE void                    SaveBloadCount(void *,long);
    LOCALE void                    RestoreBloadCount(void *,long *);
 #endif
-   LOCALE intBool                 AddBinaryItem(void *,char *,int,
+   LOCALE intBool                 AddBinaryItem(void *,const char *,int,
                                                 void (*)(void *),
                                                 void (*)(void *,FILE *),
                                                 void (*)(void *,FILE *),
@@ -110,11 +116,13 @@ struct bsaveData
                                                 void (*)(void *),
                                                 void (*)(void *));
 
-#ifndef _BSAVE_SOURCE_
-   extern struct BinaryItem      *ListOfBinaryItems;
-#endif
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+   LOCALE intBool                 Bsave(const char *);
 
 #endif
+
+#endif /* _H_bsave */
 
 
 

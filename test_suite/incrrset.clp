@@ -105,6 +105,14 @@
    (reset)
    (assert (e) (f) (g) (h))
    (run)
+   ; Sharing of joins from the right
+   (undefrule *)
+   (reset)
+   (printout t "Test 7 - 0 Rules should fire..." crlf)
+   (assert (a) (b) (c) (d))
+   (make-rule blah-1 95 "(a) (not (and (b) (c)))" 1st)
+   (make-rule blah-2 90 "(d) (not (and (b) (c)))" 2nd)
+   (run)
    (undefrule *)
    )
 

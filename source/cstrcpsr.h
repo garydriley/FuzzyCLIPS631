@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*              CONSTRUCT PARSER MODULE                */
    /*******************************************************/
@@ -16,6 +16,30 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Added environment parameter to GenClose.       */
+/*            Added environment parameter to GenOpen.        */
+/*                                                           */
+/*            Made the construct redefinition message more   */
+/*            prominent.                                     */
+/*                                                           */
+/*            Added pragmas to remove compilation warnings.  */
+/*                                                           */
+/*      6.30: Added code for capturing errors/warnings.      */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW, MAC_MCW, */
+/*            and IBM_TBC).                                  */
+/*                                                           */
+/*            Changed garbage collection algorithm.          */
+/*                                                           */
+/*            GetConstructNameAndComment API change.         */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Fixed linkage issue when BLOAD_ONLY compiler   */
+/*            flag is set to 1.                              */
 /*                                                           */
 /*************************************************************/
 
@@ -43,22 +67,31 @@
 #define LOCALE extern
 #endif
 
-#if ENVIRONMENT_API_ONLY
-#define Load(theEnv,a) EnvLoad(theEnv,a)
-#else
-#define Load(a) EnvLoad(GetCurrentEnvironment(),a)
+#if ALLOW_ENVIRONMENT_GLOBALS
+   LOCALE int                            Load(const char *);
 #endif
 
-   LOCALE int                            EnvLoad(void *,char *);
-   LOCALE int                            LoadConstructsFromLogicalName(void *,char *);
-   LOCALE int                            ParseConstruct(void *,char *,char *);
+   LOCALE int                            EnvLoad(void *,const char *);
+   LOCALE int                            LoadConstructsFromLogicalName(void *,const char *);
+   LOCALE int                            ParseConstruct(void *,const char *,const char *);
    LOCALE void                           RemoveConstructFromModule(void *,struct constructHeader *);
-   LOCALE struct symbolHashNode         *GetConstructNameAndComment(void *,char *,
-                                         struct token *,char *,
-                                         void *(*)(void *,char *),
-                                         int (*)(void *,void *),
-                                         char *,int,int,int);
-   LOCALE void                           ImportExportConflictMessage(void *,char *,char *,char *,char *);
+   LOCALE struct symbolHashNode         *GetConstructNameAndComment(void *,const char *,
+                                                                    struct token *,const char *,
+                                                                    void *(*)(void *,const char *),
+                                                                    int (*)(void *,void *),
+                                                                    const char *,int,int,int,int);
+   LOCALE void                           ImportExportConflictMessage(void *,const char *,const char *,const char *,const char *);
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+   LOCALE void                           FlushParsingMessages(void *);
+   LOCALE char                          *EnvGetParsingFileName(void *);
+   LOCALE void                           EnvSetParsingFileName(void *,const char *);
+   LOCALE char                          *EnvGetErrorFileName(void *);
+   LOCALE void                           EnvSetErrorFileName(void *,const char *);
+   LOCALE char                          *EnvGetWarningFileName(void *);
+   LOCALE void                           EnvSetWarningFileName(void *,const char *);
+   LOCALE void                           CreateErrorCaptureRouter(void *);
+   LOCALE void                           DeleteErrorCaptureRouter(void *);
+#endif
 
 #endif
 

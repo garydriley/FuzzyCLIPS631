@@ -350,7 +350,7 @@ static void STORE_THE_POINT(
   if (i >= result->maxn)
     { /* exceeding space allocated for the array of points */
       SystemError(theEnv,"FUZZYUTL - STORE_THE_POINT routine", 903);
-      ExitCLIPS(2);
+      EnvExitRouter(theEnv,2);
     }
     
   /* if yvalue is > 1.0 or < 0.0 could be a rounding problem -- set to 0 or 1 */
@@ -2619,7 +2619,7 @@ globle void changeValueOfFuzzySlots(
  
 globle    void PrintFuzzyTemplateFact( 
  void *theEnv,
- char *logName,
+ const char *logName,
 #if CERTAINTY_FACTORS  
  struct fuzzy_value *fv,
  double CF)   
@@ -2681,7 +2681,7 @@ globle    void PrintFuzzyTemplateFact(
 /*************************************************************/
 static void PrintFloatFuzzy(
   void *theEnv,
-  char *logName,
+  const char *logName,
   double number)
   {
    char floatString[40];
@@ -2711,7 +2711,7 @@ static void PrintFloatFuzzy(
  
 globle    void PrintFuzzySet(
  void *theEnv,
- char *logName,
+ const char *logName,
  struct fuzzy_value *fv)
  {
    int i, j;

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.23  01/31/05            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,12 +10,20 @@
 /* Purpose: Deffunction Execution Routines                   */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
+/*      6.30: Changed garbage collection algorithm.          */
+/*                                                           */
+/*            Changed integer type/precision.                */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -32,6 +40,8 @@
 #define _STDIO_INCLUDED_
 #include <stdio.h>
 #endif
+
+#include <string.h>
 
 #include "constrct.h"
 #include "envrnmnt.h"
@@ -62,7 +72,7 @@
 static void UnboundDeffunctionErr(void *);
 
 #if DEBUGGING_FUNCTIONS
-static void WatchDeffunction(void *,char *);
+static void WatchDeffunction(void *,const char *);
 #endif
 
 /* =========================================
@@ -90,6 +100,8 @@ globle void CallDeffunction(
   {
    int oldce;
    DEFFUNCTION *previouslyExecutingDeffunction;
+   struct garbageFrame newGarbageFrame;
+   struct garbageFrame *oldGarbageFrame;
 #if PROFILING_FUNCTIONS
    struct profileFrameInfo profileFrame;
 #endif
@@ -99,6 +111,12 @@ globle void CallDeffunction(
    EvaluationData(theEnv)->EvaluationError = FALSE;
    if (EvaluationData(theEnv)->HaltExecution)
      return;
+     
+   oldGarbageFrame = UtilityData(theEnv)->CurrentGarbageFrame;
+   memset(&newGarbageFrame,0,sizeof(struct garbageFrame));
+   newGarbageFrame.priorFrame = oldGarbageFrame;
+   UtilityData(theEnv)->CurrentGarbageFrame = &newGarbageFrame;
+
    oldce = ExecutingConstruct(theEnv);
    SetExecutingConstruct(theEnv,TRUE);
    previouslyExecutingDeffunction = DeffunctionData(theEnv)->ExecutingDeffunction;
@@ -112,7 +130,10 @@ globle void CallDeffunction(
       dptr->executing--;
       DeffunctionData(theEnv)->ExecutingDeffunction = previouslyExecutingDeffunction;
       EvaluationData(theEnv)->CurrentEvaluationDepth--;
-      PeriodicCleanup(theEnv,FALSE,TRUE);
+      
+      RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,result);
+      CallPeriodicTasks(theEnv);
+
       SetExecutingConstruct(theEnv,oldce);
       return;
      }
@@ -146,8 +167,10 @@ globle void CallDeffunction(
    PopProcParameters(theEnv);
    DeffunctionData(theEnv)->ExecutingDeffunction = previouslyExecutingDeffunction;
    EvaluationData(theEnv)->CurrentEvaluationDepth--;
-   PropagateReturnValue(theEnv,result);
-   PeriodicCleanup(theEnv,FALSE,TRUE);
+   
+   RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,result);
+   CallPeriodicTasks(theEnv);
+   
    SetExecutingConstruct(theEnv,oldce);
   }
 
@@ -191,7 +214,7 @@ static void UnboundDeffunctionErr(
  ***************************************************/
 static void WatchDeffunction(
   void *theEnv,
-  char *tstring)
+  const char *tstring)
   {
    EnvPrintRouter(theEnv,WTRACE,"DFN ");
    EnvPrintRouter(theEnv,WTRACE,tstring);
@@ -203,7 +226,7 @@ static void WatchDeffunction(
      }
    EnvPrintRouter(theEnv,WTRACE,ValueToString(DeffunctionData(theEnv)->ExecutingDeffunction->header.name));
    EnvPrintRouter(theEnv,WTRACE," ED:");
-   PrintLongInteger(theEnv,WTRACE,(long) EvaluationData(theEnv)->CurrentEvaluationDepth);
+   PrintLongInteger(theEnv,WTRACE,(long long) EvaluationData(theEnv)->CurrentEvaluationDepth);
    PrintProcParamArray(theEnv,WTRACE);
   }
 

@@ -19,7 +19,7 @@ FuzzyCLIPS> (open blah5.dat blah5 r)           ; 10.5.2.1
 [ARGACCES5] Function open expected argument #3 to be of type string
 FALSE
 FuzzyCLIPS> (open blah6.dat blah6 "x")         ; 10.5.2.1
-[ARGACCES5] Function open expected argument #3 to be of type string with value "r", "r+", "w", "wb", or "a"
+[ARGACCES5] Function open expected argument #3 to be of type string with value "r", "w", "a", "rb", "wb", or "ab"
 FALSE
 FuzzyCLIPS> (open blah7.dat blah7 8)           ; 10.5.2.1
 [ARGACCES5] Function open expected argument #3 to be of type string
@@ -111,11 +111,11 @@ FuzzyCLIPS> (format (create$))                 ; 10.5.2.6
 FuzzyCLIPS> (format t "%f%%%n")                ; 10.5.2.6
 [ARGACCES4] Function format expected exactly 3 argument(s)
 ""
-FuzzyCLIPS> (format nil "Integer: |%ld|" 12)   ; 10.5.2.6
+FuzzyCLIPS> (format nil "Integer: |%d|" 12)    ; 10.5.2.6
 "Integer: |12|"
-FuzzyCLIPS> (format t "Integer: |%4ld|" 12)    ; 10.5.2.6
+FuzzyCLIPS> (format t "Integer: |%4d|" 12)     ; 10.5.2.6
 Integer: |  12|"Integer: |  12|"
-FuzzyCLIPS> (format nil "Integer: |%-04ld|" 12)
+FuzzyCLIPS> (format nil "Integer: |%-04d|" 12)
 "Integer: |12  |"
 FuzzyCLIPS> (format t "Float:   |%f|" 12.01)   ; 10.5.2.6
 Float:   |12.010000|"Float:   |12.010000|"
@@ -150,4 +150,81 @@ FuzzyCLIPS> (format nil "%g" (create$))        ; 10.5.2.6
 ""
 FuzzyCLIPS> (format t "%o" 9.8)                ; 10.5.2.6
 11"11"
+FuzzyCLIPS> (remove "Temp/iofun.dat")          ; Open function modes
+FALSE
+FuzzyCLIPS> (open "Temp/iofun.dat" temp "bogus")
+[ARGACCES5] Function open expected argument #3 to be of type string with value "r", "w", "a", "rb", "wb", or "ab"
+FALSE
+FuzzyCLIPS> (close temp)
+FALSE
+FuzzyCLIPS> (remove "Temp/iofun.dat") 
+FALSE
+FuzzyCLIPS> (open "Temp/iofun.dat" temp "r")
+FALSE
+FuzzyCLIPS> (close temp)
+FALSE
+FuzzyCLIPS> (remove "Temp/iofun.dat") 
+FALSE
+FuzzyCLIPS> (open "Temp/iofun.dat" temp "w")
+TRUE
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (remove "Temp/iofun.dat") 
+TRUE
+FuzzyCLIPS> (open "Temp/iofun.dat" temp "a")
+TRUE
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (remove "Temp/iofun.dat") 
+TRUE
+FuzzyCLIPS> (open "Temp/iofun.dat" temp "rb")
+FALSE
+FuzzyCLIPS> (close temp)
+FALSE
+FuzzyCLIPS> (remove "Temp/iofun.dat") 
+FALSE
+FuzzyCLIPS> (open "Temp/iofun.dat" temp "wb")
+TRUE
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (remove "Temp/iofun.dat") 
+TRUE
+FuzzyCLIPS> (open "Temp/iofun.dat" temp "ab")
+TRUE
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (remove "Temp/iofun.dat") 
+TRUE
+FuzzyCLIPS> (open "Temp/iofun.dat" temp "w")
+TRUE
+FuzzyCLIPS> (printout temp red crlf)
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (open "Temp/iofun.dat" temp "r")
+TRUE
+FuzzyCLIPS> (read temp)
+red
+FuzzyCLIPS> (read temp)
+EOF
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (open "Temp/iofun.dat" temp "a")
+TRUE
+FuzzyCLIPS> (read temp)
+EOF
+FuzzyCLIPS> (printout temp green crlf)
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (open "Temp/iofun.dat" temp "r")
+TRUE
+FuzzyCLIPS> (read temp)
+red
+FuzzyCLIPS> (read temp)
+green
+FuzzyCLIPS> (read temp)
+EOF
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (remove "Temp/iofun.dat") 
+TRUE
 FuzzyCLIPS> (dribble-off)

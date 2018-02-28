@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.31  01/14/18            */
    /*                                                     */
    /*              DEFMODULE UTILITY MODULE               */
    /*******************************************************/
@@ -15,19 +15,29 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Used genstrncpy instead of strncpy.            */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*      6.31: Used strstr function to find module separator. */
 /*                                                           */
 /*************************************************************/
 
 #define _MODULUTL_SOURCE_
+
+#include <string.h>
 
 #include "setup.h"
 
 #include "memalloc.h"
 #include "router.h"
 #include "envrnmnt.h"
+#include "sysdep.h"
 
 #include "modulpsr.h"
 #include "modulutl.h"
@@ -48,22 +58,16 @@
 /*   position of the second colon within the string is returned.    */
 /********************************************************************/
 globle unsigned FindModuleSeparator(
-  char *theString)
+  const char *theString)
   {
-   unsigned i, foundColon;
+   char *sep;
 
-   for (i = 0, foundColon = FALSE; theString[i] != EOS; i++)
-     {
-      if (theString[i] == ':')
-        {
-         if (foundColon) return(i);
-         foundColon = TRUE;
-        }
-      else
-        { foundColon = FALSE; }
-     }
+   sep = strstr(theString,"::");
 
-   return(FALSE);
+   if (sep == NULL)
+     { return 0; }
+   
+   return ((unsigned) (sep - theString) + 1);
   }
 
 /*******************************************************************/
@@ -75,7 +79,7 @@ globle unsigned FindModuleSeparator(
 globle SYMBOL_HN *ExtractModuleName(
   void *theEnv,
   unsigned thePosition,
-  char *theString)
+  const char *theString)
   {
    char *newString;
    SYMBOL_HN *returnValue;
@@ -97,7 +101,7 @@ globle SYMBOL_HN *ExtractModuleName(
    /* Copy the entire module/construct name to the string. */
    /*======================================================*/
 
-   strncpy(newString,theString,
+   genstrncpy(newString,theString,
            (STD_SIZE) thePosition - 1);
 
    /*========================================================*/
@@ -135,7 +139,7 @@ globle SYMBOL_HN *ExtractModuleName(
 globle SYMBOL_HN *ExtractConstructName(
   void *theEnv,
   unsigned thePosition,
-  char *theString)
+  const char *theString)
   {
    size_t theLength;
    char *newString;
@@ -173,7 +177,7 @@ globle SYMBOL_HN *ExtractConstructName(
    /* module/construct name to the temporary string. */
    /*================================================*/
 
-   strncpy(newString,&theString[thePosition+1],
+   genstrncpy(newString,&theString[thePosition+1],
            (STD_SIZE) theLength - thePosition);
 
    /*=============================================*/
@@ -200,9 +204,9 @@ globle SYMBOL_HN *ExtractConstructName(
 /*   module and construct name from a string. Sets  */
 /*   the current module to the specified module.    */
 /****************************************************/
-globle char *ExtractModuleAndConstructName(
+globle const char *ExtractModuleAndConstructName(
   void *theEnv,
-  char *theName)
+  const char *theName)
   {
    unsigned separatorPosition;
    SYMBOL_HN *moduleName, *shortName;
@@ -240,6 +244,7 @@ globle char *ExtractModuleAndConstructName(
    /*=============================*/
 
    shortName = ExtractConstructName(theEnv,separatorPosition,theName);
+   if (shortName == NULL) return(NULL);
    return(ValueToString(shortName));
   }
 
@@ -250,9 +255,9 @@ globle char *ExtractModuleAndConstructName(
 /************************************************************/
 globle void *FindImportedConstruct(
   void *theEnv,
-  char *constructName,
+  const char *constructName,
   struct defmodule *matchModule,
-  char *findName,
+  const char *findName,
   int *count,
   int searchCurrent,
   struct defmodule *notYetDefinedInModule)
@@ -339,8 +344,8 @@ globle void *FindImportedConstruct(
 /*********************************************************/
 globle void AmbiguousReferenceErrorMessage(
   void *theEnv,
-  char *constructName,
-  char *findName)
+  const char *constructName,
+  const char *findName)
   {
    EnvPrintRouter(theEnv,WERROR,"Ambiguous reference to ");
    EnvPrintRouter(theEnv,WERROR,constructName);
@@ -538,23 +543,84 @@ static void *SearchImportedConstructModules(
    return(arv);
   }
 
+/**************************************************************/
+/* ConstructExported: Returns TRUE if the specified construct */
+/*   is exported from the specified module.                   */
+/**************************************************************/
+globle intBool ConstructExported(
+  void *theEnv,
+  const char *constructTypeStr,
+  struct symbolHashNode *moduleName,
+  struct symbolHashNode *findName)
+  {
+   struct symbolHashNode *constructType;
+   struct defmodule *theModule;
+   struct portItem *theExportList;
+   
+   constructType = FindSymbolHN(theEnv,constructTypeStr);
+   theModule = (struct defmodule *) EnvFindDefmodule(theEnv,ValueToString(moduleName));
+   
+   if ((constructType == NULL) || (theModule == NULL) || (findName == NULL))
+     { return(FALSE); }
+   
+   theExportList = theModule->exportList;
+   while (theExportList != NULL)
+     {
+      if ((theExportList->constructType == NULL) ||
+          (theExportList->constructType == constructType))
+       {
+        if ((theExportList->constructName == NULL) ||
+            (theExportList->constructName == findName))
+          { return TRUE; }
+       }
+
+      theExportList = theExportList->next;
+     }
+
+   return FALSE;
+  }
+         
+/*********************************************************/
+/* AllImportedModulesVisited: Returns TRUE if all of the */
+/*   imported modules for a module have been visited.    */
+/*********************************************************/
+globle intBool AllImportedModulesVisited(
+  void *theEnv,
+  struct defmodule *theModule)
+  {
+   struct portItem *theImportList;
+   struct defmodule *theImportModule;
+      
+   theImportList = theModule->importList;
+   while (theImportList != NULL)
+     {
+      theImportModule = (struct defmodule *) EnvFindDefmodule(theEnv,ValueToString(theImportList->moduleName));
+
+      if (! theImportModule->visitedFlag) return FALSE;
+      
+      theImportList = theImportList->next;
+     }
+
+   return TRUE;
+  }
+
 /***************************************/
 /* ListItemsDriver: Driver routine for */
 /*   listing items in a module.        */
 /***************************************/
 globle void ListItemsDriver(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   struct defmodule *theModule,
-  char *singleName,
-  char *pluralName,
+  const char *singleName,
+  const char *pluralName,
   void *(*nextFunction)(void *,void *),
-  char *(*nameFunction)(void *),
-  void (*printFunction)(void *,char *,void *),
+  const char *(*nameFunction)(void *),
+  void (*printFunction)(void *,const char *,void *),
   int (*doItFunction)(void *,void *))
   {
    void *constructPtr;
-   char *constructName;
+   const char *constructName;
    long count = 0;
    int allModules = FALSE;
    int doIt;

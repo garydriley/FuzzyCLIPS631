@@ -83,6 +83,7 @@ FuzzyCLIPS> (unmake-instance b)
 TRUE
 FuzzyCLIPS> (watch instances)
 FuzzyCLIPS> (reset)
+<== instance [initial-object] of INITIAL-OBJECT
 ==> instance [initial-object] of INITIAL-OBJECT
 ==> instance [c1] of C
 ==> instance [gen1] of C

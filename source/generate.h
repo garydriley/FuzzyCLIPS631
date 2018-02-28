@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*                GENERATE HEADER FILE                 */
    /*******************************************************/
@@ -18,6 +18,14 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.30: Added support for hashed alpha memories.       */
+/*                                                           */
+/*            Added support for hashed comparisons to        */
+/*            constants.                                     */
+/*                                                           */
+/*            Reimplemented algorithm for comparisons to     */
+/*            variables contained within not/and CEs.        */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_generate
@@ -30,6 +38,9 @@
 #ifndef _H_reorder
 #include "reorder.h"
 #endif
+#ifndef _H_analysis
+#include "analysis.h"
+#endif
 
 #ifdef LOCALE
 #undef LOCALE
@@ -41,10 +52,11 @@
 #define LOCALE extern
 #endif
 
-   LOCALE void                           FieldConversion(void *,struct lhsParseNode *,struct lhsParseNode *);
-   LOCALE struct expr                   *GetvarReplace(void *,struct lhsParseNode *);
+   LOCALE void                           FieldConversion(void *,struct lhsParseNode *,struct lhsParseNode *,struct nandFrame *);
+   LOCALE struct expr                   *GetvarReplace(void *,struct lhsParseNode *,int,struct nandFrame *);
+   LOCALE void                           AddNandUnification(void *,struct lhsParseNode *,struct nandFrame *);
 
-#endif
+#endif /* _H_generate */
 
 
 

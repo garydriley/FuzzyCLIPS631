@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*         DEFGLOBAL BASIC COMMANDS HEADER FILE        */
    /*******************************************************/
@@ -15,9 +15,10 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
 /*                                                           */
 /*            Corrected compilation errors for files         */
@@ -28,6 +29,17 @@
 /*            definitions.                                   */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Moved WatchGlobals global to defglobalData.    */
+/*                                                           */
+/*            Converted API macros to function calls.        */
 /*                                                           */
 /*************************************************************/
 
@@ -59,19 +71,11 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static void                    SaveDefglobals(void *,void *,char *);
+   static void                    SaveDefglobals(void *,void *,const char *);
    static void                    ResetDefglobalAction(void *,struct constructHeader *,void *);
 #if DEBUGGING_FUNCTIONS && (! RUN_TIME)
    static unsigned                DefglobalWatchAccess(void *,int,unsigned,struct expr *);
-   static unsigned                DefglobalWatchPrint(void *,char *,int,struct expr *);
-#endif
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
-
-#if DEBUGGING_FUNCTIONS
-   globle unsigned              WatchGlobals = OFF;
+   static unsigned                DefglobalWatchPrint(void *,const char *,int,struct expr *);
 #endif
 
 /*****************************************************************/
@@ -91,7 +95,7 @@ globle void DefglobalBasicCommands(
 #if DEBUGGING_FUNCTIONS
    EnvDefineFunction2(theEnv,"list-defglobals",'v', PTIEF ListDefglobalsCommand,"ListDefglobalsCommand","01w");
    EnvDefineFunction2(theEnv,"ppdefglobal",'v',PTIEF PPDefglobalCommand,"PPDefglobalCommand","11w");
-   AddWatchItem(theEnv,"globals",0,&WatchGlobals,0,DefglobalWatchAccess,DefglobalWatchPrint);
+   AddWatchItem(theEnv,"globals",0,&DefglobalData(theEnv)->WatchGlobals,0,DefglobalWatchAccess,DefglobalWatchPrint);
 #endif
 
 #if (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE)
@@ -120,15 +124,12 @@ globle void ResetDefglobals(
 /* ResetDefglobalAction: Action to be applied to each */
 /*   defglobal construct during a reset command.      */
 /******************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 static void ResetDefglobalAction(
   void *theEnv,
   struct constructHeader *theConstruct,
   void *buffer)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(buffer)
 #endif
    struct defglobal *theDefglobal = (struct defglobal *) theConstruct;
@@ -150,7 +151,7 @@ static void ResetDefglobalAction(
 static void SaveDefglobals(
   void *theEnv,
   void *theModule,
-  char *logicalName)
+  const char *logicalName)
   {
    SaveConstruct(theEnv,theModule,logicalName,DefglobalData(theEnv)->DefglobalConstruct); 
   }
@@ -227,8 +228,8 @@ globle void PPDefglobalCommand(
 /*************************************/
 globle int PPDefglobal(
   void *theEnv,
-  char *defglobalName,
-  char *logicalName)
+  const char *defglobalName,
+  const char *logicalName)
   {
    return(PPConstruct(theEnv,defglobalName,logicalName,DefglobalData(theEnv)->DefglobalConstruct)); 
   }
@@ -249,7 +250,7 @@ globle void ListDefglobalsCommand(
 /***************************************/
 globle void EnvListDefglobals(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   void *vTheModule)
   {
    struct defmodule *theModule = (struct defmodule *) vTheModule;
@@ -261,14 +262,11 @@ globle void EnvListDefglobals(
 /* EnvGetDefglobalWatch: C access routine for retrieving */
 /*   the current watch value of a defglobal.             */
 /*********************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 globle unsigned EnvGetDefglobalWatch(
   void *theEnv,
   void *theGlobal)
   { 
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -279,15 +277,12 @@ globle unsigned EnvGetDefglobalWatch(
 /* EnvSetDeftemplateWatch: C access routine for setting */
 /*   the current watch value of a deftemplate.          */
 /********************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 globle void EnvSetDefglobalWatch(
   void *theEnv,
   unsigned newState,
   void *theGlobal)
   {  
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -300,16 +295,13 @@ globle void EnvSetDefglobalWatch(
 /* DefglobalWatchAccess: Access routine for setting the */
 /*   watch flag of a defglobal via the watch command.   */
 /********************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 static unsigned DefglobalWatchAccess(
   void *theEnv,
   int code,
   unsigned newState,
   EXPRESSION *argExprs)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(code)
 #endif
 
@@ -321,16 +313,13 @@ static unsigned DefglobalWatchAccess(
 /* DefglobalWatchPrint: Access routine for printing which defglobals */
 /*   have their watch flag set via the list-watch-items command.     */
 /*********************************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 static unsigned DefglobalWatchPrint(
   void *theEnv,
-  char *logName,
+  const char *logName,
   int code,
   EXPRESSION *argExprs)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(code)
 #endif
 
@@ -338,9 +327,54 @@ static unsigned DefglobalWatchPrint(
                                     EnvGetDefglobalWatch,EnvSetDefglobalWatch));
   }
 
-#endif
+#endif /* ! RUN_TIME */
 
 #endif /* DEBUGGING_FUNCTIONS */
+
+/*#####################################*/
+/* ALLOW_ENVIRONMENT_GLOBALS Functions */
+/*#####################################*/
+
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+globle void GetDefglobalList(
+  DATA_OBJECT_PTR returnValue,
+  void *theModule)
+  {
+   EnvGetDefglobalList(GetCurrentEnvironment(),returnValue,theModule);
+  }
+
+#if DEBUGGING_FUNCTIONS
+
+globle unsigned GetDefglobalWatch(
+  void *theGlobal)
+  {
+   return EnvGetDefglobalWatch(GetCurrentEnvironment(),theGlobal);
+  }
+
+globle void ListDefglobals(
+  const char *logicalName,
+  void *vTheModule)
+  {
+   EnvListDefglobals(GetCurrentEnvironment(),logicalName,vTheModule);
+  }
+
+globle void SetDefglobalWatch(
+  unsigned newState,
+  void *theGlobal)
+  {
+   EnvSetDefglobalWatch(GetCurrentEnvironment(),newState,theGlobal);
+  }
+
+#endif /* DEBUGGING_FUNCTIONS */
+
+globle intBool Undefglobal(
+  void *theDefglobal)
+  {
+   return EnvUndefglobal(GetCurrentEnvironment(),theDefglobal);
+  }
+
+#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* DEFGLOBAL_CONSTRUCT */
 

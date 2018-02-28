@@ -61,24 +61,24 @@ FuzzyCLIPS> (defrule foo5 (declare (salience 1)) (not (object (is-a FOO))) =>)
 FuzzyCLIPS> (defrule foo6 (test (> 5 3)) (not (object (is-a FOO))) =>)
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (agenda)
-5      foo1: f-0
-4      foo2: f-0,
-3      foo3: f-0
-2      foo4: f-0,
-1      foo5: [initial-object],
-0      foo6: [initial-object],
+5      foo1: *
+4      foo2: *
+3      foo3: *
+2      foo4: *,*
+1      foo5: *
+0      foo6: *,*
 For a total of 6 activations.
 FuzzyCLIPS> (clear)                              ; Bug Test
 FuzzyCLIPS> (defrule foo1 (bar a $?x b) => (printout t "1: " ?x crlf))
 FuzzyCLIPS> (defrule foo2 (bar $?x a) => (printout t "2: " ?x crlf))
 FuzzyCLIPS> (defrule foo3 (bar a b $?x c d) => (printout t "3: " ?x crlf))
 FuzzyCLIPS> (assert (bar a b c d))
-<Fact-0>
-FuzzyCLIPS> (assert (bar a b 1 2 3 c d))
 <Fact-1>
+FuzzyCLIPS> (assert (bar a b 1 2 3 c d))
+<Fact-2>
 FuzzyCLIPS> (agenda)
+0      foo3: f-2
 0      foo3: f-1
-0      foo3: f-0
 For a total of 2 activations.
 FuzzyCLIPS> (run)
 3: (1 2 3)
@@ -109,12 +109,12 @@ FuzzyCLIPS> (ppdefrule foo2)
    (bar ?)
    =>)
 FuzzyCLIPS> (assert (bar))
-<Fact-0>
-FuzzyCLIPS> (assert (bar 1))
 <Fact-1>
+FuzzyCLIPS> (assert (bar 1))
+<Fact-2>
 FuzzyCLIPS> (agenda)
-0      foo2: f-1
-0      foo1: f-0
+0      foo2: f-2
+0      foo1: f-1
 For a total of 2 activations.
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (deftemplate yak (multifield bar))
@@ -143,22 +143,22 @@ FuzzyCLIPS> (ppdefrule foo2)
    (yak (bar ?))
    =>)
 FuzzyCLIPS> (assert (yak (bar)))
-<Fact-0>
-FuzzyCLIPS> (assert (yak (bar 1)))
 <Fact-1>
+FuzzyCLIPS> (assert (yak (bar 1)))
+<Fact-2>
 FuzzyCLIPS> (agenda)
-0      foo2: f-1
-0      foo1: f-0
+0      foo2: f-2
+0      foo1: f-1
 For a total of 2 activations.
 FuzzyCLIPS> (clear)                              ; Bug Test
 FuzzyCLIPS> (defrule foo (a $?x b) => (printout t ?x crlf))
 FuzzyCLIPS> (assert (a b))
-<Fact-0>
-FuzzyCLIPS> (assert (a c b))
 <Fact-1>
+FuzzyCLIPS> (assert (a c b))
+<Fact-2>
 FuzzyCLIPS> (agenda)
+0      foo: f-2
 0      foo: f-1
-0      foo: f-0
 For a total of 2 activations.
 FuzzyCLIPS> (run)
 (c)
@@ -166,25 +166,25 @@ FuzzyCLIPS> (run)
 FuzzyCLIPS> (clear)                              ; Bug Test
 FuzzyCLIPS> (defrule blah (fact $?x here $?x) => (printout t ?x crlf))
 FuzzyCLIPS> (assert (fact))
-<Fact-0>
-FuzzyCLIPS> (assert (fact 1 here 2))
 <Fact-1>
-FuzzyCLIPS> (assert (fact 1 2 here 3 4))
+FuzzyCLIPS> (assert (fact 1 here 2))
 <Fact-2>
-FuzzyCLIPS> (assert (fact here))
+FuzzyCLIPS> (assert (fact 1 2 here 3 4))
 <Fact-3>
-FuzzyCLIPS> (assert (fact 5 here 5))
+FuzzyCLIPS> (assert (fact here))
 <Fact-4>
-FuzzyCLIPS> (assert (fact 6 7 here 6 7))
+FuzzyCLIPS> (assert (fact 5 here 5))
 <Fact-5>
-FuzzyCLIPS> (assert (fact 6 7 here 6 8))
+FuzzyCLIPS> (assert (fact 6 7 here 6 7))
 <Fact-6>
-FuzzyCLIPS> (assert (fact 6 8 here 7 8))
+FuzzyCLIPS> (assert (fact 6 7 here 6 8))
 <Fact-7>
+FuzzyCLIPS> (assert (fact 6 8 here 7 8))
+<Fact-8>
 FuzzyCLIPS> (agenda)
+0      blah: f-6
 0      blah: f-5
 0      blah: f-4
-0      blah: f-3
 For a total of 3 activations.
 FuzzyCLIPS> (run)
 (6 7)
@@ -298,7 +298,7 @@ FuzzyCLIPS> (clear)                              ; Order Dependency
 FuzzyCLIPS> (deftemplate foo (field x) (field y))
 FuzzyCLIPS> (defrule blah (foo (y ?y&:(numberp ?y)) (x =(+ ?y 1))) =>)
 FuzzyCLIPS> (assert (foo (y a) (x 3)))
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (clear)                              ; Bind & RHS constraints
 FuzzyCLIPS> (deftemplate foo (field x (type SYMBOL)))
 FuzzyCLIPS> 
@@ -394,10 +394,9 @@ FuzzyCLIPS> (assert (foo (y a)))
 [FACTMCH1] This error occurred in the fact pattern network
    Currently active fact: (foo (x nil) (y a)) CF 1.00 
    Problem resides in slot y
-      Of pattern #1 in rule(s):
-         bar
+      Of pattern #1 in rule bar
 
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (defrule yak (quo ? ?x&:(> ?x 3)) =>)
 FuzzyCLIPS> (assert (quo b a))
 [ARGACCES5] Function > expected argument #1 to be of type integer or float
@@ -405,97 +404,97 @@ FuzzyCLIPS> (assert (quo b a))
 [FACTMCH1] This error occurred in the fact pattern network
    Currently active fact: (quo b a) CF 1.00 
    Problem resides in field #2
-      Of pattern #1 in rule(s):
-         yak
+      Of pattern #1 in rule yak
 
-<Fact-1>
+<Fact-2>
 FuzzyCLIPS> (clear) ; Thing 6
 FuzzyCLIPS> (watch facts)
 FuzzyCLIPS> (reset)
+<== f-0     (initial-fact) CF 1.00 
 ==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (clear)
+==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (clear) ; Thing 7
+==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (deftemplate bar (slot y) (slot x) (slot z))
 FuzzyCLIPS> (defrule foo1 (bar (x ?x&:(> ?x 3))) =>)
 FuzzyCLIPS> (defrule foo2 (bar (y ?x&:(> ?x 3))) =>)
 FuzzyCLIPS> (defrule foo3 (bar (z ?x&:(> ?x 3))) =>)
 FuzzyCLIPS> (assert (bar (x a) (y 1) (z 1)))
-==> f-0     (bar (y 1) (x a) (z 1)) CF 1.00 
+==> f-1     (bar (y 1) (x a) (z 1)) CF 1.00 
 [ARGACCES5] Function > expected argument #1 to be of type integer or float
 
 [FACTMCH1] This error occurred in the fact pattern network
    Currently active fact: (bar (y 1) (x a) (z 1)) CF 1.00 
    Problem resides in slot x
-      Of pattern #1 in rule(s):
-         foo1
+      Of pattern #1 in rule foo1
 
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (assert (bar (x 1) (y a) (z 1)))
-==> f-1     (bar (y a) (x 1) (z 1)) CF 1.00 
+==> f-2     (bar (y a) (x 1) (z 1)) CF 1.00 
 [ARGACCES5] Function > expected argument #1 to be of type integer or float
 
 [FACTMCH1] This error occurred in the fact pattern network
    Currently active fact: (bar (y a) (x 1) (z 1)) CF 1.00 
    Problem resides in slot y
-      Of pattern #1 in rule(s):
-         foo2
+      Of pattern #1 in rule foo2
 
-<Fact-1>
+<Fact-2>
 FuzzyCLIPS> (assert (bar (x 1) (y 1) (z a)))
-==> f-2     (bar (y 1) (x 1) (z a)) CF 1.00 
+==> f-3     (bar (y 1) (x 1) (z a)) CF 1.00 
 [ARGACCES5] Function > expected argument #1 to be of type integer or float
 
 [FACTMCH1] This error occurred in the fact pattern network
    Currently active fact: (bar (y 1) (x 1) (z a)) CF 1.00 
    Problem resides in slot z
-      Of pattern #1 in rule(s):
-         foo3
+      Of pattern #1 in rule foo3
 
-<Fact-2>
+<Fact-3>
 FuzzyCLIPS> (clear) ; Thing 8
+==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (defrule foo1 (bar ?x&:(> ?x 3) ?) =>)
 FuzzyCLIPS> (defrule foo2 (bar ? ?x&:(> ?x 3)) =>)
 FuzzyCLIPS> (assert (bar a 1))
-==> f-0     (bar a 1) CF 1.00 
+==> f-1     (bar a 1) CF 1.00 
 [ARGACCES5] Function > expected argument #1 to be of type integer or float
 
 [FACTMCH1] This error occurred in the fact pattern network
    Currently active fact: (bar a 1) CF 1.00 
    Problem resides in field #1
-      Of pattern #1 in rule(s):
-         foo1
+      Of pattern #1 in rule foo1
 
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (assert (bar 1 a))
-==> f-1     (bar 1 a) CF 1.00 
+==> f-2     (bar 1 a) CF 1.00 
 [ARGACCES5] Function > expected argument #1 to be of type integer or float
 
 [FACTMCH1] This error occurred in the fact pattern network
    Currently active fact: (bar 1 a) CF 1.00 
    Problem resides in field #2
-      Of pattern #1 in rule(s):
-         foo2
+      Of pattern #1 in rule foo2
 
-<Fact-1>
+<Fact-2>
 FuzzyCLIPS> (clear) ; Can't delete deftemplates while they're being used
+==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (deftemplate foo)
 FuzzyCLIPS> (undeftemplate foo)
 FuzzyCLIPS> (deftemplate foo)
 FuzzyCLIPS> (assert (foo))
-==> f-0     (foo) CF 1.00 
-<Fact-0>
+==> f-1     (foo) CF 1.00 
+<Fact-1>
 FuzzyCLIPS> (undeftemplate foo)
 [PRNTUTIL4] Unable to delete deftemplate foo.
 FuzzyCLIPS> (defrule foobar => (assert (foo)))
 FuzzyCLIPS> (undeftemplate foo)
 [PRNTUTIL4] Unable to delete deftemplate foo.
-FuzzyCLIPS> (retract 0)
-<== f-0     (foo) CF 1.00 
+FuzzyCLIPS> (retract 1)
+<== f-1     (foo) CF 1.00 
 FuzzyCLIPS> (undeftemplate foo)
 [PRNTUTIL4] Unable to delete deftemplate foo.
 FuzzyCLIPS> (undefrule foobar)
 FuzzyCLIPS> (undeftemplate foo)
 FuzzyCLIPS> (clear)
+==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (deftemplate foo)
 FuzzyCLIPS> (defrule bar (foo) =>)
 FuzzyCLIPS> (deftemplate foo)
@@ -505,7 +504,9 @@ FuzzyCLIPS> (deftemplate foo)
 ERROR:
 (deftemplate MAIN::foo
 FuzzyCLIPS> (clear)
+==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (deftemplate foo)
 FuzzyCLIPS> (deftemplate foo (slot x))
 FuzzyCLIPS> (clear) ; Next Thing
+==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (dribble-off)

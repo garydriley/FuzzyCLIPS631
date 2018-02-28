@@ -390,6 +390,32 @@ def ghi jkl mno
 ghi jkl mno 
 jkl mno 
 mno 
+FuzzyCLIPS> (foreach)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for foreach.
+FuzzyCLIPS> (foreach abc)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for foreach.
+FuzzyCLIPS> (foreach (create$) (bind ?field))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for foreach.
+FuzzyCLIPS> (foreach ?field (create$) (bind ?field))
+[MULTIFUN2] Cannot rebind field variable in function foreach.
+FuzzyCLIPS> (progn (bind ?x 0) 
+   (foreach ?field (create$ 1 2 3) (bind ?x (+ ?x ?field))))
+6
+FuzzyCLIPS> (progn
+  (bind ?outer (create$ abc def ghi jkl mno))
+  (foreach ?x ?outer
+    (bind ?inner (subseq$ ?outer ?x-index (length$ ?outer)))
+    (foreach ?y ?inner
+       (printout t ?y " "))
+    (printout t crlf)))
+abc def ghi jkl mno 
+def ghi jkl mno 
+ghi jkl mno 
+jkl mno 
+mno 
 FuzzyCLIPS> (first$)
 [ARGACCES4] Function first$ expected exactly 1 argument(s)
 FuzzyCLIPS> (first$ 1)

@@ -1,0 +1,1942 @@
+TRUE
+FuzzyCLIPS> (batch "attchtst.bat")
+TRUE
+FuzzyCLIPS> (clear) ; Case 1a
+FuzzyCLIPS> 
+(defrule fail-pass "Case 1a"
+   (a)
+   (test (= 1 1))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail "Case 1a"
+   (b)
+   (test (!= 2 2))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass: f-1
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 1b
+FuzzyCLIPS> 
+(defrule pass-fail "Case 1b"
+   (not (a))
+   (test (= 1 1))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail "Case 1b"
+   (not (b))
+   (test (!= 2 2))
+   =>)
+FuzzyCLIPS> (agenda)
+0      pass-fail: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Case 1c
+FuzzyCLIPS> 
+(defrule fail-pass "Case 1c"
+   (exists (a))
+   (test (= 1 1))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail "Case 1c"
+   (exists (b))
+   (test (!= 2 2))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 3a
+FuzzyCLIPS> 
+(defrule pass-fail "Case 3a"
+   (not (and (a)
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule pass-pass "Case 3a"
+   (not (and (b)
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+0      pass-pass: *
+0      pass-fail: *
+For a total of 2 activations.
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 3b
+FuzzyCLIPS> 
+(defrule fail-pass "Case 3b"
+   (not (and (not (a))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule pass-pass "Case 3b"
+   (not (and (not (b))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+0      pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass: *
+0      pass-pass: *
+For a total of 2 activations.
+FuzzyCLIPS> (clear) ; Case 3c
+FuzzyCLIPS> 
+(defrule pass-fail "Case 3c"
+   (not (and (exists (a))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule pass-pass "Case 3c"
+   (not (and (exists (b))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+0      pass-pass: *
+0      pass-fail: *
+For a total of 2 activations.
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 3d
+FuzzyCLIPS> 
+(defrule fail-pass "Case 3d"
+   (exists (and (a)
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail "Case 3d"
+   (exists (and (b)
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 3e
+FuzzyCLIPS> 
+(defrule pass-fail "Case 3e"
+   (exists (and (not (a))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail "Case 3e"
+   (exists (and (not (b))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+0      pass-fail: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Case 3f
+FuzzyCLIPS> 
+(defrule fail-pass "Case 3f"
+   (exists (and (exists (a))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail "Case 3f"
+   (exists (and (exists (b))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 4a
+FuzzyCLIPS> 
+(defrule pass-pass-fail "Case 4a"
+   (not (and (a)
+             (b)
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule pass-pass-pass "Case 4a"
+   (not (and (c)
+             (d)
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass: *
+0      pass-pass-fail: *
+For a total of 2 activations.
+FuzzyCLIPS> (assert (a) (c))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass: *
+0      pass-pass-fail: *
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 4b
+FuzzyCLIPS> 
+(defrule pass-fail-pass "Case 4b"
+   (not (and (a)
+             (not (b))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule pass-pass-pass "Case 4b"
+   (not (and (c)
+             (not (d))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass: *
+0      pass-fail-pass: *
+For a total of 2 activations.
+FuzzyCLIPS> (assert (a) (c))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      pass-fail-pass: *
+0      pass-pass-pass: *
+For a total of 2 activations.
+FuzzyCLIPS> (clear) ; Case 4c
+FuzzyCLIPS> 
+(defrule pass-pass-fail "Case 4c"
+   (not (and (a)
+             (exists (b))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule pass-pass-pass "Case 4c"
+   (not (and (c)
+             (exists (d))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass: *
+0      pass-pass-fail: *
+For a total of 2 activations.
+FuzzyCLIPS> (assert (a) (c))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass: *
+0      pass-pass-fail: *
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 4d
+FuzzyCLIPS> 
+(defrule fail-fail-pass "Case 4d"
+   (exists (and (a)
+                (b)
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail "Case 4d"
+   (exists (and (c)
+                (d)
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (c))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-fail-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 4e
+FuzzyCLIPS> 
+(defrule fail-pass-fail "Case 4e"
+   (exists (and (a)
+                (not (b))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail "Case 4e"
+   (exists (and (c)
+                (not (d))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (c))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-fail: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Case 4f
+FuzzyCLIPS> 
+(defrule fail-fail-pass "Case 4f"
+   (exists (and (a)
+                (exists (b))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail "Case 4f"
+   (exists (and (c)
+                (exists (d))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (c))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-fail-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 4g
+FuzzyCLIPS> 
+(defrule pass-fail-fail-pass "Case 4g"
+   (not (and (not (and (x)
+                       (y)))
+             (a)
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule pass-pass-pass-pass "Case 4g"
+   (not (and (not (and (z)
+                       (w)))
+             (b)
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass-pass: *
+0      pass-fail-fail-pass: *
+For a total of 2 activations.
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (x) (z))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (y) (w))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      pass-fail-fail-pass: *
+0      pass-pass-pass-pass: *
+For a total of 2 activations.
+FuzzyCLIPS> (clear) ; Case 4h
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass "Case 4h"
+   (not (and (not (and (x)
+                       (y)))
+             (not (a))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule pass-pass-pass-pass "Case 4h"
+   (not (and (not (and (z)
+                       (w)))
+             (not (b))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: *
+0      pass-pass-pass-pass: *
+For a total of 2 activations.
+FuzzyCLIPS> (assert (x) (z))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: *
+0      pass-pass-pass-pass: *
+For a total of 2 activations.
+FuzzyCLIPS> (assert (y) (w))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: *
+0      pass-pass-pass-pass: *
+For a total of 2 activations.
+FuzzyCLIPS> (clear) ; Case 4i
+FuzzyCLIPS> 
+(defrule pass-fail-fail-pass "Case 4i"
+   (not (and (not (and (x)
+                       (y)))
+             (exists (a))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule pass-pass-pass-pass "Case 4i"
+   (not (and (not (and (z)
+                       (w)))
+             (exists (b))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass-pass: *
+0      pass-fail-fail-pass: *
+For a total of 2 activations.
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (x) (z))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (y) (w))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      pass-fail-fail-pass: *
+0      pass-pass-pass-pass: *
+For a total of 2 activations.
+FuzzyCLIPS> (clear) ; Case 4j
+FuzzyCLIPS> 
+(defrule fail-pass-pass-fail "Case 4j"
+   (exists (and (not (and (x)
+                          (y)))
+                (a)
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail "Case 4j"
+   (exists (and (not (and (z)
+                          (w)))
+                (b)
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-fail: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (x) (z))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-fail: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (y) (w))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Case 4k
+FuzzyCLIPS> 
+(defrule pass-fail-fail-fail "Case 4k"
+   (exists (and (not (and (x)
+                          (y)))
+                (not (a))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail "Case 4k"
+   (exists (and (not (and (z)
+                          (w)))
+                (not (b))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+0      pass-fail-fail-fail: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (x) (z))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (y) (w))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Case 4l
+FuzzyCLIPS> 
+(defrule fail-pass-pass-fail "Case 4l"
+   (exists (and (not (and (x)
+                          (y)))
+                (exists (a))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail "Case 4l"
+   (exists (and (not (and (z)
+                          (w)))
+                (exists (b))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (b))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-fail: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (x) (z))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-fail: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (y) (w))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Case 5a
+FuzzyCLIPS> 
+(defrule fail-pass-fail "Case 5a"
+   (a)
+   (not (and (b)
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass "Case 5a"
+   (c)
+   (not (and (d)
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (c))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-2,*
+0      fail-pass-fail: f-1,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-2,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 5b
+FuzzyCLIPS> (defrule fail-fail-pass "Case 5b"
+   (a)
+   (not (and (not (b))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass "Case 5b"
+   (c)
+   (not (and (not (d))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (c))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-2,*
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-fail-pass: f-1,*
+0      fail-pass-pass: f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (clear) ; Case 5c
+FuzzyCLIPS> (defrule fail-pass-fail "Case 5c"
+   (a)
+   (not (and (exists (b))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass "Case 5c"
+   (c)
+   (not (and (exists (d))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (c))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-2,*
+0      fail-pass-fail: f-1,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-2,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 5d
+FuzzyCLIPS> 
+(defrule fail-fail-pass "Case 5d"
+   (a)
+   (exists (and (b)
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail "Case 5d"
+   (c)
+   (exists (and (d)
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (c))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-fail-pass: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 5e
+FuzzyCLIPS> 
+(defrule fail-pass-fail "Case 5e"
+   (a)
+   (exists (and (not (b))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail "Case 5e"
+   (c)
+   (exists (and (not (d))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (c))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-fail: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Case 5f
+FuzzyCLIPS> 
+(defrule fail-fail-pass "Case 5f"
+   (a)
+   (exists (and (exists (b))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail "Case 5f"
+   (c)
+   (exists (and (exists (d))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (c))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-fail-pass: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 5g
+FuzzyCLIPS> 
+(defrule fail-pass-both "Case 5g"
+   (a ?x)
+   (not (and (b ?x)
+             (test (> ?x 0))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass "Case 5g"
+   (c ?x)
+   (not (and (d ?x)
+             (test (< ?x 0))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (c 1) (a 2) (c 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-4,*
+0      fail-pass-both: f-3,*
+0      fail-pass-pass: f-2,*
+0      fail-pass-both: f-1,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (b 1) (d 1))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-4,*
+0      fail-pass-both: f-3,*
+0      fail-pass-pass: f-2,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 5h
+FuzzyCLIPS> 
+(defrule fail-fail-both "Case 5h"
+   (a ?x)
+   (not (and (not (b ?x))
+             (test (> ?x 0))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass "Case 5h"
+   (c ?x)
+   (not (and (not (d ?x))
+             (test (< ?x 0))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (c 1) (a 2) (c 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-4,*
+0      fail-pass-pass: f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b 1) (d 1))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-fail-both: f-1,*
+0      fail-pass-pass: f-4,*
+0      fail-pass-pass: f-2,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 5i
+FuzzyCLIPS> 
+(defrule fail-pass-both "Case 5i"
+   (a ?x)
+   (not (and (exists (b ?x))
+             (test (> ?x 0))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass "Case 5i"
+   (c ?x)
+   (not (and (exists (d ?x))
+             (test (< ?x 0))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (c 1) (a 2) (c 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-4,*
+0      fail-pass-both: f-3,*
+0      fail-pass-pass: f-2,*
+0      fail-pass-both: f-1,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (b 1) (d 1))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-4,*
+0      fail-pass-both: f-3,*
+0      fail-pass-pass: f-2,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 5j
+FuzzyCLIPS> 
+(defrule fail-fail-both "Case 5j"
+   (a ?x)
+   (exists (and (b ?x)
+                (test (> ?x 0))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail "Case 5j"
+   (c ?x)
+   (exists (and (d ?x)
+                (test (< ?x 0))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (c 1) (a 2) (c 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b 1) (d 1))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-fail-both: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 5k
+FuzzyCLIPS> 
+(defrule fail-pass-both "Case 5k"
+   (a ?x)
+   (exists (and (not (b ?x))
+                (test (> ?x 0))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail "Case 5k"
+   (c ?x)
+   (exists (and (not (d ?x))
+                (test (< ?x 0))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (c 1) (a 2) (c 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-both: f-3,*
+0      fail-pass-both: f-1,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b 1) (d 1))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-pass-both: f-3,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 5l
+FuzzyCLIPS> 
+(defrule fail-fail-both "Case 5l"
+   (a ?x)
+   (exists (and (exists (b ?x))
+                (test (> ?x 0))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail "Case 5l"
+   (c ?x)
+   (exists (and (exists (d ?x))
+                (test (< ?x 0))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (c 1) (a 2) (c 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b 1) (d 1))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-fail-both: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 5m
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass "Case 5m"
+   (not (and (not (and (a)
+                       (b)))
+             (not (and (c)
+                       (test (= 1 1))))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-pass "Case 5m"
+   (not (and (not (and (d)
+                       (e)))
+             (not (and (f)
+                       (test (!= 2 2))))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (c) (f))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (a) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b) (e))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-fail-fail-pass: *
+0      fail-pass-pass-pass: *
+For a total of 2 activations.
+FuzzyCLIPS> (clear) ; Case 5n
+FuzzyCLIPS> 
+(defrule pass-fail-fail-pass "Case 5n"
+   (not (and (not (and (a)
+                       (b)))
+             (exists (and (c)
+                          (test (= 1 1))))))
+   =>)
+FuzzyCLIPS> 
+(defrule pass-pass-pass-pass "Case 5n"
+   (not (and (not (and (d)
+                       (e)))
+             (exists (and (f)
+                          (test (!= 2 2))))))
+   =>)
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass-pass: *
+0      pass-fail-fail-pass: *
+For a total of 2 activations.
+FuzzyCLIPS> (assert (c) (f))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (a) (d))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      pass-pass-pass-pass: *
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b) (e))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      pass-fail-fail-pass: *
+0      pass-pass-pass-pass: *
+For a total of 2 activations.
+FuzzyCLIPS> (clear) ; Case 5o
+FuzzyCLIPS> 
+(defrule fail-pass-both "Case 5o"
+   (x)
+   (a ?x)
+   (not (and (b ?x)
+             (test (> ?x 0))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass "Case 5o"
+   (x)
+   (c ?x)
+   (not (and (d ?x)
+             (test (< ?x 0))))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (c 1) (a 2) (c 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-1,f-5,*
+0      fail-pass-both: f-1,f-4,*
+0      fail-pass-pass: f-1,f-3,*
+0      fail-pass-both: f-1,f-2,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (b 1) (d 1))
+<Fact-7>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-1,f-5,*
+0      fail-pass-both: f-1,f-4,*
+0      fail-pass-pass: f-1,f-3,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 5p
+FuzzyCLIPS> 
+(defrule fail-fail-both "Case 5p"
+   (x)
+   (a ?x)
+   (not (and (not (b ?x))
+             (test (> ?x 0))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass "Case 5p"
+   (x)
+   (c ?x)
+   (not (and (not (d ?x))
+             (test (< ?x 0))))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (c 1) (a 2) (c 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-1,f-5,*
+0      fail-pass-pass: f-1,f-3,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b 1) (d 1))
+<Fact-7>
+FuzzyCLIPS> (agenda)
+0      fail-fail-both: f-1,f-2,*
+0      fail-pass-pass: f-1,f-5,*
+0      fail-pass-pass: f-1,f-3,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 5q
+FuzzyCLIPS> 
+(defrule fail-pass-both "Case 5q"
+   (x)
+   (a ?x)
+   (not (and (exists (b ?x))
+             (test (> ?x 0))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass "Case 5q"
+   (x)
+   (c ?x)
+   (not (and (exists (d ?x))
+             (test (< ?x 0))))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (c 1) (a 2) (c 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-1,f-5,*
+0      fail-pass-both: f-1,f-4,*
+0      fail-pass-pass: f-1,f-3,*
+0      fail-pass-both: f-1,f-2,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (b 1) (d 1))
+<Fact-7>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass: f-1,f-5,*
+0      fail-pass-both: f-1,f-4,*
+0      fail-pass-pass: f-1,f-3,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 5r
+FuzzyCLIPS> 
+(defrule fail-fail-both "Case 5r"
+   (x)
+   (a ?x)
+   (exists (and (b ?x)
+                (test (> ?x 0))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail "Case 5r"
+   (x)
+   (c ?x)
+   (exists (and (d ?x)
+                (test (< ?x 0))))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (c 1) (a 2) (c 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b 1) (d 1))
+<Fact-7>
+FuzzyCLIPS> (agenda)
+0      fail-fail-both: f-1,f-2,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 5s
+FuzzyCLIPS> 
+(defrule fail-pass-both "Case 5s"
+   (x)
+   (a ?x)
+   (exists (and (not (b ?x))
+                (test (> ?x 0))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail "Case 5s"
+   (x)
+   (c ?x)
+   (exists (and (not (d ?x))
+                (test (< ?x 0))))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (c 1) (a 2) (c 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+0      fail-pass-both: f-1,f-4,*
+0      fail-pass-both: f-1,f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b 1) (d 1))
+<Fact-7>
+FuzzyCLIPS> (agenda)
+0      fail-pass-both: f-1,f-4,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 5t
+FuzzyCLIPS> 
+(defrule fail-fail-both "Case 5t"
+   (x)
+   (a ?x)
+   (exists (and (exists (b ?x))
+                (test (> ?x 0))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail "Case 5t"
+   (x)
+   (c ?x)
+   (exists (and (exists (d ?x))
+                (test (< ?x 0))))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (c 1) (a 2) (c 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b 1) (d 1))
+<Fact-7>
+FuzzyCLIPS> (agenda)
+0      fail-fail-both: f-1,f-2,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 6a
+FuzzyCLIPS> 
+(defrule fail-pass-fail-fail-pass "Case 6a"
+   (a)
+   (not (and (not (and (b)
+                       (c)))
+             (test (= 1 1))
+             (d)))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass-pass "Case 6a"
+   (e)
+   (not (and (not (and (f)
+                       (g)))
+             (test (!= 2 2))
+             (h)))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (e))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-2,*
+0      fail-pass-fail-fail-pass: f-1,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (d) (h))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-2,*
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b) (f))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-2,*
+For a total of 1 activation.
+FuzzyCLIPS> (assert (c) (g))
+<Fact-8>
+FuzzyCLIPS> (agenda)
+0      fail-pass-fail-fail-pass: f-1,*
+0      fail-pass-pass-pass-pass: f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (clear) ; Case 6b
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass-fail "Case 6b"
+   (a)
+   (not (and (exists (and (b)
+                          (c)))
+             (test (= 1 1))
+             (d)))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass-pass "Case 6b"
+   (e)
+   (not (and (exists (and (f)
+                          (g)))
+             (test (!= 2 2))
+             (h)))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (e))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-2,*
+0      fail-pass-pass-pass-fail: f-1,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (d) (h))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-2,*
+0      fail-pass-pass-pass-fail: f-1,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b) (f))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-2,*
+0      fail-pass-pass-pass-fail: f-1,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (c) (g))
+<Fact-8>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-2,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 6c
+FuzzyCLIPS> 
+(defrule fail-fail-pass-pass-fail "Case 6c"
+   (a)
+   (exists (and (not (and (b)
+                          (c)))
+                (test (= 1 1))
+                (d)))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail-fail "Case 6c"
+   (e)
+   (exists (and (not (and (f)
+                          (g)))
+                (test (!= 2 2))
+                (h)))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (e))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (d) (h))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-fail-pass-pass-fail: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b) (f))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-fail-pass-pass-fail: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (assert (c) (g))
+<Fact-8>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Case 6d
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail-pass "Case 6d"
+   (a)
+   (exists (and (exists (and (b)
+                             (c)))
+                (test (= 1 1))
+                (d)))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail-fail "Case 6d"
+   (e)
+   (exists (and (exists (and (f)
+                             (g)))
+                (test (!= 2 2))
+                (h)))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (e))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (d) (h))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b) (f))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (c) (g))
+<Fact-8>
+FuzzyCLIPS> (agenda)
+0      fail-fail-fail-fail-pass: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 6e
+FuzzyCLIPS> 
+(defrule fail-pass-fail-fail-both "Case 6e"
+   (a ?x)
+   (not (and (not (and (b ?x)
+                       (c ?x)))
+             (test (= 1 1))
+             (d ?x)))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass-pass "Case 6e"
+   (e ?x)
+   (not (and (not (and (f ?x)
+                       (g ?x)))
+             (test (!= 2 2))
+             (h ?x)))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-4,*
+0      fail-pass-fail-fail-both: f-3,*
+0      fail-pass-pass-pass-pass: f-2,*
+0      fail-pass-fail-fail-both: f-1,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (d 1) (h 1) (d 2) (h 2))
+<Fact-8>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-4,*
+0      fail-pass-pass-pass-pass: f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-10>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-4,*
+0      fail-pass-pass-pass-pass: f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-12>
+FuzzyCLIPS> (agenda)
+0      fail-pass-fail-fail-both: f-1,*
+0      fail-pass-pass-pass-pass: f-4,*
+0      fail-pass-pass-pass-pass: f-2,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 6f
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass-both "Case 6f"
+   (a ?x)
+   (not (and (exists (and (b ?x)
+                          (c ?x)))
+             (test (= 1 1))
+             (d ?x)))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass-pass "Case 6f"
+   (e ?x)
+   (not (and (exists (and (f ?x)
+                          (g ?x)))
+             (test (!= 2 2))
+             (h ?x)))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-4,*
+0      fail-pass-pass-pass-both: f-3,*
+0      fail-pass-pass-pass-pass: f-2,*
+0      fail-pass-pass-pass-both: f-1,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (d 1) (h 1) (d 2) (h 2))
+<Fact-8>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-4,*
+0      fail-pass-pass-pass-both: f-3,*
+0      fail-pass-pass-pass-pass: f-2,*
+0      fail-pass-pass-pass-both: f-1,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-10>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-4,*
+0      fail-pass-pass-pass-both: f-3,*
+0      fail-pass-pass-pass-pass: f-2,*
+0      fail-pass-pass-pass-both: f-1,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-12>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-4,*
+0      fail-pass-pass-pass-both: f-3,*
+0      fail-pass-pass-pass-pass: f-2,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 6g
+FuzzyCLIPS> 
+(defrule fail-fail-pass-pass-both "Case 6g"
+   (a ?x)
+   (exists (and (not (and (b ?x)
+                          (c ?x)))
+                (test (= 1 1))
+                (d ?x)))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail-fail "Case 6g"
+   (e ?x)
+   (exists (and (not (and (f ?x)
+                          (g ?x)))
+                (test (!= 2 2))
+                (h ?x)))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (d 1) (h 1) (d 2) (h 2))
+<Fact-8>
+FuzzyCLIPS> (agenda)
+0      fail-fail-pass-pass-both: f-3,*
+0      fail-fail-pass-pass-both: f-1,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-10>
+FuzzyCLIPS> (agenda)
+0      fail-fail-pass-pass-both: f-3,*
+0      fail-fail-pass-pass-both: f-1,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-12>
+FuzzyCLIPS> (agenda)
+0      fail-fail-pass-pass-both: f-3,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 6h
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail-both "Case 6h"
+   (a ?x)
+   (exists (and (exists (and (b ?x)
+                             (c ?x)))
+                (test (= 1 1))
+                (d ?x)))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail-fail "Case 6h"
+   (e ?x)
+   (exists (and (exists (and (f ?x)
+                             (g ?x)))
+                (test (!= 2 2))
+                (h ?x)))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (d 1) (h 1) (d 2) (h 2))
+<Fact-8>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-10>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-12>
+FuzzyCLIPS> (agenda)
+0      fail-fail-fail-fail-both: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 6i
+FuzzyCLIPS> 
+(defrule fail-pass-fail-fail-both "Case 6i"
+   (x)
+   (a ?x)
+   (not (and (not (and (b ?x)
+                       (c ?x)))
+             (test (= 1 1))
+             (d ?x)))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass-pass "Case 6i"
+   (x)
+   (e ?x)
+   (not (and (not (and (f ?x)
+                       (g ?x)))
+             (test (!= 2 2))
+             (h ?x)))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-1,f-5,*
+0      fail-pass-fail-fail-both: f-1,f-4,*
+0      fail-pass-pass-pass-pass: f-1,f-3,*
+0      fail-pass-fail-fail-both: f-1,f-2,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (d 1) (h 1) (d 2) (h 2))
+<Fact-9>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-1,f-5,*
+0      fail-pass-pass-pass-pass: f-1,f-3,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-11>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-1,f-5,*
+0      fail-pass-pass-pass-pass: f-1,f-3,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-13>
+FuzzyCLIPS> (agenda)
+0      fail-pass-fail-fail-both: f-1,f-2,*
+0      fail-pass-pass-pass-pass: f-1,f-5,*
+0      fail-pass-pass-pass-pass: f-1,f-3,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 6j
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass-both "Case 6j"
+   (x)
+   (a ?x)
+   (not (and (exists (and (b ?x)
+                          (c ?x)))
+             (test (= 1 1))
+             (d ?x)))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass-pass "Case 6j"
+   (x)
+   (e ?x)
+   (not (and (exists (and (f ?x)
+                          (g ?x)))
+             (test (!= 2 2))
+             (h ?x)))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-1,f-5,*
+0      fail-pass-pass-pass-both: f-1,f-4,*
+0      fail-pass-pass-pass-pass: f-1,f-3,*
+0      fail-pass-pass-pass-both: f-1,f-2,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (d 1) (h 1) (d 2) (h 2))
+<Fact-9>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-1,f-5,*
+0      fail-pass-pass-pass-both: f-1,f-4,*
+0      fail-pass-pass-pass-pass: f-1,f-3,*
+0      fail-pass-pass-pass-both: f-1,f-2,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-11>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-1,f-5,*
+0      fail-pass-pass-pass-both: f-1,f-4,*
+0      fail-pass-pass-pass-pass: f-1,f-3,*
+0      fail-pass-pass-pass-both: f-1,f-2,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-13>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass-pass: f-1,f-5,*
+0      fail-pass-pass-pass-both: f-1,f-4,*
+0      fail-pass-pass-pass-pass: f-1,f-3,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 6k
+FuzzyCLIPS> 
+(defrule fail-fail-pass-pass-both "Case 6k"
+   (x)
+   (a ?x)
+   (exists (and (not (and (b ?x)
+                          (c ?x)))
+                (test (= 1 1))
+                (d ?x)))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail-fail "Case 6k"
+   (x)
+   (e ?x)
+   (exists (and (not (and (f ?x)
+                          (g ?x)))
+                (test (!= 2 2))
+                (h ?x)))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (d 1) (h 1) (d 2) (h 2))
+<Fact-9>
+FuzzyCLIPS> (agenda)
+0      fail-fail-pass-pass-both: f-1,f-4,*
+0      fail-fail-pass-pass-both: f-1,f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-11>
+FuzzyCLIPS> (agenda)
+0      fail-fail-pass-pass-both: f-1,f-4,*
+0      fail-fail-pass-pass-both: f-1,f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-13>
+FuzzyCLIPS> (agenda)
+0      fail-fail-pass-pass-both: f-1,f-4,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 6l
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail-both "Case 6l"
+   (x)
+   (a ?x)
+   (exists (and (exists (and (b ?x)
+                             (c ?x)))
+                (test (= 1 1))
+                (d ?x)))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail-fail "Case 6l"
+   (x)
+   (e ?x)
+   (exists (and (exists (and (f ?x)
+                             (g ?x)))
+                (test (!= 2 2))
+                (h ?x)))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (d 1) (h 1) (d 2) (h 2))
+<Fact-9>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-11>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-13>
+FuzzyCLIPS> (agenda)
+0      fail-fail-fail-fail-both: f-1,f-2,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 7a
+FuzzyCLIPS> 
+(defrule fail-fail-fail-pass "Case 7a"
+   (a)
+   (not (and (not (and (b)
+                       (c)))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass "Case 7a"
+   (e)
+   (not (and (not (and (f)
+                       (g)))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (e))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-2,*
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b) (f))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-2,*
+For a total of 1 activation.
+FuzzyCLIPS> (assert (c) (g))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-fail-fail-pass: f-1,*
+0      fail-pass-pass-pass: f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (clear) ; Case 7b
+FuzzyCLIPS> 
+(defrule fail-pass-pass-fail "Case 7b"
+   (a)
+   (not (and (exists (and (b)
+                          (c)))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass "Case 7b"
+   (e)
+   (not (and (exists (and (f)
+                          (g)))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (e))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-2,*
+0      fail-pass-pass-fail: f-1,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b) (f))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-2,*
+0      fail-pass-pass-fail: f-1,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (c) (g))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-2,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 7c
+FuzzyCLIPS> 
+(defrule fail-pass-pass-fail "Case 7c"
+   (a)
+   (exists (and (not (and (b)
+                          (c)))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail "Case 7c"
+   (e)
+   (exists (and (not (and (f)
+                          (g)))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (e))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-fail: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (assert (b) (f))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-fail: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (assert (c) (g))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Case 7d
+FuzzyCLIPS> 
+(defrule fail-fail-fail-pass "Case 7d"
+   (a)
+   (exists (and (exists (and (b)
+                             (c)))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail "Case 7d"
+   (e)
+   (exists (and (exists (and (f)
+                             (g)))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a) (e))
+<Fact-2>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b) (f))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (c) (g))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-fail-fail-pass: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 7e
+FuzzyCLIPS> 
+(defrule fail-fail-fail-both "Case 7e"
+   (a ?x)
+   (not (and (not (and (b ?x)
+                       (c ?x)))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass "Case 7e"
+   (e ?x)
+   (not (and (not (and (f ?x)
+                       (g ?x)))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-4,*
+0      fail-pass-pass-pass: f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-4,*
+0      fail-pass-pass-pass: f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-8>
+FuzzyCLIPS> (agenda)
+0      fail-fail-fail-both: f-1,*
+0      fail-pass-pass-pass: f-4,*
+0      fail-pass-pass-pass: f-2,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 7f
+FuzzyCLIPS> 
+(defrule fail-pass-pass-both "Case 7f"
+   (a ?x)
+   (not (and (exists (and (b ?x)
+                          (c ?x)))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass "Case 7f"
+   (e ?x)
+   (not (and (exists (and (f ?x)
+                          (g ?x)))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-4,*
+0      fail-pass-pass-both: f-3,*
+0      fail-pass-pass-pass: f-2,*
+0      fail-pass-pass-both: f-1,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-4,*
+0      fail-pass-pass-both: f-3,*
+0      fail-pass-pass-pass: f-2,*
+0      fail-pass-pass-both: f-1,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-8>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-4,*
+0      fail-pass-pass-both: f-3,*
+0      fail-pass-pass-pass: f-2,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 7g
+FuzzyCLIPS> 
+(defrule fail-pass-pass-both "Case 7g"
+   (a ?x)
+   (exists (and (not (and (b ?x)
+                          (c ?x)))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail "Case 7g"
+   (e ?x)
+   (exists (and (not (and (f ?x)
+                          (g ?x)))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-both: f-3,*
+0      fail-pass-pass-both: f-1,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-both: f-3,*
+0      fail-pass-pass-both: f-1,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-8>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-both: f-3,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 7h
+FuzzyCLIPS> 
+(defrule fail-fail-fail-both "Case 7h"
+   (a ?x)
+   (exists (and (exists (and (b ?x)
+                             (c ?x)))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail "Case 7h"
+   (e ?x)
+   (exists (and (exists (and (f ?x)
+                             (g ?x)))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-4>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-6>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-8>
+FuzzyCLIPS> (agenda)
+0      fail-fail-fail-both: f-1,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 7i
+FuzzyCLIPS> 
+(defrule fail-fail-fail-both "Case 7i"
+   (x)
+   (a ?x)
+   (not (and (not (and (b ?x)
+                       (c ?x)))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass "Case 7i"
+   (x)
+   (e ?x)
+   (not (and (not (and (f ?x)
+                       (g ?x)))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-1,f-5,*
+0      fail-pass-pass-pass: f-1,f-3,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-7>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-1,f-5,*
+0      fail-pass-pass-pass: f-1,f-3,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-9>
+FuzzyCLIPS> (agenda)
+0      fail-fail-fail-both: f-1,f-2,*
+0      fail-pass-pass-pass: f-1,f-5,*
+0      fail-pass-pass-pass: f-1,f-3,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 7j
+FuzzyCLIPS> 
+(defrule fail-pass-pass-both "Case 7j"
+   (x)
+   (a ?x)
+   (not (and (exists (and (b ?x)
+                          (c ?x)))
+             (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-pass-pass-pass "Case 7j"
+   (x)
+   (e ?x)
+   (not (and (exists (and (f ?x)
+                          (g ?x)))
+             (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-1,f-5,*
+0      fail-pass-pass-both: f-1,f-4,*
+0      fail-pass-pass-pass: f-1,f-3,*
+0      fail-pass-pass-both: f-1,f-2,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-7>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-1,f-5,*
+0      fail-pass-pass-both: f-1,f-4,*
+0      fail-pass-pass-pass: f-1,f-3,*
+0      fail-pass-pass-both: f-1,f-2,*
+For a total of 4 activations.
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-9>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-pass: f-1,f-5,*
+0      fail-pass-pass-both: f-1,f-4,*
+0      fail-pass-pass-pass: f-1,f-3,*
+For a total of 3 activations.
+FuzzyCLIPS> (clear) ; Case 7k
+FuzzyCLIPS> 
+(defrule fail-pass-pass-both "Case 7k"
+   (x)
+   (a ?x)
+   (exists (and (not (and (b ?x)
+                          (c ?x)))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail "Case 7k"
+   (x)
+   (e ?x)
+   (exists (and (not (and (f ?x)
+                          (g ?x)))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-both: f-1,f-4,*
+0      fail-pass-pass-both: f-1,f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-7>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-both: f-1,f-4,*
+0      fail-pass-pass-both: f-1,f-2,*
+For a total of 2 activations.
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-9>
+FuzzyCLIPS> (agenda)
+0      fail-pass-pass-both: f-1,f-4,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear) ; Case 7l
+FuzzyCLIPS> 
+(defrule fail-fail-fail-both "Case 7l"
+   (x)
+   (a ?x)
+   (exists (and (exists (and (b ?x)
+                             (c ?x)))
+                (test (= 1 1))))
+   =>)
+FuzzyCLIPS> 
+(defrule fail-fail-fail-fail "Case 7l"
+   (x)
+   (e ?x)
+   (exists (and (exists (and (f ?x)
+                             (g ?x)))
+                (test (!= 2 2))))
+   =>)
+FuzzyCLIPS> (assert (x))
+<Fact-1>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (a 1) (e 1) (a 2) (e 2))
+<Fact-5>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (b 1) (f 1))
+<Fact-7>
+FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (assert (c 1) (g 1))
+<Fact-9>
+FuzzyCLIPS> (agenda)
+0      fail-fail-fail-both: f-1,f-2,*
+For a total of 1 activation.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (dribble-off)

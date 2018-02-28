@@ -49,7 +49,7 @@ ERROR:
    =>)
 *
 [ANALYSIS4] Variable ?x found in the expression (> ?x ?y)
-was referenced in CE #1 before being defined.
+was referenced in CE #3 before being defined.
 
 ERROR:
 (defrule MAIN::error-6 ""

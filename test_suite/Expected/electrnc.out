@@ -1,4 +1,4 @@
-FIRE    1 startup: f-0
+FIRE    1 startup: *
 FIRE    2 compute-response-1st-time: f-1
 FIRE    3 compute-response-other-times: f-3
 FIRE    4 compute-response-other-times: f-5
@@ -115,30 +115,30 @@ FIRE  114 compute-response-other-times: f-173
 FIRE  115 merge-responses: f-177,f-127
 FIRE  116 merge-responses: f-179,f-126
 FIRE  117 merge-responses: f-180,f-87
-FIRE  118 print-header: f-0
+FIRE  118 print-header: *
  S-1  S-2  S-3  S-4  S-5  S-6  |  L-1  L-2  L-3 
 -------------------------------+----------------
-FIRE  119 print-result: f-182,f-139,
+FIRE  119 print-result: f-182,f-139,*
   *    1    0    1    *    *   |   0    1    0  
-FIRE  120 print-result: f-182,f-176,
+FIRE  120 print-result: f-182,f-176,*
   1    *    0    0    *    *   |   0    1    1  
-FIRE  121 print-result: f-182,f-169,
+FIRE  121 print-result: f-182,f-169,*
   0    1    0    0    *    *   |   0    1    1  
-FIRE  122 print-result: f-182,f-154,
+FIRE  122 print-result: f-182,f-154,*
   0    0    1    *    *    *   |   0    1    1  
-FIRE  123 print-result: f-182,f-132,
+FIRE  123 print-result: f-182,f-132,*
   1    0    0    1    *    *   |   0    1    1  
-FIRE  124 print-result: f-182,f-145,
+FIRE  124 print-result: f-182,f-145,*
   *    1    1    1    *    1   |   1    0    0  
-FIRE  125 print-result: f-182,f-30,
+FIRE  125 print-result: f-182,f-30,*
   *    1    1    1    0    0   |   1    0    0  
-FIRE  126 print-result: f-182,f-181,
+FIRE  126 print-result: f-182,f-181,*
   0    0    0    *    *    *   |   1    0    1  
-FIRE  127 print-result: f-182,f-165,
+FIRE  127 print-result: f-182,f-165,*
   *    1    1    0    *    1   |   1    0    1  
-FIRE  128 print-result: f-182,f-159,
+FIRE  128 print-result: f-182,f-159,*
   1    0    1    *    *    *   |   1    0    1  
-FIRE  129 print-result: f-182,f-74,
+FIRE  129 print-result: f-182,f-74,*
   *    1    1    *    1    0   |   1    0    1  
-FIRE  130 print-result: f-182,f-15,
+FIRE  130 print-result: f-182,f-15,*
   *    1    1    0    0    0   |   1    0    1  

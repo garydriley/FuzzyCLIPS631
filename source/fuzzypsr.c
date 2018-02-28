@@ -107,20 +107,20 @@
  
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-  static struct fuzzyLv       *parseUniverse(void *theEnv,char *read_source, struct token *inputToken, 
+  static struct fuzzyLv       *parseUniverse(void *theEnv,const char *read_source, struct token *inputToken, 
                                              int *DeftemplateError);
-  static void                  parsePrimaryTermList(void *theEnv,char *in_file, struct token *inputToken, 
+  static void                  parsePrimaryTermList(void *theEnv,const char *in_file, struct token *inputToken, 
                                              int *DeftemplateError, struct fuzzyLv *u);
-  static struct primary_term  *parsePrimaryTerm(void *theEnv,char *readSource, 
+  static struct primary_term  *parsePrimaryTerm(void *theEnv,const char *readSource, 
                                                 struct token *inputToken, int *DeftemplateError,
                                                 struct fuzzyLv *u);
-  static struct fuzzy_value   *parseTemplateFuzzyValue(void *theEnv,char *readSource, struct token *inputToken, 
+  static struct fuzzy_value   *parseTemplateFuzzyValue(void *theEnv,const char *readSource, struct token *inputToken, 
                                              int  *DeftemplateError, struct fuzzyLv *u);
-  static struct fuzzy_value   *parseSingletonFuzzyValue(void *theEnv,char *readSource, 
+  static struct fuzzy_value   *parseSingletonFuzzyValue(void *theEnv,const char *readSource, 
                                                       struct token *inputToken,
                                                       int  *DeftemplateError,
                                                       struct fuzzyLv *u);
-  static struct fuzzy_value   *parseStandardFuzzyValue(void *theEnv,char *readSource, 
+  static struct fuzzy_value   *parseStandardFuzzyValue(void *theEnv,const char *readSource, 
                                                      struct token *inputToken,
                                                      int  *DeftemplateError,
                                                      struct fuzzyLv *u);
@@ -372,7 +372,7 @@ globle struct fuzzy_value *Get_S_Z_or_PI_FuzzyValue(
 /*****************************************************************/
 globle struct fuzzyLv *ParseFuzzyTemplate(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *inputToken,
   int *DeftemplateError)
   {
@@ -443,7 +443,7 @@ globle struct fuzzyLv *ParseFuzzyTemplate(
 /*****************************************************/
 static struct fuzzyLv *parseUniverse(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *inputToken,
   int *DeftemplateError)
   {
@@ -508,7 +508,7 @@ static struct fuzzyLv *parseUniverse(
 /*****************************************************/
 static void parsePrimaryTermList(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *inputToken,  
   int  *DeftemplateError,
   struct fuzzyLv *new_lv)
@@ -574,13 +574,13 @@ static void parsePrimaryTermList(
 /***************************************************************/
 static struct primary_term *parsePrimaryTerm(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *inputToken,
   int *DeftemplateError,
   struct fuzzyLv *new_lv) 
 {
    struct primary_term *ptr;
-   char *pt_name;
+   const char *pt_name;
    struct fuzzy_value *fuzzy_value_dsc;
    
    /*==========================================================*/
@@ -656,7 +656,7 @@ static struct primary_term *parsePrimaryTerm(
 /***********************************/
 static struct fuzzy_value *parseTemplateFuzzyValue(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *inputToken,
   int  *DeftemplateError,
   struct fuzzyLv *new_lv)
@@ -717,7 +717,7 @@ static struct fuzzy_value *parseTemplateFuzzyValue(
 
 static struct fuzzy_value *parseSingletonFuzzyValue(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *inputToken,
   int  *DeftemplateError,
   struct fuzzyLv *u)
@@ -949,14 +949,14 @@ static struct fuzzy_value *parseSingletonFuzzyValue(
 
 static struct fuzzy_value *parseStandardFuzzyValue(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *inputToken,
   int  *DeftemplateError,
   struct fuzzyLv *u)
   {
     struct fuzzy_value *fv;
     double alfa, beta, gamma;
-    char *name;
+    const char *name;
     int z_function=FALSE, s_function=FALSE, pi_function=FALSE;
     double xtolerance;
     

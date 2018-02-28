@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.24  06/05/06          */
+   /*               CLIPS Version 6.30  08/16/14          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,13 +10,27 @@
 /* Purpose: Message-passing support functions                */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*      6.23: Changed name of variable log to logName        */
+/*            because of Unix compiler warnings of shadowed  */
+/*            definitions.                                   */
+/*                                                           */
+/*      6.24: Removed IMPERATIVE_MESSAGE_HANDLERS and        */
+/*            AUXILIARY_MESSAGE_HANDLERS compilation flags.  */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Support for long long integers.                */
+/*                                                           */
+/*            Changed integer type/precision.                */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -25,8 +39,8 @@
 
 typedef struct handlerSlotReference
   {
-   unsigned short classID;
-   unsigned slotID;
+   long classID;
+   long slotID;
   } HANDLER_SLOT_REFERENCE;
 
 #ifndef _H_object
@@ -60,13 +74,13 @@ typedef struct handlerSlotReference
 #endif
 
    LOCALE void             UnboundHandlerErr(void *);
-   LOCALE void             PrintNoHandlerError(void *,char *);
+   LOCALE void             PrintNoHandlerError(void *,const char *);
    LOCALE int              CheckHandlerArgCount(void *);
-   LOCALE void             SlotAccessViolationError(void *,char *,intBool,void *);
+   LOCALE void             SlotAccessViolationError(void *,const char *,intBool,void *);
    LOCALE void             SlotVisibilityViolationError(void *,SLOT_DESC *,DEFCLASS *);
 
 #if ! RUN_TIME
-   LOCALE void             NewSystemHandler(void *,char *,char *,char *,int);
+   LOCALE void             NewSystemHandler(void *,const char *,const char *,const char *,int);
    LOCALE HANDLER         *InsertHandlerHeader(void *,DEFCLASS *,SYMBOL_HN *,int);
 #endif
 
@@ -76,22 +90,22 @@ typedef struct handlerSlotReference
    LOCALE int              DeleteHandler(void *,DEFCLASS *,SYMBOL_HN *,int,int);
    LOCALE void             DeallocateMarkedHandlers(void *,DEFCLASS *);
 #endif
-   LOCALE unsigned         HandlerType(void *,char *,char *);
-   LOCALE int              CheckCurrentMessage(void *,char *,int);
-   LOCALE void             PrintHandler(void *,char *,HANDLER *,int);
+   LOCALE unsigned         HandlerType(void *,const char *,const char *);
+   LOCALE int              CheckCurrentMessage(void *,const char *,int);
+   LOCALE void             PrintHandler(void *,const char *,HANDLER *,int);
    LOCALE HANDLER         *FindHandlerByAddress(DEFCLASS *,SYMBOL_HN *,unsigned);
    LOCALE int              FindHandlerByIndex(DEFCLASS *,SYMBOL_HN *,unsigned);
    LOCALE int              FindHandlerNameGroup(DEFCLASS *,SYMBOL_HN *);
-   LOCALE void             HandlerDeleteError(void *,char *);
+   LOCALE void             HandlerDeleteError(void *,const char *);
 
 #if DEBUGGING_FUNCTIONS
-   LOCALE void             DisplayCore(void *,char *,HANDLER_LINK *,int);
+   LOCALE void             DisplayCore(void *,const char *,HANDLER_LINK *,int);
    LOCALE HANDLER_LINK    *FindPreviewApplicableHandlers(void *,DEFCLASS *,SYMBOL_HN *);
-   LOCALE void             WatchMessage(void *,char *,char *);
-   LOCALE void             WatchHandler(void *,char *,HANDLER_LINK *,char *);
+   LOCALE void             WatchMessage(void *,const char *,const char *);
+   LOCALE void             WatchHandler(void *,const char *,HANDLER_LINK *,const char *);
 #endif
 
-#endif
+#endif /* _H_msgfun */
 
 
 

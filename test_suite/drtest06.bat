@@ -11,7 +11,7 @@
 (conserve-mem on)                  ; DR0501
 (defmessage-handler USER foo ())   ; DR0501
 (clear)                            ; DR0501
-(release-mem)                      ; DR0501
+(progn (release-mem) TRUE)         ; DR0501
 (conserve-mem off)                 ; DR0501
 (clear)                            ; DR0502
 (defclass a (is-a USER))           ; DR0502
@@ -65,17 +65,17 @@
 (assert (calculate 
         (operation 4<56)))         ; DR0512 - Error
 (assert (calculate (operation go)))
-(modify 0 (operation 467<789)))    ; DR0512 - Error
-(duplicate 0 (operation 54<2345))) ; DR0512 - Error
+(modify 1 (operation 467<789)))    ; DR0512 - Error
+(duplicate 1 (operation 54<2345))) ; DR0512 - Error
 (clear)                            ; DR0517
 (deftemplate r                     ; DR0517
    (field mine) (field yours))     ; DR0517
 (watch facts)                      ; DR0517
 (assert (r (mine "string")))       ; DR0517
 (assert (r (yours this-is-a-word)))
-(modify 0 (mine "string"))         ; DR0517
-(modify 1 (yours wordie))          ; DR0517
-(modify 3 (yours is-mine))         ; DR0517
+(modify 1 (mine "string"))         ; DR0517
+(modify 2 (yours wordie))          ; DR0517
+(modify 4 (yours is-mine))         ; DR0517
 (unwatch facts)                    ; DR0517
 (clear)                            ; DR0519
 (deftemplate result                ; DR0519
@@ -88,8 +88,8 @@
 (clear)                            ; DR0520
 (assert (a) (b) (c))               ; DR0520
 (facts)                            ; DR0520
-(facts 0 2 2)                      ; DR0520
-(facts 2)                          ; DR0520
+(facts 1 3 2)                      ; DR0520
+(facts 3)                          ; DR0520
 (not FALSE)                        ; DR0521 - TRUE
 (not "FALSE")                      ; DR0521 - FALSE
 (clear)                            ; DR0522
@@ -122,8 +122,8 @@
 (* 3.6 15.0)                       ; DR0533 - 54.0
 (* 3.0 15.0)                       ; DR0533 - 45.0
 898~898                            ; DR0536 - 898
-(format nil "%ld" 12)              ; DR0539 - "12"
-(format nil "|%ld|" 12)            ; DR0539 - "|12|"
+(format nil "%d" 12)               ; DR0539 - "12"
+(format nil "|%d|" 12)             ; DR0539 - "|12|"
 (clear)                            ; DR0540
 (defglobal ?*x* = ?*r*)            ; DR0540 - Error
 (defglobal ?*w* = 4)               ; DR0540 - OK
@@ -185,6 +185,9 @@
 (clear)                            ; DR0566
 (bind ?a 3)                        ; DR0566 - 3
 (bind ?b 4)                        ; DR0566 - 4
+(+ ?a 3)
+(+ ?a ?b)
+(reset)
 (+ ?a 3)                           ; DR0566 - Error
 (+ ?a ?b)                          ; DR0566 - Error
 (+ ?e 4)                           ; DR0566 - Error
@@ -274,7 +277,7 @@
     ?f1 <- (color (standard ?))
     =>
     (modify ?f1 (standard none)))
-(release-mem)                      ; DR0592
+(progn (release-mem) TRUE)         ; DR0592
 (clear)                            ; DR0594
 (defrule junk => (bsave "Temp//drtest06.bin"))     
 (reset)                            ; DR0594

@@ -96,12 +96,12 @@
     static char          *u_to_string ( void *theEnv, struct fuzzyLv *up, int *length );
     static char          *fs_to_string ( struct fact *factPtr, int *length );
     static double         moment_defuzzification( void *,struct fuzzy_value *fvPtr );  
-    static VOID           assert_defuzzified_fact( char *name, double value);
-    static VOID           get_moment_and_area ( double *moment_ptr, double *area_ptr, double x1,
+    static void           assert_defuzzified_fact( char *name, double value);
+    static void           get_moment_and_area ( double *moment_ptr, double *area_ptr, double x1,
                                                 double y1, double x2, double y2 );
     static double         maximum_defuzzification(void *, struct fuzzy_value *fvPtr );  
     static char          *fv_to_string ( void *theEnv, struct fuzzy_value *fv_ptr, int *length_ptr );    
-    static struct expr   *CreateFuzzyValueParse( void *theEnv, struct expr *top, char *logName );
+    static struct expr   *CreateFuzzyValueParse( void *theEnv, struct expr *top, const char *logName );
     globle intBool        is_defuzzify_value_valid(void *); /* Changed from static to global to avoid
 								compiler warning DPW 22 May 2001 */
 
@@ -267,7 +267,7 @@ static struct fuzzy_value *seeIfFuzzyFact(
       }
     else 
       {
-        sprintf(tempBuffer,"f-%ld (or NOT a fuzzy fact)",factPtr->factIndex);
+        sprintf(tempBuffer,"f-%lld (or NOT a fuzzy fact)",factPtr->factIndex);
         CantFindItemErrorMessage(theEnv,"fact", tempBuffer);
         return( NULL );
       }
@@ -363,7 +363,7 @@ static struct fuzzyLv *getFuzzyUniversePtr(
      }
    else if (theResult->type == SYMBOL)
      { /* fuzzy deftemplate being referenced */
-       char * theName;
+       const char * theName;
        int count;
 
        theName = ValueToString(theResult->value);
@@ -1111,7 +1111,7 @@ static double moment_defuzzification(
 
     Conditions: x2 > x1.
  ***********************************************************************/
-static VOID get_moment_and_area (
+static void get_moment_and_area (
 double *moment_ptr, 
 double *area_ptr, 
 double x1, 
@@ -1298,10 +1298,10 @@ static double maximum_defuzzification(
     adds a new fuzzy modifier to the list of modifiers
 
 ************************************************************/
-globle VOID add_fuzzy_modifier(
+globle void add_fuzzy_modifier(
   void *theEnv)
   {
-   char *modname, *modfuncname;
+   const char *modname, *modfuncname;
    struct FunctionDefinition *fun = NULL;
    DEFFUNCTION *deffun = NULL;
    
@@ -1383,10 +1383,10 @@ globle VOID add_fuzzy_modifier(
     (note: cannot remove the system provided ones)
 
 ************************************************************/
-globle VOID remove_fuzzy_modifier(
+globle void remove_fuzzy_modifier(
   void *theEnv)
   {
-   char *modname;
+   const char *modname;
    
    
    if (EnvArgCountCheck(theEnv,"remove-fuzzy-modifier",EXACTLY,1) != -1)
@@ -1416,10 +1416,10 @@ globle VOID remove_fuzzy_modifier(
        max-prod
 
 ************************************************************/
-globle VOID set_fuzzy_inference_type(
+globle void set_fuzzy_inference_type(
   void *theEnv)
   {
-   char *inference_type;
+   const char *inference_type;
    
    
    if (EnvArgCountCheck(theEnv,"set-fuzzy-inference-type",EXACTLY,1) != -1)
@@ -1476,7 +1476,7 @@ globle void *get_fuzzy_inference_type(
     sets the precision used when displaying fuzzy set values
  
 ************************************************************/
-globle VOID set_fuzzy_display_precision(
+globle void set_fuzzy_display_precision(
   void *theEnv)
   {
    DATA_OBJECT arg;
@@ -1555,13 +1555,14 @@ static int nint(
          more fuzzy values than plotchars the last is used over again.
  
 ************************************************************/
-globle VOID plot_fuzzy_value(
+globle void plot_fuzzy_value(
   void *theEnv)
   {
-   char *dummyid;
+   const char *dummyid;
    int i, j, k, m, lastk, previousLastk, numArgs, n;
    DATA_OBJECT theArgument;
-   char theSymbol, *theString;
+   char theSymbol;
+   const char *theString;
    struct fuzzy_value *fv_ptr, *fv_ptr_first;
    char PlotSpace[NROWS+1][NCOLS+2];
    double from, to, range, deltax;
@@ -1878,7 +1879,7 @@ globle VOID plot_fuzzy_value(
     match between a pattern and a fuzzy value that is required to
     consider it a match.
  *******************************************************************/
-globle VOID set_alpha_value(
+globle void set_alpha_value(
   void *theEnv)
   {
     DATA_OBJECT theArgument;
@@ -1954,7 +1955,7 @@ globle struct fuzzy_value *get_fuzzy_slot(
     int found_fact;
     struct fact *factPtr;
     int error = FALSE;
-    char *slotName;
+    const char *slotName;
     DATA_OBJECT theSlot;
     char tempBuffer[30];
     int numArgs;
@@ -2174,7 +2175,7 @@ globle struct fuzzy_value *fuzzy_modify(
   {  
     DATA_OBJECT theArgument;
     struct fuzzy_value *f1, *fresult;
-    char *modifier;
+    const char *modifier;
 
    if (EnvArgCountCheck(theEnv,"fuzzy-modify",EXACTLY,2) != -1)
      {     
@@ -2265,11 +2266,11 @@ globle struct fuzzy_value *create_fuzzy_value(
 static struct expr *CreateFuzzyValueParse( 
   void *theEnv,
   struct expr *top,
-  char *logName)
+  const char *logName)
 {
   struct token theToken;
   struct deftemplate *theDeftemplate;
-  char * theName;
+  const char * theName;
   int count, error;
   struct expr *fvExpr;
   

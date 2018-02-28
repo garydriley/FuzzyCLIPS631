@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.24  07/01/05          */
+   /*               CLIPS Version 6.30  08/16/14          */
    /*                                                     */
    /*                     MAIN MODULE                     */
    /*******************************************************/
@@ -41,16 +41,7 @@
 /*                                                                         */
 /***************************************************************************/
 
-#include <stdio.h>
-#include "setup.h"
-#include "sysdep.h"
-#include "envrnmnt.h"
-#include "extnfunc.h"
-#include "commline.h"
-
-int main(int,char *[]);
-void UserFunctions(void);
-void EnvUserFunctions(void *);
+#include "clips.h"
 
 /****************************************/
 /* main: Starts execution of the expert */

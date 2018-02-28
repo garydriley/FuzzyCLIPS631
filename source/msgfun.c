@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.24  05/17/06          */
+   /*               CLIPS Version 6.30  08/16/14          */
    /*                                                     */
    /*                  OBJECT MESSAGE FUNCTIONS           */
    /*******************************************************/
@@ -10,11 +10,12 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Changed name of variable log to logName        */
 /*            because of Unix compiler warnings of shadowed  */
 /*            definitions.                                   */
@@ -23,6 +24,13 @@
 /*            AUXILIARY_MESSAGE_HANDLERS compilation flags.  */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Support for long long integers.                */
+/*                                                           */
+/*            Changed integer type/precision.                */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -55,8 +63,8 @@
    ***************************************** */
 
 #if DEBUGGING_FUNCTIONS
-static HANDLER_LINK *DisplayPrimaryCore(void *,char *,HANDLER_LINK *,int);
-static void PrintPreviewHandler(void *,char *,HANDLER_LINK *,int,char *);
+static HANDLER_LINK *DisplayPrimaryCore(void *,const char *,HANDLER_LINK *,int);
+static void PrintPreviewHandler(void *,const char *,HANDLER_LINK *,int,const char *);
 #endif
 
 /* =========================================
@@ -92,7 +100,7 @@ globle void UnboundHandlerErr(
  *****************************************************************/
 globle void PrintNoHandlerError(
   void *theEnv,
-  char *msg)
+  const char *msg)
   {
    PrintErrorID(theEnv,"MSGFUN",1,FALSE);
    EnvPrintRouter(theEnv,WERROR,"No applicable primary message-handlers found for ");
@@ -128,8 +136,11 @@ globle int CheckHandlerArgCount(
       EnvPrintRouter(theEnv,WERROR," in class ");
       EnvPrintRouter(theEnv,WERROR,EnvGetDefclassName(theEnv,(void *) hnd->cls));
       EnvPrintRouter(theEnv,WERROR," expected ");
-      EnvPrintRouter(theEnv,WERROR,(char *) ((hnd->maxParams == -1) ? "at least " : "exactly "));
-      PrintLongInteger(theEnv,WERROR,(long) (hnd->minParams-1));
+      if (hnd->maxParams == -1)
+        EnvPrintRouter(theEnv,WERROR,"at least ");
+      else
+        EnvPrintRouter(theEnv,WERROR,"exactly ");
+      PrintLongInteger(theEnv,WERROR,(long long) (hnd->minParams-1));
       EnvPrintRouter(theEnv,WERROR," argument(s).\n");
       return(FALSE);
      }
@@ -152,7 +163,7 @@ globle int CheckHandlerArgCount(
  ***************************************************/
 globle void SlotAccessViolationError(
   void *theEnv,
-  char *slotName,
+  const char *slotName,
   intBool instanceFlag,
   void *theInstanceOrClass)
   {
@@ -219,9 +230,9 @@ globle void SlotVisibilityViolationError(
  *******************************************************************************/
 globle void NewSystemHandler(
   void *theEnv,
-  char *cname,
-  char *mname,
-  char *fname,
+  const char *cname,
+  const char *mname,
+  const char *fname,
   int extraargs)
   {
    DEFCLASS *cls;
@@ -231,7 +242,7 @@ globle void NewSystemHandler(
    hnd = InsertHandlerHeader(theEnv,cls,(SYMBOL_HN *) EnvAddSymbol(theEnv,mname),MPRIMARY);
    IncrementSymbolCount(hnd->name);
    hnd->system = 1;
-   hnd->minParams = hnd->maxParams = extraargs + 1;
+   hnd->minParams = hnd->maxParams = (short) (extraargs + 1);
    hnd->localVarCount = 0;
    hnd->actions = get_struct(theEnv,expr);
    hnd->actions->argList = NULL;
@@ -262,8 +273,8 @@ globle HANDLER *InsertHandlerHeader(
   {
    HANDLER *nhnd,*hnd;
    unsigned *narr,*arr;
-   unsigned i;
-   register int j,ni = -1;
+   long i;
+   long j,ni = -1;
 
    hnd = cls->handlers;
    arr = cls->handlerOrderMap;
@@ -277,7 +288,7 @@ globle HANDLER *InsertHandlerHeader(
          if ((hnd[arr[i]].name->bucket > mname->bucket) ? TRUE :
              (hnd[arr[i]].name == mname))
            {
-            ni = (int) i;
+            ni = i;
             j++;
            }
         }
@@ -329,7 +340,7 @@ globle HANDLER *InsertHandlerHeader(
 globle int HandlersExecuting(
   DEFCLASS *cls)
   {
-   register unsigned i;
+   long i;
 
    for (i = 0 ; i < cls->handlerCount ; i++)
      if (cls->handlers[i].busy > 0)
@@ -364,7 +375,7 @@ globle int DeleteHandler(
    int mtype,
    int indicate_missing)
   {
-   register unsigned i;
+   long i;
    HANDLER *hnd;
    int found,success = 1;
 
@@ -459,10 +470,10 @@ globle void DeallocateMarkedHandlers(
   void *theEnv,
   DEFCLASS *cls)
   {
-   unsigned count;
+   short count;
    HANDLER *hnd,*nhnd;
    unsigned *arr,*narr;
-   register unsigned i,j;
+   long i,j;
 
    for (i = 0 , count = 0 ; i < cls->handlerCount ; i++)
      {
@@ -497,7 +508,7 @@ globle void DeallocateMarkedHandlers(
      }
    else
      {
-      count = cls->handlerCount - count;
+      count = (short) (cls->handlerCount - count);
       hnd = cls->handlers;
       arr = cls->handlerOrderMap;
       nhnd = (HANDLER *) gm2(theEnv,(sizeof(HANDLER) * count));
@@ -549,8 +560,8 @@ globle void DeallocateMarkedHandlers(
  *****************************************************/
 globle unsigned HandlerType(
   void *theEnv,
-  char *func,
-  char *str)
+  const char *func,
+  const char *str)
   {
    register unsigned i;
 
@@ -581,7 +592,7 @@ globle unsigned HandlerType(
  *****************************************************************/
 globle int CheckCurrentMessage(
   void *theEnv,
-  char *func,
+  const char *func,
   int ins_reqd)
   {
    register DATA_OBJECT *activeMsgArg;
@@ -626,7 +637,7 @@ globle int CheckCurrentMessage(
  ***************************************************/
 globle void PrintHandler(
   void *theEnv,
-  char *logName,
+  const char *logName,
   HANDLER *theHandler,
   int crtn)
   {
@@ -657,7 +668,7 @@ globle HANDLER *FindHandlerByAddress(
   unsigned type)
   {
    register int b;
-   unsigned i;
+   long i;
    HANDLER *hnd;
    unsigned *arr;
 
@@ -676,7 +687,7 @@ globle HANDLER *FindHandlerByAddress(
   }
 
 /***********************************************************
-  NAME         : FindHandlerByAddress
+  NAME         : FindHandlerByIndex
   DESCRIPTION  : Uses a binary search on a class's
                    handler header array
   INPUTS       : 1) The class address
@@ -695,7 +706,7 @@ globle int FindHandlerByIndex(
   unsigned type)
   {
    register int b;
-   unsigned i;
+   long i;
    HANDLER *hnd;
    unsigned *arr;
 
@@ -784,7 +795,7 @@ globle int FindHandlerNameGroup(
  ***************************************************/
 globle void HandlerDeleteError(
   void *theEnv,
-  char *cname)
+  const char *cname)
   {
    PrintErrorID(theEnv,"MSGFUN",8,FALSE);
    EnvPrintRouter(theEnv,WERROR,"Unable to delete message-handler(s) from class ");
@@ -815,7 +826,7 @@ globle void HandlerDeleteError(
  ********************************************************************/
 globle void DisplayCore(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   HANDLER_LINK *core,
   int sdepth)
   {
@@ -888,15 +899,15 @@ globle HANDLER_LINK *FindPreviewApplicableHandlers(
  ***********************************************************/
 globle void WatchMessage(
   void *theEnv,
-  char *logName,
-  char *tstring)
+  const char *logName,
+  const char *tstring)
   {
    EnvPrintRouter(theEnv,logName,"MSG ");
    EnvPrintRouter(theEnv,logName,tstring);
    EnvPrintRouter(theEnv,logName," ");
    EnvPrintRouter(theEnv,logName,ValueToString(MessageHandlerData(theEnv)->CurrentMessageName));
    EnvPrintRouter(theEnv,logName," ED:");
-   PrintLongInteger(theEnv,logName,(long) EvaluationData(theEnv)->CurrentEvaluationDepth);
+   PrintLongInteger(theEnv,logName,(long long) EvaluationData(theEnv)->CurrentEvaluationDepth);
    PrintProcParamArray(theEnv,logName);
   }
 
@@ -914,9 +925,9 @@ globle void WatchMessage(
  ***********************************************************/
 globle void WatchHandler(
   void *theEnv,
-  char *logName,
+  const char *logName,
   HANDLER_LINK *hndl,
-  char *tstring)
+  const char *tstring)
   {
    HANDLER *hnd;
    
@@ -926,7 +937,7 @@ globle void WatchHandler(
    hnd = hndl->hnd;
    PrintHandler(theEnv,WTRACE,hnd,TRUE);
    EnvPrintRouter(theEnv,logName,"       ED:");
-   PrintLongInteger(theEnv,logName,(long) EvaluationData(theEnv)->CurrentEvaluationDepth);
+   PrintLongInteger(theEnv,logName,(long long) EvaluationData(theEnv)->CurrentEvaluationDepth);
    PrintProcParamArray(theEnv,logName);
   }
 
@@ -961,7 +972,7 @@ globle void WatchHandler(
  ********************************************************************/
 static HANDLER_LINK *DisplayPrimaryCore(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   HANDLER_LINK *core,
   int pdepth)
   {
@@ -989,10 +1000,10 @@ static HANDLER_LINK *DisplayPrimaryCore(
  ***************************************************/
 static void PrintPreviewHandler(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   HANDLER_LINK *cptr,
   int sdepth,
-  char *tstr)
+  const char *tstr)
   {
    register int i;
 

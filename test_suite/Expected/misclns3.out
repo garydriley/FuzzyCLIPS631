@@ -4,23 +4,23 @@ TRUE
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (defrule foo (factoid $?x&:(> (length$ ?x) 3)) =>)
 FuzzyCLIPS> (assert (factoid a) (factoid a b c) (factoid a b c d e))
-<Fact-2>
+<Fact-3>
 FuzzyCLIPS> (agenda)
-0      foo: f-2
+0      foo: f-3
 For a total of 1 activation.
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (defglobal ?*x* = 0)
 FuzzyCLIPS> (bind ?*x* (assert (this)))
-<Fact-0>
-FuzzyCLIPS> (assert (that ?*x*))
 <Fact-1>
-FuzzyCLIPS> (bind ?*x* (assert (what)))
-<Fact-2>
 FuzzyCLIPS> (assert (that ?*x*))
+<Fact-2>
+FuzzyCLIPS> (bind ?*x* (assert (what)))
 <Fact-3>
+FuzzyCLIPS> (assert (that ?*x*))
+<Fact-4>
 FuzzyCLIPS> (defrule foo ?f <- (this) (that ?f) =>)
 FuzzyCLIPS> (agenda)
-0      foo: f-0,f-1
+0      foo: f-1,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (get-dynamic-deftemplate-checking) ;; CR0191
 
@@ -80,13 +80,14 @@ FuzzyCLIPS> (remove blah.bin)
 TRUE
 FuzzyCLIPS> (clear) ;; CR0223
 FuzzyCLIPS> (assert (a =(+ 3 4)))
-<Fact-0>
-FuzzyCLIPS> (assert (a (+ 5 6)))
 <Fact-1>
+FuzzyCLIPS> (assert (a (+ 5 6)))
+<Fact-2>
 FuzzyCLIPS> (facts)
-f-0     (a 7) CF 1.00 
-f-1     (a 11) CF 1.00 
-For a total of 2 facts.
+f-0     (initial-fact) CF 1.00 
+f-1     (a 7) CF 1.00 
+f-2     (a 11) CF 1.00 
+For a total of 3 facts.
 FuzzyCLIPS> (remove) ;; CR0240
 [ARGACCES4] Function remove expected exactly 1 argument(s)
 FuzzyCLIPS> (remove 7)
@@ -141,10 +142,10 @@ FuzzyCLIPS> (apropos "dynamic" 7)
 FuzzyCLIPS> (apropos "dynamic")
 [ARGACCES5] Function apropos expected argument #1 to be of type symbol
 FuzzyCLIPS> (apropos dynamic)
+get-dynamic-constraint-checking
 dynamic-put
 set-dynamic-constraint-checking
 dynamic-get
-get-dynamic-constraint-checking
 FuzzyCLIPS> (list-watch-items 7) ;; CR0263
 [ARGACCES5] Function list-watch-items expected argument #1 to be of type symbol
 FuzzyCLIPS> (unwatch all)
@@ -165,22 +166,23 @@ globals = off
 focus = off
 FuzzyCLIPS> (clear) ;; CR0264
 FuzzyCLIPS> (assert (foo))
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (list-deftemplates)
 initial-fact
 foo
 For a total of 2 deftemplates.
 FuzzyCLIPS> (undeftemplate foo)
 [PRNTUTIL4] Unable to delete deftemplate foo.
-FuzzyCLIPS> (retract 0)
+FuzzyCLIPS> (retract 1)
 FuzzyCLIPS> (undeftemplate foo)
 FuzzyCLIPS> (clear) ;; CR0265
 FuzzyCLIPS> (defglobal ?*x* = 3)
 FuzzyCLIPS> (str-assert "(foo ?*x* (+ 3 4))")
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (facts)
-f-0     (foo 3 7) CF 1.00 
-For a total of 1 fact.
+f-0     (initial-fact) CF 1.00 
+f-1     (foo 3 7) CF 1.00 
+For a total of 2 facts.
 FuzzyCLIPS> (str-assert "(foo ?*x* (+ 3 4))")
 FALSE
 FuzzyCLIPS> (clear) ;; CR0269
@@ -193,7 +195,7 @@ FuzzyCLIPS> (batch blah.txt)
 [ARGACCES2] Function batch was unable to open file blah.txt.
 FALSE
 FuzzyCLIPS> (assert (foo))
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (list-deftemplates)
 initial-fact
 foo
@@ -204,9 +206,7 @@ FuzzyCLIPS> (trunc) ;; CR0271
 [EXPRNPSR3] Missing function declaration for trunc.
 FuzzyCLIPS> (clear) ;; CR0272
 FuzzyCLIPS> (defmodule A)
-FuzzyCLIPS> (defrule A::foo =>)
-[FACTLHS1] WARNING: Creating implied initial-fact deftemplate in module A.
-  You probably want to import this deftemplate from the MAIN module.
+FuzzyCLIPS> (defrule A::foo (not (b)) =>)
 FuzzyCLIPS> (deftemplate A::bar)
 FuzzyCLIPS> (deffacts A::yak)
 FuzzyCLIPS> (defglobal A ?*woz* = 3)
@@ -256,12 +256,13 @@ FuzzyCLIPS> (defglobal-module woz)
 A
 FuzzyCLIPS> (clear) ;; CR0280
 FuzzyCLIPS> (assert-string "(a b c)")
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (assert-string "d e f")
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for RHS patterns.
 FALSE
 FuzzyCLIPS> (facts)
-f-0     (a b c) CF 1.00 
-For a total of 1 fact.
+f-0     (initial-fact) CF 1.00 
+f-1     (a b c) CF 1.00 
+For a total of 2 facts.
 FuzzyCLIPS> (dribble-off)

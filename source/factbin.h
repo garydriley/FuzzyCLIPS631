@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*            FACT BLOAD/BSAVE HEADER FILE             */
    /*******************************************************/
@@ -15,6 +15,10 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Added support for hashed alpha memories.       */
+/*                                                           */
+/*            Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 

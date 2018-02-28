@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*        DEFRULE CONSTRUCT COMPILER HEADER FILE       */
    /*******************************************************/
@@ -20,6 +20,21 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.24: Removed DYNAMIC_SALIENCE and                   */
+/*            LOGICAL_DEPENDENCIES compilation flags.        */
+/*                                                           */
+/*      6.30: Added support for path name argument to        */
+/*            constructs-to-c.                               */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Support for join network changes.              */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_rulecmp
@@ -31,9 +46,10 @@
 #endif
 
 #define JoinPrefix() ArbitraryPrefix(DefruleData(theEnv)->DefruleCodeItem,2)
+#define LinkPrefix() ArbitraryPrefix(DefruleData(theEnv)->DefruleCodeItem,3)
 
 #if FUZZY_DEFTEMPLATES  
-#define PatternFvPrefix() ArbitraryPrefix(DefruleData(theEnv)->DefruleCodeItem,3)
+#define PatternFvPrefix() ArbitraryPrefix(DefruleData(theEnv)->DefruleCodeItem,4)
 #endif
 
 #ifdef LOCALE
@@ -49,11 +65,7 @@
    LOCALE void                     DefruleCompilerSetup(void *);
    LOCALE void                     DefruleCModuleReference(void *,FILE *,int,int,int);
 
-#ifndef _RULECMP_SOURCE_
-extern struct CodeGeneratorItem *DefruleCodeItem;
-#endif
-
-#endif
+#endif /* _H_rulecmp */
 
 
 

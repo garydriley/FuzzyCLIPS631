@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*             BASIC MATH FUNCTIONS MODULE             */
    /*******************************************************/
@@ -17,6 +17,10 @@
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Support for long long integers.                */
+/*                                                           */
+/*            Converted API macros to function calls.        */
 /*                                                           */
 /*************************************************************/
 
@@ -38,29 +42,28 @@
 #define LOCALE extern
 #endif
 
-#if ENVIRONMENT_API_ONLY
-#define GetAutoFloatDividend(theEnv) EnvGetAutoFloatDividend(theEnv)
-#define SetAutoFloatDividend(theEnv,a) EnvSetAutoFloatDividend(theEnv,a)
-#else
-#define GetAutoFloatDividend() EnvGetAutoFloatDividend(GetCurrentEnvironment())
-#define SetAutoFloatDividend(a) EnvSetAutoFloatDividend(GetCurrentEnvironment(),a)
-#endif
-
    LOCALE void                    BasicMathFunctionDefinitions(void *);
    LOCALE void                    AdditionFunction(void *,DATA_OBJECT_PTR);
    LOCALE void                    MultiplicationFunction(void *,DATA_OBJECT_PTR);
    LOCALE void                    SubtractionFunction(void *,DATA_OBJECT_PTR);
    LOCALE void                    DivisionFunction(void *,DATA_OBJECT_PTR);
-   LOCALE long                    DivFunction(void *);
+   LOCALE long long               DivFunction(void *);
    LOCALE intBool                 SetAutoFloatDividendCommand(void *);
    LOCALE intBool                 GetAutoFloatDividendCommand(void *);
    LOCALE intBool                 EnvGetAutoFloatDividend(void *);
    LOCALE intBool                 EnvSetAutoFloatDividend(void *,int);
-   LOCALE long int                IntegerFunction(void *);
+   LOCALE long long               IntegerFunction(void *);
    LOCALE double                  FloatFunction(void *);
    LOCALE void                    AbsFunction(void *,DATA_OBJECT_PTR);
    LOCALE void                    MinFunction(void *,DATA_OBJECT_PTR);
    LOCALE void                    MaxFunction(void *,DATA_OBJECT_PTR);
+
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+   LOCALE intBool                 GetAutoFloatDividend(void);
+   LOCALE intBool                 SetAutoFloatDividend(int);
+
+#endif
 
 #endif
 

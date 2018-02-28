@@ -52,7 +52,8 @@
   (set-strategy mea)
   (printout t "Testing MEA Strategy..." crlf)
   (reset)
-  (run))
+  (run)
+  (set-strategy depth))
 
 (deffunction print-order ($?x)
   (bind ?s (get-strategy))

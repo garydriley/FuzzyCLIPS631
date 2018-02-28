@@ -188,6 +188,7 @@ FuzzyCLIPS> (definstances A-OBJECTS
  ((gensym) of A (x 65)))
 FuzzyCLIPS> (watch instances)
 FuzzyCLIPS> (reset)
+<== instance [initial-object] of INITIAL-OBJECT
 ==> instance [initial-object] of INITIAL-OBJECT
 ==> instance [a1] of A
 ==> instance [gen1] of A

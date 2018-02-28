@@ -67,38 +67,39 @@ ERROR:
 FuzzyCLIPS> (clear) ;; Case 7
 FuzzyCLIPS> (defmodule a)
 FuzzyCLIPS> (assert (start))
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (defrule foo (start) =>)
 FuzzyCLIPS> (defmodule b)
 FuzzyCLIPS> (assert (begin))
-<Fact-1>
+<Fact-2>
 FuzzyCLIPS> (defrule bar (begin) =>)
 FuzzyCLIPS> (agenda)
-0      bar: f-1
+0      bar: f-2
 For a total of 1 activation.
 FuzzyCLIPS> (agenda a)
-0      foo: f-0
+0      foo: f-1
 For a total of 1 activation.
 FuzzyCLIPS> (agenda b)
-0      bar: f-1
+0      bar: f-2
 For a total of 1 activation.
 FuzzyCLIPS> (agenda *)
 MAIN:
 a:
-   0      foo: f-0
+   0      foo: f-1
 b:
-   0      bar: f-1
+   0      bar: f-2
 For a total of 2 activations.
 FuzzyCLIPS> (clear) ;; Case 8
 FuzzyCLIPS> (defglobal ?*x* = 0)
 FuzzyCLIPS> (defrule foo ?f <- (foo) => (bind ?*x* ?f))
 FuzzyCLIPS> (assert (foo))
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (run)
 FuzzyCLIPS> (fact-index ?*x*)
-0
+1
 FuzzyCLIPS> (retract ?*x*)
 FuzzyCLIPS> (fact-index ?*x*)
+[PRNTUTIL11] The fact f-1 has been retracted.
 -1
 FuzzyCLIPS> (retract ?*x*)
 FuzzyCLIPS> (clear) ;; Case 9
@@ -203,7 +204,7 @@ FuzzyCLIPS>
    => 
    (printout t ?l2 " " ?m2 " " ?e2 crlf))
 FuzzyCLIPS> (assert (m2 D D S X))
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (run)
 D () (S)
 FuzzyCLIPS> (clear) ;; Case 16
@@ -271,29 +272,29 @@ FuzzyCLIPS> (agenda)
 FuzzyCLIPS> (assert (y))
 <Fact-2>
 FuzzyCLIPS> (agenda)
-4      foo: f-1,,f-2
+4      foo: f-1,*,f-2
 For a total of 1 activation.
 FuzzyCLIPS> (assert (z))
 <Fact-3>
 FuzzyCLIPS> (agenda)
-4      foo: f-1,,f-2
-1      yak: f-1,f-3,,f-2
+4      foo: f-1,*,f-2
+1      yak: f-1,f-3,*,f-2
 For a total of 2 activations.
 FuzzyCLIPS> (assert (a))
 <Fact-4>
 FuzzyCLIPS> (agenda)
-4      foo: f-1,,f-2
-1      yak: f-1,f-3,,f-2
+4      foo: f-1,*,f-2
+1      yak: f-1,f-3,*,f-2
 For a total of 2 activations.
 FuzzyCLIPS> (assert (b))
 <Fact-5>
 FuzzyCLIPS> (agenda)
 FuzzyCLIPS> (clear) ;; Case 19
 FuzzyCLIPS> (assert (foo))
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (defmodule BAR)
 FuzzyCLIPS> (assert (bar))
-<Fact-1>
+<Fact-2>
 FuzzyCLIPS> (save-facts "Temp//bug.tmp")
 TRUE
 FuzzyCLIPS> (bsave "Temp//bug.bin")
@@ -462,4 +463,134 @@ FuzzyCLIPS> (list-watch-items statistics)
 statistics = off
 FuzzyCLIPS> (list-watch-items focus)
 focus = off
+FuzzyCLIPS> (clear) ;; bsave-instances issue
+FuzzyCLIPS> (defclass A (is-a USER) (slot x))
+FuzzyCLIPS> (make-instance a of A (x 1))
+[a]
+FuzzyCLIPS> (bsave-instances "Temp//bug.bin")
+2
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (bload-instances "Temp//bug.bin")
+2
+FuzzyCLIPS> (clear) ;; incremental reset issue
+FuzzyCLIPS> (assert (B NP14 NP))
+<Fact-1>
+FuzzyCLIPS> 
+(defrule Rule1
+  (A ?NP)
+  (B ?NP NP)
+  =>)
+FuzzyCLIPS> (matches Rule1)
+Matches for Pattern 1
+ None
+Matches for Pattern 2
+f-1
+Partial matches for CEs 1 - 2
+ None
+Activations
+ None
+(1 0 0)
+FuzzyCLIPS> 
+(defrule Rule2
+  (A ?PP)
+  (B ?PP PP)
+  =>)
+FuzzyCLIPS> (matches Rule1)
+Matches for Pattern 1
+ None
+Matches for Pattern 2
+f-1
+Partial matches for CEs 1 - 2
+ None
+Activations
+ None
+(1 0 0)
+FuzzyCLIPS> (clear) ;; garbage collection issue
+FuzzyCLIPS> (defglobal ?*A* = (create$ 1 2 3 4 5 6 7 8 9 10))
+FuzzyCLIPS> (defglobal ?*B* = (create$ 1 2 3 4 5 6 7 8 9 10))
+FuzzyCLIPS> (defglobal ?*C* = (create$))
+FuzzyCLIPS> 
+(deffunction dummy-not-OK ()
+    (bind ?i 1)
+    (while (<= ?i 100)
+        (foreach ?x ?*A*
+            (foreach ?y ?*B*
+                (bind ?*C* (create$ ?*C* (+ (* 100 ?i) (* 10 ?x) ?y)))
+            )
+        )
+        (bind ?i (+ ?i 1))
+    )
+)
+FuzzyCLIPS> (dummy-not-OK)
+FALSE
+FuzzyCLIPS> (dummy-not-OK)
+FALSE
+FuzzyCLIPS> (dummy-not-OK)
+FALSE
+FuzzyCLIPS> (clear) ;; module order save issue
+FuzzyCLIPS> (defmodule A (export deftemplate AT))
+FuzzyCLIPS> (deftemplate A::AT (slot x))
+FuzzyCLIPS> (defmodule MAIN (import A deftemplate AT))
+FuzzyCLIPS> (defrule MAIN::RAT (AT (x 3)) =>)
+FuzzyCLIPS> (save "Temp//rules.sav")
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (load "Temp//rules.sav")
++%+*
+TRUE
+FuzzyCLIPS> (clear) ;; bsave/bload issue
+FuzzyCLIPS> 
+(defrule x_ba6
+   (Doklad KodDokladu ?V163_TV9040)
+   (Doklad KodDokladu ?V163_TV9043)
+   (or (test (eq  ?V163_TV9040 "36"))
+       (test (eq  ?V163_TV9043 "37")))
+   =>)
+FuzzyCLIPS> (defrule x_ba8 =>)
+FuzzyCLIPS> (defrule x_baa =>)
+FuzzyCLIPS> (defrule x_ba8 =>)
+FuzzyCLIPS> (bsave "Temp//temp.bin")   
+TRUE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (bload "Temp//temp.bin")  
+TRUE
+FuzzyCLIPS> (rules)
+x_ba6
+x_baa
+x_ba8
+For a total of 3 defrules.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (watch compilations)
+FuzzyCLIPS> (load "gnrcdef.clp")
+Defining defgeneric: splunge
+   Method #1 defined.
+Defining defgeneric: splunge
+   Method #2 defined.
+Defining defgeneric: splunge
+
+[CSTRCPSR1] WARNING: Method #1 redefined.
+Defining defgeneric: foobar
+
+[CSTRCPSR1] WARNING: Redefining defgeneric: foobar
+TRUE
+FuzzyCLIPS> (unwatch compilations)
+FuzzyCLIPS> (clear) ;; void value in implied deftemplate fact
+FuzzyCLIPS> (assert (foo a (agenda) b (agenda) c (agenda)))
+<Fact-1>
+FuzzyCLIPS> (assert (foo (agenda) a))
+<Fact-2>
+FuzzyCLIPS> (facts)
+f-0     (initial-fact) CF 1.00 
+f-1     (foo a b c) CF 1.00 
+f-2     (foo a) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (fact-slot-value 1 implied)
+(a b c)
+FuzzyCLIPS> (fact-slot-value 2 implied)
+(a)
+FuzzyCLIPS> (length$ (fact-slot-value 1 implied))
+3
+FuzzyCLIPS> (length$ (fact-slot-value 2 implied))
+1
+FuzzyCLIPS> (clear)
 FuzzyCLIPS> (dribble-off)

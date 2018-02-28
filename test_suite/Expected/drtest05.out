@@ -18,10 +18,9 @@ FuzzyCLIPS> (assert (fact a))                  ; DR0410 - Only one error message
 [FACTMCH1] This error occurred in the fact pattern network
    Currently active fact: (fact a) CF 1.00 
    Problem resides in field #1
-      Of pattern #1 in rule(s):
-         foo
+      Of pattern #1 in rule foo
 
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (clear)                            ; DR0411
 FuzzyCLIPS> (defrule foo                       ; DR0411
    (fact ?x)
@@ -72,7 +71,7 @@ FALSE
 FuzzyCLIPS> (clear)                            ; DR0441
 FuzzyCLIPS> (deftemplate a)                    ; DR0441
 FuzzyCLIPS> (assert (a))                       ; DR0441
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (clear)                            ; DR0441
 FuzzyCLIPS> (list-deftemplates)                ; DR0441
 initial-fact
@@ -100,6 +99,7 @@ FuzzyCLIPS> (defrule p410                      ; DR0445
    (retract ?t))
 FuzzyCLIPS> (watch facts)                      ; DR0445
 FuzzyCLIPS> (reset)                            ; DR0445
+<== f-0     (initial-fact) CF 1.00 
 ==> f-0     (initial-fact) CF 1.00 
 ==> f-1     (congestion (no-of-nets 5)) CF 1.00 
 ==> f-2     (total (net-name 8) (cong nil)) CF 1.00 

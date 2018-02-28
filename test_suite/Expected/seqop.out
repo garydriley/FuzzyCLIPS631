@@ -31,14 +31,14 @@ FuzzyCLIPS> (defrule foo
   (printout t ?b crlf)
   (printout t $?b crlf))
 FuzzyCLIPS> (assert (foo a b c))
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (run)
 (a b c)
 (a b c)
 FuzzyCLIPS> (undeffunction boggle)
 FuzzyCLIPS> (undefrule foo)
 FuzzyCLIPS> (+ $?*x*)
-6
+[ARGACCES4] Function + expected at least 2 argument(s)
 FuzzyCLIPS> (deffunction bar ($?a) (foo $?a))
 [ARGACCES4] Function foo expected exactly 2 argument(s)
 
@@ -84,7 +84,7 @@ FuzzyCLIPS> (defrule foo
   (printout t ?b crlf)
   (printout t $?b crlf))
 FuzzyCLIPS> (assert (foo a b c))
-<Fact-1>
+<Fact-2>
 FuzzyCLIPS> (run)
 (a b c)
 abc
@@ -107,6 +107,14 @@ FuzzyCLIPS> (watch all)
 FuzzyCLIPS> (unwatch statistics)
 FuzzyCLIPS> (unwatch focus)
 FuzzyCLIPS> (reset)
+MSG >> delete ED:1 (<Instance-initial-object>)
+HND >> delete primary in class USER
+       ED:1 (<Instance-initial-object>)
+<== instance [initial-object] of INITIAL-OBJECT
+HND << delete primary in class USER
+       ED:1 (<Stale Instance-initial-object>)
+MSG << delete ED:1 (<Stale Instance-initial-object>)
+<== f-0     (initial-fact) CF 1.00 
 :== ?*x* ==> (1 2 3) <== (1 2 3)
 ==> instance [initial-object] of INITIAL-OBJECT
 MSG >> create ED:1 (<Instance-initial-object>)

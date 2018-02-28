@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.24  05/17/06          */
+   /*               CLIPS Version 6.31  02/03/18          */
    /*                                                     */
    /*              MESSAGE-HANDLER PARSER FUNCTIONS       */
    /*******************************************************/
@@ -10,11 +10,12 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Changed name of variable exp to theExp         */
 /*            because of Unix compiler warnings of shadowed  */
 /*            definitions.                                   */
@@ -22,7 +23,19 @@
 /*      6.24: Removed IMPERATIVE_MESSAGE_HANDLERS            */
 /*                    compilation flag.                      */
 /*                                                           */
-/*            Renamed BOOLEAN macro type to intBool.         */
+/*      6.30: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            GetConstructNameAndComment API change.         */
+/*                                                           */
+/*            Changed integer type/precision.                */
+/*                                                           */
+/*            Used gensprintf instead of sprintf.            */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Fixed linkage issue when BLOAD_AND_SAVE        */
+/*            compiler flag is set to 0.                     */
 /*                                                           */
 /*************************************************************/
 
@@ -57,6 +70,7 @@
 #include "router.h"
 #include "scanner.h"
 #include "strngrtr.h"
+#include "sysdep.h"
 
 #define _MSGPSR_SOURCE_
 #include "msgpsr.h"
@@ -75,7 +89,7 @@
    =========================================
    ***************************************** */
 
-static intBool IsParameterSlotReference(void *,char *);
+static intBool IsParameterSlotReference(void *,const char *);
 static int SlotReferenceVar(void *,EXPRESSION *,void *);
 static int BindSlotReference(void *,EXPRESSION *,void *);
 static SLOT_DESC *CheckSlotReference(void *,DEFCLASS *,int,void *,intBool,EXPRESSION *);
@@ -103,7 +117,7 @@ static void GenHandlerSlotReference(void *,EXPRESSION *,unsigned short,SLOT_DESC
  ***********************************************************************/
 globle int ParseDefmessageHandler(
   void *theEnv,
-  char *readSource)
+  const char *readSource)
   {
    DEFCLASS *cls;
    SYMBOL_HN *cname,*mname,*wildcard;
@@ -125,7 +139,7 @@ globle int ParseDefmessageHandler(
      }
 #endif
    cname = GetConstructNameAndComment(theEnv,readSource,&DefclassData(theEnv)->ObjectParseToken,"defmessage-handler",
-                                      NULL,NULL,"~",TRUE,FALSE,TRUE);
+                                      NULL,NULL,"~",TRUE,FALSE,TRUE,FALSE);
    if (cname == NULL)
      return(TRUE);
    cls = LookupDefclassByMdlOrScope(theEnv,ValueToString(cname));
@@ -203,7 +217,10 @@ globle int ParseDefmessageHandler(
       EnvPrintRouter(theEnv,WDIALOG,ValueToString(mname));
       EnvPrintRouter(theEnv,WDIALOG," ");
       EnvPrintRouter(theEnv,WDIALOG,MessageHandlerData(theEnv)->hndquals[mtype]);
-      EnvPrintRouter(theEnv,WDIALOG,(char *) ((hnd == NULL) ? " defined.\n" : " redefined.\n"));
+      if (hnd == NULL)
+        EnvPrintRouter(theEnv,WDIALOG," defined.\n");
+      else
+        EnvPrintRouter(theEnv,WDIALOG," redefined.\n");
      }
 
    if ((hnd != NULL) ? hnd->system : FALSE)
@@ -268,9 +285,9 @@ globle int ParseDefmessageHandler(
      }
    ReturnExpression(theEnv,hndParams);
 
-   hnd->minParams = min;
-   hnd->maxParams = max;
-   hnd->localVarCount = lvars;
+   hnd->minParams = (short) min;
+   hnd->maxParams = (short) max;
+   hnd->localVarCount = (short) lvars;
    hnd->actions = actions;
    ExpressionInstall(theEnv,hnd->actions);
 #if DEBUGGING_FUNCTIONS
@@ -313,12 +330,13 @@ globle void CreateGetAndPutHandlers(
   void *theEnv,
   SLOT_DESC *sd)
   {
-   char *className,*slotName;
-   unsigned bufsz;
-   char *buf,*handlerRouter = "*** Default Public Handlers ***";
+   const char *className,*slotName;
+   size_t bufsz;
+   char *buf;
+   const char *handlerRouter = "*** Default Public Handlers ***";
    int oldPWL,oldCM;
-   char *oldRouter;
-   char *oldString;
+   const char *oldRouter;
+   const char *oldString;
    long oldIndex;
 
    if ((sd->createReadAccessor == 0) && (sd->createWriteAccessor == 0))
@@ -335,7 +353,7 @@ globle void CreateGetAndPutHandlers(
 
    if (sd->createReadAccessor)
      {
-      sprintf(buf,"%s get-%s () ?self:%s)",className,slotName,slotName);
+      gensprintf(buf,"%s get-%s () ?self:%s)",className,slotName,slotName);
       
       oldRouter = RouterData(theEnv)->FastCharGetRouter;
       oldString = RouterData(theEnv)->FastCharGetString;
@@ -362,7 +380,7 @@ globle void CreateGetAndPutHandlers(
 
    if (sd->createWriteAccessor)
      {
-      sprintf(buf,"%s put-%s ($?value) (bind ?self:%s ?value))",
+      gensprintf(buf,"%s put-%s ($?value) (bind ?self:%s ?value))",
                   className,slotName,slotName);
                   
       oldRouter = RouterData(theEnv)->FastCharGetRouter;
@@ -414,7 +432,7 @@ globle void CreateGetAndPutHandlers(
  *****************************************************************/
 static intBool IsParameterSlotReference(
   void *theEnv,
-  char *pname)
+  const char *pname)
   {
    if ((strncmp(pname,SELF_STRING,SELF_LEN) == 0) ?
                   (pname[SELF_LEN] == SELF_SLOT_REF) : FALSE)
@@ -503,7 +521,7 @@ static int BindSlotReference(
   EXPRESSION *bindExp,
   void *userBuffer)
   {
-   char *bindName;
+   const char *bindName;
    struct token itkn;
    int oldpp;
    SLOT_DESC *sd;
@@ -663,17 +681,8 @@ static void GenHandlerSlotReference(
    handlerReference.classID = (unsigned short) sd->cls->id;
    handlerReference.slotID = (unsigned) sd->slotName->id;
    theExp->type = theType;
-   theExp->value =  AddBitMap(theEnv,(void *) &handlerReference,
+   theExp->value =  EnvAddBitMap(theEnv,(void *) &handlerReference,
                            (int) sizeof(HANDLER_SLOT_REFERENCE));
   }
 
 #endif
-
-/***************************************************
-  NAME         :
-  DESCRIPTION  :
-  INPUTS       :
-  RETURNS      :
-  SIDE EFFECTS :
-  NOTES        :
- ***************************************************/

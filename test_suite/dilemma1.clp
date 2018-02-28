@@ -12,7 +12,7 @@
 ;;;     it.
 ;;;     This example uses rules to solve the problem.
 ;;;
-;;;     CLIPS Version 5.0 Example
+;;;     CLIPS Version 6.0 Example
 ;;;
 ;;;     To execute, merely load, reset and run.
 ;;;======================================================
@@ -181,15 +181,15 @@
   ?mv <- (moves (id no-parent) (moves-list no-move $?m))
   =>
   (retract ?mv)
-  (printout t t  "Solution found: " t t)
+  (printout t crlf "Solution found: " crlf crlf)
   (bind ?length (length ?m))
   (bind ?i 1)
   (bind ?shore shore-2)
   (while (<= ?i ?length)
      (bind ?thing (nth ?i ?m))
      (if (eq ?thing alone)
-        then (printout t "Farmer moves alone to " ?shore "." t)
-        else (printout t "Farmer moves with " ?thing " to " ?shore "." t))
+        then (printout t "Farmer moves alone to " ?shore "." crlf)
+        else (printout t "Farmer moves with " ?thing " to " ?shore "." crlf))
      (if (eq ?shore shore-1)
         then (bind ?shore shore-2)
         else (bind ?shore shore-1))

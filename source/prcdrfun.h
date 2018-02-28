@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*          PROCEDURAL FUNCTIONS HEADER FILE           */
    /*******************************************************/
@@ -11,13 +11,26 @@
 /*                                                           */
 /* Principal Programmer(s):                                  */
 /*      Gary D. Riley                                        */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
+/*            Changed name of variable exp to theExp         */
+/*            because of Unix compiler warnings of shadowed  */
+/*            definitions.                                   */
+/*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Local variables set with the bind function     */
+/*            persist until a reset/clear command is issued. */
+/*                                                           */
+/*            Changed garbage collection algorithm.          */
+/*                                                           */
+/*            Support for long long integers.                */
 /*                                                           */
 /*************************************************************/
 
@@ -41,7 +54,7 @@
 
 typedef struct loopCounterStack
   {
-   long loopCounter;
+   long long loopCounter;
    struct loopCounterStack *nxt;
   } LOOP_COUNTER_STACK;
 
@@ -60,7 +73,7 @@ struct procedureFunctionData
    LOCALE void                           ProceduralFunctionDefinitions(void *);
    LOCALE void                           WhileFunction(void *,DATA_OBJECT_PTR);
    LOCALE void                           LoopForCountFunction(void *,DATA_OBJECT_PTR);
-   LOCALE long                           GetLoopCount(void *);
+   LOCALE long long                      GetLoopCount(void *);
    LOCALE void                           IfFunction(void *,DATA_OBJECT_PTR);
    LOCALE void                           BindFunction(void *,DATA_OBJECT_PTR);
    LOCALE void                           PrognFunction(void *,DATA_OBJECT_PTR);
@@ -70,7 +83,7 @@ struct procedureFunctionData
    LOCALE intBool                        GetBoundVariable(void *,struct dataObject *,struct symbolHashNode *);
    LOCALE void                           FlushBindList(void *);
 
-#endif
+#endif /* _H_prcdrfun */
 
 
 

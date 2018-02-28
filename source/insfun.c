@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*              CLIPS Version 6.24  05/17/06           */
+   /*              CLIPS Version 6.30  02/05/15           */
    /*                                                     */
    /*                INSTANCE FUNCTIONS MODULE            */
    /*******************************************************/
@@ -10,12 +10,13 @@
 /* Purpose:  Internal instance manipulation routines         */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
 /*                                                           */
 /*            Changed name of variable log to logName        */
@@ -37,6 +38,26 @@
 /*                                                           */
 /*            Moved EvaluateAndStoreInDataObject to          */
 /*            evaluatn.c                                     */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Changed integer type/precision.                */
+/*                                                           */
+/*            Changed garbage collection algorithm.          */
+/*                                                           */
+/*            Support for long long integers.                */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Converted API macros to function calls.        */
+/*                                                           */
+/*            Fixed slot override default ?NONE bug.         */
+/*                                                           */
+/*            Instances of the form [<name>] are now         */
+/*            searched for in all modules.                   */
 /*                                                           */
 /*************************************************************/
 
@@ -110,14 +131,11 @@ static void NetworkModifyForSharedSlot(void *,int,DEFCLASS *,SLOT_DESC *);
   SIDE EFFECTS : Count set
   NOTES        : None
  ***************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 globle void EnvIncrementInstanceCount(
   void *theEnv,
   void *vptr)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -133,14 +151,11 @@ globle void EnvIncrementInstanceCount(
   SIDE EFFECTS : Count set
   NOTES        : None
  ***************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 globle void EnvDecrementInstanceCount(
   void *theEnv,
   void *vptr)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -189,14 +204,13 @@ globle void CleanupInstances(
    gtmp = InstanceData(theEnv)->InstanceGarbageList;
    while (gtmp != NULL)
      {
-      if ((gtmp->ins->busy == 0) && (gtmp->ins->depth > EvaluationData(theEnv)->CurrentEvaluationDepth)
 #if DEFRULE_CONSTRUCT
-          && (gtmp->ins->header.busyCount == 0)
+      if ((gtmp->ins->busy == 0)
+          && (gtmp->ins->header.busyCount == 0))
+#else
+      if (gtmp->ins->busy == 0)
 #endif
-         )
         {
-         UtilityData(theEnv)->EphemeralItemCount -= 2;
-         UtilityData(theEnv)->EphemeralItemSize -= InstanceSizeHeuristic(gtmp->ins) + sizeof(IGARBAGE);
          DecrementSymbolCount(theEnv,gtmp->ins->name);
          rtn_struct(theEnv,instance,gtmp->ins);
          if (gprv == NULL)
@@ -286,7 +300,7 @@ globle void RemoveInstanceData(
   void *theEnv,
   INSTANCE_TYPE *ins)
   {
-   register unsigned i;
+   long i;
    INSTANCE_SLOT *sp;
 
    DecrementDefclassBusyCount(theEnv,(void *) ins->cls);
@@ -326,7 +340,9 @@ globle void RemoveInstanceData(
   SIDE EFFECTS : None
   NOTES        : An instance is searched for by name first in the
                  current module - then in imported modules according
-                 to the order given in the current module's definition
+                 to the order given in the current module's definition.
+                 Instances of the form [<name>] are now searched for in
+                 all modules.
  ***************************************************************************/
 globle INSTANCE_TYPE *FindInstanceBySymbol(
   void *theEnv,
@@ -345,9 +361,21 @@ globle INSTANCE_TYPE *FindInstanceBySymbol(
    modulePosition = FindModuleSeparator(ValueToString(moduleAndInstanceName));
    if (modulePosition == FALSE)
      {
+      /*
       theModule = currentModule;
       instanceName = moduleAndInstanceName;
       searchImports = FALSE;
+      */
+      INSTANCE_TYPE *ins;
+
+      ins = InstanceData(theEnv)->InstanceTable[HashInstance(moduleAndInstanceName)];
+      while (ins != NULL)
+        {
+         if (ins->name == moduleAndInstanceName)
+           { return ins; }
+         ins = ins->nxtHash;
+        }
+      return(NULL);
      }
 
    /* =========================================
@@ -393,7 +421,9 @@ globle INSTANCE_TYPE *FindInstanceBySymbol(
                     given module as well
   RETURNS      : The instance (NULL if none found)
   SIDE EFFECTS : None
-  NOTES        : None
+  NOTES        : The class no longer needs to be in
+                 scope of the current module if the
+                 instance's module name has been specified.
  ***************************************************/
 globle INSTANCE_TYPE *FindInstanceInModule(
   void *theEnv,
@@ -428,8 +458,9 @@ globle INSTANCE_TYPE *FindInstanceInModule(
    for (ins = startInstance ;
         (ins != NULL) ? (ins->name == startInstance->name) : FALSE ;
         ins = ins->nxtHash)
-     if ((ins->cls->header.whichModule->theModule == theModule) &&
-          DefclassInScope(theEnv,ins->cls,currentModule))
+     //if ((ins->cls->header.whichModule->theModule == theModule) &&
+     //     DefclassInScope(theEnv,ins->cls,currentModule))
+     if (ins->cls->header.whichModule->theModule == theModule)
        return(ins);
 
    /* ================================
@@ -512,7 +543,7 @@ globle int PutSlotValue(
   INSTANCE_SLOT *sp,
   DATA_OBJECT *val,
   DATA_OBJECT *setVal,
-  char *theCommand)
+  const char *theCommand)
   {
    if (ValidSlotValue(theEnv,val,sp->desc,ins,theCommand) == FALSE)
      {
@@ -570,8 +601,19 @@ globle int DirectPutSlotValue(
                                            (EXPRESSION *) sp->desc->defaultValue,val,TRUE))
            return(FALSE);
         }
+      else if (sp->desc->defaultValue != NULL)
+        { val = (DATA_OBJECT *) sp->desc->defaultValue; }
       else
-        val = (DATA_OBJECT *) sp->desc->defaultValue;
+        {
+         PrintErrorID(theEnv,"INSMNGR",14,FALSE);
+         EnvPrintRouter(theEnv,WERROR,"Override required for slot ");
+         EnvPrintRouter(theEnv,WERROR,ValueToString(sp->desc->slotName->name));
+         EnvPrintRouter(theEnv,WERROR," in instance ");
+         EnvPrintRouter(theEnv,WERROR,ValueToString(ins->name));
+         EnvPrintRouter(theEnv,WERROR,".\n");
+         SetEvaluationError(theEnv,TRUE);
+         return(FALSE);
+        }
      }
 #if DEFRULE_CONSTRUCT
    if (EngineData(theEnv)->JoinOperationInProgress && sp->desc->reactive &&
@@ -737,7 +779,7 @@ globle int ValidSlotValue(
   DATA_OBJECT *val,
   SLOT_DESC *sd,
   INSTANCE_TYPE *ins,
-  char *theCommand)
+  const char *theCommand)
   {
    register int violationCode;
 
@@ -801,7 +843,7 @@ globle int ValidSlotValue(
  ********************************************************/
 globle INSTANCE_TYPE *CheckInstance(
   void *theEnv,
-  char *func)
+  const char *func)
   {
    INSTANCE_TYPE *ins;
    DATA_OBJECT temp;
@@ -852,8 +894,8 @@ globle INSTANCE_TYPE *CheckInstance(
  ***************************************************/
 globle void NoInstanceError(
   void *theEnv,
-  char *iname,
-  char *func)
+  const char *iname,
+  const char *func)
   {
    PrintErrorID(theEnv,"INSFUN",2,FALSE);
    EnvPrintRouter(theEnv,WERROR,"No such instance ");
@@ -876,7 +918,7 @@ globle void NoInstanceError(
  ***************************************************/
 globle void StaleInstanceAddress(
   void *theEnv,
-  char *func,
+  const char *func,
   int whichArg)
   {
    PrintErrorID(theEnv,"INSFUN",4,FALSE);
@@ -885,7 +927,7 @@ globle void StaleInstanceAddress(
    if (whichArg > 0)
      {
       EnvPrintRouter(theEnv,WERROR,", argument #");
-      PrintLongInteger(theEnv,WERROR,(long) whichArg);
+      PrintLongInteger(theEnv,WERROR,(long long) whichArg);
      }
    EnvPrintRouter(theEnv,WERROR,".\n");
   }
@@ -936,10 +978,10 @@ globle void EnvSetInstancesChanged(
  *******************************************************************/
 globle void PrintSlot(
   void *theEnv,
-  char *logName,
+  const char *logName,
   SLOT_DESC *sd,
   INSTANCE_TYPE *ins,
-  char *theCommand)
+  const char *theCommand)
   {
    EnvPrintRouter(theEnv,logName,"slot ");
    EnvPrintRouter(theEnv,logName,ValueToString(sd->slotName->name));
@@ -974,7 +1016,7 @@ globle void PrintSlot(
  *****************************************************/
 globle void PrintInstanceNameAndClass(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   INSTANCE_TYPE *theInstance,
   intBool linefeedFlag)
   {
@@ -997,7 +1039,7 @@ globle void PrintInstanceNameAndClass(
  ***************************************************/
 globle void PrintInstanceName(
   void *theEnv,
-  char *logName,
+  const char *logName,
   void *vins)
   {
    INSTANCE_TYPE *ins;
@@ -1029,7 +1071,7 @@ globle void PrintInstanceName(
  ***************************************************/
 globle void PrintInstanceLongForm(
   void *theEnv,
-  char *logName,
+  const char *logName,
   void *vins)
   {
    INSTANCE_TYPE *ins = (INSTANCE_TYPE *) vins;
@@ -1089,7 +1131,7 @@ globle void DecrementObjectBasisCount(
   void *vins)
   {
    INSTANCE_TYPE *ins;
-   register unsigned i;
+   long i;
 
    ins = (INSTANCE_TYPE *) vins;
    ins->header.busyCount--;
@@ -1136,7 +1178,7 @@ globle void IncrementObjectBasisCount(
   void *vins)
   {
    INSTANCE_TYPE *ins;
-   register unsigned i;
+   long i;
 
    ins = (INSTANCE_TYPE *) vins;
    if (ins->header.busyCount == 0)
@@ -1185,18 +1227,36 @@ globle void MatchObjectFunction(
   SIDE EFFECTS : None
   NOTES        : None
  ***************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 globle intBool NetworkSynchronized(
   void *theEnv,
   void *vins)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
    return(((INSTANCE_TYPE *) vins)->reteSynchronized);
+  }
+
+/***************************************************
+  NAME         : InstanceIsDeleted
+  DESCRIPTION  : Determines if an instance has been
+                 deleted
+  INPUTS       : The instance
+  RETURNS      : TRUE if instance has been deleted, 
+                 FALSE otherwise
+  SIDE EFFECTS : None
+  NOTES        : None
+ ***************************************************/
+globle intBool InstanceIsDeleted(
+  void *theEnv,
+  void *vins)
+  {
+#if MAC_XCD
+#pragma unused(theEnv)
+#endif
+
+   return(((INSTANCE_TYPE *) vins)->garbage);
   }
 #endif
 
@@ -1291,7 +1351,7 @@ static void NetworkModifyForSharedSlot(
   SLOT_DESC *sd)
   {
    INSTANCE_TYPE *ins;
-   register unsigned i;
+   long i;
 
    /* ================================================
       Make sure we haven't already examined this class
@@ -1320,8 +1380,39 @@ static void NetworkModifyForSharedSlot(
      NetworkModifyForSharedSlot(theEnv,sharedTraversalID,cls->directSubclasses.classArray[i],sd);
   }
 
-#endif
+#endif /* DEFRULE_CONSTRUCT */
 
-#endif
+/*#####################################*/
+/* ALLOW_ENVIRONMENT_GLOBALS Functions */
+/*#####################################*/
+
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+globle void DecrementInstanceCount(
+  void *vptr)
+  {
+   EnvDecrementInstanceCount(GetCurrentEnvironment(),vptr);
+  }
+
+globle int GetInstancesChanged()
+  {
+   return EnvGetInstancesChanged(GetCurrentEnvironment());
+  }
+
+globle void IncrementInstanceCount(
+  void *vptr)
+  {
+   EnvIncrementInstanceCount(GetCurrentEnvironment(),vptr);
+  }
+
+globle void SetInstancesChanged(
+  int changed)
+  {
+   EnvSetInstancesChanged(GetCurrentEnvironment(),changed);
+  }
+
+#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+
+#endif /* OBJECT_SYSTEM */
 
 

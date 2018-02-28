@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*              CLIPS Version 6.24  06/05/06           */
+   /*              CLIPS Version 6.30  02/05/15           */
    /*                                                     */
    /*                INSTANCE PARSER MODULE               */
    /*******************************************************/
@@ -10,11 +10,12 @@
 /* Purpose:  Instance Function Parsing Routines              */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
 /*                                                           */
 /*            Changed name of variable exp to theExp         */
@@ -22,6 +23,19 @@
 /*            definitions.                                   */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Fixed ParseSlotOverrides memory release issue. */
+/*                                                           */
+/*            It's now possible to create an instance of a   */
+/*            class that's not in scope if the module name   */
+/*            is specified.                                  */
+/*                                                           */
+/*            Added code to keep track of pointers to        */
+/*            constructs that are contained externally to    */
+/*            to constructs, DanglingConstructs.             */
 /*                                                           */
 /*************************************************************/
 
@@ -163,7 +177,7 @@ static intBool ReplaceClassNameWithReference(void *,EXPRESSION *);
 globle EXPRESSION *ParseInitializeInstance(
   void *theEnv,
   EXPRESSION *top,
-  char *readSource)
+  const char *readSource)
   {
    int error,fcalltype,readclass;
 
@@ -329,10 +343,11 @@ ParseInitializeInstanceError:
  ********************************************************************************/
 globle EXPRESSION *ParseSlotOverrides(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   int *error)
   {
    EXPRESSION *top = NULL,*bot = NULL,*theExp;
+   EXPRESSION *theExpNext;
 
    while (GetType(DefclassData(theEnv)->ObjectParseToken) == LPAREN)
      {
@@ -351,13 +366,15 @@ globle EXPRESSION *ParseSlotOverrides(
          SetEvaluationError(theEnv,TRUE);
          return(NULL);
         }
-      theExp->nextArg = GenConstant(theEnv,SYMBOL,EnvTrueSymbol(theEnv));
-      if (CollectArguments(theEnv,theExp->nextArg,readSource) == NULL)
+      theExpNext = GenConstant(theEnv,SYMBOL,EnvTrueSymbol(theEnv));
+      if (CollectArguments(theEnv,theExpNext,readSource) == NULL)
         {
          *error = TRUE;
          ReturnExpression(theEnv,top);
+         ReturnExpression(theEnv,theExp);
          return(NULL);
         }
+      theExp->nextArg = theExpNext;
       if (top == NULL)
         top = theExp;
       else
@@ -410,7 +427,7 @@ globle EXPRESSION *ParseSlotOverrides(
 globle EXPRESSION *ParseSimpleInstance(
   void *theEnv,
   EXPRESSION *top,
-  char *readSource)
+  const char *readSource)
   {
    EXPRESSION *theExp,*vals = NULL,*vbot,*tval;
    unsigned short type;
@@ -524,18 +541,22 @@ SlotOverrideError:
                  modified if class is found
   NOTES        : Searches current nd imported
                  modules for reference
+  CHANGES      : It's now possible to create an instance of a
+                 class that's not in scope if the module name
+                 is specified.
  ***************************************************/
 static intBool ReplaceClassNameWithReference(
   void *theEnv,
   EXPRESSION *theExp)
   {
-   char *theClassName;
+   const char *theClassName;
    void *theDefclass;
 
    if (theExp->type == SYMBOL)
      {
       theClassName = ValueToString(theExp->value);
-      theDefclass = (void *) LookupDefclassInScope(theEnv,theClassName);
+      //theDefclass = (void *) LookupDefclassInScope(theEnv,theClassName);
+      theDefclass = (void *) LookupDefclassByMdlOrScope(theEnv,theClassName); // Module or scope is now allowed
       if (theDefclass == NULL)
         {
          CantFindItemErrorMessage(theEnv,"class",theClassName);
@@ -551,6 +572,11 @@ static intBool ReplaceClassNameWithReference(
         }
       theExp->type = DEFCLASS_PTR;
       theExp->value = theDefclass;
+      
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+      if (! ConstructData(theEnv)->ParsingConstruct)
+        { ConstructData(theEnv)->DanglingConstructs++; }
+#endif
      }
    return(TRUE);
   }

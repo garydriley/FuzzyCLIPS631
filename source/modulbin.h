@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*           DEFMODULE BSAVE/BLOAD HEADER FILE         */
    /*******************************************************/
@@ -13,9 +13,11 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
@@ -74,7 +76,7 @@ struct bsavePortItem
                                                   struct defmoduleItemHeader *);
 #endif
 
-#endif
+#endif /* _H_modulbin */
 
 
 

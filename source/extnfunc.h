@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*            EXTERNAL FUNCTIONS HEADER FILE           */
    /*******************************************************/
@@ -18,6 +18,17 @@
 /* Revision History:                                         */
 /*                                                           */
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Added support for passing context information  */ 
+/*            to user defined functions.                     */
+/*                                                           */
+/*            Support for long long integers.                */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Replaced ALLOW_ENVIRONMENT_GLOBALS macros      */
+/*            with functions.                                */
 /*                                                           */
 /*************************************************************/
 
@@ -37,17 +48,18 @@
 struct FunctionDefinition
   {
    struct symbolHashNode *callFunctionName;
-   char *actualFunctionName;
+   const char *actualFunctionName;
    char returnValueType;
    int (*functionPointer)(void);
-   struct expr *(*parser)(void *,struct expr *,char *);
-   char *restrictions;
+   struct expr *(*parser)(void *,struct expr *,const char *);
+   const char *restrictions;
    short int overloadable;
    short int sequenceuseok;
    short int environmentAware;
    short int bsaveIndex;
    struct FunctionDefinition *next;
    struct userData *usrData;
+   void *context;
   };
 
 #define ValueFunctionType(target) (((struct FunctionDefinition *) target)->returnValueType)
@@ -93,35 +105,40 @@ struct FunctionHash
 #define SIZE_FUNCTION_HASH 517
 #endif
 
-#if ENVIRONMENT_API_ONLY
-#define DefineFunction(theEnv,a,b,c,d) EnvDefineFunction(theEnv,a,b,c,d)
-#define DefineFunction2(theEnv,a,b,c,d,e) EnvDefineFunction2(theEnv,a,b,c,d,e)
-#else
-   LOCALE int                            DefineFunction(char *,int,int (*)(void),char *);
-   LOCALE int                            DefineFunction2(char *,int,int (*)(void),char *,char *);
-#endif
-
    LOCALE void                           InitializeExternalFunctionData(void *);
-   LOCALE int                            EnvDefineFunction(void *,char *,int,
-                                                           int (*)(void *),char *);
-   LOCALE int                            EnvDefineFunction2(void *,char *,int,
-                                                            int (*)(void *),char *,char *);
-   LOCALE int                            DefineFunction3(void *,char *,int,
-                                                         int (*)(void *),char *,char *,intBool);
-   LOCALE int                            AddFunctionParser(void *,char *,
-                                                           struct expr *(*)( void *,struct expr *,char *));
-   LOCALE int                            RemoveFunctionParser(void *,char *);
-   LOCALE int                            FuncSeqOvlFlags(void *,char *,int,int);
+   LOCALE int                            EnvDefineFunction(void *,const char *,int,
+                                                           int (*)(void *),const char *);
+   LOCALE int                            EnvDefineFunction2(void *,const char *,int,
+                                                            int (*)(void *),const char *,const char *);
+   LOCALE int                            EnvDefineFunctionWithContext(void *,const char *,int,
+                                                           int (*)(void *),const char *,void *);
+   LOCALE int                            EnvDefineFunction2WithContext(void *,const char *,int,
+                                                            int (*)(void *),const char *,const char *,void *);
+   LOCALE int                            DefineFunction3(void *,const char *,int,
+                                                         int (*)(void *),const char *,const char *,intBool,void *);
+   LOCALE int                            AddFunctionParser(void *,const char *,
+                                                           struct expr *(*)( void *,struct expr *,const char *));
+   LOCALE int                            RemoveFunctionParser(void *,const char *);
+   LOCALE int                            FuncSeqOvlFlags(void *,const char *,int,int);
    LOCALE struct FunctionDefinition     *GetFunctionList(void *);
    LOCALE void                           InstallFunctionList(void *,struct FunctionDefinition *);
-   LOCALE struct FunctionDefinition     *FindFunction(void *,char *);
+   LOCALE struct FunctionDefinition     *FindFunction(void *,const char *);
    LOCALE int                            GetNthRestriction(struct FunctionDefinition *,int);
-   LOCALE char                          *GetArgumentTypeName(int);
-   LOCALE int                            UndefineFunction(void *,char *);
+   LOCALE const char                    *GetArgumentTypeName(int);
+   LOCALE int                            UndefineFunction(void *,const char *);
    LOCALE int                            GetMinimumArgs(struct FunctionDefinition *);
    LOCALE int                            GetMaximumArgs(struct FunctionDefinition *);
 
-#endif
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+#if (! RUN_TIME)
+   LOCALE int                            DefineFunction(const char *,int,int (*)(void),const char *);
+   LOCALE int                            DefineFunction2(const char *,int,int (*)(void),const char *,const char *);
+#endif /* (! RUN_TIME) */
+
+#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+
+#endif /* _H_extnfunc */
 
 
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*                 SYMBOL BSAVE MODULE                 */
    /*******************************************************/
@@ -12,7 +12,7 @@
 /*                                                           */
 /* Principal Programmer(s):                                  */
 /*      Gary D. Riley                                        */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
@@ -21,6 +21,10 @@
 /*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
+/*                                                           */
+/*            Support for long long integers.                */
 /*                                                           */
 /*************************************************************/
 
@@ -42,20 +46,11 @@
 
 #if FUZZY_DEFTEMPLATES  
 #include "tmpltbin.h"
-//#include "fuzzyval.h"
 #include "fuzzyrhs.h"
 #include "fuzzypsr.h"
 #endif
 
 #include "symblbin.h"
-
-/***************************************/
-/* LOCAL INTERNAL VARIABLE DEFINITIONS */
-/***************************************/
-
-/****************************************/
-/* GLOBAL INTERNAL VARIABLE DEFINITIONS */
-/****************************************/
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
@@ -201,10 +196,11 @@ globle void WriteNeededSymbols(
   FILE *fp)
   {
    unsigned long i;
-   unsigned length;
+   size_t length;
    SYMBOL_HN **symbolArray;
    SYMBOL_HN *symbolPtr;
-   unsigned long int numberOfUsedSymbols = 0, size = 0;
+   unsigned long int numberOfUsedSymbols = 0;
+   size_t size = 0;
 
    /*=================================*/
    /* Get a copy of the symbol table. */
@@ -368,7 +364,7 @@ static void WriteNeededBitMaps(
    BITMAP_HN **bitMapArray;
    BITMAP_HN *bitMapPtr;
    unsigned long int numberOfUsedBitMaps = 0, size = 0;
-   char tempSize;
+   unsigned short tempSize;
 
    /*=================================*/
    /* Get a copy of the bitmap table. */
@@ -389,7 +385,7 @@ static void WriteNeededBitMaps(
          if (bitMapPtr->neededBitMap)
            {
             numberOfUsedBitMaps++;
-            size += (unsigned long) (bitMapPtr->size + 1);
+            size += (unsigned long) (bitMapPtr->size + sizeof(unsigned short));
            }
         }
      }
@@ -409,8 +405,8 @@ static void WriteNeededBitMaps(
         {
          if (bitMapPtr->neededBitMap)
            {
-            tempSize = (char) bitMapPtr->size;
-            GenWrite((void *) &tempSize,(unsigned long) sizeof(char),fp);
+            tempSize = (unsigned short) bitMapPtr->size;
+            GenWrite((void *) &tempSize,(unsigned long) sizeof(unsigned short),fp);
             GenWrite((void *) bitMapPtr->contents,(unsigned long) bitMapPtr->size,fp);
            }
         }
@@ -457,7 +453,7 @@ static void WriteNeededFuzzyValues(
    /* Write out the fuzzy values and the sizes.        */
    /*==================================================*/
 
-   GenWrite((VOID *) &numberOfUsedFuzzyValues,(unsigned long) sizeof(unsigned long int),fp);
+   GenWrite((void *) &numberOfUsedFuzzyValues,(unsigned long) sizeof(unsigned long int),fp);
 
    for (i = 0; i < FUZZY_VALUE_HASH_SIZE; i++)
      {
@@ -478,17 +474,17 @@ static void WriteNeededFuzzyValues(
                deftemplateBsaveID = -1L;
             else
                deftemplateBsaveID = ((struct constructHeader *)fvptr->whichDeftemplate)->bsaveID;
-            GenWrite((VOID *) &deftemplateBsaveID,(unsigned long) sizeof(long),fp);
+            GenWrite((void *) &deftemplateBsaveID,(unsigned long) sizeof(long),fp);
             /* write the length of the name string and the string */
             nameLen = strlen(fvptr->name)+1;
-            GenWrite((VOID *) &nameLen,(unsigned long) sizeof(int),fp);
-            GenWrite((VOID *) fvptr->name,(unsigned long) sizeof(char)*nameLen,fp);
+            GenWrite((void *) &nameLen,(unsigned long) sizeof(int),fp);
+            GenWrite((void *) fvptr->name,(unsigned long) sizeof(char)*nameLen,fp);
             /* write the size of the x and y arrays */
             fvn = fvptr->n;
-            GenWrite((VOID *) &fvn,(unsigned long) sizeof(int),fp);
+            GenWrite((void *) &fvn,(unsigned long) sizeof(int),fp);
             /* write the x and y arrays */
-            GenWrite((VOID *) fvptr->x,(unsigned long) sizeof(double)*fvn,fp);
-            GenWrite((VOID *) fvptr->y,(unsigned long) sizeof(double)*fvn,fp);
+            GenWrite((void *) fvptr->x,(unsigned long) sizeof(double)*fvn,fp);
+            GenWrite((void *) fvptr->y,(unsigned long) sizeof(double)*fvn,fp);
            }
          fuzzyValuePtr = fuzzyValuePtr->next;
         }
@@ -622,7 +618,7 @@ globle void ReadNeededFloats(
 globle void ReadNeededIntegers(
   void *theEnv)
   {
-   long int *integerValues;
+   long long *integerValues;
    long i;
 
    /*==============================================*/
@@ -640,8 +636,8 @@ globle void ReadNeededIntegers(
    /* Allocate area for the integers. */
    /*=================================*/
 
-   integerValues = (long *) gm3(theEnv,(long) (sizeof(long) * SymbolData(theEnv)->NumberOfIntegers));
-   GenReadBinary(theEnv,(void *) integerValues,(unsigned long) (sizeof(long) * SymbolData(theEnv)->NumberOfIntegers));
+   integerValues = (long long *) gm3(theEnv,(long) (sizeof(long long) * SymbolData(theEnv)->NumberOfIntegers));
+   GenReadBinary(theEnv,(void *) integerValues,(unsigned long) (sizeof(long long) * SymbolData(theEnv)->NumberOfIntegers));
 
    /*==========================================*/
    /* Store the integers in the integer array. */
@@ -656,7 +652,7 @@ globle void ReadNeededIntegers(
    /* Free the integer buffer. */
    /*==========================*/
 
-   rm3(theEnv,(void *) integerValues,(long) (sizeof(long int) * SymbolData(theEnv)->NumberOfIntegers));
+   rm3(theEnv,(void *) integerValues,(long) (sizeof(long long) * SymbolData(theEnv)->NumberOfIntegers));
   }
 
 /*******************************************/
@@ -669,6 +665,7 @@ static void ReadNeededBitMaps(
    char *bitMapStorage, *bitMapPtr;
    unsigned long space;
    long i;
+   unsigned short *tempSize;
 
    /*=======================================*/
    /* Determine the number of bitmaps to be */
@@ -699,8 +696,9 @@ static void ReadNeededBitMaps(
    bitMapPtr = bitMapStorage;
    for (i = 0; i < SymbolData(theEnv)->NumberOfBitMaps; i++)
      {
-      SymbolData(theEnv)->BitMapArray[i] = (BITMAP_HN *) AddBitMap(theEnv,bitMapPtr+1,*bitMapPtr);
-      bitMapPtr += *bitMapPtr + 1;
+      tempSize = (unsigned short *) bitMapPtr;
+      SymbolData(theEnv)->BitMapArray[i] = (BITMAP_HN *) EnvAddBitMap(theEnv,bitMapPtr+sizeof(unsigned short),*tempSize);
+      bitMapPtr += *tempSize + sizeof(unsigned short);
      }
 
    /*=========================*/

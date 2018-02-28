@@ -1,0 +1,241 @@
+TRUE
+FuzzyCLIPS> (batch "jstfctns.bat")
+TRUE
+FuzzyCLIPS> (set-rule-justifications 3)
+[ARGACCES5] Function set-rule-justifications expected argument #1 to be of type symbol
+none
+FuzzyCLIPS> (set-rule-justifications none 3)
+[ARGACCES4] Function set-rule-justifications expected exactly 1 argument(s)
+FuzzyCLIPS> (set-rule-justifications off)
+[ARGACCES5] Function set-rule-justifications expected argument #1 to be of type symbol with value none, name, or text
+none
+FuzzyCLIPS> (get-rule-justifications 3)
+[ARGACCES4] Function get-rule-justifications expected exactly 0 argument(s)
+FuzzyCLIPS> (justification-names)
+[ARGACCES4] Function justification-names expected exactly 1 argument(s)
+FuzzyCLIPS> (justification-texts)
+[ARGACCES4] Function justification-texts expected exactly 1 argument(s)
+FuzzyCLIPS> (justification-names 2 2)
+[ARGACCES4] Function justification-names expected exactly 1 argument(s)
+FuzzyCLIPS> (justification-texts 2 2)
+[ARGACCES4] Function justification-texts expected exactly 1 argument(s)
+FuzzyCLIPS> (show-justifications)
+[ARGACCES4] Function show-justifications expected exactly 1 argument(s)
+FuzzyCLIPS> (show-justifications 2)
+[PRNTUTIL1] Unable to find fact f-2.
+FuzzyCLIPS> (show-justifications 2.1)
+[ARGACCES5] Function show-justifications expected argument #1 to be of type instance address, instance name, fact address, integer, or symbol
+FuzzyCLIPS> (show-justifications [a])
+[PRNTUTIL1] Unable to find instance a.
+FuzzyCLIPS> (show-justifications 2 2)
+[ARGACCES4] Function show-justifications expected exactly 1 argument(s)
+FuzzyCLIPS> (justification-names 2)
+[PRNTUTIL1] Unable to find fact f-2.
+()
+FuzzyCLIPS> (justification-texts 2)
+[PRNTUTIL1] Unable to find fact f-2.
+()
+FuzzyCLIPS> (justification-names 2.1)
+[ARGACCES5] Function justification-names expected argument #1 to be of type instance address, instance name, fact address, integer, or symbol
+FuzzyCLIPS> (justification-texts 2.2)
+[ARGACCES5] Function justification-texts expected argument #1 to be of type instance address, instance name, fact address, integer, or symbol
+FuzzyCLIPS> (justification-names [a])
+[PRNTUTIL1] Unable to find instance a.
+()
+FuzzyCLIPS> (justification-texts [a])
+[PRNTUTIL1] Unable to find instance a.
+()
+FuzzyCLIPS> 
+(deftemplate output
+   (slot value))
+FuzzyCLIPS>    
+(deftemplate person
+   (slot first-name)
+   (slot last-name))
+FuzzyCLIPS>    
+(deffacts start
+   (person (first-name Gary) (last-name Riley)))
+FuzzyCLIPS>    
+(defrule rule-1
+   (declare (justification "Because " ?name " said so"))
+   (person (first-name ?name))
+   =>
+   (assert (output (value 1))))
+FuzzyCLIPS>    
+(defrule rule-2
+   (person (first-name ?name))
+   =>
+   (assert (output (value 2))))
+FuzzyCLIPS> (set-rule-justifications none) ;; Fact None
+none
+FuzzyCLIPS> (get-rule-justifications)
+none
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (justification-names 2)
+()
+FuzzyCLIPS> (justification-texts 2)
+()
+FuzzyCLIPS> (justification-names 3)
+()
+FuzzyCLIPS> (justification-texts 3)
+()
+FuzzyCLIPS> (show-justifications 2)
+None
+FuzzyCLIPS> (show-justifications 3)
+None
+FuzzyCLIPS> (set-rule-justifications text) ;; Fact Text
+none
+FuzzyCLIPS> (get-rule-justifications)
+text
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (justification-names 2)
+(MAIN::rule-1)
+FuzzyCLIPS> (justification-texts 2)
+("Because Gary said so")
+FuzzyCLIPS> (justification-names 3)
+()
+FuzzyCLIPS> (justification-texts 3)
+()
+FuzzyCLIPS> (show-justifications 2)
+MAIN::rule-1: Because Gary said so
+FuzzyCLIPS> (show-justifications 3)
+None
+FuzzyCLIPS> (set-rule-justifications name) ;; Fact Name
+text
+FuzzyCLIPS> (get-rule-justifications)
+name
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (duplicate 2 (value 3))
+<Fact-4>
+FuzzyCLIPS> (duplicate 3 (value 4))
+<Fact-5>
+FuzzyCLIPS> (modify 5 (value 6))
+<Fact-6>
+FuzzyCLIPS> (justification-names 2)
+(MAIN::rule-1)
+FuzzyCLIPS> (justification-texts 2)
+("Because Gary said so")
+FuzzyCLIPS> (justification-names 3)
+(MAIN::rule-2)
+FuzzyCLIPS> (justification-texts 3)
+("")
+FuzzyCLIPS> (show-justifications 2)
+MAIN::rule-1: Because Gary said so
+FuzzyCLIPS> (show-justifications 3)
+MAIN::rule-2
+FuzzyCLIPS> (justification-names 4)
+(MAIN::rule-1)
+FuzzyCLIPS> (justification-texts 4)
+("Because Gary said so")
+FuzzyCLIPS> (justification-names 6)
+(MAIN::rule-2)
+FuzzyCLIPS> (justification-texts 6)
+("")
+FuzzyCLIPS> (show-justifications 4)
+MAIN::rule-1: Because Gary said so
+FuzzyCLIPS> (show-justifications 6)
+MAIN::rule-2
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (set-rule-justifications none) ;; Instance None
+name
+FuzzyCLIPS> (get-rule-justifications)
+none
+FuzzyCLIPS> 
+(defclass OUTPUT
+   (is-a USER)
+   (slot value))
+FuzzyCLIPS>    
+(defclass PERSON
+   (is-a USER)
+   (slot first-name)
+   (slot last-name))
+FuzzyCLIPS>    
+(definstances start
+   (of PERSON (first-name Gary) (last-name Riley)))
+FuzzyCLIPS>    
+(defrule rule-1
+   (declare (justification "Because " ?name " said so"))
+   (object (is-a PERSON) (first-name ?name))
+   =>
+   (make-instance [j1] of OUTPUT (value 1))))
+FuzzyCLIPS>    
+(defrule rule-2
+   (object (is-a PERSON) (first-name ?name))
+   =>
+   (make-instance [j2] of OUTPUT (value 2))))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (justification-names [j1])
+()
+FuzzyCLIPS> (justification-texts [j1])
+()
+FuzzyCLIPS> (justification-names [j2])
+()
+FuzzyCLIPS> (justification-texts [j2])
+()
+FuzzyCLIPS> (show-justifications [j1])
+None
+FuzzyCLIPS> (show-justifications [j2])
+None
+FuzzyCLIPS> (set-rule-justifications text) ;; Instance Text
+none
+FuzzyCLIPS> (get-rule-justifications)
+text
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (justification-names [j1])
+(MAIN::rule-1)
+FuzzyCLIPS> (justification-texts [j1])
+("Because Gary said so")
+FuzzyCLIPS> (justification-names [j2])
+()
+FuzzyCLIPS> (justification-texts [j2])
+()
+FuzzyCLIPS> (show-justifications [j1])
+MAIN::rule-1: Because Gary said so
+FuzzyCLIPS> (show-justifications [j2])
+None
+FuzzyCLIPS> (set-rule-justifications name) ;; Instance Name
+text
+FuzzyCLIPS> (get-rule-justifications)
+name
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
+FuzzyCLIPS> (duplicate-instance [j1] to [j3] (value 3))
+[j3]
+FuzzyCLIPS> (duplicate-instance [j2] to [j4] (value 4))
+[j4]
+FuzzyCLIPS> (modify-instance [j4] (value 6))
+TRUE
+FuzzyCLIPS> (justification-names [j1])
+(MAIN::rule-1)
+FuzzyCLIPS> (justification-texts [j1])
+("Because Gary said so")
+FuzzyCLIPS> (justification-names [j2])
+(MAIN::rule-2)
+FuzzyCLIPS> (justification-texts [j2])
+("")
+FuzzyCLIPS> (show-justifications [j1])
+MAIN::rule-1: Because Gary said so
+FuzzyCLIPS> (show-justifications [j2])
+MAIN::rule-2
+FuzzyCLIPS> (justification-names [j3])
+(MAIN::rule-1)
+FuzzyCLIPS> (justification-texts [j3])
+("Because Gary said so")
+FuzzyCLIPS> (justification-names [j4])
+(MAIN::rule-2)
+FuzzyCLIPS> (justification-texts [j4])
+("")
+FuzzyCLIPS> (show-justifications [j3])
+MAIN::rule-1: Because Gary said so
+FuzzyCLIPS> (show-justifications [j4])
+MAIN::rule-2
+FuzzyCLIPS> (set-rule-justifications none)
+name
+FuzzyCLIPS> (get-rule-justifications)
+none
+FuzzyCLIPS> (dribble-off)

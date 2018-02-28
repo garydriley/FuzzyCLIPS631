@@ -264,4 +264,190 @@
 (agenda)
 (retract 2)
 (agenda)
+(clear) ; New Indexing Code
+(watch activations)
+
+(defrule foo
+   (a ?x ?y ?z)
+   (not (and (b ?x) (c ?y) (d ?z)))
+   =>)
+(assert (a 1 2 3))
+(assert (b 1))
+(assert (c 2))
+(assert (d 3))
+(clear)
+(deftemplate a (slot x) (slot y) (slot z))
+(deftemplate b (slot x))
+(deftemplate c (slot y)) 
+(deftemplate d (slot z))
+
+(defrule foo 
+   (a (x ?x) (y ?y) (z ?z))
+   (not (and (b (x ?x))
+             (c (y ?y))
+             (d (z ?z))))
+   =>)
+(assert (a (x 1) (y 2) (z 3)))
+(assert (b (x 1)))
+(assert (c (y 2)))
+(assert (d (z 3)))
+(clear)
+(deftemplate a (multislot x) (multislot y) (multislot z))
+(deftemplate b (multislot x))
+(deftemplate c (multislot y)) 
+(deftemplate d (multislot z))
+
+(defrule foo 
+   (a (x $? $? ?x) (y $? $? ?y) (z $? $? ?z))
+   (not (and (b (x $? $? ?x))
+             (c (y $? $? ?y))
+             (d (z $? $? ?z))))
+   =>)
+(assert (a (x 1) (y 2) (z 3)))
+(assert (b (x 1)))
+(assert (c (y 2)))
+(assert (d (z 3)))
+(clear)
+
+(defrule foo
+   (a ?x)
+   (b ?y)
+   (not (and (c ?z)
+             (d ?w)
+             (test (and (> ?x ?z) (< ?y ?w)))))
+   =>)
+(assert (a 3) (b 5))
+(assert (c 1))
+(assert (d 6))
+(clear)
+
+(defrule problem-rule-1
+   (A)
+   (not (and (B)
+             (not (and (C) (D)))))
+   (not (E))
+   =>)
+(clear)
+
+(defrule problem-rule-2
+   (A)  
+   (not (and (B)
+             (not (and (C) (D)))))
+
+   (not  (and (E)   
+              (F)))
+   =>)
+(clear)
+
+(defrule problem-rule-3
+   (A)  
+   (exists (or (and (B) 
+                    (C))  
+               (and (D)
+                    (E))
+               (and (F)
+                    (G)
+                    (exists (H)
+                            (I)
+                            (J))
+                    (K)
+                    (L)
+                    (exists (M)
+                            (N)
+                            (O)))
+               (and (P)
+                    (Q)
+                    (R))
+               (and (S)   
+                    (T))))
+   (not (U))
+   =>)
+(clear)
+
+(defrule problem-rule-4
+   (A ?td2)  
+   (not (and (not (and (B) 
+                       (C ?td2)))
+             (not (D))))
+   =>)
+(clear)
+
+(defrule buggy-rule
+   (A ?td2)
+   (not (and (B) 
+             (not (and (C ?x)
+                       (exists (D ?td2)
+                               (E))))))
+   =>)
+(reset)
+(assert (B))
+(assert (A 3))
+(agenda)
+(clear)
+
+(defrule problem-rule-5
+   (A ?td2)  
+   (not (and (not (and (B) 
+                       (C ?td2)))  
+             (not (and (D)
+                       (not (E ?td2))))))
+   =>)
+
+(clear)
+(deftemplate select-GCSS-TAG2100 
+   (slot tag-id) 
+   (slot process-order))
+
+(defrule TAG2100-New-2.5.2.6.2
+   
+   (X)
+   
+   (exists (and (select-GCSS-TAG2100 (tag-id ?tag-id))
+   
+                (exists (select-GCSS-TAG2100 (tag-id ~?tag-id)))))   
+
+   =>)
+   
+(defrule  TAG2100-Use-2.5.2.6.3
+      
+   (Y)
+      
+  (select-GCSS-TAG2100 (tag-id ?tag-id))
+            
+  (exists (select-GCSS-TAG2100 (tag-id ~?tag-id))) 
+                                        
+  =>)
+(assert (select-GCSS-TAG2100 (tag-id 2) (process-order 2)))
+(assert (select-GCSS-TAG2100 (tag-id 2) (process-order 3)))
+(assert (select-GCSS-TAG2100 (tag-id 1) (process-order 5)))
+(clear)
+
+(deftemplate TAG2300
+   (slot matched)
+   (slot action)
+   (slot tag-id))
+
+(deftemplate TAG2370
+   (slot parent))
+
+(deftemplate TAG2400
+   (slot action))
+
+(defrule rule-3
+   (TAG2400 (action ?))      
+   (exists (and (TAG2370 (parent ?equipment))
+            
+                (TAG2300 (tag-id ?equipment)
+                         (matched ~no))))
+   =>)
+(reset)
+(assert (TAG2370 (parent "GCSS-E2")))
+(assert (TAG2370 (parent "GCSS-E3")))
+(assert (TAG2400 (action none)))
+(assert (TAG2300 (matched yes) (action none) (tag-id "GCSS-E2")))
+(assert (TAG2300 (matched maybe) (action none) (tag-id "GCSS-E3")))
+(retract 4)
+(assert (TAG2300 (matched yes) (action update) (tag-id "GCSS-E2")))
+(retract 3)
+(assert (TAG2400 (action delete)))
 (clear)

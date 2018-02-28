@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.23  01/31/05            */
+   /*             CLIPS Version 6.30  01/25/15            */
    /*                                                     */
    /*              DEFTEMPLATE PARSER MODULE              */
    /*******************************************************/
@@ -15,8 +15,24 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Added support for templates maintaining their  */
 /*            own list of facts.                             */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW and       */
+/*            MAC_MCW).                                      */
+/*                                                           */
+/*            GetConstructNameAndComment API change.         */
+/*                                                           */
+/*            Support for deftemplate slot facets.           */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Changed find construct functionality so that   */
+/*            imported modules are search when locating a    */
+/*            named construct.                               */
 /*                                                           */
 /*************************************************************/
 
@@ -64,9 +80,10 @@
 /***************************************/
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   static struct templateSlot    *SlotDeclarations(void *,char *,struct token *);
-   static struct templateSlot    *ParseSlot(void *,char *,struct token *,struct templateSlot *);
-   static struct templateSlot    *DefinedSlots(void *,char *,SYMBOL_HN *,int,struct token *);
+   static struct templateSlot    *SlotDeclarations(void *,const char *,struct token *);
+   static struct templateSlot    *ParseSlot(void *,const char *,struct token *,struct templateSlot *);
+   static struct templateSlot    *DefinedSlots(void *,const char *,SYMBOL_HN *,int,struct token *);
+   static intBool                 ParseFacetAttribute(void *,const char *,struct templateSlot *,intBool);
 #endif
 
 /*******************************************************/
@@ -74,12 +91,8 @@
 /*******************************************************/
 globle int ParseDeftemplate(
   void *theEnv,
-  char *readSource)
+  const char *readSource)
   {
-#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
-#pragma unused(readSource)
-#endif
-
 #if (! RUN_TIME) && (! BLOAD_ONLY)
    SYMBOL_HN *deftemplateName;
    struct deftemplate *newDeftemplate;
@@ -124,8 +137,8 @@ globle int ParseDeftemplate(
 #endif
 
    deftemplateName = GetConstructNameAndComment(theEnv,readSource,&inputToken,"deftemplate",
-                                                EnvFindDeftemplate,EnvUndeftemplate,"%",
-                                                TRUE,TRUE,TRUE);
+                                                EnvFindDeftemplateInModule,EnvUndeftemplate,"%",
+                                                TRUE,TRUE,TRUE,FALSE);
    if (deftemplateName == NULL) return(TRUE);
 
    if (ReservedPatternSymbol(theEnv,ValueToString(deftemplateName),"deftemplate"))
@@ -136,7 +149,6 @@ globle int ParseDeftemplate(
 
    /*===========================================*/
    /* Parse the slot fields of the deftemplate. */
-   /* OR the fuzzy variable description         */
    /*===========================================*/
    
 #if FUZZY_DEFTEMPLATES
@@ -154,6 +166,7 @@ globle int ParseDeftemplate(
       slots = get_struct(theEnv,templateSlot);
       slots->slotName = (SYMBOL_HN *)EnvAddSymbol(theEnv,"GenericFuzzySlot");
       slots->defaultList = NULL;
+      slots->facetList = NULL;
       slots->constraints = GetConstraintRecord(theEnv);
       slots->constraints->anyAllowed = FALSE;
       slots->constraints->fuzzyValuesAllowed = TRUE;
@@ -264,7 +277,7 @@ globle int ParseDeftemplate(
    InstallDeftemplate(theEnv,newDeftemplate);
 
 #else
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 #endif
@@ -296,6 +309,9 @@ globle void InstallDeftemplate(
       tempExpr = AddHashedExpression(theEnv,slotPtr->defaultList);
       ReturnExpression(theEnv,slotPtr->defaultList);
       slotPtr->defaultList = tempExpr;
+      tempExpr = AddHashedExpression(theEnv,slotPtr->facetList);
+      ReturnExpression(theEnv,slotPtr->facetList);
+      slotPtr->facetList = tempExpr;
       slotPtr->constraints = AddConstraint(theEnv,slotPtr->constraints);
      }
 #if FUZZY_DEFTEMPLATES
@@ -311,7 +327,7 @@ globle void InstallDeftemplate(
 /********************************************************************/
 static struct templateSlot *SlotDeclarations(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *inputToken)
   {
    struct templateSlot *newSlot, *slotList = NULL, *lastSlot = NULL;
@@ -395,7 +411,7 @@ static struct templateSlot *SlotDeclarations(
 /*****************************************************/
 static struct templateSlot *ParseSlot(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   struct token *inputToken,
   struct templateSlot *slotList)
   {
@@ -488,7 +504,7 @@ static struct templateSlot *ParseSlot(
 
    if ((rv != NO_VIOLATION) && EnvGetStaticConstraintChecking(theEnv))
      {
-      char *temp;
+      const char *temp;
       if (newSlot->defaultDynamic) temp = "the default-dynamic attribute";
       else temp = "the default attribute";
       ConstraintViolationErrorMessage(theEnv,"An expression",temp,FALSE,0,
@@ -510,7 +526,7 @@ static struct templateSlot *ParseSlot(
 /**************************************************************/
 static struct templateSlot *DefinedSlots(
   void *theEnv,
-  char *readSource,
+  const char *readSource,
   SYMBOL_HN *slotName,
   int multifieldSlot,
   struct token *inputToken)
@@ -528,6 +544,7 @@ static struct templateSlot *DefinedSlots(
    newSlot = get_struct(theEnv,templateSlot);
    newSlot->slotName = slotName;
    newSlot->defaultList = NULL;
+   newSlot->facetList = NULL;
    newSlot->constraints = GetConstraintRecord(theEnv);
    if (multifieldSlot)
      { newSlot->constraints->multifieldsAllowed = TRUE; }
@@ -663,6 +680,30 @@ static struct templateSlot *DefinedSlots(
            }
          newSlot->defaultList = defaultList;
         }
+        
+      /*===============================================*/
+      /* else if the attribute is the facet attribute. */
+      /*===============================================*/
+      
+      else if (strcmp(ValueToString(inputToken->value),"facet") == 0)
+        {
+         if (! ParseFacetAttribute(theEnv,readSource,newSlot,FALSE))
+           {
+            ReturnSlots(theEnv,newSlot);
+            DeftemplateData(theEnv)->DeftemplateError = TRUE;
+            return(NULL);
+           }
+        }
+        
+      else if (strcmp(ValueToString(inputToken->value),"multifacet") == 0)
+        {
+         if (! ParseFacetAttribute(theEnv,readSource,newSlot,TRUE))
+           {
+            ReturnSlots(theEnv,newSlot);
+            DeftemplateData(theEnv)->DeftemplateError = TRUE;
+            return(NULL);
+           }
+        }
 
       /*============================================*/
       /* Otherwise the attribute is an invalid one. */
@@ -700,6 +741,157 @@ static struct templateSlot *DefinedSlots(
    /*============================*/
 
    return(newSlot);
+  }
+
+/***************************************************/
+/* ParseFacetAttribute: Parses the type attribute. */
+/***************************************************/
+static intBool ParseFacetAttribute(
+  void *theEnv,
+  const char *readSource,
+  struct templateSlot *theSlot,
+  intBool multifacet)
+  {
+   struct token inputToken;
+   SYMBOL_HN *facetName;
+   struct expr *facetPair, *tempFacet, *facetValue = NULL, *lastValue = NULL;
+
+   /*==============================*/
+   /* Parse the name of the facet. */
+   /*==============================*/
+   
+   SavePPBuffer(theEnv," ");
+   GetToken(theEnv,readSource,&inputToken);
+   
+   /*==================================*/
+   /* The facet name must be a symbol. */
+   /*==================================*/
+   
+   if (inputToken.type != SYMBOL)
+     {
+      if (multifacet) SyntaxErrorMessage(theEnv,"multifacet attribute");
+      else SyntaxErrorMessage(theEnv,"facet attribute");
+      return(FALSE);
+     }
+     
+   facetName = (SYMBOL_HN *) inputToken.value;
+
+   /*===================================*/
+   /* Don't allow facets with the same  */
+   /* name as a predefined CLIPS facet. */
+   /*===================================*/
+   
+   /*====================================*/
+   /* Has the facet already been parsed? */
+   /*====================================*/
+   
+   for (tempFacet = theSlot->facetList;
+        tempFacet != NULL;
+        tempFacet = tempFacet->nextArg)
+     {
+      if (tempFacet->value == facetName)
+        {
+         if (multifacet) AlreadyParsedErrorMessage(theEnv,"multifacet ",ValueToString(facetName));
+         else AlreadyParsedErrorMessage(theEnv,"facet ",ValueToString(facetName));
+         return(FALSE);
+        }
+     }
+   
+   /*===============================*/
+   /* Parse the value of the facet. */
+   /*===============================*/
+   
+   SavePPBuffer(theEnv," ");
+   GetToken(theEnv,readSource,&inputToken);
+
+   while (inputToken.type != RPAREN)
+     {
+      /*=====================================*/
+      /* The facet value must be a constant. */
+      /*=====================================*/
+   
+      if (! ConstantType(inputToken.type))
+        {
+         if (multifacet) SyntaxErrorMessage(theEnv,"multifacet attribute");
+         else SyntaxErrorMessage(theEnv,"facet attribute");
+         ReturnExpression(theEnv,facetValue);
+         return(FALSE);
+        }
+
+      /*======================================*/
+      /* Add the value to the list of values. */
+      /*======================================*/
+      
+      if (lastValue == NULL)
+        { 
+         facetValue = GenConstant(theEnv,inputToken.type,inputToken.value);
+         lastValue = facetValue;
+        }
+      else
+        {
+         lastValue->nextArg = GenConstant(theEnv,inputToken.type,inputToken.value);
+         lastValue = lastValue->nextArg;
+        }
+        
+      /*=====================*/
+      /* Get the next token. */
+      /*=====================*/
+      
+      SavePPBuffer(theEnv," ");
+      GetToken(theEnv,readSource,&inputToken);
+      
+      /*===============================================*/
+      /* A facet can't contain more than one constant. */
+      /*===============================================*/
+      
+      if ((! multifacet) && (inputToken.type != RPAREN))
+        {
+         SyntaxErrorMessage(theEnv,"facet attribute");
+         ReturnExpression(theEnv,facetValue);
+         return(FALSE);
+        }
+     }
+     
+   /*========================================================*/
+   /* Remove the space before the closing right parenthesis. */
+   /*========================================================*/
+   
+   PPBackup(theEnv);
+   PPBackup(theEnv);
+   SavePPBuffer(theEnv,")");
+
+   /*====================================*/
+   /* A facet must contain one constant. */
+   /*====================================*/
+      
+   if ((! multifacet) && (facetValue == NULL))
+     {
+      SyntaxErrorMessage(theEnv,"facet attribute");
+      return(FALSE);
+     }
+
+   /*=================================================*/
+   /* Add the facet to the list of the slot's facets. */
+   /*=================================================*/
+   
+   facetPair = GenConstant(theEnv,SYMBOL,facetName);
+   
+   if (multifacet)
+     { 
+      facetPair->argList = GenConstant(theEnv,FCALL,(void *) FindFunction(theEnv,"create$"));
+      facetPair->argList->argList = facetValue;
+     }
+   else
+     { facetPair->argList = facetValue; }
+   
+   facetPair->nextArg = theSlot->facetList;
+   theSlot->facetList = facetPair;
+   
+   /*===============================================*/
+   /* The facet/multifacet was successfully parsed. */
+   /*===============================================*/
+
+   return(TRUE);
   }
 
 #endif /* (! RUN_TIME) && (! BLOAD_ONLY) */

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.20  01/31/02          */
+   /*               CLIPS Version 6.30  08/16/14          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,11 +10,26 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.23: Changed name of variable exp to theExp         */
+/*            because of Unix compiler warnings of shadowed  */
+/*            definitions.                                   */
+/*                                                           */
+/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Fixed memory leaks when error occurred.        */
+/*                                                           */
+/*            Changed integer type/precision.                */
+/*                                                           */
+/*            Support for long long integers.                */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -37,15 +52,12 @@
 #define LOCALE extern
 #endif
 
-LOCALE EXPRESSION *ParseQueryNoAction(void *,EXPRESSION *,char *);
-LOCALE EXPRESSION *ParseQueryAction(void *,EXPRESSION *,char *);
+   LOCALE EXPRESSION                    *ParseQueryNoAction(void *,EXPRESSION *,const char *);
+   LOCALE EXPRESSION                    *ParseQueryAction(void *,EXPRESSION *,const char *);
 
-#ifndef _INSQYPSR_SOURCE_
-#endif
+#endif /* INSTANCE_SET_QUERIES && (! RUN_TIME) */
 
-#endif
-
-#endif
+#endif /* _H_insqypsr */
 
 
 

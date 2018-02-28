@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.20  01/31/02          */
+   /*               CLIPS Version 6.30  08/22/14          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,11 +10,35 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.23: Changed name of variable log to logName        */
+/*            because of Unix compiler warnings of shadowed  */
+/*            definitions.                                   */
+/*                                                           */
+/*      6.24: Removed IMPERATIVE_MESSAGE_HANDLERS            */
+/*                    compilation flag.                      */
+/*                                                           */
+/*            Corrected code to remove run-time program      */
+/*            compiler warnings.                             */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Added DeallocateMessageHandlerData to          */
+/*            deallocate message handler environment data.   */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Converted API macros to function calls.        */
 /*                                                           */
 /*************************************************************/
 
@@ -42,12 +66,13 @@ struct messageHandlerData
    unsigned WatchHandlers;
    unsigned WatchMessages;
 #endif
-   char *hndquals[4];
+   const char *hndquals[4];
    SYMBOL_HN *SELF_SYMBOL;
    SYMBOL_HN *CurrentMessageName;
    HANDLER_LINK *CurrentCore;
    HANDLER_LINK *TopOfCore;
    HANDLER_LINK *NextInCore;
+   HANDLER_LINK *OldCore;
   };
 
 #define MessageHandlerData(theEnv) ((struct messageHandlerData *) GetEnvironmentData(theEnv,MESSAGE_HANDLER_DATA))
@@ -68,57 +93,48 @@ struct messageHandlerData
 #define PRINT_STRING  "print"
 #define CREATE_STRING "create"
 
-#if ENVIRONMENT_API_ONLY
-#define FindDefmessageHandler(theEnv,a,b,c) EnvFindDefmessageHandler(theEnv,a,b,c)
-#define GetDefmessageHandlerName(theEnv,a,b) EnvGetDefmessageHandlerName(theEnv,a,b)
-#define GetDefmessageHandlerPPForm(theEnv,a,b) EnvGetDefmessageHandlerPPForm(theEnv,a,b)
-#define GetDefmessageHandlerType(theEnv,a,b) EnvGetDefmessageHandlerType(theEnv,a,b)
-#define GetDefmessageHandlerWatch(theEnv,a,b) EnvGetDefmessageHandlerWatch(theEnv,a,b)
-#define GetNextDefmessageHandler(theEnv,a,b) EnvGetNextDefmessageHandler(theEnv,a,b)
-#define IsDefmessageHandlerDeletable(theEnv,a,b) EnvIsDefmessageHandlerDeletable(theEnv,a,b)
-#define ListDefmessageHandlers(theEnv,a,b,c) EnvListDefmessageHandler(theEnv,a,b,c)
-#define PreviewSend(theEnv,a,b,c) EnvPreviewSend(theEnv,a,b,c)
-#define SetDefmessageHandlerWatch(theEnv,a,b,c) EnvSetDefmessageHandlerWatch(theEnv,a,b,c)
-#define UndefmessageHandler(theEnv,a,b) EnvUndefmessageHandler(theEnv,a,b)
-#else
-#define FindDefmessageHandler(a,b,c) EnvFindDefmessageHandler(GetCurrentEnvironment(),a,b,c)
-#define GetDefmessageHandlerName(a,b) EnvGetDefmessageHandlerName(GetCurrentEnvironment(),a,b)
-#define GetDefmessageHandlerPPForm(a,b) EnvGetDefmessageHandlerPPForm(GetCurrentEnvironment(),a,b)
-#define GetDefmessageHandlerType(a,b) EnvGetDefmessageHandlerType(GetCurrentEnvironment(),a,b)
-#define GetDefmessageHandlerWatch(a,b) EnvGetDefmessageHandlerWatch(GetCurrentEnvironment(),a,b)
-#define GetNextDefmessageHandler(a,b) EnvGetNextDefmessageHandler(GetCurrentEnvironment(),a,b)
-#define IsDefmessageHandlerDeletable(a,b) EnvIsDefmessageHandlerDeletable(GetCurrentEnvironment(),a,b)
-#define ListDefmessageHandlers(a,b,c) EnvListDefmessageHandlers(GetCurrentEnvironment(),a,b,c)
-#define PreviewSend(a,b,c) EnvPreviewSend(GetCurrentEnvironment(),a,b,c)
-#define SetDefmessageHandlerWatch(a,b,c) EnvSetDefmessageHandlerWatch(GetCurrentEnvironment(),a,b,c)
-#define UndefmessageHandler(a,b) EnvUndefmessageHandler(GetCurrentEnvironment(),a,b)
-#endif
-   
    LOCALE void             SetupMessageHandlers(void *);
-   LOCALE char            *EnvGetDefmessageHandlerName(void *,void *,unsigned);
-   LOCALE char            *EnvGetDefmessageHandlerType(void *,void *,unsigned);
-   LOCALE unsigned         EnvGetNextDefmessageHandler(void *,void *,unsigned);
-   LOCALE HANDLER         *GetDefmessageHandlerPointer(void *,unsigned);
+   LOCALE const char      *EnvGetDefmessageHandlerName(void *,void *,int);
+   LOCALE const char      *EnvGetDefmessageHandlerType(void *,void *,int);
+   LOCALE int              EnvGetNextDefmessageHandler(void *,void *,int);
+   LOCALE HANDLER         *GetDefmessageHandlerPointer(void *,int);
 #if DEBUGGING_FUNCTIONS
-   LOCALE unsigned         EnvGetDefmessageHandlerWatch(void *,void *,unsigned);
-   LOCALE void             EnvSetDefmessageHandlerWatch(void *,int,void *,unsigned);
+   LOCALE unsigned         EnvGetDefmessageHandlerWatch(void *,void *,int);
+   LOCALE void             EnvSetDefmessageHandlerWatch(void *,int,void *,int);
 #endif
-   LOCALE unsigned         EnvFindDefmessageHandler(void *,void *,char *,char *); 
-   LOCALE int              EnvIsDefmessageHandlerDeletable(void *,void *,unsigned);
+   LOCALE unsigned         EnvFindDefmessageHandler(void *,void *,const char *,const char *);
+   LOCALE int              EnvIsDefmessageHandlerDeletable(void *,void *,int);
    LOCALE void             UndefmessageHandlerCommand(void *);
-   LOCALE int              EnvUndefmessageHandler(void *,void *,unsigned);
-
+   LOCALE int              EnvUndefmessageHandler(void *,void *,int);
 #if DEBUGGING_FUNCTIONS
    LOCALE void             PPDefmessageHandlerCommand(void *);
    LOCALE void             ListDefmessageHandlersCommand(void *);
    LOCALE void             PreviewSendCommand(void *); 
-   LOCALE char            *EnvGetDefmessageHandlerPPForm(void *,void *,unsigned);
-   LOCALE void             EnvListDefmessageHandlers(void *,char *,void *,int);
-   LOCALE void             EnvPreviewSend(void *,char *,void *,char *);
-   LOCALE long             DisplayHandlersInLinks(void *,char *,PACKED_CLASS_LINKS *,unsigned);
+   LOCALE const char      *EnvGetDefmessageHandlerPPForm(void *,void *,int);
+   LOCALE void             EnvListDefmessageHandlers(void *,const char *,void *,int);
+   LOCALE void             EnvPreviewSend(void *,const char *,void *,const char *);
+   LOCALE long             DisplayHandlersInLinks(void *,const char *,PACKED_CLASS_LINKS *,int);
 #endif
 
-#endif
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+   LOCALE unsigned         FindDefmessageHandler(void *,const char *,const char *);
+   LOCALE const char      *GetDefmessageHandlerName(void *,int);
+   LOCALE const char      *GetDefmessageHandlerType(void *,int);
+   LOCALE int              GetNextDefmessageHandler(void *,int);
+   LOCALE int              IsDefmessageHandlerDeletable(void *,int);
+   LOCALE int              UndefmessageHandler(void *,int);
+#if DEBUGGING_FUNCTIONS
+   LOCALE const char      *GetDefmessageHandlerPPForm(void *,int);
+   LOCALE unsigned         GetDefmessageHandlerWatch(void *,int);
+   LOCALE void             ListDefmessageHandlers(const char *,void *,int);
+   LOCALE void             PreviewSend(const char *,void *,const char *);
+   LOCALE void             SetDefmessageHandlerWatch(int,void *,int);
+#endif /* DEBUGGING_FUNCTIONS */
+
+#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+
+#endif /* _H_msgcom */
 
 
 

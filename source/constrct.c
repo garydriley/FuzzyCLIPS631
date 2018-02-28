@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.31  03/29/17            */
    /*                                                     */
    /*                  CONSTRUCT MODULE                   */
    /*******************************************************/
@@ -23,6 +23,37 @@
 /*            Added environment parameter to GenOpen.        */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Changed garbage collection algorithm.          */
+/*                                                           */
+/*            Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW and       */
+/*            MAC_MCW).                                      */
+/*                                                           */
+/*            Added code for capturing errors/warnings       */
+/*            (EnvSetParserErrorCallback).                   */
+/*                                                           */
+/*            Fixed issue with save function when multiple   */
+/*            defmodules exist.                              */
+/*                                                           */
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Converted API macros to function calls.        */
+/*                                                           */
+/*            Fixed linkage issue when BLOAD_ONLY compiler   */
+/*            flag is set to 1.                              */
+/*                                                           */
+/*            Added code to prevent a clear command from     */
+/*            being executed during fact assertions via      */
+/*            Increment/DecrementClearReadyLocks API.        */
+/*                                                           */
+/*            Added code to keep track of pointers to        */
+/*            constructs that are contained externally to    */
+/*            to constructs, DanglingConstructs.             */
+/*                                                           */
+/*      6.31: Error flags reset before Clear processed when  */
+/*            called from embedded controller.               */
 /*                                                           */
 /*************************************************************/
 
@@ -46,10 +77,13 @@
 #include "exprnpsr.h"
 #include "multifld.h"
 #include "moduldef.h"
+#include "modulutl.h"
 #include "sysdep.h"
 #include "utility.h"
 #include "commline.h"
+#include "cstrcpsr.h"
 
+#include "ruledef.h" /* TBD Remove */
 #include "constrct.h"
 
 /***************************************/
@@ -88,6 +122,21 @@ static void DeallocateConstructData(
    DeallocateCallList(theEnv,ConstructData(theEnv)->ListOfClearFunctions);
    DeallocateCallList(theEnv,ConstructData(theEnv)->ListOfClearReadyFunctions);
    
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+   if (ConstructData(theEnv)->ErrorString != NULL)
+     { genfree(theEnv,ConstructData(theEnv)->ErrorString,sizeof(ConstructData(theEnv)->ErrorString) + 1); }
+
+   if (ConstructData(theEnv)->WarningString != NULL)
+     { genfree(theEnv,ConstructData(theEnv)->WarningString,sizeof(ConstructData(theEnv)->WarningString) + 1); }
+
+   ConstructData(theEnv)->ErrorString = NULL;
+   ConstructData(theEnv)->WarningString = NULL;
+
+   EnvSetParsingFileName(theEnv,NULL);
+   EnvSetWarningFileName(theEnv,NULL);
+   EnvSetErrorFileName(theEnv,NULL);
+#endif
+   
    tmpPtr = ConstructData(theEnv)->ListOfConstructs;
    while (tmpPtr != NULL)
      {
@@ -99,13 +148,29 @@ static void DeallocateConstructData(
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
 
+/**************************************************/
+/* EnvSetParserErrorCallback: Allows the function */
+/*   which is called when a construct parsing     */
+/*    error occurs to be changed.                 */
+/**************************************************/
+globle void (*EnvSetParserErrorCallback(void *theEnv,
+                                        void (*functionPtr)(void *,const char *,const char *,const char *,long)))
+            (void *,const char *,const char *,const char*,long)
+  {
+   void (*tmpPtr)(void *,const char *,const char *,const char *,long);
+
+   tmpPtr = ConstructData(theEnv)->ParserErrorCallback;
+   ConstructData(theEnv)->ParserErrorCallback = functionPtr;
+   return(tmpPtr);
+  }
+  
 /*************************************************/
 /* FindConstruct: Determines whether a construct */
 /*   type is in the ListOfConstructs.            */
 /*************************************************/
 globle struct construct *FindConstruct(
   void *theEnv,
-  char *name)
+  const char *name)
   {
    struct construct *currentPtr;
 
@@ -128,7 +193,7 @@ globle struct construct *FindConstruct(
 /***********************************************************/
 globle int RemoveConstruct(
   void *theEnv,
-  char *name)
+  const char *name)
   {
    struct construct *currentPtr, *lastPtr = NULL;
 
@@ -157,11 +222,13 @@ globle int RemoveConstruct(
 /************************************************/
 globle int EnvSave(
   void *theEnv,
-  char *fileName)
+  const char *fileName)
   {
    struct callFunctionItem *saveFunction;
    FILE *filePtr;
-   void *defmodulePtr;
+   struct defmodule *defmodulePtr;
+   intBool updated = FALSE;
+   intBool unvisited = TRUE;
 
    /*=====================*/
    /* Open the save file. */
@@ -176,19 +243,66 @@ globle int EnvSave(
 
    SetFastSave(theEnv,filePtr);
 
-   /*======================*/
-   /* Save the constructs. */
-   /*======================*/
+   /*================================*/
+   /* Mark all modules as unvisited. */
+   /*================================*/
    
-   for (defmodulePtr = EnvGetNextDefmodule(theEnv,NULL);
-        defmodulePtr != NULL;
-        defmodulePtr = EnvGetNextDefmodule(theEnv,defmodulePtr))
+   MarkModulesAsUnvisited(theEnv);
+  
+   /*===============================================*/
+   /* Save the constructs. Repeatedly loop over the */
+   /* modules until each module has been save.      */
+   /*===============================================*/
+   
+   while (unvisited)
      {
-      for (saveFunction = ConstructData(theEnv)->ListOfSaveFunctions;
-           saveFunction != NULL;
-           saveFunction = saveFunction->next)
+      unvisited = FALSE;
+      updated = FALSE;
+      
+      for (defmodulePtr = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
+           defmodulePtr != NULL;
+           defmodulePtr = (struct defmodule *) EnvGetNextDefmodule(theEnv,defmodulePtr))
         {
-         ((* (void (*)(void *,void *,char *)) saveFunction->func))(theEnv,defmodulePtr,(char *) filePtr);
+         /*=================================================================*/
+         /* We only want to save a module if all of the modules it imports  */
+         /* from have already been saved. Since there can't be circular     */
+         /* dependencies in imported modules, this should save the modules  */
+         /* that don't import anything first and then work back from those. */
+         /*=================================================================*/
+         
+         if (defmodulePtr->visitedFlag)
+           { /* Module has already been saved. */ }
+         else if (AllImportedModulesVisited(theEnv,defmodulePtr))
+           {
+            for (saveFunction = ConstructData(theEnv)->ListOfSaveFunctions;
+                 saveFunction != NULL;
+                 saveFunction = saveFunction->next)
+              {
+               ((* (void (*)(void *,void *,char *)) saveFunction->func))(theEnv,defmodulePtr,(char *) filePtr);
+              }
+              
+            updated = TRUE;
+            defmodulePtr->visitedFlag = TRUE;
+           }
+         else
+           { unvisited = TRUE; }
+        }
+        
+      /*=====================================================================*/
+      /* At least one module should be saved in every pass. If all have been */
+      /* visited/saved, then both flags will be FALSE. If all remaining      */
+      /* unvisited/unsaved modules were visited/saved, then unvisited will   */
+      /* be FALSE and updated will be TRUE. If some, but not all, remaining  */
+      /* unvisited/unsaved modules are visited/saved, then  unvisited will   */
+      /* be TRUE and updated will be TRUE. This leaves the case where there  */
+      /* are remaining unvisited/unsaved modules, but none were              */
+      /* visited/saved: unvisited is TRUE and updated is FALSE.              */
+      /*=====================================================================*/
+      
+      if (unvisited && (! updated))
+        {
+         SystemError(theEnv,"CONSTRCT",2);
+         break;
         }
      }
 
@@ -219,7 +333,7 @@ globle int EnvSave(
 /*******************************************************/
 globle intBool RemoveSaveFunction(
   void *theEnv,
-  char *name)
+  const char *name)
   {
    int found;
 
@@ -289,7 +403,7 @@ globle void InitializeConstructs(
    AddWatchItem(theEnv,"compilations",0,&ConstructData(theEnv)->WatchCompilations,30,NULL,NULL);
 #endif
 #else
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 #endif
@@ -343,7 +457,7 @@ globle void EnvReset(
    /* command prompt, reset the halt execution flag. */
    /*================================================*/
 
-   if (EvaluationData(theEnv)->CurrentEvaluationDepth == 0) SetHaltExecution(theEnv,FALSE);
+   if (UtilityData(theEnv)->CurrentGarbageFrame->topLevel) SetHaltExecution(theEnv,FALSE);
 
    /*=======================================================*/
    /* Call the before reset function to determine if the    */
@@ -387,9 +501,12 @@ globle void EnvReset(
    /* issued from an embedded controller.       */
    /*===========================================*/
 
-   if ((EvaluationData(theEnv)->CurrentEvaluationDepth == 0) && (! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
-       (EvaluationData(theEnv)->CurrentExpression == NULL))
-     { PeriodicCleanup(theEnv,TRUE,FALSE); }
+   if ((UtilityData(theEnv)->CurrentGarbageFrame->topLevel) && (! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
+       (EvaluationData(theEnv)->CurrentExpression == NULL) && (UtilityData(theEnv)->GarbageCollectionLocks == 0))
+     {
+      CleanCurrentGarbageFrame(theEnv,NULL);
+      CallPeriodicTasks(theEnv);
+     }
 
    /*===================================*/
    /* A reset is no longer in progress. */
@@ -412,34 +529,13 @@ globle int (*SetBeforeResetFunction(void *theEnv,
    return(tempFunction);
   }
 
-#if (! ENVIRONMENT_API_ONLY) && ALLOW_ENVIRONMENT_GLOBALS
-/*************************************/
-/* AddResetFunction: Adds a function */
-/*   to ListOfResetFunctions.        */
-/*************************************/
-globle intBool AddResetFunction(
-  char *name,
-  void (*functionPtr)(void),
-  int priority)
-  {
-   void *theEnv;
-   
-   theEnv = GetCurrentEnvironment();
-   
-   ConstructData(theEnv)->ListOfResetFunctions = 
-      AddFunctionToCallList(theEnv,name,priority,(void (*)(void *)) functionPtr,
-                            ConstructData(theEnv)->ListOfResetFunctions,FALSE);
-   return(TRUE);
-  }
-#endif
-
 /****************************************/
 /* EnvAddResetFunction: Adds a function */
 /*   to ListOfResetFunctions.           */
 /****************************************/
 globle intBool EnvAddResetFunction(
   void *theEnv,
-  char *name,
+  const char *name,
   void (*functionPtr)(void *),
   int priority)
   {
@@ -455,7 +551,7 @@ globle intBool EnvAddResetFunction(
 /**********************************************/
 globle intBool EnvRemoveResetFunction(
   void *theEnv,
-  char *name)
+  const char *name)
   {
    int found;
 
@@ -466,7 +562,28 @@ globle intBool EnvRemoveResetFunction(
 
    return(FALSE);
   }
-    
+
+/*******************************************/
+/* EnvIncrementClearReadyLocks: Increments */
+/*   the number of clear ready locks.      */
+/*******************************************/
+globle void EnvIncrementClearReadyLocks(
+  void *theEnv)
+  {
+   ConstructData(theEnv)->ClearReadyLocks++;
+  }
+
+/*******************************************/
+/* EnvDecrementClearReadyLocks: Decrements */
+/*   the number of clear locks.            */
+/*******************************************/
+globle void EnvDecrementClearReadyLocks(
+  void *theEnv)
+  {
+   if (ConstructData(theEnv)->ClearReadyLocks > 0)
+     { ConstructData(theEnv)->ClearReadyLocks--; }
+  }
+
 /*****************************************************/
 /* EnvClear: C access routine for the clear command. */
 /*****************************************************/
@@ -474,6 +591,18 @@ globle void EnvClear(
   void *theEnv)
   {
    struct callFunctionItem *theFunction;
+
+   /*==============================*/
+   /* Clear error flags if issued  */
+   /* from an embedded controller. */
+   /*==============================*/
+
+   if ((UtilityData(theEnv)->CurrentGarbageFrame->topLevel) && (! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
+       (EvaluationData(theEnv)->CurrentExpression == NULL) && (UtilityData(theEnv)->GarbageCollectionLocks == 0))
+     {
+      SetEvaluationError(theEnv,FALSE);
+      SetHaltExecution(theEnv,FALSE);
+     }
    
    /*==========================================*/
    /* Activate the watch router which captures */
@@ -490,7 +619,9 @@ globle void EnvClear(
    /*===================================*/
 
    ConstructData(theEnv)->ClearReadyInProgress = TRUE;
-   if (ClearReady(theEnv) == FALSE)
+   if ((ConstructData(theEnv)->ClearReadyLocks > 0) ||
+       (ConstructData(theEnv)->DanglingConstructs > 0) ||
+       (ClearReady(theEnv) == FALSE))
      {
       PrintErrorID(theEnv,"CONSTRCT",1,FALSE);
       EnvPrintRouter(theEnv,WERROR,"Some constructs are still in use. Clear cannot continue.\n");
@@ -532,15 +663,30 @@ globle void EnvClear(
    /* issued from an embedded controller.       */
    /*===========================================*/
 
-   if ((EvaluationData(theEnv)->CurrentEvaluationDepth == 0) && (! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
-       (EvaluationData(theEnv)->CurrentExpression == NULL))
-     { PeriodicCleanup(theEnv,TRUE,FALSE); }
+   if ((UtilityData(theEnv)->CurrentGarbageFrame->topLevel) && (! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
+       (EvaluationData(theEnv)->CurrentExpression == NULL) && (UtilityData(theEnv)->GarbageCollectionLocks == 0))
+     {
+      CleanCurrentGarbageFrame(theEnv,NULL);
+      CallPeriodicTasks(theEnv);
+     }
 
    /*===========================*/
    /* Clear has been completed. */
    /*===========================*/
 
    ConstructData(theEnv)->ClearInProgress = FALSE;
+   
+#if DEFRULE_CONSTRUCT
+   if ((DefruleData(theEnv)->RightPrimeJoins != NULL) ||
+       (DefruleData(theEnv)->LeftPrimeJoins != NULL))
+     { SystemError(theEnv,"CONSTRCT",1); }
+#endif
+
+   /*============================*/
+   /* Perform reset after clear. */
+   /*============================*/
+   
+   EnvReset(theEnv);
   }
 
 /*********************************************************/
@@ -573,7 +719,7 @@ globle intBool ClearReady(
 /******************************************/
 globle intBool AddClearReadyFunction(
   void *theEnv,
-  char *name,
+  const char *name,
   int (*functionPtr)(void *),
   int priority)
   {
@@ -590,7 +736,7 @@ globle intBool AddClearReadyFunction(
 /************************************************/
 globle intBool RemoveClearReadyFunction(
   void *theEnv,
-  char *name)
+  const char *name)
   {
    int found;
 
@@ -602,35 +748,13 @@ globle intBool RemoveClearReadyFunction(
    return(FALSE);
   }
 
-#if (! ENVIRONMENT_API_ONLY) && ALLOW_ENVIRONMENT_GLOBALS
-/*************************************/
-/* AddClearFunction: Adds a function */
-/*   to ListOfClearFunctions.        */
-/*************************************/
-globle intBool AddClearFunction(
-  char *name,
-  void (*functionPtr)(void),
-  int priority)
-  {
-   void *theEnv;
-   
-   theEnv = GetCurrentEnvironment();
-   
-   ConstructData(theEnv)->ListOfClearFunctions =
-      AddFunctionToCallList(theEnv,name,priority,
-                            (void (*)(void *)) functionPtr,
-                            ConstructData(theEnv)->ListOfClearFunctions,FALSE);
-   return(1);
-  }
-#endif
-    
 /****************************************/
 /* EnvAddClearFunction: Adds a function */
 /*   to ListOfClearFunctions.           */
 /****************************************/
 globle intBool EnvAddClearFunction(
   void *theEnv,
-  char *name,
+  const char *name,
   void (*functionPtr)(void *),
   int priority)
   {
@@ -647,7 +771,7 @@ globle intBool EnvAddClearFunction(
 /**********************************************/
 globle intBool EnvRemoveClearFunction(
   void *theEnv,
-  char *name)
+  const char *name)
   {
    int found;
 
@@ -683,61 +807,6 @@ globle void SetExecutingConstruct(
    ConstructData(theEnv)->Executing = value;
   }
 
-/************************************************************/
-/* OldGetConstructList: Returns a list of all the construct */
-/*   names in a multifield value. It doesn't check the      */
-/*   number of arguments. It assumes that the restriction   */
-/*   string in DefineFunction2 call was "00".               */
-/************************************************************/
-globle void OldGetConstructList(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue,
-  void *(*nextFunction)(void *,void *),
-  char *(*nameFunction)(void *,void *))
-  {
-   void *theConstruct;
-   unsigned long count = 0;
-   struct multifield *theList;
-
-   /*====================================*/
-   /* Determine the number of constructs */
-   /* of the specified type.             */
-   /*====================================*/
-
-   for (theConstruct = (*nextFunction)(theEnv,NULL);
-        theConstruct != NULL;
-        theConstruct = (*nextFunction)(theEnv,theConstruct))
-     { count++; }
-
-   /*===========================*/
-   /* Create a multifield large */
-   /* enough to store the list. */
-   /*===========================*/
-
-   SetpType(returnValue,MULTIFIELD);
-   SetpDOBegin(returnValue,1);
-   SetpDOEnd(returnValue,(long) count);
-   theList = (struct multifield *) EnvCreateMultifield(theEnv,count);
-   SetpValue(returnValue,(void *) theList);
-
-   /*====================================*/
-   /* Store the names in the multifield. */
-   /*====================================*/
-
-   for (theConstruct = (*nextFunction)(theEnv,NULL), count = 1;
-        theConstruct != NULL;
-        theConstruct = (*nextFunction)(theEnv,theConstruct), count++)
-     {
-      if (EvaluationData(theEnv)->HaltExecution == TRUE)
-        {
-         EnvSetMultifieldErrorValue(theEnv,returnValue);
-         return;
-        }
-      SetMFType(theList,count,SYMBOL);
-      SetMFValue(theList,count,EnvAddSymbol(theEnv,(*nameFunction)(theEnv,theConstruct)));
-     }
-  }
-
 /*******************************************************/
 /* DeinstallConstructHeader: Decrements the busy count */
 /*   of a construct name and frees its pretty print    */
@@ -751,7 +820,7 @@ globle void DeinstallConstructHeader(
    DecrementSymbolCount(theEnv,theHeader->name);
    if (theHeader->ppForm != NULL)
      {
-      rm(theEnv,theHeader->ppForm,
+      rm(theEnv,(void *) theHeader->ppForm,
          sizeof(char) * (strlen(theHeader->ppForm) + 1));
       theHeader->ppForm = NULL;
      }
@@ -775,7 +844,7 @@ globle void DestroyConstructHeader(
   {
    if (theHeader->ppForm != NULL)
      {
-      rm(theEnv,theHeader->ppForm,
+      rm(theEnv,(void *) theHeader->ppForm,
          sizeof(char) * (strlen(theHeader->ppForm) + 1));
       theHeader->ppForm = NULL;
      }
@@ -793,12 +862,12 @@ globle void DestroyConstructHeader(
 /*****************************************************/
 globle struct construct *AddConstruct(
   void *theEnv,
-  char *name,
-  char *pluralName,
-  int (*parseFunction)(void *,char *),
-  void *(*findFunction)(void *,char *),
+  const char *name,
+  const char *pluralName,
+  int (*parseFunction)(void *,const char *),
+  void *(*findFunction)(void *,const char *),
   SYMBOL_HN *(*getConstructNameFunction)(struct constructHeader *),
-  char *(*getPPFormFunction)(void *,struct constructHeader *),
+  const char *(*getPPFormFunction)(void *,struct constructHeader *),
   struct defmoduleItemHeader *(*getModuleItemFunction)(struct constructHeader *),
   void *(*getNextItemFunction)(void *,void *),
   void (*setNextItemFunction)(struct constructHeader *,struct constructHeader *),
@@ -844,26 +913,92 @@ globle struct construct *AddConstruct(
 /************************************/
 globle intBool AddSaveFunction(
   void *theEnv,
-  char *name,
-  void (*functionPtr)(void *,void *,char *),
+  const char *name,
+  void (*functionPtr)(void *,void *,const char *),
   int priority)
   {
-#if (MAC_MCW || IBM_MCW) && (RUN_TIME || BLOAD_ONLY)
-#pragma unused(name)
-#pragma unused(functionPtr)
-#pragma unused(priority)
-#endif
-
 #if (! RUN_TIME) && (! BLOAD_ONLY)
    ConstructData(theEnv)->ListOfSaveFunctions =
      AddFunctionToCallList(theEnv,name,priority,
                            (void (*)(void *)) functionPtr,
                            ConstructData(theEnv)->ListOfSaveFunctions,TRUE);
 #else
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 #endif
 
    return(1);
   }
+
+/*#####################################*/
+/* ALLOW_ENVIRONMENT_GLOBALS Functions */
+/*#####################################*/
+
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+globle intBool AddClearFunction(
+  const char *name,
+  void (*functionPtr)(void),
+  int priority)
+  {
+   void *theEnv;
+   
+   theEnv = GetCurrentEnvironment();
+   
+   ConstructData(theEnv)->ListOfClearFunctions =
+      AddFunctionToCallList(theEnv,name,priority,
+                            (void (*)(void *)) functionPtr,
+                            ConstructData(theEnv)->ListOfClearFunctions,FALSE);
+   return(1);
+  }
+
+globle intBool AddResetFunction(
+  const char *name,
+  void (*functionPtr)(void),
+  int priority)
+  {
+   void *theEnv;
+   
+   theEnv = GetCurrentEnvironment();
+   
+   ConstructData(theEnv)->ListOfResetFunctions = 
+      AddFunctionToCallList(theEnv,name,priority,(void (*)(void *)) functionPtr,
+                            ConstructData(theEnv)->ListOfResetFunctions,FALSE);
+   return(TRUE);
+  }
+
+globle void Clear()
+  {
+   EnvClear(GetCurrentEnvironment());
+  }  
+
+globle intBool RemoveClearFunction(
+  const char *name)
+  {
+   return EnvRemoveClearFunction(GetCurrentEnvironment(),name);
+  }
+
+globle intBool RemoveResetFunction(
+  const char *name)
+  {
+   return EnvRemoveResetFunction(GetCurrentEnvironment(),name);
+  }
+
+globle void Reset()
+  {
+   EnvReset(GetCurrentEnvironment());
+  }  
+
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+
+globle int Save(
+  const char *fileName)
+  {
+   return EnvSave(GetCurrentEnvironment(),fileName);
+  }  
+#endif
+
+#endif
+
+

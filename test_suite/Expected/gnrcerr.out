@@ -75,7 +75,7 @@ FuzzyCLIPS> (defmethod bad 0 ())
 
 ERROR:
 (defmethod MAIN::bad 0
-FuzzyCLIPS> (defmethod bad 1000000000000 ())
+FuzzyCLIPS> (defmethod bad 2147483648 ())
 [GENRCPSR6] Method index out of range.
 
 ERROR:
@@ -190,6 +190,8 @@ FuzzyCLIPS> (foo 1)
 [PRCCODE4] Execution halted during the actions of generic function foo method #1.
 FALSE
 FuzzyCLIPS> (foo (instances))
+[initial-object] of INITIAL-OBJECT
+For a total of 1 instance.
 [PRCCODE2] Functions without a return value are illegal as generic function arguments.
 [PRCCODE6] This error occurred while evaluating arguments for the generic function foo.
 FALSE

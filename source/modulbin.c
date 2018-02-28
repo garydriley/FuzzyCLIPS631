@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.21  06/15/03            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*             DEFMODULE BSAVE/BLOAD MODULE            */
    /*******************************************************/
@@ -14,9 +14,11 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
@@ -230,12 +232,12 @@ static void BsaveStorage(
   void *theEnv,
   FILE *fp)
   {
-   unsigned long space;
+   size_t space;
 
    space = sizeof(long) * 2;
-   GenWrite(&space,(unsigned long) sizeof(unsigned long int),fp);
-   GenWrite(&DefmoduleData(theEnv)->BNumberOfDefmodules,(unsigned long) sizeof(long int),fp);
-   GenWrite(&DefmoduleData(theEnv)->NumberOfPortItems,(unsigned long) sizeof(long int),fp);
+   GenWrite(&space,sizeof(size_t),fp);
+   GenWrite(&DefmoduleData(theEnv)->BNumberOfDefmodules,sizeof(long int),fp);
+   GenWrite(&DefmoduleData(theEnv)->NumberOfPortItems,sizeof(long int),fp);
   }
 
 /*********************************************/
@@ -246,7 +248,7 @@ static void BsaveBinaryItem(
   void *theEnv,
   FILE *fp)
   {
-   unsigned long int space;
+   size_t space;
    struct defmodule *defmodulePtr;
    struct bsaveDefmodule newDefmodule;
    struct bsavePortItem newPortItem;
@@ -259,7 +261,7 @@ static void BsaveBinaryItem(
 
    space = DefmoduleData(theEnv)->BNumberOfDefmodules * sizeof(struct bsaveDefmodule);
    space += DefmoduleData(theEnv)->NumberOfPortItems * sizeof(struct bsavePortItem);
-   GenWrite(&space,(unsigned long) sizeof(unsigned long int),fp);
+   GenWrite(&space,sizeof(size_t),fp);
 
    /*==========================================*/
    /* Write out each defmodule data structure. */
@@ -302,7 +304,7 @@ static void BsaveBinaryItem(
         }
 
       newDefmodule.bsaveID = defmodulePtr->bsaveID;
-      GenWrite(&newDefmodule,(unsigned long) sizeof(struct bsaveDefmodule),fp);
+      GenWrite(&newDefmodule,sizeof(struct bsaveDefmodule),fp);
      }
 
    /*==========================================*/
@@ -330,7 +332,7 @@ static void BsaveBinaryItem(
          if (theList->next == NULL) newPortItem.next = -1L;
          else newPortItem.next = DefmoduleData(theEnv)->NumberOfPortItems;
 
-         GenWrite(&newPortItem,(unsigned long) sizeof(struct bsavePortItem),fp);
+         GenWrite(&newPortItem,sizeof(struct bsavePortItem),fp);
         }
 
       for (theList = defmodulePtr->exportList;
@@ -350,7 +352,7 @@ static void BsaveBinaryItem(
          if (theList->next == NULL) newPortItem.next = -1L;
          else newPortItem.next = DefmoduleData(theEnv)->NumberOfPortItems;
 
-         GenWrite(&newPortItem,(unsigned long) sizeof(struct bsavePortItem),fp);
+         GenWrite(&newPortItem,sizeof(struct bsavePortItem),fp);
         }
 
       defmodulePtr = (struct defmodule *) EnvGetNextDefmodule(theEnv,defmodulePtr);
@@ -376,16 +378,16 @@ static void BsaveBinaryItem(
 static void BloadStorage(
   void *theEnv)
   {
-   unsigned long int space;
+   size_t space;
 
    /*=======================================*/
    /* Determine the number of defmodule and */
    /* port item data structures to be read. */
    /*=======================================*/
 
-   GenReadBinary(theEnv,&space,(unsigned long) sizeof(unsigned long int));
-   GenReadBinary(theEnv,&DefmoduleData(theEnv)->BNumberOfDefmodules,(unsigned long) sizeof(long int));
-   GenReadBinary(theEnv,&DefmoduleData(theEnv)->NumberOfPortItems,(unsigned long) sizeof(long int));
+   GenReadBinary(theEnv,&space,sizeof(size_t));
+   GenReadBinary(theEnv,&DefmoduleData(theEnv)->BNumberOfDefmodules,sizeof(long int));
+   GenReadBinary(theEnv,&DefmoduleData(theEnv)->NumberOfPortItems,sizeof(long int));
 
    /*================================*/
    /* Allocate the space needed for  */
@@ -398,8 +400,8 @@ static void BloadStorage(
       return;
      }
 
-   space = (unsigned long) (DefmoduleData(theEnv)->BNumberOfDefmodules * sizeof(struct defmodule));
-   DefmoduleData(theEnv)->DefmoduleArray = (struct defmodule *) genlongalloc(theEnv,space);
+   space = (DefmoduleData(theEnv)->BNumberOfDefmodules * sizeof(struct defmodule));
+   DefmoduleData(theEnv)->DefmoduleArray = (struct defmodule *) genalloc(theEnv,space);
 
    /*================================*/
    /* Allocate the space needed for  */
@@ -412,8 +414,8 @@ static void BloadStorage(
       return;
      }
 
-   space = (unsigned long) (DefmoduleData(theEnv)->NumberOfPortItems * sizeof(struct portItem));
-   DefmoduleData(theEnv)->PortItemArray = (struct portItem *) genlongalloc(theEnv,space);
+   space = (DefmoduleData(theEnv)->NumberOfPortItems * sizeof(struct portItem));
+   DefmoduleData(theEnv)->PortItemArray = (struct portItem *) genalloc(theEnv,space);
   }
 
 /********************************************/
@@ -423,13 +425,13 @@ static void BloadStorage(
 static void BloadBinaryItem(
   void *theEnv)
   {
-   unsigned long int space;
+   size_t space;
 
-   GenReadBinary(theEnv,&space,(unsigned long) sizeof(unsigned long int));
+   GenReadBinary(theEnv,&space,sizeof(size_t));
    if (DefmoduleData(theEnv)->BNumberOfDefmodules == 0) return;
 
-   BloadandRefresh(theEnv,DefmoduleData(theEnv)->BNumberOfDefmodules,(unsigned) sizeof(struct bsaveDefmodule),UpdateDefmodule);
-   BloadandRefresh(theEnv,DefmoduleData(theEnv)->NumberOfPortItems,(unsigned) sizeof(struct bsavePortItem),UpdatePortItem);
+   BloadandRefresh(theEnv,DefmoduleData(theEnv)->BNumberOfDefmodules,sizeof(struct bsaveDefmodule),UpdateDefmodule);
+   BloadandRefresh(theEnv,DefmoduleData(theEnv)->NumberOfPortItems,sizeof(struct bsavePortItem),UpdatePortItem);
 
    SetListOfDefmodules(theEnv,(void *) DefmoduleData(theEnv)->DefmoduleArray);
    EnvSetCurrentModule(theEnv,(void *) EnvGetNextDefmodule(theEnv,NULL));
@@ -543,7 +545,7 @@ static void ClearBload(
   void *theEnv)
   {
    long i;
-   unsigned long space;
+   size_t space;
    struct portItem *theList;
 
    /*===========================*/
@@ -581,7 +583,7 @@ static void ClearBload(
    /*================================*/
 
    space = DefmoduleData(theEnv)->BNumberOfDefmodules * sizeof(struct defmodule);
-   if (space != 0) genlongfree(theEnv,(void *) DefmoduleData(theEnv)->DefmoduleArray,space);
+   if (space != 0) genfree(theEnv,(void *) DefmoduleData(theEnv)->DefmoduleArray,space);
    DefmoduleData(theEnv)->BNumberOfDefmodules = 0;
    
    /*================================*/
@@ -590,7 +592,7 @@ static void ClearBload(
    /*================================*/
 
    space = DefmoduleData(theEnv)->NumberOfPortItems * sizeof(struct portItem);
-   if (space != 0) genlongfree(theEnv,(void *) DefmoduleData(theEnv)->PortItemArray,space);
+   if (space != 0) genfree(theEnv,(void *) DefmoduleData(theEnv)->PortItemArray,space);
    DefmoduleData(theEnv)->NumberOfPortItems = 0;
    
    /*===========================*/

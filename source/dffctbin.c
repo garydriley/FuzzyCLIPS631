@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.21  06/15/03            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*             DEFFACTS BSAVE/BLOAD MODULE             */
    /*******************************************************/
@@ -14,9 +14,11 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
@@ -84,13 +86,13 @@ globle void DeffactsBinarySetup(
 static void DeallocateDeffactsBloadData(
   void *theEnv)
   {
-   unsigned long space;
+   size_t space;
 
    space = DeffactsBinaryData(theEnv)->NumberOfDeffacts * sizeof(struct deffacts);
-   if (space != 0) genlongfree(theEnv,(void *) DeffactsBinaryData(theEnv)->DeffactsArray,space);
+   if (space != 0) genfree(theEnv,(void *) DeffactsBinaryData(theEnv)->DeffactsArray,space);
    
    space = DeffactsBinaryData(theEnv)->NumberOfDeffactsModules * sizeof(struct deffactsModule);
-   if (space != 0) genlongfree(theEnv,(void *) DeffactsBinaryData(theEnv)->ModuleArray,space);
+   if (space != 0) genfree(theEnv,(void *) DeffactsBinaryData(theEnv)->ModuleArray,space);
   }
 
 #if BLOAD_AND_BSAVE
@@ -211,7 +213,7 @@ static void BsaveStorage(
   void *theEnv,
   FILE *fp)
   {
-   unsigned long space;
+   size_t space;
 
    /*=================================================================*/
    /* Only two data structures are saved as part of a deffacts binary */
@@ -221,9 +223,9 @@ static void BsaveStorage(
    /*=================================================================*/
 
    space = sizeof(long) * 2;
-   GenWrite(&space,(unsigned long) sizeof(unsigned long int),fp);
-   GenWrite(&DeffactsBinaryData(theEnv)->NumberOfDeffacts,(unsigned long) sizeof(long int),fp);
-   GenWrite(&DeffactsBinaryData(theEnv)->NumberOfDeffactsModules,(unsigned long) sizeof(long int),fp);
+   GenWrite(&space,sizeof(size_t),fp);
+   GenWrite(&DeffactsBinaryData(theEnv)->NumberOfDeffacts,sizeof(long int),fp);
+   GenWrite(&DeffactsBinaryData(theEnv)->NumberOfDeffactsModules,sizeof(long int),fp);
   }
 
 /********************************************/
@@ -234,7 +236,7 @@ static void BsaveBinaryItem(
   void *theEnv,
   FILE *fp)
   {
-   unsigned long int space;
+   size_t space;
    struct deffacts *theDeffacts;
    struct bsaveDeffacts newDeffacts;
    struct defmodule *theModule;
@@ -248,7 +250,7 @@ static void BsaveBinaryItem(
 
    space = DeffactsBinaryData(theEnv)->NumberOfDeffacts * sizeof(struct bsaveDeffacts) +
            (DeffactsBinaryData(theEnv)->NumberOfDeffactsModules * sizeof(struct bsaveDeffactsModule));
-   GenWrite(&space,(unsigned long) sizeof(unsigned long int),fp);
+   GenWrite(&space,sizeof(size_t),fp);
 
    /*================================================*/
    /* Write out each deffacts module data structure. */
@@ -313,16 +315,16 @@ static void BsaveBinaryItem(
 static void BloadStorage(
   void *theEnv)
   {
-   unsigned long int space;
+   size_t space;
 
    /*=====================================================*/
    /* Determine the number of deffacts and deffactsModule */
    /* data structures to be read.                         */
    /*=====================================================*/
 
-   GenReadBinary(theEnv,&space,(unsigned long) sizeof(unsigned long int));
-   GenReadBinary(theEnv,&DeffactsBinaryData(theEnv)->NumberOfDeffacts,(unsigned long) sizeof(long int));
-   GenReadBinary(theEnv,&DeffactsBinaryData(theEnv)->NumberOfDeffactsModules,(unsigned long) sizeof(long int));
+   GenReadBinary(theEnv,&space,sizeof(size_t));
+   GenReadBinary(theEnv,&DeffactsBinaryData(theEnv)->NumberOfDeffacts,sizeof(long int));
+   GenReadBinary(theEnv,&DeffactsBinaryData(theEnv)->NumberOfDeffactsModules,sizeof(long int));
 
    /*===================================*/
    /* Allocate the space needed for the */
@@ -337,7 +339,7 @@ static void BloadStorage(
      }
 
    space = DeffactsBinaryData(theEnv)->NumberOfDeffactsModules * sizeof(struct deffactsModule);
-   DeffactsBinaryData(theEnv)->ModuleArray = (struct deffactsModule *) genlongalloc(theEnv,space);
+   DeffactsBinaryData(theEnv)->ModuleArray = (struct deffactsModule *) genalloc(theEnv,space);
 
    /*===================================*/
    /* Allocate the space needed for the */
@@ -350,8 +352,8 @@ static void BloadStorage(
       return;
      }
 
-   space = (unsigned long) (DeffactsBinaryData(theEnv)->NumberOfDeffacts * sizeof(struct deffacts));
-   DeffactsBinaryData(theEnv)->DeffactsArray = (struct deffacts *) genlongalloc(theEnv,space);
+   space = (DeffactsBinaryData(theEnv)->NumberOfDeffacts * sizeof(struct deffacts));
+   DeffactsBinaryData(theEnv)->DeffactsArray = (struct deffacts *) genalloc(theEnv,space);
   }
 
 /*****************************************************/
@@ -361,7 +363,7 @@ static void BloadStorage(
 static void BloadBinaryItem(
   void *theEnv)
   {
-   unsigned long int space;
+   size_t space;
 
    /*======================================================*/
    /* Read in the amount of space used by the binary image */
@@ -369,7 +371,7 @@ static void BloadBinaryItem(
    /* is not available in the version being run).          */
    /*======================================================*/
 
-   GenReadBinary(theEnv,&space,(unsigned long) sizeof(unsigned long int));
+   GenReadBinary(theEnv,&space,sizeof(size_t));
 
    /*============================================*/
    /* Read in the deffactsModule data structures */
@@ -377,8 +379,7 @@ static void BloadBinaryItem(
    /*============================================*/
 
    BloadandRefresh(theEnv,DeffactsBinaryData(theEnv)->NumberOfDeffactsModules,
-                   (unsigned) sizeof(struct bsaveDeffactsModule),
-                   UpdateDeffactsModule);
+                   sizeof(struct bsaveDeffactsModule),UpdateDeffactsModule);
 
    /*======================================*/
    /* Read in the deffacts data structures */
@@ -386,8 +387,7 @@ static void BloadBinaryItem(
    /*======================================*/
 
    BloadandRefresh(theEnv,DeffactsBinaryData(theEnv)->NumberOfDeffacts,
-                   (unsigned) sizeof(struct bsaveDeffacts),
-                   UpdateDeffacts);
+                   sizeof(struct bsaveDeffacts),UpdateDeffacts);
   }
 
 /***************************************************/
@@ -432,7 +432,7 @@ static void ClearBload(
   void *theEnv)
   {
    long i;
-   unsigned long space;
+   size_t space;
 
    /*=============================================*/
    /* Decrement in use counters for atomic values */
@@ -447,7 +447,7 @@ static void ClearBload(
    /*=============================================================*/
 
    space = DeffactsBinaryData(theEnv)->NumberOfDeffacts * sizeof(struct deffacts);
-   if (space != 0) genlongfree(theEnv,(void *) DeffactsBinaryData(theEnv)->DeffactsArray,space);
+   if (space != 0) genfree(theEnv,(void *) DeffactsBinaryData(theEnv)->DeffactsArray,space);
    DeffactsBinaryData(theEnv)->NumberOfDeffacts = 0;
    
    /*====================================================================*/
@@ -455,7 +455,7 @@ static void ClearBload(
    /*====================================================================*/
 
    space = DeffactsBinaryData(theEnv)->NumberOfDeffactsModules * sizeof(struct deffactsModule);
-   if (space != 0) genlongfree(theEnv,(void *) DeffactsBinaryData(theEnv)->ModuleArray,space);
+   if (space != 0) genfree(theEnv,(void *) DeffactsBinaryData(theEnv)->ModuleArray,space);
    DeffactsBinaryData(theEnv)->NumberOfDeffactsModules = 0;
   }
 

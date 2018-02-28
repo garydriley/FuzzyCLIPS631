@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*                RETRACT HEADER FILE                  */
    /*******************************************************/
@@ -18,8 +18,19 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.24: Rule with exists CE has incorrect activation.  */
+/*      6.24: Removed LOGICAL_DEPENDENCIES compilation flag. */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*            Rule with exists CE has incorrect activation.  */
 /*            DR0867                                         */
+/*                                                           */
+/*      6.30: Added support for hashed memories.             */
+/*                                                           */
+/*            Added additional developer statistics to help  */
+/*            analyze join network performance.              */
+/*                                                           */
+/*            Removed pseudo-facts used in not CEs.          */
 /*                                                           */
 /*************************************************************/
 
@@ -51,14 +62,15 @@ struct rdriveinfo
   };
 
 LOCALE void                           NetworkRetract(void *,struct patternMatch *);
-LOCALE void                           PosEntryRetract(void *,struct joinNode *,struct alphaMatch *,struct partialMatch *,int,void *);
 LOCALE void                           ReturnPartialMatch(void *,struct partialMatch *);
 LOCALE void                           DestroyPartialMatch(void *,struct partialMatch *);
 LOCALE void                           FlushGarbagePartialMatches(void *);
-LOCALE void                           NegEntryRetract(void *,struct joinNode *,struct partialMatch *,void *);
-LOCALE void                           RetractCheckDriveRetractions(void *,struct alphaMatch *,int); 
+LOCALE void                           DeletePartialMatches(void *,struct partialMatch *);
+LOCALE void                           PosEntryRetractBeta(void *,struct partialMatch *,struct partialMatch *,int);
+LOCALE void                           PosEntryRetractAlpha(void *,struct partialMatch *,int);
+LOCALE intBool                        PartialMatchWillBeDeleted(void *,struct partialMatch *);
 
-#endif
+#endif /* _H_retract */
 
 
 

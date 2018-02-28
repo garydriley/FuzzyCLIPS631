@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  07/01/05            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*                 CLASS EXAMINATION MODULE            */
    /*******************************************************/
@@ -10,11 +10,12 @@
 /* Purpose: Class browsing and examination commands           */
 /*                                                            */
 /* Principal Programmer(s):                                   */
-/*      Brian L. Donnell                                      */
+/*      Brian L. Dantes                                       */
 /*                                                            */
 /* Contributing Programmer(s):                                */
 /*                                                            */
 /* Revision History:                                          */
+/*                                                            */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859   */
 /*                                                            */
 /*            Modified the slot-writablep function to return  */
@@ -32,6 +33,21 @@
 /*            default exists for a slot (the ?NONE value was  */
 /*            specified). DR0870                              */
 /*                                                            */
+/*      6.30: Used %zd for printing size_t arguments.         */
+/*                                                            */
+/*            Added EnvSlotDefaultP function.                 */
+/*                                                            */
+/*            Borland C (IBM_TBC) and Metrowerks CodeWarrior  */
+/*            (MAC_MCW, IBM_MCW) are no longer supported.     */
+/*                                                            */
+/*            Used gensprintf and genstrcat instead of        */
+/*            sprintf and strcat.                             */
+/*                                                            */
+/*            Added const qualifiers to remove C++            */
+/*            deprecation warnings.                           */
+/*                                                            */
+/*            Converted API macros to function calls.        */
+/*                                                           */
 /**************************************************************/
 
 /* =========================================
@@ -56,6 +72,7 @@
 #include "msgfun.h"
 #include "router.h"
 #include "strngrtr.h"
+#include "sysdep.h"
 
 #define _CLASSEXM_SOURCE_
 #include "classexm.h"
@@ -66,19 +83,19 @@
    =========================================
    ***************************************** */
 
-static int CheckTwoClasses(void *,char *,DEFCLASS **,DEFCLASS **);
-static SLOT_DESC *CheckSlotExists(void *,char *,DEFCLASS **,intBool,intBool);
-static SLOT_DESC *LookupSlot(void *,DEFCLASS *,char *,intBool);
+static int CheckTwoClasses(void *,const char *,DEFCLASS **,DEFCLASS **);
+static SLOT_DESC *CheckSlotExists(void *,const char *,DEFCLASS **,intBool,intBool);
+static SLOT_DESC *LookupSlot(void *,DEFCLASS *,const char *,intBool);
 
 #if DEBUGGING_FUNCTIONS
-static DEFCLASS *CheckClass(void *,char *,char *);
-static char *GetClassNameArgument(void *,char *);
-static void PrintClassBrowse(void *,char *,DEFCLASS *,unsigned);
-static void DisplaySeparator(void *,char *,char *,int,int);
-static void DisplaySlotBasicInfo(void *,char *,char *,char *,char *,DEFCLASS *);
-static intBool PrintSlotSources(void *,char *,SYMBOL_HN *,PACKED_CLASS_LINKS *,unsigned,int);
-static void DisplaySlotConstraintInfo(void *,char *,char *,char *,unsigned,DEFCLASS *);
-static char *ConstraintCode(CONSTRAINT_RECORD *,unsigned,unsigned);
+static DEFCLASS *CheckClass(void *,const char *,const char *);
+static const char *GetClassNameArgument(void *,const char *);
+static void PrintClassBrowse(void *,const char *,DEFCLASS *,long);
+static void DisplaySeparator(void *,const char *,char *,int,int);
+static void DisplaySlotBasicInfo(void *,const char *,const char *,const char *,char *,DEFCLASS *);
+static intBool PrintSlotSources(void *,const char *,SYMBOL_HN *,PACKED_CLASS_LINKS *,long,int);
+static void DisplaySlotConstraintInfo(void *,const char *,const char *,char *,unsigned,DEFCLASS *);
+static const char *ConstraintCode(CONSTRAINT_RECORD *,unsigned,unsigned);
 #endif
 
 /* =========================================
@@ -134,7 +151,7 @@ globle void BrowseClassesCommand(
  ****************************************************************/
 globle void EnvBrowseClasses(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   void *clsptr)
   {
    PrintClassBrowse(theEnv,logicalName,(DEFCLASS *) clsptr,0);
@@ -153,7 +170,7 @@ globle void EnvBrowseClasses(
 globle void DescribeClassCommand(
   void *theEnv)
   {
-   char *cname;
+   const char *cname;
    DEFCLASS *cls;
    
    cname = GetClassNameArgument(theEnv,"describe-class");
@@ -178,7 +195,7 @@ globle void DescribeClassCommand(
  ******************************************************/
 globle void EnvDescribeClass(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   void *clsptr)
   {
    DEFCLASS *cls;
@@ -186,7 +203,7 @@ globle void EnvDescribeClass(
         slotNamePrintFormat[12],
         overrideMessagePrintFormat[12];
    int messageBanner;
-   unsigned i;
+   long i;
    size_t slotNameLength, maxSlotNameLength;
    size_t overrideMessageLength, maxOverrideMessageLength;
 
@@ -232,9 +249,20 @@ globle void EnvDescribeClass(
         maxSlotNameLength = 16;
       if (maxOverrideMessageLength > 12)
         maxOverrideMessageLength = 12;
-      sprintf(slotNamePrintFormat,"%%-%ld.%lds : ",maxSlotNameLength,maxSlotNameLength);
-      sprintf(overrideMessagePrintFormat,"%%-%ld.%lds ",maxOverrideMessageLength,
+#if WIN_MVC
+      gensprintf(slotNamePrintFormat,"%%-%Id.%Ids : ",maxSlotNameLength,maxSlotNameLength);
+      gensprintf(overrideMessagePrintFormat,"%%-%Id.%Ids ",maxOverrideMessageLength,
                                               maxOverrideMessageLength);
+#elif WIN_GCC
+      gensprintf(slotNamePrintFormat,"%%-%ld.%lds : ",(long) maxSlotNameLength,(long) maxSlotNameLength);
+      gensprintf(overrideMessagePrintFormat,"%%-%ld.%lds ",(long) maxOverrideMessageLength,
+                                            (long) maxOverrideMessageLength);
+#else
+      gensprintf(slotNamePrintFormat,"%%-%zd.%zds : ",maxSlotNameLength,maxSlotNameLength);
+      gensprintf(overrideMessagePrintFormat,"%%-%zd.%zds ",maxOverrideMessageLength,
+                                              maxOverrideMessageLength);
+#endif
+
       DisplaySlotBasicInfo(theEnv,logicalName,slotNamePrintFormat,overrideMessagePrintFormat,buf,cls);
       EnvPrintRouter(theEnv,logicalName,"\nConstraint information for slots:\n\n");
       DisplaySlotConstraintInfo(theEnv,logicalName,slotNamePrintFormat,buf,82,cls);
@@ -261,7 +289,7 @@ globle void EnvDescribeClass(
    DisplaySeparator(theEnv,logicalName,buf,82,'=');
   }
 
-#endif
+#endif /* DEBUGGING_FUNCTIONS */
 
 /**********************************************************
   NAME         : GetCreateAccessorString
@@ -273,7 +301,7 @@ globle void EnvDescribeClass(
   SIDE EFFECTS : None
   NOTES        : Used by (describe-class) and (slot-facets)
  **********************************************************/
-globle char *GetCreateAccessorString(
+globle const char *GetCreateAccessorString(
   void *vsd)
   {
    SLOT_DESC *sd = (SLOT_DESC *) vsd;
@@ -283,7 +311,10 @@ globle char *GetCreateAccessorString(
    if ((sd->createReadAccessor == 0) && (sd->createWriteAccessor == 0))
      return("NIL");
    else
-     return((char *) (sd->createReadAccessor ? "R" : "W"));
+     {
+      if (sd->createReadAccessor) return "R";
+      else return "W";
+     }
   }
 
 /************************************************************
@@ -330,15 +361,12 @@ globle intBool SuperclassPCommand(
   SIDE EFFECTS : None
   NOTES        : None
  ***************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 globle intBool EnvSuperclassP(
   void *theEnv,
   void *firstClass,
   void *secondClass)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -375,15 +403,12 @@ globle intBool SubclassPCommand(
   SIDE EFFECTS : None
   NOTES        : None
  ***************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 globle intBool EnvSubclassP(
   void *theEnv,
   void *firstClass,
   void *secondClass)
   {
-#if MAC_MCW || IBM_MCW || MAC_XCD
+#if MAC_XCD
 #pragma unused(theEnv)
 #endif
 
@@ -439,7 +464,7 @@ globle int SlotExistPCommand(
 globle intBool EnvSlotExistP(
   void *theEnv,
   void *theDefclass,
-  char *slotName,
+  const char *slotName,
   intBool inheritFlag)
   {
    return((LookupSlot(theEnv,(DEFCLASS *) theDefclass,slotName,inheritFlag) != NULL)
@@ -522,7 +547,7 @@ globle intBool SlotWritablePCommand(
 globle intBool EnvSlotWritableP(
   void *theEnv,
   void *theDefclass,
-  char *slotName)
+  const char *slotName)
   {
    SLOT_DESC *sd;
 
@@ -565,7 +590,7 @@ globle intBool SlotInitablePCommand(
 globle intBool EnvSlotInitableP(
   void *theEnv,
   void *theDefclass,
-  char *slotName)
+  const char *slotName)
   {
    SLOT_DESC *sd;
 
@@ -608,7 +633,7 @@ globle intBool SlotPublicPCommand(
 globle intBool EnvSlotPublicP(
   void *theEnv,
   void *theDefclass,
-  char *slotName)
+  const char *slotName)
   {
    SLOT_DESC *sd;
 
@@ -617,6 +642,35 @@ globle intBool EnvSlotPublicP(
    return(sd->publicVisibility ? TRUE : FALSE);
   }
 
+/***************************************************
+  NAME         : EnvSlotDefaultP
+  DESCRIPTION  : Determines if a slot has a default value
+  INPUTS       : 1) The class
+                 2) The slot name
+  RETURNS      : TRUE if slot is public,
+                 FALSE otherwise
+  SIDE EFFECTS : None
+  NOTES        : None
+ ***************************************************/
+globle int EnvSlotDefaultP(
+  void *theEnv,
+  void *theDefclass,
+  const char *slotName)
+  {
+   SLOT_DESC *sd;
+
+   if ((sd = LookupSlot(theEnv,(DEFCLASS *) theDefclass,slotName,FALSE)) == NULL)
+     return(NO_DEFAULT);
+     
+   if (sd->noDefault)
+     { return(NO_DEFAULT); }
+   else if (sd->dynamicDefault)
+     { return(DYNAMIC_DEFAULT); }
+   
+   return(STATIC_DEFAULT);
+  }
+  
+  
 /**********************************************************************
   NAME         : SlotDirectAccessPCommand
   DESCRIPTION  : Determines if an existing slot can be directly
@@ -655,7 +709,7 @@ globle intBool SlotDirectAccessPCommand(
 globle intBool EnvSlotDirectAccessP(
   void *theEnv,
   void *theDefclass,
-  char *slotName)
+  const char *slotName)
   {
    SLOT_DESC *sd;
 
@@ -717,7 +771,7 @@ globle void SlotDefaultValueCommand(
 globle intBool EnvSlotDefaultValue(
   void *theEnv,
   void *theDefclass,
-  char *slotName,
+  const char *slotName,
   DATA_OBJECT_PTR theValue)
   {
    SLOT_DESC *sd;
@@ -779,7 +833,7 @@ globle intBool ClassExistPCommand(
  ******************************************************/
 static int CheckTwoClasses(
   void *theEnv,
-  char *func,
+  const char *func,
   DEFCLASS **c1,
   DEFCLASS **c2)
   {
@@ -824,7 +878,7 @@ static int CheckTwoClasses(
  ***************************************************/
 static SLOT_DESC *CheckSlotExists(
   void *theEnv,
-  char *func,
+  const char *func,
   DEFCLASS **classBuffer,
   intBool existsErrorFlag,
   intBool inheritFlag)
@@ -876,7 +930,7 @@ static SLOT_DESC *CheckSlotExists(
 static SLOT_DESC *LookupSlot(
   void *theEnv,
   DEFCLASS *theDefclass,
-  char *slotName,
+  const char *slotName,
   intBool inheritFlag)
   {
    SYMBOL_HN *slotSymbol;
@@ -911,8 +965,8 @@ static SLOT_DESC *LookupSlot(
  ******************************************************/
 static DEFCLASS *CheckClass(
   void *theEnv,
-  char *func,
-  char *cname)
+  const char *func,
+  const char *cname)
   {
    DEFCLASS *cls;
 
@@ -930,9 +984,9 @@ static DEFCLASS *CheckClass(
   SIDE EFFECTS : None
   NOTES        : Assumes only 1 argument
  *********************************************************/
-static char *GetClassNameArgument(
+static const char *GetClassNameArgument(
   void *theEnv,
-  char *fname)
+  const char *fname)
   {
    DATA_OBJECT temp;
 
@@ -953,11 +1007,11 @@ static char *GetClassNameArgument(
  ****************************************************************/
 static void PrintClassBrowse(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   DEFCLASS *cls,
-  unsigned depth)
+  long depth)
   {
-   register unsigned i;
+   long i;
 
    for (i = 0 ; i < depth ; i++)
      EnvPrintRouter(theEnv,logicalName,"  ");
@@ -982,7 +1036,7 @@ static void PrintClassBrowse(
  *********************************************************/
 static void DisplaySeparator(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   char *buf,
   int maxlen,
   int sepchar)
@@ -1027,57 +1081,57 @@ static void DisplaySeparator(
  *************************************************************/
 static void DisplaySlotBasicInfo(
   void *theEnv,
-  char *logicalName,
-  char *slotNamePrintFormat,
-  char *overrideMessagePrintFormat,
+  const char *logicalName,
+  const char *slotNamePrintFormat,
+  const char *overrideMessagePrintFormat,
   char *buf,
   DEFCLASS *cls)
   {
-   register unsigned i;
+   long i;
    SLOT_DESC *sp;
-   char *createString;
+   const char *createString;
 
-   sprintf(buf,slotNamePrintFormat,"SLOTS");
+   gensprintf(buf,slotNamePrintFormat,"SLOTS");
 #if DEFRULE_CONSTRUCT
-   strcat(buf,"FLD DEF PRP ACC STO MCH SRC VIS CRT ");
+   genstrcat(buf,"FLD DEF PRP ACC STO MCH SRC VIS CRT ");
 #else
-   strcat(buf,"FLD DEF PRP ACC STO SRC VIS CRT ");
+   genstrcat(buf,"FLD DEF PRP ACC STO SRC VIS CRT ");
 #endif
    EnvPrintRouter(theEnv,logicalName,buf);
-   sprintf(buf,overrideMessagePrintFormat,"OVRD-MSG");
+   gensprintf(buf,overrideMessagePrintFormat,"OVRD-MSG");
    EnvPrintRouter(theEnv,logicalName,buf);
    EnvPrintRouter(theEnv,logicalName,"SOURCE(S)\n");
    for (i = 0 ; i < cls->instanceSlotCount ; i++)
      {
       sp = cls->instanceTemplate[i];
-      sprintf(buf,slotNamePrintFormat,ValueToString(sp->slotName->name));
-      strcat(buf,sp->multiple ? "MLT " : "SGL ");
+      gensprintf(buf,slotNamePrintFormat,ValueToString(sp->slotName->name));
+      genstrcat(buf,sp->multiple ? "MLT " : "SGL ");
       if (sp->noDefault)
-        strcat(buf,"NIL ");
+        genstrcat(buf,"NIL ");
       else
-        strcat(buf,sp->dynamicDefault ? "DYN " : "STC ");
-      strcat(buf,sp->noInherit ? "NIL " : "INH ");
+        genstrcat(buf,sp->dynamicDefault ? "DYN " : "STC ");
+      genstrcat(buf,sp->noInherit ? "NIL " : "INH ");
       if (sp->initializeOnly)
-        strcat(buf,"INT ");
+        genstrcat(buf,"INT ");
       else if (sp->noWrite)
-        strcat(buf," R  ");
+        genstrcat(buf," R  ");
       else
-        strcat(buf,"RW  ");
-      strcat(buf,sp->shared ? "SHR " : "LCL ");
+        genstrcat(buf,"RW  ");
+      genstrcat(buf,sp->shared ? "SHR " : "LCL ");
 #if DEFRULE_CONSTRUCT
-      strcat(buf,sp->reactive ? "RCT " : "NIL ");
+      genstrcat(buf,sp->reactive ? "RCT " : "NIL ");
 #endif
-      strcat(buf,sp->composite ? "CMP " : "EXC ");
-      strcat(buf,sp->publicVisibility ? "PUB " : "PRV ");
+      genstrcat(buf,sp->composite ? "CMP " : "EXC ");
+      genstrcat(buf,sp->publicVisibility ? "PUB " : "PRV ");
       createString = GetCreateAccessorString(sp);
       if (createString[1] == '\0')
-        strcat(buf," ");
-      strcat(buf,createString);
+        genstrcat(buf," ");
+      genstrcat(buf,createString);
       if ((createString[1] == '\0') ? TRUE : (createString[2] == '\0'))
-        strcat(buf," ");
-      strcat(buf," ");
+        genstrcat(buf," ");
+      genstrcat(buf," ");
       EnvPrintRouter(theEnv,logicalName,buf);
-      sprintf(buf,overrideMessagePrintFormat,
+      gensprintf(buf,overrideMessagePrintFormat,
               sp->noWrite ? "NIL" : ValueToString(sp->overrideMessage));
       EnvPrintRouter(theEnv,logicalName,buf);
       PrintSlotSources(theEnv,logicalName,sp->slotName->name,&sp->cls->allSuperclasses,0,TRUE);
@@ -1107,10 +1161,10 @@ static void DisplaySlotBasicInfo(
  ***************************************************/
 static intBool PrintSlotSources(
   void *theEnv,
-  char *logicalName,
+  const char *logicalName,
   SYMBOL_HN *sname,
   PACKED_CLASS_LINKS *sprec,
-  unsigned theIndex,
+  long theIndex,
   int inhp)
   {
    SLOT_DESC *csp;
@@ -1159,38 +1213,38 @@ static intBool PrintSlotSources(
  *********************************************************/
 static void DisplaySlotConstraintInfo(
   void *theEnv,
-  char *logicalName,
-  char *slotNamePrintFormat,
+  const char *logicalName,
+  const char *slotNamePrintFormat,
   char *buf,
   unsigned maxlen,
   DEFCLASS *cls)
   {
-   register unsigned i;
+   long i;
    CONSTRAINT_RECORD *cr;
-   char *strdest = "***describe-class***";
+   const char *strdest = "***describe-class***";
 
-   sprintf(buf,slotNamePrintFormat,"SLOTS");
-   strcat(buf,"SYM STR INN INA EXA FTA INT FLT\n");
+   gensprintf(buf,slotNamePrintFormat,"SLOTS");
+   genstrcat(buf,"SYM STR INN INA EXA FTA INT FLT\n");
    EnvPrintRouter(theEnv,logicalName,buf);
    for (i = 0 ; i < cls->instanceSlotCount ; i++)
      {
       cr = cls->instanceTemplate[i]->constraint;
-      sprintf(buf,slotNamePrintFormat,ValueToString(cls->instanceTemplate[i]->slotName->name));
+      gensprintf(buf,slotNamePrintFormat,ValueToString(cls->instanceTemplate[i]->slotName->name));
       if (cr != NULL)
         {
-         strcat(buf,ConstraintCode(cr,(unsigned) cr->symbolsAllowed,
+         genstrcat(buf,ConstraintCode(cr,(unsigned) cr->symbolsAllowed,
                                       (unsigned) cr->symbolRestriction));
-         strcat(buf,ConstraintCode(cr,(unsigned) cr->stringsAllowed,
+         genstrcat(buf,ConstraintCode(cr,(unsigned) cr->stringsAllowed,
                                       (unsigned) cr->stringRestriction));
-         strcat(buf,ConstraintCode(cr,(unsigned) cr->instanceNamesAllowed,
+         genstrcat(buf,ConstraintCode(cr,(unsigned) cr->instanceNamesAllowed,
                                       (unsigned) (cr->instanceNameRestriction || cr->classRestriction)));
-         strcat(buf,ConstraintCode(cr,(unsigned) cr->instanceAddressesAllowed,
+         genstrcat(buf,ConstraintCode(cr,(unsigned) cr->instanceAddressesAllowed,
                                       (unsigned) cr->classRestriction));
-         strcat(buf,ConstraintCode(cr,(unsigned) cr->externalAddressesAllowed,0));
-         strcat(buf,ConstraintCode(cr,(unsigned) cr->factAddressesAllowed,0));
-         strcat(buf,ConstraintCode(cr,(unsigned) cr->integersAllowed,
+         genstrcat(buf,ConstraintCode(cr,(unsigned) cr->externalAddressesAllowed,0));
+         genstrcat(buf,ConstraintCode(cr,(unsigned) cr->factAddressesAllowed,0));
+         genstrcat(buf,ConstraintCode(cr,(unsigned) cr->integersAllowed,
                                       (unsigned) cr->integerRestriction));
-         strcat(buf,ConstraintCode(cr,(unsigned) cr->floatsAllowed,
+         genstrcat(buf,ConstraintCode(cr,(unsigned) cr->floatsAllowed,
                                       (unsigned) cr->floatRestriction));
          OpenStringDestination(theEnv,strdest,buf + strlen(buf),(maxlen - strlen(buf) - 1));
          if (cr->integersAllowed || cr->floatsAllowed || cr->anyAllowed)
@@ -1236,14 +1290,108 @@ static void DisplaySlotConstraintInfo(
   SIDE EFFECTS : None
   NOTES        : Used by DisplaySlotConstraintInfo
  ******************************************************/
-static char *ConstraintCode(
+static const char *ConstraintCode(
   CONSTRAINT_RECORD *cr,
   unsigned allow,
   unsigned restrictValues)
   {
    if (allow || cr->anyAllowed)
-     return((char *) ((restrictValues || cr->anyRestriction) ? " #  " : " +  "));
+     {
+      if (restrictValues || cr->anyRestriction) return " #  ";
+      else return " +  ";
+     }
    return("    ");
+  }
+
+#endif
+
+/*##################################*/
+/* Additional Environment Functions */
+/*##################################*/
+
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+#if DEBUGGING_FUNCTIONS
+
+globle void BrowseClasses(
+  const char *logicalName,
+  void *clsptr)
+  {
+   EnvBrowseClasses(GetCurrentEnvironment(),logicalName,clsptr);
+  }
+
+globle void DescribeClass(
+  const char *logicalName,
+  void *clsptr)
+  {
+   EnvDescribeClass(GetCurrentEnvironment(),logicalName,clsptr);
+  }
+
+#endif
+
+globle intBool SlotDirectAccessP(
+  void *theDefclass,
+  const char *slotName)
+  {
+   return EnvSlotDirectAccessP(GetCurrentEnvironment(),theDefclass,slotName);
+  }
+
+globle intBool SlotExistP(
+  void *theDefclass,
+  const char *slotName,
+  intBool inheritFlag)
+  {
+   return EnvSlotExistP(GetCurrentEnvironment(),theDefclass,slotName,inheritFlag);
+  }
+
+globle intBool SlotInitableP(
+  void *theDefclass,
+  const char *slotName)
+  {
+   return EnvSlotInitableP(GetCurrentEnvironment(),theDefclass,slotName);
+  }
+
+globle intBool SlotPublicP(
+  void *theDefclass,
+  const char *slotName)
+  {
+   return EnvSlotPublicP(GetCurrentEnvironment(),theDefclass,slotName);
+  }
+
+globle int SlotDefaultP(
+  void *theDefclass,
+  const char *slotName)
+  {
+   return EnvSlotDefaultP(GetCurrentEnvironment(),theDefclass,slotName);
+  }
+
+globle intBool SlotWritableP(
+  void *theDefclass,
+  const char *slotName)
+  {
+   return EnvSlotWritableP(GetCurrentEnvironment(),theDefclass,slotName);
+  }
+
+globle intBool SubclassP(
+  void *firstClass,
+  void *secondClass)
+  {
+   return EnvSubclassP(GetCurrentEnvironment(),firstClass,secondClass);
+  }
+
+globle intBool SuperclassP(
+  void *firstClass,
+  void *secondClass)
+  {
+   return EnvSuperclassP(GetCurrentEnvironment(),firstClass,secondClass);
+  }
+
+globle intBool SlotDefaultValue(
+  void *theDefclass,
+  const char *slotName,
+  DATA_OBJECT_PTR theValue)
+  {
+   return EnvSlotDefaultValue(GetCurrentEnvironment(),theDefclass,slotName,theValue);
   }
 
 #endif

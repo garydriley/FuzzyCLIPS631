@@ -471,8 +471,9 @@ GOOD
 SUBGOOD
 For a total of 20 defclasses.
 FuzzyCLIPS> (instances)
+[initial-object] of INITIAL-OBJECT
 [sg] of SUBGOOD
-For a total of 1 instance.
+For a total of 2 instances.
 FuzzyCLIPS> (defclass BOGUS (is-a USER)
   (slot x (default ?y)))
 

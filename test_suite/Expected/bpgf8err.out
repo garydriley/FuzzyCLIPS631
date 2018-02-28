@@ -12,6 +12,8 @@ FALSE
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (defmethod foo (?a))
 FuzzyCLIPS> (foo (instances))
+[initial-object] of INITIAL-OBJECT
+For a total of 1 instance.
 [PRCCODE2] Functions without a return value are illegal as generic function arguments.
 [PRCCODE6] This error occurred while evaluating arguments for the generic function foo.
 FALSE
@@ -101,8 +103,9 @@ FuzzyCLIPS> (defclass A (is-a USER) (role concrete)
 FuzzyCLIPS> (make-instance a of A)
 [a]
 FuzzyCLIPS> (mv-slot-insert a foo 1 (instances))
+[initial-object] of INITIAL-OBJECT
 [a] of A
-For a total of 1 instance.
+For a total of 2 instances.
 ()
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (defclass A (is-a USER) (role concrete)
@@ -242,5 +245,12 @@ FuzzyCLIPS> (make-instance a of A (foo (make-instance a of A)))
 [INSMNGR4] The instance a has a slot-value which depends on the instance definition.
 [PRCCODE6] This error occurred while evaluating arguments for the message put-foo.
 FALSE
-FuzzyCLIPS> 
-(dribble-off)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defclass A (is-a USER))
+FuzzyCLIPS> (defrule no-class (object (is-a BOGUS)) =>)
+[OBJRTBLD5] Undefined class 'BOGUS' in object pattern.
+
+ERROR:
+(defrule MAIN::no-class
+   (object (is-a BOGUS)
+FuzzyCLIPS> (dribble-off)

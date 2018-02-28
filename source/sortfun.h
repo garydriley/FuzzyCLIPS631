@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*            SORT FUNCTIONS HEADER MODULE             */
    /*******************************************************/
@@ -15,6 +15,15 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
+/*      6.24: The sort function leaks memory when called     */
+/*            with a multifield value of length zero.        */
+/*            DR0864                                         */
+/*                                                           */
+/*      6.30: Added environment cleanup call function        */
+/*            DeallocateSortFunctionData.                    */
 /*                                                           */
 /*************************************************************/
 
@@ -37,7 +46,7 @@
                                                    int (*)(void *,DATA_OBJECT *,DATA_OBJECT *));
    LOCALE void                           SortFunction(void *,DATA_OBJECT *);
 
-#endif
+#endif /* _H_sortfun */
 
 
 

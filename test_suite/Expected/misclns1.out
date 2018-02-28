@@ -82,10 +82,25 @@ FuzzyCLIPS> (dependencies [b])
 f-1
 FuzzyCLIPS> (dependencies [c])
 [a]
+FuzzyCLIPS> (bind ?v (assert (a b c)))
+<Fact-4>
+FuzzyCLIPS> (retract ?v)
+FuzzyCLIPS> (dependents ?v)
+[PRNTUTIL11] The fact f-4 has been retracted.
+FuzzyCLIPS> (dependencies ?v)
+[PRNTUTIL11] The fact f-4 has been retracted.
+FuzzyCLIPS> (bind ?v (instance-address [c]))
+<Instance-c>
+FuzzyCLIPS> (send ?v delete)
+TRUE
+FuzzyCLIPS> (dependents ?v)
+[PRNTUTIL1] Unable to find instance c.
+FuzzyCLIPS> (dependencies ?v)
+[PRNTUTIL1] Unable to find instance c.
 FuzzyCLIPS> (clear) ; Test Begin
 FuzzyCLIPS> (deftemplate yak (multifield x (type SYMBOL) (cardinality 3 5)))
 FuzzyCLIPS> (assert (yak (x a b c)))
-<Fact-0>
+<Fact-1>
 FuzzyCLIPS> (assert (yak (x a b 1)))
 
 [CSTRNCHK1] A literal slot value found in the assert command
@@ -116,8 +131,7 @@ FuzzyCLIPS> (reset)
 [FACTMCH1] This error occurred in the fact pattern network
    Currently active fact: (x a a a a abc) CF 1.00 
    Problem resides in field #5
-      Of pattern #1 in rule(s):
-         bar
+      Of pattern #1 in rule bar
 
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (defrule foo (x ?) =>)
@@ -129,8 +143,7 @@ FuzzyCLIPS> (reset)
 [FACTMCH1] This error occurred in the fact pattern network
    Currently active fact: (x abc) CF 1.00 
    Problem resides in field #1
-      Of pattern #1 in rule(s):
-         bar
+      Of pattern #1 in rule bar
 
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (deftemplate x (field q) (field r) (field s) (field t))
@@ -143,8 +156,7 @@ FuzzyCLIPS> (reset)
 [FACTMCH1] This error occurred in the fact pattern network
    Currently active fact: (x (q nil) (r nil) (s nil) (t abc)) CF 1.00 
    Problem resides in slot t
-      Of pattern #1 in rule(s):
-         bar
+      Of pattern #1 in rule bar
 
 FuzzyCLIPS> (clear) ; Test Begin
 FuzzyCLIPS> (deffunction positive-slope
@@ -157,7 +169,7 @@ FuzzyCLIPS> (defrule example-2
    (test (positive-slope ?x1 ?y1 ?x2 ?y2))
    =>)
 FuzzyCLIPS> (assert (point 1 4.0 7.0) (point 2 5.0 9.0))
-<Fact-1>
+<Fact-2>
 FuzzyCLIPS> (clear) ; Test Begin
 FuzzyCLIPS> (deftemplate A (field foo (type INTEGER)))
 FuzzyCLIPS> (defrule foo (A (foo ?y&:(< ?y 3))) =>)
@@ -249,9 +261,9 @@ FuzzyCLIPS> (defrule bar
   =>
   (printout t ?x " | " ?y crlf))
 FuzzyCLIPS> (assert (blah red) (blah red red) (blah a red b) (blah a red red b))
-<Fact-3>
+<Fact-4>
 FuzzyCLIPS> (assert (yech) (yech 1 2) (yech 1 2 3))
-<Fact-6>
+<Fact-7>
 FuzzyCLIPS> (run)
 () | (1 2 3)
 (1) | (2 3)

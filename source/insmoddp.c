@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*              CLIPS Version 6.24  05/17/06           */
+   /*              CLIPS Version 6.30  08/16/14           */
    /*                                                     */
    /*           INSTANCE MODIFY AND DUPLICATE MODULE      */
    /*******************************************************/
@@ -10,12 +10,13 @@
 /* Purpose:  Instance modify and duplicate support routines  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
 /*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
 /*                                                           */
 /*            Changed name of variable exp to theExp         */
@@ -24,6 +25,13 @@
 /*                                                           */
 /*      6.24: Converted INSTANCE_PATTERN_MATCHING to         */
 /*            DEFRULE_CONSTRUCT.                             */
+/*                                                           */
+/*      6.30: Added DATA_OBJECT_ARRAY primitive type.        */
+/*                                                           */
+/*            Changed integer type/precision.                */
+/*                                                           */
+/*            The return value of DirectMessage indicates    */
+/*            whether an execution error has occurred.       */
 /*                                                           */
 /*************************************************************/
 
@@ -186,7 +194,7 @@ globle void ModifyInstance(
       to whatever message-handler implements
       the modify
       ====================================== */
-   theExp.type = EXTERNAL_ADDRESS;
+   theExp.type = DATA_OBJECT_ARRAY;
    theExp.value = (void *) overrides;
    theExp.argList = NULL;
    theExp.nextArg = NULL;
@@ -253,7 +261,7 @@ globle void MsgModifyInstance(
       to whatever message-handler implements
       the modify
       ====================================== */
-   theExp.type = EXTERNAL_ADDRESS;
+   theExp.type = DATA_OBJECT_ARRAY;
    theExp.value = (void *) overrides;
    theExp.argList = NULL;
    theExp.nextArg = NULL;
@@ -333,7 +341,7 @@ globle void DuplicateInstance(
    theExp[0].value = newName.value;
    theExp[0].argList = NULL;
    theExp[0].nextArg = &theExp[1];
-   theExp[1].type = EXTERNAL_ADDRESS;
+   theExp[1].type = DATA_OBJECT_ARRAY;
    theExp[1].value = (void *) overrides;
    theExp[1].argList = NULL;
    theExp[1].nextArg = NULL;
@@ -413,7 +421,7 @@ globle void MsgDuplicateInstance(
    theExp[0].value = newName.value;
    theExp[0].argList = NULL;
    theExp[0].nextArg = &theExp[1];
-   theExp[1].type = EXTERNAL_ADDRESS;
+   theExp[1].type = DATA_OBJECT_ARRAY;
    theExp[1].value = (void *) overrides;
    theExp[1].argList = NULL;
    theExp[1].nextArg = NULL;
@@ -790,9 +798,7 @@ static void ModifyMsgHandlerSupport(
            msgExp.value = (void *) slotOverrides;
          msgExp.argList = NULL;
          msgExp.nextArg = NULL;
-         DirectMessage(theEnv,insSlot->desc->overrideMessage,ins,&temp,&msgExp);
-         if (EvaluationData(theEnv)->EvaluationError ||
-             ((temp.type == SYMBOL) && (temp.value == EnvFalseSymbol(theEnv))))
+         if (! DirectMessage(theEnv,insSlot->desc->overrideMessage,ins,&temp,&msgExp))
            return;
         }
       else
@@ -841,10 +847,11 @@ static void DuplicateMsgHandlerSupport(
    SYMBOL_HN *newName;
    DATA_OBJECT *slotOverrides;
    EXPRESSION *valArg,msgExp;
-   unsigned i;
+   long i;
    int oldMkInsMsgPass;
    INSTANCE_SLOT *dstInsSlot;
    DATA_OBJECT temp,junk,*newval;
+   intBool success;
 
    result->type = SYMBOL;
    result->value = EnvFalseSymbol(theEnv);
@@ -917,9 +924,7 @@ static void DuplicateMsgHandlerSupport(
            msgExp.value = (void *) slotOverrides;
          msgExp.argList = NULL;
          msgExp.nextArg = NULL;
-         DirectMessage(theEnv,dstInsSlot->desc->overrideMessage,dstins,&temp,&msgExp);
-         if (EvaluationData(theEnv)->EvaluationError ||
-             ((temp.type == SYMBOL) && (temp.value == EnvFalseSymbol(theEnv))))
+         if (! DirectMessage(theEnv,dstInsSlot->desc->overrideMessage,dstins,&temp,&msgExp))
            goto DuplicateError;
         }
       else
@@ -961,11 +966,10 @@ static void DuplicateMsgHandlerSupport(
                SetDOEnd(temp,GetMFLength(temp.value));
               }
             valArg = ConvertValueToExpression(theEnv,&temp);
-            DirectMessage(theEnv,dstins->slots[i].desc->overrideMessage,
+            success = DirectMessage(theEnv,dstins->slots[i].desc->overrideMessage,
                           dstins,&temp,valArg);
             ReturnExpression(theEnv,valArg);
-            if (EvaluationData(theEnv)->EvaluationError ||
-                ((temp.type == SYMBOL) && (temp.value == EnvFalseSymbol(theEnv))))
+            if (! success)
               goto DuplicateError;
            }
          else

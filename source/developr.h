@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  05/17/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*                 DEVELOPER HEADER FILE               */
    /*******************************************************/
@@ -16,9 +16,17 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.24: Converted INSTANCE_PATTERN_MATCHING to          */
-/*            DEFRULE_CONSTRUCT.                              */
-/*                                                            */
+/*      6.24: Converted INSTANCE_PATTERN_MATCHING to         */
+/*            DEFRULE_CONSTRUCT.                             */
+/*                                                           */
+/*      6.30: Added support for hashed alpha memories.       */
+/*                                                           */
+/*            Changed garbage collection algorithm.          */
+/*            Functions enable-gc-heuristics and             */
+/*            disable-gc-heuristics are no longer supported. */
+/*                                                           */
+/*            Changed integer type/precision.                */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_developr
@@ -37,11 +45,10 @@
    LOCALE void                           DeveloperCommands(void *);
    LOCALE void                           PrimitiveTablesInfo(void *);
    LOCALE void                           PrimitiveTablesUsage(void *);
-   LOCALE void                           EnableGCHeuristics(void *);
-   LOCALE void                           DisableGCHeuristics(void *);
 
 #if DEFRULE_CONSTRUCT && DEFTEMPLATE_CONSTRUCT
    LOCALE void                           ShowFactPatternNetwork(void *);
+   LOCALE intBool                        ValidateFactIntegrity(void *);
 #endif
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
    LOCALE void                           PrintObjectPatternNetwork(void *);
@@ -49,7 +56,10 @@
 #if OBJECT_SYSTEM
    LOCALE void                           InstanceTableUsage(void *);
 #endif
-
+#if DEFRULE_CONSTRUCT
+   LOCALE void                           ValidateBetaMemories(void *);
 #endif
+
+#endif /* _H_developr */
 
 

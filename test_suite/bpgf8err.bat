@@ -144,4 +144,6 @@
 (defclass A (is-a USER) (role concrete)
   (slot foo (create-accessor write)))
 (make-instance a of A (foo (make-instance a of A)))
-
+(clear)
+(defclass A (is-a USER))
+(defrule no-class (object (is-a BOGUS)) =>)

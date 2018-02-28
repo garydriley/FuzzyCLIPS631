@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.24  05/17/06          */
+   /*               CLIPS Version 6.31  02/03/18          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,16 +10,39 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.24: Converted INSTANCE_PATTERN_MATCHING to         */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859  */
+/*                                                           */
+/*      6.24: Removed INCREMENTAL_RESET and                  */
+/*            LOGICAL_DEPENDENCIES compilation flags.        */
+/*                                                           */
+/*            Converted INSTANCE_PATTERN_MATCHING to         */
 /*            DEFRULE_CONSTRUCT.                             */
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Modified the QueueObjectMatchAction function   */
+/*            so that instance retract actions always occur  */
+/*            before instance assert and modify actions.     */
+/*            This prevents the pattern matching process     */
+/*            from attempting the evaluation of a join       */
+/*            expression that accesses the slots of a        */
+/*            retracted instance.                            */
+/*                                                           */
+/*            Added support for hashed alpha memories.       */
+/*                                                           */
+/*            Support for long long integers.                */
+/*                                                           */
+/*            Added support for hashed comparisons to        */
+/*            constants.                                     */
+/*                                                           */
+/*      6.31: Optimization for marking relevant alpha nodes  */
+/*            in the object pattern network.                 */
 /*                                                           */
 /*************************************************************/
 
@@ -27,6 +50,9 @@
 #define _H_objrtmch
 
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
+
+typedef struct objectAlphaNode OBJECT_ALPHA_NODE;
+typedef struct classAlphaLink CLASS_ALPHA_LINK;
 
 #define OBJECT_ASSERT  1
 #define OBJECT_RETRACT 2
@@ -69,17 +95,16 @@ typedef struct slotBitMap
 #define SlotBitMapSize(bmp) ((sizeof(SLOT_BITMAP) + \
                                      (sizeof(char) * (bmp->maxid / BITS_PER_BYTE))))
 
-typedef struct objectAlphaNode OBJECT_ALPHA_NODE;
-
 typedef struct objectPatternNode
   {
    unsigned blocked        : 1;
    unsigned multifieldNode : 1;
    unsigned endSlot        : 1;
+   unsigned selector       : 1;
    unsigned whichField     : 8;
-   unsigned leaveFields    : 8;
-   unsigned long matchTimeTag;
-   unsigned slotNameID;
+   unsigned short leaveFields;
+   unsigned long long matchTimeTag;
+   int slotNameID;
    EXPRESSION *networkTest;
    struct objectPatternNode *nextLevel;
    struct objectPatternNode *lastLevel;
@@ -92,11 +117,18 @@ typedef struct objectPatternNode
 struct objectAlphaNode
   {
    struct patternNodeHeader header;
-   unsigned long matchTimeTag;
+   unsigned long long matchTimeTag;
    BITMAP_HN *classbmp,*slotbmp;
    OBJECT_PATTERN_NODE *patternNode;
    struct objectAlphaNode *nxtInGroup,
                           *nxtTerminal;
+   long bsaveID;
+  };
+
+struct classAlphaLink
+  {
+   OBJECT_ALPHA_NODE *alphaNode;
+   struct classAlphaLink *next;
    long bsaveID;
   };
 
@@ -128,9 +160,9 @@ typedef struct objectMatchAction
    LOCALE void                  ObjectNetworkAction(void *,int,INSTANCE_TYPE *,int);
    LOCALE void                  ResetObjectMatchTimeTags(void *);
 
-#endif
+#endif /* DEFRULE_CONSTRUCT && OBJECT_SYSTEM */
 
-#endif
+#endif /* _H_objrtmch */
 
 
 

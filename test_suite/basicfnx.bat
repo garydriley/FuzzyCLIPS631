@@ -13,9 +13,9 @@
 (assert (f) (g) (h))               ; 10.1.1 
 (assert (i =(+ 3 4)))              ; 10.1.1
 (retract)                          ; 10.1.2
-(retract 0)                        ; 10.1.2
-(retract 1 3)                      ; 10.1.2
-(retract 7 8)                      ; 10.1.2
+(retract 1)                        ; 10.1.2
+(retract 2 4)                      ; 10.1.2
+(retract 8 9)                      ; 10.1.2
 (retract *)                        ; 10.1.2
 (unwatch facts)                    ; 10.1.2
 (clear)                            ; 10.1.5

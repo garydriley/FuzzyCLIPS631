@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.24  06/05/06          */
+   /*               CLIPS Version 6.30  08/16/14          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -10,14 +10,36 @@
 /* Purpose:                                                  */
 /*                                                           */
 /* Principal Programmer(s):                                  */
-/*      Brian L. Donnell                                     */
+/*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*                                                           */
-/* Revision History:                                         */
-/*                                                           */
-/*      6.24: Renamed BOOLEAN macro type to intBool.         */
-/*                                                           */
+/* Revision History:                                          */
+/*                                                            */
+/*      6.23: Correction for FalseSymbol/TrueSymbol. DR0859   */
+/*                                                            */
+/*            Changed name of variable log to logName         */
+/*            because of Unix compiler warnings of shadowed   */
+/*            definitions.                                    */
+/*                                                            */
+/*      6.24: Renamed BOOLEAN macro type to intBool.          */
+/*                                                            */
+/*            Added pragmas to remove compilation warnings.   */
+/*                                                            */
+/*      6.30: Updated ENTITY_RECORD definitions to include    */
+/*            additional NULL initializers.                   */
+/*                                                            */
+/*            Added ReleaseProcParameters call.               */
+/*                                                            */
+/*            Added tracked memory calls.                     */
+/*                                                            */
+/*            Removed conditional code for unsupported        */
+/*            compilers/operating systems (IBM_MCW,           */
+/*            MAC_MCW, and IBM_TBC).                          */
+/*                                                            */
+/*            Added const qualifiers to remove C++            */
+/*            deprecation warnings.                           */
+/*                                                            */
 /*************************************************************/
 
 #ifndef _H_prccode
@@ -93,41 +115,37 @@ struct proceduralPrimitiveData
 #define LOCALE extern
 #endif
 
-LOCALE void InstallProcedurePrimitives(void *);
+   LOCALE void                           InstallProcedurePrimitives(void *);
 
 #if (! BLOAD_ONLY) && (! RUN_TIME)
 
 #if DEFFUNCTION_CONSTRUCT || OBJECT_SYSTEM
-LOCALE EXPRESSION *ParseProcParameters(void *,char *,struct token *,EXPRESSION *,
-                                       SYMBOL_HN **,int *,int *,int *,
-                                       int (*)(void *,char *));
+   LOCALE EXPRESSION                    *ParseProcParameters(void *,const char *,struct token *,EXPRESSION *,
+                                                             SYMBOL_HN **,int *,int *,int *,
+                                                             int (*)(void *,const char *));
 #endif
-LOCALE EXPRESSION *ParseProcActions(void *,char *,char *,struct token *,EXPRESSION *,SYMBOL_HN *,
-                                    int (*)(void *,EXPRESSION *,void *),
-                                    int (*)(void *,EXPRESSION *,void *),
-                                    int *,void *);
-LOCALE intBool ReplaceProcVars(void *,char *,EXPRESSION *,EXPRESSION *,SYMBOL_HN *,
-                                     int (*)(void *,EXPRESSION *,void *),void *);
+   LOCALE EXPRESSION                    *ParseProcActions(void *,const char *,const char *,struct token *,EXPRESSION *,SYMBOL_HN *,
+                                                          int (*)(void *,EXPRESSION *,void *),
+                                                          int (*)(void *,EXPRESSION *,void *),
+                                                          int *,void *);
+   LOCALE intBool                        ReplaceProcVars(void *,const char *,EXPRESSION *,EXPRESSION *,SYMBOL_HN *,
+                                                         int (*)(void *,EXPRESSION *,void *),void *);
 #if DEFGENERIC_CONSTRUCT
-LOCALE EXPRESSION *GenProcWildcardReference(void *,int);
+   LOCALE EXPRESSION                    *GenProcWildcardReference(void *,int);
 #endif
 #endif
 
-LOCALE void PushProcParameters(void *,EXPRESSION *,int,char *,char *,void (*)(void *));
-LOCALE void PopProcParameters(void *);
+   LOCALE void                           PushProcParameters(void *,EXPRESSION *,int,const char *,const char *,void (*)(void *));
+   LOCALE void                           PopProcParameters(void *);
 
 #if DEFGENERIC_CONSTRUCT
-LOCALE EXPRESSION *GetProcParamExpressions(void *);
+   LOCALE EXPRESSION                    *GetProcParamExpressions(void *);
 #endif
 
-LOCALE void EvaluateProcActions(void *,struct defmodule *,EXPRESSION *,int,
-                                DATA_OBJECT *,void (*)(void *));
-LOCALE void PrintProcParamArray(void *,char *);
-LOCALE void GrabProcWildargs(void *,DATA_OBJECT *,int);
+   LOCALE void                           EvaluateProcActions(void *,struct defmodule *,EXPRESSION *,int,
+                                                             DATA_OBJECT *,void (*)(void *));
+   LOCALE void                           PrintProcParamArray(void *,const char *);
+   LOCALE void                           GrabProcWildargs(void *,DATA_OBJECT *,int);
 
-#endif
-
-
-
-
+#endif /* _H_prccode */
 

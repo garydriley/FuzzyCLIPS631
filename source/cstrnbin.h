@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*    CONSTRAINT BLOAD/BSAVE/CONSTRUCTS-TO-C HEADER    */
    /*******************************************************/
@@ -16,6 +16,10 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.24: Added allowed-classes slot facet.              */
+/*                                                           */
+/*      6.30: Changed integer type/precision.                */
 /*                                                           */
 /*************************************************************/
 
@@ -57,6 +61,6 @@
    LOCALE void                           ReadNeededConstraints(void *);
    LOCALE void                           ClearBloadedConstraints(void *);
 
-#endif
+#endif /* _H_cstrnbin */
 
 

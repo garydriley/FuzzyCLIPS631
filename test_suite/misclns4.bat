@@ -259,3 +259,78 @@
 (list-watch-items compilations)
 (list-watch-items statistics)
 (list-watch-items focus)
+(clear) ;; bsave-instances issue
+(defclass A (is-a USER) (slot x))
+(make-instance a of A (x 1))
+(bsave-instances "Temp//bug.bin")
+(reset)
+(bload-instances "Temp//bug.bin")
+(clear) ;; incremental reset issue
+(assert (B NP14 NP))
+
+(defrule Rule1
+  (A ?NP)
+  (B ?NP NP)
+  =>)
+(matches Rule1)
+
+(defrule Rule2
+  (A ?PP)
+  (B ?PP PP)
+  =>)
+(matches Rule1)
+(clear) ;; garbage collection issue
+(defglobal ?*A* = (create$ 1 2 3 4 5 6 7 8 9 10))
+(defglobal ?*B* = (create$ 1 2 3 4 5 6 7 8 9 10))
+(defglobal ?*C* = (create$))
+
+(deffunction dummy-not-OK ()
+    (bind ?i 1)
+    (while (<= ?i 100)
+        (foreach ?x ?*A*
+            (foreach ?y ?*B*
+                (bind ?*C* (create$ ?*C* (+ (* 100 ?i) (* 10 ?x) ?y)))
+            )
+        )
+        (bind ?i (+ ?i 1))
+    )
+)
+(dummy-not-OK)
+(dummy-not-OK)
+(dummy-not-OK)
+(clear) ;; module order save issue
+(defmodule A (export deftemplate AT))
+(deftemplate A::AT (slot x))
+(defmodule MAIN (import A deftemplate AT))
+(defrule MAIN::RAT (AT (x 3)) =>)
+(save "Temp//rules.sav")
+(clear)
+(load "Temp//rules.sav")
+(clear) ;; bsave/bload issue
+
+(defrule x_ba6
+   (Doklad KodDokladu ?V163_TV9040)
+   (Doklad KodDokladu ?V163_TV9043)
+   (or (test (eq  ?V163_TV9040 "36"))
+       (test (eq  ?V163_TV9043 "37")))
+   =>)
+(defrule x_ba8 =>)
+(defrule x_baa =>)
+(defrule x_ba8 =>)
+(bsave "Temp//temp.bin")   
+(clear)
+(bload "Temp//temp.bin")  
+(rules)
+(clear)
+(watch compilations)
+(load "gnrcdef.clp")
+(unwatch compilations)
+(clear) ;; void value in implied deftemplate fact
+(assert (foo a (agenda) b (agenda) c (agenda)))
+(assert (foo (agenda) a))
+(facts)
+(fact-slot-value 1 implied)
+(fact-slot-value 2 implied)
+(length$ (fact-slot-value 1 implied))
+(length$ (fact-slot-value 2 implied))
+(clear)

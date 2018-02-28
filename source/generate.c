@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.20  01/31/02            */
+   /*             CLIPS Version 6.31  07/09/15            */
    /*                                                     */
    /*                   GENERATE MODULE                   */
    /*******************************************************/
@@ -17,6 +17,21 @@
 /* Contributing Programmer(s):                               */
 /*                                                           */
 /* Revision History:                                         */
+/*                                                           */
+/*      6.30: Added support for hashed alpha memories.       */
+/*                                                           */
+/*            Added support for hashed comparisons to        */
+/*            constants.                                     */
+/*                                                           */
+/*            Reimplemented algorithm for comparisons to     */
+/*            variables contained within not/and CEs.        */
+/*                                                           */
+/*      6.31: Not/and unification was only occurring for the */
+/*            first not/and group referencing a variable.    */
+/*            Use of the marked flag was unneccessary since  */
+/*            the referring variable is always the closest   */
+/*            and unification does not occur within the same */
+/*            non/and group.                                 */
 /*                                                           */
 /*************************************************************/
 
@@ -51,18 +66,20 @@
 /***************************************/
 
    static void                    ExtractAnds(void *,struct lhsParseNode *,int,
-                                              struct expr **,struct expr **);
+                                              struct expr **,struct expr **,struct expr **,
+                                              struct expr **,struct nandFrame *);
    static void                    ExtractFieldTest(void *,struct lhsParseNode *,int,
-                                                   struct expr **,struct expr **);
+                                                   struct expr **,struct expr **,struct expr **,
+                                                   struct expr **,struct nandFrame *);
    static struct expr            *GetfieldReplace(void *,struct lhsParseNode *);
    static struct expr            *GenPNConstant(void *,struct lhsParseNode *);
-   static struct expr            *GenJNConstant(void *,struct lhsParseNode *);
-   static struct expr            *GenJNColon(void *,struct lhsParseNode *);
+   static struct expr            *GenJNConstant(void *,struct lhsParseNode *,int);
+   static struct expr            *GenJNColon(void *,struct lhsParseNode *,int,struct nandFrame *);
    static struct expr            *GenPNColon(void *,struct lhsParseNode *);
-   static struct expr            *GenJNEq(void *,struct lhsParseNode *);
+   static struct expr            *GenJNEq(void *,struct lhsParseNode *,int,struct nandFrame *);
    static struct expr            *GenPNEq(void *,struct lhsParseNode *);
    static struct expr            *GenJNVariableComparison(void *,struct lhsParseNode *,
-                                                          struct lhsParseNode *);
+                                                          struct lhsParseNode *,int);
    static struct expr            *GenPNVariableComparison(void *,struct lhsParseNode *,
                                                           struct lhsParseNode *);
    static int                     AllVariablesInPattern(struct lhsParseNode *,
@@ -77,7 +94,8 @@
 globle void FieldConversion(
   void *theEnv,
   struct lhsParseNode *theField,
-  struct lhsParseNode *thePattern)
+  struct lhsParseNode *thePattern,
+  struct nandFrame *theNandFrames)
   {
    int testInPatternNetwork = TRUE;
    struct lhsParseNode *patternPtr;
@@ -86,6 +104,8 @@ globle void FieldConversion(
    struct expr *tempExpression;
    struct expr *patternNetTest = NULL;
    struct expr *joinNetTest = NULL;
+   struct expr *constantSelector = NULL;
+   struct expr *constantValue = NULL;
 
    /*==================================================*/
    /* Consider a NULL pointer to be an internal error. */
@@ -128,8 +148,34 @@ globle void FieldConversion(
       /* the or'ed constraint being examined.        */
       /*=============================================*/
 
-      ExtractAnds(theEnv,patternPtr,testInPatternNetwork,&patternNetTest,&joinNetTest);
+      ExtractAnds(theEnv,patternPtr,testInPatternNetwork,&patternNetTest,&joinNetTest,
+                  &constantSelector,&constantValue,theNandFrames);
 
+      /*=============================================================*/
+      /* Constant hashing is only used in the pattern network if the */
+      /* field doesn't contain an or'ed constraint. For example, the */
+      /* constaint "red | blue" can not use hashing.                 */
+      /*=============================================================*/
+      
+      if (constantSelector != NULL)
+        {
+         if ((patternPtr == theField->bottom) &&
+             (patternPtr->bottom == NULL))
+           {
+            theField->constantSelector = constantSelector;
+            theField->constantValue = constantValue;
+           }
+         else
+           {
+            ReturnExpression(theEnv,constantSelector);
+            ReturnExpression(theEnv,constantValue);
+            ReturnExpression(theEnv,theField->constantSelector);
+            ReturnExpression(theEnv,theField->constantValue);
+            theField->constantSelector = NULL;
+            theField->constantValue = NULL;
+           }
+        }
+        
       /*=====================================================*/
       /* Add the new pattern network expressions to the list */
       /* of pattern network expressions being constructed.   */
@@ -184,7 +230,7 @@ globle void FieldConversion(
       tempExpression->argList = headOfJNExpression;
       headOfJNExpression = tempExpression;
      }
-
+     
    /*===============================================================*/
    /* If the field constraint binds a variable that was previously  */
    /* bound somewhere in the LHS of the rule, then generate an      */
@@ -213,11 +259,34 @@ globle void FieldConversion(
 
       else if (theField->referringNode->pattern > 0)
         {
-         tempExpression = GenJNVariableComparison(theEnv,theField,theField->referringNode);
+         AddNandUnification(theEnv,theField,theNandFrames);
+         
+         /*====================================*/
+         /* Generate an expression to test the */
+         /* variable in a non-nand join.       */
+         /*====================================*/
+
+         tempExpression = GenJNVariableComparison(theEnv,theField,theField->referringNode,FALSE);
          headOfJNExpression = CombineExpressions(theEnv,tempExpression,headOfJNExpression);
+            
+         /*==========================*/
+         /* Generate the hash index. */
+         /*==========================*/
+
+         if (theField->patternType->genGetPNValueFunction != NULL)
+           {
+            tempExpression = (*theField->patternType->genGetPNValueFunction)(theEnv,theField);
+            thePattern->rightHash = AppendExpressions(tempExpression,thePattern->rightHash);
+           }
+           
+         if (theField->referringNode->patternType->genGetJNValueFunction)
+           {
+            tempExpression = (*theField->referringNode->patternType->genGetJNValueFunction)(theEnv,theField->referringNode,LHS);
+            thePattern->leftHash = AppendExpressions(tempExpression,thePattern->leftHash);
+           }
         }
      }
-
+     
    /*======================================================*/
    /* Attach the pattern network expressions to the field. */
    /*======================================================*/
@@ -241,9 +310,12 @@ static void ExtractAnds(
   struct lhsParseNode *andField,
   int testInPatternNetwork,
   struct expr **patternNetTest,
-  struct expr **joinNetTest)
+  struct expr **joinNetTest,
+  struct expr **constantSelector,
+  struct expr **constantValue,
+  struct nandFrame *theNandFrames)
   {
-   struct expr *newPNTest, *newJNTest;
+   struct expr *newPNTest, *newJNTest, *newConstantSelector, *newConstantValue;
 
    /*=================================================*/
    /* Before starting, the subfield has no pattern or */
@@ -252,6 +324,8 @@ static void ExtractAnds(
 
    *patternNetTest = NULL;
    *joinNetTest = NULL;
+   *constantSelector = NULL;
+   *constantValue = NULL;
 
    /*=========================================*/
    /* Loop through each of the subfields tied */
@@ -267,7 +341,8 @@ static void ExtractAnds(
       /* expressions from the subfield.       */
       /*======================================*/
 
-      ExtractFieldTest(theEnv,andField,testInPatternNetwork,&newPNTest,&newJNTest);
+      ExtractFieldTest(theEnv,andField,testInPatternNetwork,&newPNTest,&newJNTest,
+                       &newConstantSelector,&newConstantValue,theNandFrames);
 
       /*=================================================*/
       /* Add the new expressions to the list of pattern  */
@@ -276,6 +351,8 @@ static void ExtractAnds(
 
       *patternNetTest = CombineExpressions(theEnv,*patternNetTest,newPNTest);
       *joinNetTest = CombineExpressions(theEnv,*joinNetTest,newJNTest);
+      *constantSelector = CombineExpressions(theEnv,*constantSelector,newConstantSelector);
+      *constantValue = CombineExpressions(theEnv,*constantValue,newConstantValue);
      }
   }
 
@@ -300,10 +377,15 @@ static void ExtractFieldTest(
   struct lhsParseNode *theField,
   int testInPatternNetwork,
   struct expr **patternNetTest,
-  struct expr **joinNetTest)
+  struct expr **joinNetTest,
+  struct expr **constantSelector,
+  struct expr **constantValue,
+  struct nandFrame *theNandFrames)
   {
    *patternNetTest = NULL;
    *joinNetTest = NULL;
+   *constantSelector = NULL;
+   *constantValue = NULL;
 
    /*==========================================================*/
    /* Generate a network expression for a constant constraint. */
@@ -316,9 +398,17 @@ static void ExtractFieldTest(
        (theField->type == FLOAT) || (theField->type == INTEGER))
      {
       if (testInPatternNetwork == TRUE)
-        { *patternNetTest = GenPNConstant(theEnv,theField); }
+        { 
+         *patternNetTest = GenPNConstant(theEnv,theField); 
+         
+         if (! theField->negated)
+           {
+            *constantSelector = (*theField->patternType->genGetPNValueFunction)(theEnv,theField);
+            *constantValue = GenConstant(theEnv,theField->type,theField->value);
+           }
+        }
       else
-        { *joinNetTest = GenJNConstant(theEnv,theField); }
+        { *joinNetTest = GenJNConstant(theEnv,theField,FALSE); } // TBD Remove FALSE
      }
 
    /*===========================================================*/
@@ -331,7 +421,7 @@ static void ExtractFieldTest(
           (AllVariablesInExpression(theField->expression,theField->pattern) == TRUE))
         { *patternNetTest = GenPNColon(theEnv,theField); }
       else
-        { *joinNetTest = GenJNColon(theEnv,theField); }
+        { *joinNetTest = GenJNColon(theEnv,theField,FALSE,theNandFrames); } // TBD Remove FALSE
      }
 
    /*==============================================================*/
@@ -344,7 +434,7 @@ static void ExtractFieldTest(
           (AllVariablesInExpression(theField->expression,theField->pattern) == TRUE))
         { *patternNetTest = GenPNEq(theEnv,theField); }
       else
-        { *joinNetTest = GenJNEq(theEnv,theField); }
+        { *joinNetTest = GenJNEq(theEnv,theField,FALSE,theNandFrames); } // TBD Remove FALSE
      }
 
    /*=====================================================================*/
@@ -359,7 +449,10 @@ static void ExtractFieldTest(
            FALSE))
         { *patternNetTest = GenPNVariableComparison(theEnv,theField,theField->referringNode); }
       else
-        { *joinNetTest = GenJNVariableComparison(theEnv,theField,theField->referringNode); }
+        {
+         *joinNetTest = GenJNVariableComparison(theEnv,theField,theField->referringNode,FALSE);
+         AddNandUnification(theEnv,theField,theNandFrames);
+        }
      }
   }
 
@@ -411,7 +504,8 @@ static struct expr *GenPNConstant(
 /************************************************************/
 static struct expr *GenJNConstant(
   void *theEnv,
-  struct lhsParseNode *theField)
+  struct lhsParseNode *theField,
+  int isNand)
   {
    struct expr *top;
 
@@ -423,7 +517,12 @@ static struct expr *GenJNConstant(
    /*===============================================*/
 
    if (theField->patternType->genJNConstantFunction != NULL)
-     { return (*theField->patternType->genJNConstantFunction)(theEnv,theField); }
+     { 
+      if (isNand)
+        { return (*theField->patternType->genJNConstantFunction)(theEnv,theField,NESTED_RHS); }
+      else
+        { return (*theField->patternType->genJNConstantFunction)(theEnv,theField,RHS); }
+     }
 
    /*===================================================*/
    /* Otherwise, generate a test which uses the eq/neq  */
@@ -436,7 +535,11 @@ static struct expr *GenJNConstant(
    else
      { top = GenConstant(theEnv,FCALL,ExpressionData(theEnv)->PTR_EQ); }
 
-   top->argList = (*theField->patternType->genGetJNValueFunction)(theEnv,theField);
+   if (isNand)
+      { top->argList = (*theField->patternType->genGetJNValueFunction)(theEnv,theField,NESTED_RHS); }
+   else
+      { top->argList = (*theField->patternType->genGetJNValueFunction)(theEnv,theField,RHS); }
+      
    top->argList->nextArg = GenConstant(theEnv,theField->type,theField->value);
 
    return(top);
@@ -449,7 +552,9 @@ static struct expr *GenJNConstant(
 /******************************************************/
 static struct expr *GenJNColon(
   void *theEnv,
-  struct lhsParseNode *theField)
+  struct lhsParseNode *theField,
+  int isNand,
+  struct nandFrame *theNandFrames)
   {
    struct expr *top, *conversion;
 
@@ -458,7 +563,10 @@ static struct expr *GenJNColon(
    /* the appropriate value from the data entity.      */
    /*==================================================*/
 
-   conversion = GetvarReplace(theEnv,theField->expression);
+   if (isNand)
+     { conversion = GetvarReplace(theEnv,theField->expression,TRUE,theNandFrames); }
+   else
+     { conversion = GetvarReplace(theEnv,theField->expression,FALSE,theNandFrames); }
 
    /*================================================*/
    /* If the predicate constraint is negated by a ~, */
@@ -521,7 +629,9 @@ static struct expr *GenPNColon(
 /******************************************************/
 static struct expr *GenJNEq(
   void *theEnv,
-  struct lhsParseNode *theField)
+  struct lhsParseNode *theField,
+  int isNand,
+  struct nandFrame *theNandFrames)
   {
    struct expr *top, *conversion;
 
@@ -530,7 +640,10 @@ static struct expr *GenJNEq(
    /* the appropriate value from the data entity.      */
    /*==================================================*/
 
-   conversion = GetvarReplace(theEnv,theField->expression);
+   if (isNand)
+     { conversion = GetvarReplace(theEnv,theField->expression,TRUE,theNandFrames); }
+   else
+     { conversion = GetvarReplace(theEnv,theField->expression,FALSE,theNandFrames); }
 
    /*============================================================*/
    /* If the return value constraint is negated by a ~, then use */
@@ -544,7 +657,11 @@ static struct expr *GenJNEq(
    else
      { top = GenConstant(theEnv,FCALL,ExpressionData(theEnv)->PTR_EQ); }
 
-   top->argList = (*theField->patternType->genGetJNValueFunction)(theEnv,theField);
+   if (isNand)
+     { top->argList = (*theField->patternType->genGetJNValueFunction)(theEnv,theField,NESTED_RHS); }
+   else
+     { top->argList = (*theField->patternType->genGetJNValueFunction)(theEnv,theField,RHS); }
+     
    top->argList->nextArg = conversion;
 
    return(top);
@@ -586,15 +703,72 @@ static struct expr *GenPNEq(
    return(top);
   }
 
-/******************************************************************/
+/************************************************************************/
+/* AddNandUnification: Adds expressions to the nand joins to unify the  */
+/*   variable bindings that need to match from the left and right paths */
+/*   taken through the join network for not/and CE group.               */
+/************************************************************************/
+globle void AddNandUnification(
+  void *theEnv,
+  struct lhsParseNode *nodeList,
+  struct nandFrame *theNandFrames)
+  {
+   struct nandFrame *theFrame;
+   struct expr *tempExpression;
+
+   /*====================================================*/
+   /* If the reference is to a prior variable within the */
+   /* same nand group, then there's no need to create an */
+   /* external network test.                             */
+   /*====================================================*/
+   
+   if (nodeList->beginNandDepth == nodeList->referringNode->beginNandDepth)
+     { return; }
+     
+   /*=========================================*/
+   /* Don't generate an external network test */
+   /* if one has already been generated.      */
+   /*=========================================*/
+   
+   // if (nodeList->referringNode->marked)
+   //   { return; }
+     
+   /*======================================================*/
+   /* Find the frame to which the test should be attached. */
+   /*======================================================*/
+
+   for (theFrame = theNandFrames;
+        theFrame != NULL;
+        theFrame = theFrame->next)
+     {
+      if (theFrame->depth >= nodeList->referringNode->beginNandDepth)
+        {
+         // nodeList->referringNode->marked = TRUE;
+      
+         tempExpression = GenJNVariableComparison(theEnv,nodeList->referringNode,nodeList->referringNode,TRUE);
+
+         theFrame->nandCE->externalNetworkTest = CombineExpressions(theEnv,theFrame->nandCE->externalNetworkTest,tempExpression);
+   
+         tempExpression = (*nodeList->referringNode->patternType->genGetJNValueFunction)(theEnv,nodeList->referringNode,LHS);
+         theFrame->nandCE->externalRightHash = AppendExpressions(theFrame->nandCE->externalRightHash,tempExpression);
+
+         tempExpression = (*nodeList->referringNode->patternType->genGetJNValueFunction)(theEnv,nodeList->referringNode,LHS);
+         theFrame->nandCE->externalLeftHash = AppendExpressions(theFrame->nandCE->externalLeftHash,tempExpression);
+        }
+     }
+  }
+
+/*******************************************************************/
 /* GetvarReplace: Replaces occurences of variables in expressions */
-/*   with function calls that will extract the variable's value   */
-/*   from a partial match (i.e. from information stored in the    */
-/*   join network or the activation of the rule).                 */
-/******************************************************************/
+/*   with function calls that will extract the variable's value    */
+/*   from a partial match (i.e. from information stored in the     */
+/*   join network or the activation of the rule).                  */
+/*******************************************************************/
 globle struct expr *GetvarReplace(
   void *theEnv,
-  struct lhsParseNode *nodeList)
+  struct lhsParseNode *nodeList,
+  int isNand,
+  struct nandFrame *theNandFrames)
   {
    struct expr *newList;
 
@@ -604,7 +778,7 @@ globle struct expr *GetvarReplace(
    /*====================================*/
 
    if (nodeList == NULL) return(NULL);
-
+     
    /*=====================================================*/
    /* Create an expression data structure and recursively */
    /* replace variables in its argument list and next     */
@@ -614,8 +788,8 @@ globle struct expr *GetvarReplace(
    newList = get_struct(theEnv,expr);
    newList->type = nodeList->type;
    newList->value = nodeList->value;
-   newList->nextArg = GetvarReplace(theEnv,nodeList->right);
-   newList->argList = GetvarReplace(theEnv,nodeList->bottom);
+   newList->nextArg = GetvarReplace(theEnv,nodeList->right,isNand,theNandFrames);
+   newList->argList = GetvarReplace(theEnv,nodeList->bottom,isNand,theNandFrames);
 
    /*=========================================================*/
    /* If the present node being examined is either a local or */
@@ -625,9 +799,40 @@ globle struct expr *GetvarReplace(
 
    if ((nodeList->type == SF_VARIABLE) || (nodeList->type == MF_VARIABLE))
      {
+      AddNandUnification(theEnv,nodeList,theNandFrames);
+      
+      /*=============================================================*/
+      /* Referencing a variable outside the scope of the immediately */
+      /* enclosing not/and CE requires that the test be performed in */
+      /* the "join from the right" join.                             */
+      /*=============================================================*/
 
-      (*nodeList->referringNode->patternType->replaceGetJNValueFunction)
-        (theEnv,newList,nodeList->referringNode);
+      if (isNand)
+        {
+         if (nodeList->beginNandDepth > nodeList->referringNode->beginNandDepth)
+           { 
+            (*nodeList->referringNode->patternType->replaceGetJNValueFunction)
+               (theEnv,newList,nodeList->referringNode,LHS);
+           }
+         else
+           {
+            (*nodeList->referringNode->patternType->replaceGetJNValueFunction)
+               (theEnv,newList,nodeList->referringNode,NESTED_RHS);
+           }
+        }
+      else
+        {
+         if (nodeList->joinDepth != nodeList->referringNode->joinDepth)
+           {
+            (*nodeList->referringNode->patternType->replaceGetJNValueFunction)
+               (theEnv,newList,nodeList->referringNode,LHS);
+           }
+         else
+           {
+            (*nodeList->referringNode->patternType->replaceGetJNValueFunction)
+               (theEnv,newList,nodeList->referringNode,RHS);
+           }
+        }
      }
 #if DEFGLOBAL_CONSTRUCT
    else if (newList->type == GBL_VARIABLE)
@@ -702,7 +907,8 @@ static struct expr *GetfieldReplace(
 static struct expr *GenJNVariableComparison(
   void *theEnv,
   struct lhsParseNode *selfNode,
-  struct lhsParseNode *referringNode)
+  struct lhsParseNode *referringNode,
+  int isNand)
   {
    struct expr *top;
 
@@ -725,7 +931,7 @@ static struct expr *GenJNVariableComparison(
 
      {
       return (*selfNode->patternType->genCompareJNValuesFunction)(theEnv,selfNode,
-                                                                  referringNode);
+                                                                  referringNode,isNand);
      }
 
    /*===========================================================*/
@@ -738,8 +944,8 @@ static struct expr *GenJNVariableComparison(
    if (selfNode->negated) top = GenConstant(theEnv,FCALL,ExpressionData(theEnv)->PTR_NEQ);
    else top = GenConstant(theEnv,FCALL,ExpressionData(theEnv)->PTR_EQ);
 
-   top->argList = (*selfNode->patternType->genGetJNValueFunction)(theEnv,selfNode);
-   top->argList->nextArg = (*referringNode->patternType->genGetJNValueFunction)(theEnv,referringNode);
+   top->argList = (*selfNode->patternType->genGetJNValueFunction)(theEnv,selfNode,RHS);
+   top->argList->nextArg = (*referringNode->patternType->genGetJNValueFunction)(theEnv,referringNode,LHS);
 
    return(top);
   }

@@ -54,9 +54,9 @@ xyz abc
 (format t)                         ; 10.5.2.6
 (format (create$))                 ; 10.5.2.6
 (format t "%f%%%n")                ; 10.5.2.6
-(format nil "Integer: |%ld|" 12)   ; 10.5.2.6
-(format t "Integer: |%4ld|" 12)    ; 10.5.2.6
-(format nil "Integer: |%-04ld|" 12)
+(format nil "Integer: |%d|" 12)    ; 10.5.2.6
+(format t "Integer: |%4d|" 12)     ; 10.5.2.6
+(format nil "Integer: |%-04d|" 12)
 (format t "Float:   |%f|" 12.01)   ; 10.5.2.6
 (format nil "Float:   |%7.2f| "12.01)
 (format t "Test:    |%e|" 12.01)   ; 10.5.2.6
@@ -72,3 +72,42 @@ xyz abc
 (format nil "%f" abc)              ; 10.5.2.6
 (format nil "%g" (create$))        ; 10.5.2.6
 (format t "%o" 9.8)                ; 10.5.2.6
+(remove "Temp/iofun.dat")          ; Open function modes
+(open "Temp/iofun.dat" temp "bogus")
+(close temp)
+(remove "Temp/iofun.dat") 
+(open "Temp/iofun.dat" temp "r")
+(close temp)
+(remove "Temp/iofun.dat") 
+(open "Temp/iofun.dat" temp "w")
+(close temp)
+(remove "Temp/iofun.dat") 
+(open "Temp/iofun.dat" temp "a")
+(close temp)
+(remove "Temp/iofun.dat") 
+(open "Temp/iofun.dat" temp "rb")
+(close temp)
+(remove "Temp/iofun.dat") 
+(open "Temp/iofun.dat" temp "wb")
+(close temp)
+(remove "Temp/iofun.dat") 
+(open "Temp/iofun.dat" temp "ab")
+(close temp)
+(remove "Temp/iofun.dat") 
+(open "Temp/iofun.dat" temp "w")
+(printout temp red crlf)
+(close temp)
+(open "Temp/iofun.dat" temp "r")
+(read temp)
+(read temp)
+(close temp)
+(open "Temp/iofun.dat" temp "a")
+(read temp)
+(printout temp green crlf)
+(close temp)
+(open "Temp/iofun.dat" temp "r")
+(read temp)
+(read temp)
+(read temp)
+(close temp)
+(remove "Temp/iofun.dat") 

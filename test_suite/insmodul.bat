@@ -55,14 +55,16 @@
 (definstances FOO (a of FOO))
 (defmodule BAR (export defclass BAR))
 (defclass BAR (is-a USER) (role concrete))
-(definstances BAR (a of BAR))
+(definstances BAR (b of BAR))
 (defmodule WOZ (import FOO defclass FOO))
 (defclass WOZ (is-a USER) (role concrete))
-(definstances WOZ (a of WOZ))
+(definstances WOZ (c of WOZ))
 (defmodule FRIBBAN (import BAR defclass BAR))
 (defclass FRIBBAN (is-a USER) (role concrete))
+
 (defmodule MAIN (import FOO ?ALL)
                 (import BAR ?ALL))
+
 (deffunction MAIN::testit()
    (reset)
    (progn$ (?field (get-defmodule-list))
@@ -71,8 +73,14 @@
       (instances)
       (printout t crlf)
       (printout t (instance-existp [a]) " " 
-                  (defclass-module (class [::a])) " "
-                  (defclass-module (class (instance-address * a))) crlf)
+                  (instance-existp [::a]) " "
+                  (class (instance-address a)) crlf)
+      (printout t (instance-existp [b]) " " 
+                  (instance-existp [::b]) " "
+                  (class (instance-address b)) crlf)
+      (printout t (instance-existp [c]) " " 
+                  (instance-existp [::c]) " "
+                  (class (instance-address c)) crlf)
    )
 )
 (testit)
@@ -82,18 +90,23 @@
 (definstances A (a of A))
 (defmodule BAR (export defclass B))
 (defclass B (is-a USER) (role concrete))
-(definstances B (a of B))
+(definstances B (c of B))
 (defmodule WOZ (import BAR defclass B))
 (defclass A (is-a USER) (role concrete))
 (definstances A (b of A))
+
 (deffunction testit ()
   (reset)
   (set-current-module WOZ)
-  (printout t "TRUE FALSE TRUE TRUE FALSE" crlf)
+  (printout t "TRUE TRUE TRUE FALSE TRUE TRUE TRUE TRUE TRUE" crlf)
   (printout t
-     (instance-existp [b]) " "
      (instance-existp [a]) " "
+     (instance-existp [b]) " "
+     (instance-existp [c]) " "
      (instance-existp [::a]) " "
-     (instance-existp [BAR::a]) " "
-     (instance-existp [FOO::a]) crlf))
+     (instance-existp [::b]) " "
+     (instance-existp [::c]) " "
+     (instance-existp [FOO::a]) " "
+     (instance-existp [BAR::c]) " "
+     (instance-existp [WOZ::b]) crlf))
 (testit)

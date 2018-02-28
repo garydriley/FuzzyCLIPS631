@@ -26,7 +26,8 @@
   (set-salience-evaluation every-cycle)
   (printout t "Testing Every Cycle Salience Evaluation..." crlf)
   (reset)
-  (run))
+  (run)
+  (set-salience-evaluation when-defined))
 
 (deffunction print-order ($?x)
   (bind ?s (get-salience-evaluation))

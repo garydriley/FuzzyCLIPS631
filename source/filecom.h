@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.24  06/05/06            */
+   /*             CLIPS Version 6.30  08/16/14            */
    /*                                                     */
    /*              FILE COMMANDS HEADER FILE              */
    /*******************************************************/
@@ -18,7 +18,26 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
-/*      6.24: Renamed BOOLEAN macro type to intBool.         */
+/*      6.24: Added environment parameter to GenClose.       */
+/*            Added environment parameter to GenOpen.        */
+/*                                                           */
+/*            Renamed BOOLEAN macro type to intBool.         */
+/*                                                           */
+/*      6.30: Removed conditional code for unsupported       */
+/*            compilers/operating systems (IBM_MCW,          */
+/*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Added code for capturing errors/warnings.      */
+/*                                                           */
+/*            Added AwaitingInput flag.                      */
+/*                                                           */             
+/*            Added const qualifiers to remove C++           */
+/*            deprecation warnings.                          */
+/*                                                           */
+/*            Converted API macros to function calls.        */
+/*                                                           */
+/*            Fixed linkage issue when BLOAD_ONLY compiler   */
+/*            flag is set to 1.                              */
 /*                                                           */
 /*************************************************************/
 
@@ -36,40 +55,38 @@
 #define LOCALE extern
 #endif
 
-#if ENVIRONMENT_API_ONLY
-#define DribbleActive(theEnv) EnvDribbleActive(theEnv)
-#define DribbleOn(theEnv,a) EnvDribbleOn(theEnv,a)
-#define DribbleOff(theEnv) EnvDribbleOff(theEnv)
-#define BatchStar(theEnv,a) EnvBatchStar(theEnv,a)
-#else
-#define DribbleActive() EnvDribbleActive(GetCurrentEnvironment())
-#define DribbleOn(a) EnvDribbleOn(GetCurrentEnvironment(),a)
-#define DribbleOff() EnvDribbleOff(GetCurrentEnvironment())
-#define BatchStar(a) EnvBatchStar(GetCurrentEnvironment(),a)
-#endif
-
    LOCALE void                           FileCommandDefinitions(void *);
-   LOCALE intBool                        EnvDribbleOn(void *,char *);
+   LOCALE intBool                        EnvDribbleOn(void *,const char *);
    LOCALE intBool                        EnvDribbleActive(void *);
    LOCALE intBool                        EnvDribbleOff(void *);
+   LOCALE void                           AppendDribble(void *,const char *);
    LOCALE void                           SetDribbleStatusFunction(void *,int (*)(void *,int));
-   LOCALE int                            LLGetcBatch(void *,char *,int);
-   LOCALE int                            Batch(void *,char *);
-   LOCALE int                            OpenBatch(void *,char *,int);
-   LOCALE int                            OpenStringBatch(void *,char *,char *,int);
+   LOCALE int                            LLGetcBatch(void *,const char *,int);
+   LOCALE int                            Batch(void *,const char *);
+   LOCALE int                            OpenBatch(void *,const char *,int);
+   LOCALE int                            OpenStringBatch(void *,const char *,const char *,int);
    LOCALE int                            RemoveBatch(void *);
    LOCALE intBool                        BatchActive(void *);
    LOCALE void                           CloseAllBatchSources(void *);
    LOCALE int                            BatchCommand(void *);
    LOCALE int                            BatchStarCommand(void *);
-   LOCALE int                            EnvBatchStar(void *,char *);
+   LOCALE int                            EnvBatchStar(void *,const char *);
    LOCALE int                            LoadCommand(void *);
    LOCALE int                            LoadStarCommand(void *);
    LOCALE int                            SaveCommand(void *);
    LOCALE int                            DribbleOnCommand(void *);
    LOCALE int                            DribbleOffCommand(void *);
 
-#endif
+#if ALLOW_ENVIRONMENT_GLOBALS
+
+   LOCALE intBool                        DribbleActive(void);
+   LOCALE intBool                        DribbleOn(const char *);
+   LOCALE intBool                        DribbleOff(void);
+   LOCALE int                            BatchStar(const char *);
+
+#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+
+#endif /* _H_filecom */
 
 
 

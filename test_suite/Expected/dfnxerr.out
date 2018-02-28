@@ -99,6 +99,8 @@ FuzzyCLIPS> (foo (+ (eval "(gensym)") 2))
 [PRCCODE6] This error occurred while evaluating arguments for the deffunction foo.
 FALSE
 FuzzyCLIPS> (foo (instances))
+[initial-object] of INITIAL-OBJECT
+For a total of 1 instance.
 [PRCCODE2] Functions without a return value are illegal as deffunction arguments.
 [PRCCODE6] This error occurred while evaluating arguments for the deffunction foo.
 FALSE
