@@ -1211,7 +1211,7 @@ static EXPRESSION *ValidType(
      return(GenConstant(theEnv,INTEGER,(void *) EnvAddLong(theEnv,(long) INSTANCE_ADDRESS)));
 #if FUZZY_DEFTEMPLATES
    if (strcmp(ValueToString(tname),FUZZY_VALUE_NAME) == 0)
-     return(GenConstant(INTEGER,(VOID *) AddLong((long) FUZZY_VALUE)));
+     return(GenConstant(INTEGER,(VOID *) EnvAddLong(theEnv,(long) FUZZY_VALUE)));
 #endif
 
    PrintErrorID(theEnv,"GENRCPSR",14,FALSE);
