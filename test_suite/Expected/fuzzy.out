@@ -562,4 +562,198 @@ Linguistic Value: hot (+),  extremely hot (*)
 Universe of Discourse:  From   0.00  to  100.00
 
 FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(deftemplate temp
+   0 100 C
+   ((cold (z 20 70))
+    (hot (s 30 80))))
+FuzzyCLIPS>     
+(deftemplate height
+   0 8 feet
+   ((short (Z 3 4.5))
+    (medium (pi 0.8 5))
+    (tall (S 5.5 6)) ) )
+FuzzyCLIPS>   
+(deftemplate person
+   (slot name)
+   (slot ht (type FUZZY-VALUE height)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (defglobal ?*f* = (assert (temp hot)))
+FuzzyCLIPS> (defglobal ?*p* = (assert (person (ht tall))))
+FuzzyCLIPS> (get-u temp)
+0.00 - 100.00 C
+FuzzyCLIPS> (get-u ?*f*)
+0.00 - 100.00 C
+FuzzyCLIPS> (get-u 1)
+0.00 - 100.00 C
+FuzzyCLIPS> (get-u (create-fuzzy-value temp hot))
+0.00 - 100.00 C
+FuzzyCLIPS> (get-u-from temp)
+0.0
+FuzzyCLIPS> (get-u-from ?*f*)
+0.0
+FuzzyCLIPS> (get-u-from 1)
+0.0
+FuzzyCLIPS> (get-u-from (create-fuzzy-value temp hot))
+0.0
+FuzzyCLIPS> (get-u-to temp)
+100.0
+FuzzyCLIPS> (get-u-to ?*f*)
+100.0
+FuzzyCLIPS> (get-u-to 1)
+100.0
+FuzzyCLIPS> (get-u-to (create-fuzzy-value temp hot))
+100.0
+FuzzyCLIPS> (get-u-units temp)
+C
+FuzzyCLIPS> (get-u-units ?*f*)
+C
+FuzzyCLIPS> (get-u-units 1)
+C
+FuzzyCLIPS> (get-u-units (create-fuzzy-value temp hot))
+C
+FuzzyCLIPS> (get-fs ?*f*)
+(30.000, 0.000) (36.250, 0.031) (42.500, 0.125) (48.750, 0.281) (55.000, 0.500) (61.250, 0.719) (67.500, 0.875) (73.750, 0.969) (80.000, 1.000) 
+FuzzyCLIPS> (get-fs 1)
+(30.000, 0.000) (36.250, 0.031) (42.500, 0.125) (48.750, 0.281) (55.000, 0.500) (61.250, 0.719) (67.500, 0.875) (73.750, 0.969) (80.000, 1.000) 
+FuzzyCLIPS> (get-fs (create-fuzzy-value temp hot))
+(30.000, 0.000) (36.250, 0.031) (42.500, 0.125) (48.750, 0.281) (55.000, 0.500) (61.250, 0.719) (67.500, 0.875) (73.750, 0.969) (80.000, 1.000) 
+FuzzyCLIPS> (get-fs-length ?*f*)
+9
+FuzzyCLIPS> (get-fs-length 1)
+9
+FuzzyCLIPS> (get-fs-length (create-fuzzy-value temp hot))
+9
+FuzzyCLIPS> (get-fs-x ?*f* 2)
+42.5
+FuzzyCLIPS> (get-fs-x 1 2)
+42.5
+FuzzyCLIPS> (get-fs-x (create-fuzzy-value temp hot) 2)
+42.5
+FuzzyCLIPS> (get-fs-y ?*f* 2)
+0.125
+FuzzyCLIPS> (get-fs-y 1 2)
+0.125
+FuzzyCLIPS> (get-fs-y (create-fuzzy-value temp hot) 2)
+0.125
+FuzzyCLIPS> (get-fs-lv ?*f*)
+hot
+FuzzyCLIPS> (get-fs-lv 1)
+hot
+FuzzyCLIPS> (get-fs-lv (create-fuzzy-value temp hot))
+hot
+FuzzyCLIPS> (get-fs-value ?*f* 2)
+0.0
+FuzzyCLIPS> (get-fs-value 1 2)
+0.0
+FuzzyCLIPS> (get-fs-value (create-fuzzy-value temp hot) 2)
+0.0
+FuzzyCLIPS> (get-fs-template ?*f*)
+temp
+FuzzyCLIPS> (get-fs-template 1)
+temp
+FuzzyCLIPS> (get-fs-template (create-fuzzy-value temp hot))
+temp
+FuzzyCLIPS> (get-cf ?*f*)
+1.0
+FuzzyCLIPS> (get-cf 1)
+1.0
+FuzzyCLIPS> (disable-rule-cf-calculation)
+FuzzyCLIPS> (enable-rule-cf-calculation)
+FuzzyCLIPS> (get-threshold)
+0.0
+FuzzyCLIPS> (set-threshold 0.0)
+FuzzyCLIPS> (set-threshold 0)
+FuzzyCLIPS> (threshold 0.0)
+FuzzyCLIPS> (threshold 0)
+FuzzyCLIPS> (get-CF-evaluation)
+when-defined
+FuzzyCLIPS> (set-CF-evaluation when-defined)
+when-defined
+FuzzyCLIPS> (get-fuzzy-display-precision)
+4
+FuzzyCLIPS> (set-fuzzy-display-precision 4)
+FuzzyCLIPS> (get-fuzzy-inference-type)
+max-min
+FuzzyCLIPS> (set-fuzzy-inference-type max-min)
+FuzzyCLIPS> (get-alpha-value)
+0.0
+FuzzyCLIPS> (set-alpha-value 0.0)
+FuzzyCLIPS> (fuzzyvaluep 45.6)
+FALSE
+FuzzyCLIPS> (fuzzyvaluep "string")
+FALSE
+FuzzyCLIPS> (fuzzyvaluep (create-fuzzy-value temp cold))
+TRUE
+FuzzyCLIPS> 
+(fuzzy-union (create-fuzzy-value temp cold)
+             (create-fuzzy-value temp hot))
+[ cold ] OR [ hot ]
+FuzzyCLIPS> 
+(fuzzy-intersection (create-fuzzy-value temp cold)
+                    (create-fuzzy-value temp hot))
+[ cold ] AND [ hot ]
+FuzzyCLIPS> (fuzzy-modify (create-fuzzy-value temp hot) extremely)
+extremely hot
+FuzzyCLIPS> 
+(plot-fuzzy-value t "+*" nil nil
+    (create-fuzzy-value temp hot)
+    (fuzzy-modify (create-fuzzy-value temp hot) extremely))
+
+Fuzzy Value: temp
+Linguistic Value: hot (+),  extremely hot (*)
+
+ 1.00                                      ++***********
+ 0.95                                    ++**           
+ 0.90                                  ++ *             
+ 0.85                                 +  *              
+ 0.80                                +                  
+ 0.75                               +   *               
+ 0.70                              +   *                
+ 0.65                                                   
+ 0.60                             +   *                 
+ 0.55                            +                      
+ 0.50                                *                  
+ 0.45                           +                       
+ 0.40                          +    *                   
+ 0.35                         +                         
+ 0.30                              *                    
+ 0.25                        +                          
+ 0.20                       +     *                     
+ 0.15                      +     *                      
+ 0.10                    ++     *                       
+ 0.05                  ++     **                        
+ 0.00*************************                          
+     |----|----|----|----|----|----|----|----|----|----|
+    0.00     20.00     40.00     60.00     80.00    100.00   
+
+Universe of Discourse:  From   0.00  to  100.00
+
+FuzzyCLIPS> (get-fuzzy-slot ?*f*)
+hot
+FuzzyCLIPS> (get-fuzzy-slot 1)
+hot
+FuzzyCLIPS> (get-fuzzy-slot ?*p* ht)
+tall
+FuzzyCLIPS> (get-fuzzy-slot 2 ht)
+tall
+FuzzyCLIPS> (format nil "Value is '%F'" (get-fuzzy-slot ?*f*))
+"Value is 'hot'"
+FuzzyCLIPS> (format nil "Value is '%F'" (get-fuzzy-slot ?*p* ht))
+"Value is 'tall'"
+FuzzyCLIPS> (moment-defuzzify ?*f*)
+76.2702546296296
+FuzzyCLIPS> (moment-defuzzify 1)
+76.2702546296296
+FuzzyCLIPS> (moment-defuzzify (create-fuzzy-value temp cold))
+23.7297453703704
+FuzzyCLIPS> (maximum-defuzzify ?*f*)
+90.0
+FuzzyCLIPS> (maximum-defuzzify 1)
+90.0
+FuzzyCLIPS> (maximum-defuzzify (create-fuzzy-value temp cold))
+10.0
+FuzzyCLIPS> (is-defuzzify-value-valid)
+TRUE
+FuzzyCLIPS> (clear)
 FuzzyCLIPS> (dribble-off)
