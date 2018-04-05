@@ -269,7 +269,6 @@ globle int EnvBload(
 
 #endif
 
-   
    /*====================================================*/
    /* Read in the functions needed by this binary image. */
    /*====================================================*/

@@ -783,10 +783,9 @@ globle void *EnvAssert(
    /*  is altered for FUZZY_FUZZY rules depending on the strength of matching    */
    /*  of the patterns with the fuzzy facts                                      */
    /*============================================================================*/
+   
    if (theFact->whichDeftemplate->hasFuzzySlots)
-     {
-           computeFuzzyConsequence(theEnv,theFact);
-     }
+     { computeFuzzyConsequence(theEnv,theFact); }
 #endif
 
 #if CERTAINTY_FACTORS
@@ -810,9 +809,7 @@ globle void *EnvAssert(
        without actually duplicating)
    */
    if (theFact->whichDeftemplate->hasFuzzySlots == TRUE)
-    {
-      hashValue = HandleExistingFuzzyFact(theEnv,(void **) &theFact);
-    }
+     { hashValue = HandleExistingFuzzyFact(theEnv,(void **) &theFact); }
    else
     {
 #endif

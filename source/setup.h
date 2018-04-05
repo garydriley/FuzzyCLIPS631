@@ -225,7 +225,7 @@
 /*   facts are included. Added at NRCC.           */
 /**************************************************//* 03-12-96 */
 
-#define FUZZY_DEFTEMPLATES 0
+#define FUZZY_DEFTEMPLATES 1
 
 #if ! DEFTEMPLATE_CONSTRUCT
 #undef  FUZZY_DEFTEMPLATES
@@ -238,7 +238,7 @@
 /*     Added at NRCC.                               */
 /****************************************************//* 03-12-96 */
 
-#define CERTAINTY_FACTORS 0
+#define CERTAINTY_FACTORS 1
 
 #if ! DEFRULE_CONSTRUCT
 #undef  CERTAINTY_FACTORS

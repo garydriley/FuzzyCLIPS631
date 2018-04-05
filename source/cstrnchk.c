@@ -433,6 +433,7 @@ globle intBool CheckAllowedValuesConstraint(
    if (type == FUZZY_VALUE)
      {
        struct deftemplate *deftPtr;
+       struct fuzzy_value *fv;
 
        tmpPtr = constraints->restrictionList;
        if (tmpPtr == NULL)
@@ -440,8 +441,9 @@ globle intBool CheckAllowedValuesConstraint(
        if (tmpPtr->type != DEFTEMPLATE_PTR)
           return(FALSE);
 
-       deftPtr = (struct deftemplate *)tmpPtr->value;
-       if (deftPtr == (ValueToFuzzyValue(vPtr))->whichDeftemplate)
+       deftPtr = (struct deftemplate *) tmpPtr->value;
+       fv = ValueToFuzzyValue(vPtr);
+       if (deftPtr == fv->whichDeftemplate)
           return(TRUE);
 
        return(FALSE);
