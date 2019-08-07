@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  02/05/15            */
+   /*             CLIPS Version 6.31  06/12/19            */
    /*                                                     */
    /*                  SETUP HEADER FILE                  */
    /*******************************************************/
@@ -94,28 +94,30 @@
 /* Only one of these flags should be turned on (set to 1) at a time. */
 /*********************************************************************/
 
+#ifndef LINUX
+#define LINUX   0   /* Tested with Ubuntu 16.04, Debian 9.1, */
+#endif              /* Fedora 26, Mint 18, and CentOS 7.     */
+
+#ifndef DARWIN
+#define DARWIN  0   /* Darwin Mac OS 18.6.0, presumably with gcc or Xcode 10.2.1 with Console */
+#endif
+
+#ifndef MAC_XCD
+#define MAC_XCD 0   /* MacOS 10.14.5, with Xcode 10.2.1 and Cocoa GUI */
+#endif
+
+#ifndef WIN_MVC
+#define WIN_MVC 0   /* Windows 7, with Visual Studio 2013 */
+#endif
+
+/* The following are untested: */
+
 #ifndef UNIX_V
 #define UNIX_V  0   /* UNIX System V, 4.2bsd, or HP Unix, presumably with gcc */
 #endif
 
 #ifndef UNIX_7
 #define UNIX_7  0   /* UNIX System III Version 7 or Sun Unix, presumably with gcc */
-#endif
-
-#ifndef LINUX
-#define LINUX   0   /* Untested, presumably with gcc */
-#endif
-
-#ifndef DARWIN
-#define DARWIN  0   /* Darwin Mac OS 10.10.2, presumably with gcc or Xcode 6.2 with Console */
-#endif
-
-#ifndef MAC_XCD
-#define MAC_XCD 0   /* MacOS 10.10.2, with Xcode 6.2 and Cocoa GUI */
-#endif
-
-#ifndef WIN_MVC
-#define WIN_MVC 0   /* Windows 7, with Visual Studio 2013 */
 #endif
 
 /* The following are unsupported: */

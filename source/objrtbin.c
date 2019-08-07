@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  02/03/18          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -643,7 +643,7 @@ static void ClearBloadObjectPatterns(
   void *theEnv)
   {
    size_t space;
-   register long i;
+   long i;
 
    for (i = 0; i < ObjectReteBinaryData(theEnv)->PatternNodeCount; i++)
      {

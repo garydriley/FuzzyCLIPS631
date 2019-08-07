@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  01/25/15          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*                  CLASS PARSER MODULE                */
    /*******************************************************/
@@ -770,7 +770,7 @@ static TEMP_SLOT_LINK *MergeSlots(
   int src)
   {
    TEMP_SLOT_LINK *cur,*tmp;
-   register int i;
+   int i;
    SLOT_DESC *newSlot;
 
    /* ======================================
@@ -928,7 +928,7 @@ static void CreatePublicSlotMessageHandlers(
   DEFCLASS *theDefclass)
   {
    long i;
-   register SLOT_DESC *sd;
+   SLOT_DESC *sd;
 
    for (i = 0 ; i < theDefclass->slotCount ; i++)
      {

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*             MULTIFIELD FUNCTIONS MODULE             */
    /*******************************************************/
@@ -1530,7 +1530,7 @@ globle int InsertMultiValueField(
   const char *funcName)
   {
    long i,j,k;
-   register FIELD *deptr, *septr;
+   FIELD *deptr, *septr;
    long srclen,dstlen;
 
    srclen = (long) ((src != NULL) ? (src->end - src->begin + 1) : 0);
@@ -1663,7 +1663,7 @@ globle int DeleteMultiValueField(
   const char *funcName)
   {
    long i,j;
-   register FIELD_PTR deptr,septr;
+   FIELD_PTR deptr,septr;
    long srclen, dstlen;
 
    srclen = (long) ((src != NULL) ? (src->end - src->begin + 1) : 0);

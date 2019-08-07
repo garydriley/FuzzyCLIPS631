@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*              CLIPS Version 6.30  02/05/15           */
+   /*              CLIPS Version 6.30  05/09/19           */
    /*                                                     */
    /*                INSTANCE FUNCTIONS MODULE            */
    /*******************************************************/
@@ -174,7 +174,7 @@ globle void EnvDecrementInstanceCount(
 globle void InitializeInstanceTable(
   void *theEnv)
   {
-   register int i;
+   int i;
 
    InstanceData(theEnv)->InstanceTable = (INSTANCE_TYPE **)
                     gm2(theEnv,(int) (sizeof(INSTANCE_TYPE *) * INSTANCE_TABLE_HASH_SIZE));
@@ -487,7 +487,7 @@ globle INSTANCE_SLOT *FindInstanceSlot(
   INSTANCE_TYPE *ins,
   SYMBOL_HN *sname)
   {
-   register int i;
+   int i;
 
    i = FindInstanceTemplateSlot(theEnv,ins->cls,sname);
    return((i != -1) ? ins->slotAddresses[i] : NULL);
@@ -578,7 +578,7 @@ globle int DirectPutSlotValue(
   DATA_OBJECT *val,
   DATA_OBJECT *setVal)
   {
-   register long i,j; /* 6.04 Bug Fix */
+   long i,j; /* 6.04 Bug Fix */
 #if DEFRULE_CONSTRUCT
    int sharedTraversalID;
    INSTANCE_SLOT *bsp,**spaddr;
@@ -781,7 +781,7 @@ globle int ValidSlotValue(
   INSTANCE_TYPE *ins,
   const char *theCommand)
   {
-   register int violationCode;
+   int violationCode;
 
    /* ===================================
       Special NoParamValue means to reset

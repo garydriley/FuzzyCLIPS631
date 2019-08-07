@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  02/03/18            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*                CLASS FUNCTIONS MODULE               */
    /*******************************************************/
@@ -44,6 +44,9 @@
 /*                                                           */
 /*            Optimization for marking relevant alpha nodes  */
 /*            in the object pattern network.                 */
+/*                                                           */
+/*            Changed allocation of multifield slot default  */
+/*            from ephemeral to explicit deallocation.       */
 /*                                                           */
 /*************************************************************/
 
@@ -186,7 +189,7 @@ globle intBool InstancesPurge(
 globle void InitializeClasses(
   void *theEnv)
   {
-   register int i;
+   int i;
 
    DefclassData(theEnv)->ClassTable =
       (DEFCLASS **) gm2(theEnv,(int) (sizeof(DEFCLASS *) * CLASS_TABLE_HASH_SIZE));
@@ -517,7 +520,7 @@ globle DEFCLASS *NewClass(
   void *theEnv,
   SYMBOL_HN *className)
   {
-   register DEFCLASS *cls;
+   DEFCLASS *cls;
 
    cls = get_struct(theEnv,defclass);
    InitializeConstructHeader(theEnv,"defclass",(struct constructHeader *) cls,className);
@@ -598,7 +601,7 @@ globle void AssignClassID(
   void *theEnv,
   DEFCLASS *cls)
   {
-   register unsigned i;
+   unsigned i;
 
    if ((DefclassData(theEnv)->MaxClassID % CLASS_ID_MAP_CHUNK) == 0)
      {
@@ -763,7 +766,12 @@ LOCALE void RemoveDefclass(
          if (cls->slots[i].dynamicDefault)
            ReturnPackedExpression(theEnv,(EXPRESSION *) cls->slots[i].defaultValue);
          else
-           rtn_struct(theEnv,dataObject,cls->slots[i].defaultValue);
+           {
+            DATA_OBJECT *theValue = (DATA_OBJECT *) cls->slots[i].defaultValue;
+            if (theValue->type == MULTIFIELD)
+              { ReturnMultifield(theEnv,(struct multifield *) theValue->value); }
+            rtn_struct(theEnv,dataObject,cls->slots[i].defaultValue);
+           }
         }
       DeleteSlotName(theEnv,cls->slots[i].slotName);
       RemoveConstraint(theEnv,cls->slots[i].constraint);
@@ -843,10 +851,20 @@ LOCALE void DestroyDefclass(
          if (cls->slots[i].dynamicDefault)
            ReturnPackedExpression(theEnv,(EXPRESSION *) cls->slots[i].defaultValue);
          else
-           rtn_struct(theEnv,dataObject,cls->slots[i].defaultValue);
+           {
+            DATA_OBJECT *theValue = (DATA_OBJECT *) cls->slots[i].defaultValue;
+            if (theValue->type == MULTIFIELD)
+              { ReturnMultifield(theEnv,(struct multifield *) theValue->value); }
+            rtn_struct(theEnv,dataObject,cls->slots[i].defaultValue);
+           }
 #else
          if (cls->slots[i].dynamicDefault == 0)
-           rtn_struct(theEnv,dataObject,cls->slots[i].defaultValue);
+           {
+            DATA_OBJECT *theValue = (DATA_OBJECT *) cls->slots[i].defaultValue;
+            if (theValue->type == MULTIFIELD)
+              { ReturnMultifield(theEnv,(struct multifield *) theValue->value); }
+            rtn_struct(theEnv,dataObject,cls->slots[i].defaultValue);
+           }
 #endif
         }
      }
@@ -1169,7 +1187,7 @@ globle SLOT_NAME *FindIDSlotNameHash(
   void *theEnv,
   int id)
   {
-   register int i;
+   int i;
    SLOT_NAME *snp;
 
    for (i = 0 ; i < SLOT_NAME_TABLE_HASH_SIZE ; i++)
@@ -1200,8 +1218,8 @@ globle SLOT_NAME *FindIDSlotNameHash(
 globle int GetTraversalID(
   void *theEnv)
   {
-   register unsigned i;
-   register DEFCLASS *cls;
+   unsigned i;
+   DEFCLASS *cls;
 
    if (DefclassData(theEnv)->CTID >= MAX_TRAVERSALS)
      {

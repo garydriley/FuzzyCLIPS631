@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*              CLIPS Version 6.31  01/15/18           */
+   /*              CLIPS Version 6.31  05/09/19           */
    /*                                                     */
    /*                INSTANCE COMMAND MODULE              */
    /*******************************************************/
@@ -45,6 +45,10 @@
 /*            Converted API macros to function calls.        */
 /*                                                           */
 /*      6.31: Fast router used for MakeInstance.             */
+/*                                                           */
+/*            Added code to keep track of pointers to        */
+/*            constructs that are contained externally to    */
+/*            to constructs, DanglingConstructs.             */
 /*                                                           */
 /*************************************************************/
 
@@ -585,7 +589,7 @@ globle void *EnvMakeInstance(
    const char *oldRouter;
    const char *oldString;
    long oldIndex;
-
+   int danglingConstructs;
 
    result.type = SYMBOL;
    result.value = EnvFalseSymbol(theEnv);
@@ -605,6 +609,8 @@ globle void *EnvMakeInstance(
    GetToken(theEnv,router,&tkn);
    if (tkn.type == LPAREN)
      {
+      danglingConstructs = ConstructData(theEnv)->DanglingConstructs;
+
       top = GenConstant(theEnv,FCALL,(void *) FindFunction(theEnv,"make-instance"));
       if (ParseSimpleInstance(theEnv,top,router) != NULL)
         {
@@ -619,10 +625,14 @@ globle void *EnvMakeInstance(
            SyntaxErrorMessage(theEnv,"instance definition");
          ReturnExpression(theEnv,top);
         }
+        
+      if ((! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
+          (EvaluationData(theEnv)->CurrentExpression == NULL))
+        { ConstructData(theEnv)->DanglingConstructs = danglingConstructs; }
      }
    else
      SyntaxErrorMessage(theEnv,"instance definition");
-
+     
    /*===========================================*/
    /* Restore the old state of the fast router. */
    /*===========================================*/
@@ -1590,7 +1600,7 @@ static void PrintInstance(
   const char *separator)
   {
    long i;
-   register INSTANCE_SLOT *sp;
+   INSTANCE_SLOT *sp;
 
    PrintInstanceNameAndClass(theEnv,logicalName,ins,FALSE);
    for (i = 0 ; i < ins->cls->instanceSlotCount ; i++)

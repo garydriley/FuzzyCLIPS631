@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.31  06/12/19            */
    /*                                                     */
    /*                  ANALYSIS MODULE                    */
    /*******************************************************/
@@ -26,6 +26,9 @@
 /*      6.24: Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
 /*      6.30: Join network rework and optimizations.         */
+/*                                                           */
+/*      6.31: Memory leak fix for multislot pattern with     */
+/*            no constraints.                                */
 /*                                                           */
 /*************************************************************/
 
@@ -503,7 +506,10 @@ static int GetVariables(
       /*===============================================*/
 
       if (thePattern == NULL)
-        { thePattern = multifieldHeader; }
+        {
+         thePattern = multifieldHeader;
+         multifieldHeader = NULL;
+        }
       else if ((thePattern->right == NULL) && (multifieldHeader != NULL))
         {
          thePattern = multifieldHeader;

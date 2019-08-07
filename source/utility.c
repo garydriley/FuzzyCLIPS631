@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.31  12/09/16             */
+   /*            CLIPS Version 6.31  04/04/19             */
    /*                                                     */
    /*                   UTILITY MODULE                    */
    /*******************************************************/
@@ -47,6 +47,9 @@
 /*            Converted API macros to function calls.        */
 /*                                                           */
 /*      6.31: Fix for memory used discrepancy.               */
+/*                                                           */
+/*            Added debugging code for checking the garbage  */
+/*            frame.                                         */
 /*                                                           */
 /*************************************************************/
 
@@ -299,6 +302,22 @@ globle void RestorePriorGarbageFrame(
      
    if (returnValue != NULL)
      { EphemerateValue(theEnv,returnValue->type,returnValue->value); }
+  }
+
+/*******************************/
+/* CurrentGarbageFrameIsDirty: */
+/*******************************/
+globle intBool CurrentGarbageFrameIsDirty(
+  void *theEnv)
+  {
+   struct garbageFrame *cgf;
+   
+   cgf = UtilityData(theEnv)->CurrentGarbageFrame;
+   
+   if (cgf->dirty)
+     { return TRUE; }
+   else
+     { return FALSE; }
   }
 
 /*************************/

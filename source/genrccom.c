@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  02/05/15            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -1263,8 +1263,8 @@ globle void EnvGetMethodRestrictions(
   DATA_OBJECT *result)
   {
    short i,j;
-   register DEFMETHOD *meth;
-   register RESTRICTION *rptr;
+   DEFMETHOD *meth;
+   RESTRICTION *rptr;
    long count;
    int roffset,rstrctIndex;
    MULTIFIELD_PTR theList;

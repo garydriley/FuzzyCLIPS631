@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -173,7 +173,7 @@ globle void FreeDefgenericModule(
 globle int ClearDefmethods(
   void *theEnv)
   {
-   register DEFGENERIC *gfunc;
+   DEFGENERIC *gfunc;
    int success = TRUE;
 
 #if BLOAD || BLOAD_AND_BSAVE
@@ -285,7 +285,7 @@ globle void RemoveDefgeneric(
 globle int ClearDefgenerics(
   void *theEnv)
   {
-   register DEFGENERIC *gfunc,*gtmp;
+   DEFGENERIC *gfunc,*gtmp;
    int success = TRUE;
 
 #if BLOAD || BLOAD_AND_BSAVE
@@ -395,8 +395,8 @@ globle void DestroyMethodInfo(
   DEFGENERIC *gfunc,
   DEFMETHOD *meth)
   {
-   register int j;
-   register RESTRICTION *rptr;
+   int j;
+   RESTRICTION *rptr;
 #if MAC_XCD
 #pragma unused(gfunc)
 #endif
@@ -524,7 +524,7 @@ globle void PrintMethod(
 #pragma unused(theEnv)
 #endif
    long j,k;
-   register RESTRICTION *rptr;
+   RESTRICTION *rptr;
    char numbuf[15];
 
    buf[0] = '\0';

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  02/03/18            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -31,6 +31,9 @@
 /*                                                           */
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
+/*                                                           */
+/*      6.31: Optimization for marking relevant alpha nodes  */
+/*            in the object pattern network.                 */
 /*                                                           */
 /*************************************************************/
 
@@ -252,8 +255,8 @@ static void ReadyObjectsForCode(
   void *theEnv)
   {
    MARK_INFO markInfo;
-   register long i;
-   register int j;
+   long i;
+   int j;
    SLOT_NAME *snp;
 
    markInfo.classCount = 0L;
@@ -409,7 +412,7 @@ static int ObjectsToCode(
    int fileCount = 1;
    struct defmodule *theModule;
    DEFCLASS *theDefclass;
-   register int i;
+   int i;
    int moduleCount = 0;
    int itemArrayCounts[SAVE_ITEMS];
    int itemArrayVersions[SAVE_ITEMS];
@@ -718,7 +721,7 @@ static int SlotNameEntriesToCode(
    int slotNameArrayCount = 0,
        slotNameArrayVersion = 1;
    SLOT_NAME *snp;
-   register unsigned i;
+   unsigned i;
 
    for (i = 0 ; i < SLOT_NAME_TABLE_HASH_SIZE ; i++)
      {
@@ -773,7 +776,7 @@ static void CloseObjectFiles(
   {
    int count = maxIndices;
    int arrayVersion = 0;
-   register int i;
+   int i;
 
    for (i = 0 ; i < SAVE_ITEMS ; i++)
      {

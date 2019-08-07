@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*                  CLASS PARSER MODULE                */
    /*******************************************************/
@@ -27,6 +27,9 @@
 /*                                                            */
 /*            Added const qualifiers to remove C++            */
 /*            deprecation warnings.                           */
+/*                                                            */
+/*      6.31: Changed allocation of multifield slot default   */
+/*            from ephemeral to explicit deallocation.        */
 /*                                                            */
 /**************************************************************/
 
@@ -391,8 +394,11 @@ globle void DeleteSlots(
         }
       else if (stmp->desc->defaultValue != NULL)
         {
-         ValueDeinstall(theEnv,(DATA_OBJECT *) stmp->desc->defaultValue);
-         rtn_struct(theEnv,dataObject,stmp->desc->defaultValue);
+         DATA_OBJECT *theValue = (DATA_OBJECT *) stmp->desc->defaultValue;
+         ValueDeinstall(theEnv,theValue);
+         if (theValue->type == MULTIFIELD)
+           { ReturnMultifield(theEnv,(struct multifield *) theValue->value); }
+         rtn_struct(theEnv,dataObject,theValue);
         }
       rtn_struct(theEnv,slotDescriptor,stmp->desc);
       rtn_struct(theEnv,tempSlotLink,stmp);
@@ -709,9 +715,14 @@ static void BuildCompositeFacets(
               }
             else
               {
+               DATA_OBJECT *newValue;
+               DATA_OBJECT *oldValue = (DATA_OBJECT *) compslot->defaultValue;
                sd->defaultValue = (void *) get_struct(theEnv,dataObject);
-               GenCopyMemory(DATA_OBJECT,1,sd->defaultValue,compslot->defaultValue);
-               ValueInstall(theEnv,(DATA_OBJECT *) sd->defaultValue);
+               GenCopyMemory(DATA_OBJECT,1,sd->defaultValue,oldValue);
+               newValue = (DATA_OBJECT *) sd->defaultValue;
+               if (oldValue->type == MULTIFIELD)
+                 { newValue->value = CopyMultifield(theEnv,(struct multifield *) oldValue->value); }
+               ValueInstall(theEnv,newValue);
               }
            }
         }
@@ -851,10 +862,14 @@ static intBool EvaluateSlotDefaultValue(
          SetExecutingConstruct(theEnv,oldce);
          if (vCode)
            {
+            DATA_OBJECT *newValue;
             ExpressionDeinstall(theEnv,(EXPRESSION *) sd->defaultValue);
             ReturnPackedExpression(theEnv,(EXPRESSION *) sd->defaultValue);
             sd->defaultValue = (void *) get_struct(theEnv,dataObject);
+            newValue = (DATA_OBJECT *) sd->defaultValue;
             GenCopyMemory(DATA_OBJECT,1,sd->defaultValue,&temp);
+            if (temp.type == MULTIFIELD)
+              { newValue->value = CopyMultifield(theEnv,(struct multifield *) temp.value); }
             ValueInstall(theEnv,(DATA_OBJECT *) sd->defaultValue);
            }
          else
@@ -867,7 +882,7 @@ static intBool EvaluateSlotDefaultValue(
         {
          sd->defaultValue = (void *) get_struct(theEnv,dataObject);
          DeriveDefaultFromConstraints(theEnv,sd->constraint,
-                                      (DATA_OBJECT *) sd->defaultValue,(int) sd->multiple,TRUE);
+                                      (DATA_OBJECT *) sd->defaultValue,(int) sd->multiple,FALSE);
          ValueInstall(theEnv,(DATA_OBJECT *) sd->defaultValue);
         }
      }

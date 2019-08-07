@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  02/03/18          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*    OBJECT PATTERN NETWORK CONSTRUCTS-TO-C MODULE    */
    /*******************************************************/
@@ -696,7 +696,7 @@ static CLASS_ALPHA_LINK *GetNextAlphaLink(
         }
       else if (*theClass != NULL)
         {
-         *theClass = EnvGetNextDefclass(theEnv,*theClass);
+         *theClass = (DEFCLASS *) EnvGetNextDefclass(theEnv,*theClass);
          if (*theClass != NULL)
            { theLink = (*theClass)->relevant_terminal_alpha_nodes; }
          if (theLink != NULL)
@@ -704,11 +704,11 @@ static CLASS_ALPHA_LINK *GetNextAlphaLink(
         }
       else
         {
-         *theModule = EnvGetNextDefmodule(theEnv,*theModule);
+         *theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,*theModule);
          if (*theModule == NULL)
            { return NULL; }
          EnvSetCurrentModule(theEnv,(void *) *theModule);
-         *theClass = EnvGetNextDefclass(theEnv,*theClass);
+         *theClass = (DEFCLASS *) EnvGetNextDefclass(theEnv,*theClass);
          if (*theClass != NULL)
            {
             theLink = (*theClass)->relevant_terminal_alpha_nodes;

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  01/21/18          */
+   /*               CLIPS Version 6.31  06/12/19          */
    /*                                                     */
    /*               CLASS INITIALIZATION MODULE           */
    /*******************************************************/
@@ -43,6 +43,9 @@
 /*                                                            */
 /*      6.31: Optimization of slot ID creation previously    */
 /*            provided by NewSlotNameID function.            */
+/*                                                           */
+/*            Changed allocation of multifield slot default  */
+/*            from ephemeral to explicit deallocation.       */
 /*                                                           */
 /**************************************************************/
 
@@ -285,8 +288,8 @@ static void DeallocateDefclassData(
 #else
    DEFCLASS *cls;
    void *tmpexp;
-   register unsigned int i;
-   register int j;
+   unsigned int i;
+   int j;
    
    if (DefclassData(theEnv)->ClassTable != NULL)
      {
@@ -297,7 +300,10 @@ static void DeallocateDefclassData(
              {
               if ((cls->slots[i].defaultValue != NULL) && (cls->slots[i].dynamicDefault == 0))
                 {
+                 DATA_OBJECT *theValue = (DATA_OBJECT *) cls->slots[i].defaultValue;
                  tmpexp = ((DATA_OBJECT *) cls->slots[i].defaultValue)->supplementalInfo;
+                 if (theValue->type == MULTIFIELD)
+                   { ReturnMultifield(theEnv,(struct multifield *) theValue->value); }
                  rtn_struct(theEnv,dataObject,cls->slots[i].defaultValue);
                  cls->slots[i].defaultValue = tmpexp;
                 }
@@ -355,7 +361,7 @@ globle void ObjectsRunTimeInitialize(
   {
    DEFCLASS *cls;
    void *tmpexp;
-   register unsigned int i,j;
+   unsigned int i,j;
 
    if (DefclassData(theEnv)->ClassTable != NULL)
      {
@@ -371,8 +377,11 @@ globle void ObjectsRunTimeInitialize(
                  ===================================================================== */
               if ((cls->slots[i].defaultValue != NULL) && (cls->slots[i].dynamicDefault == 0))
                 {
+                 DATA_OBJECT *theValue = (DATA_OBJECT *) cls->slots[i].defaultValue;
                  tmpexp = ((DATA_OBJECT *) cls->slots[i].defaultValue)->supplementalInfo;
                  ValueDeinstall(theEnv,(DATA_OBJECT *) cls->slots[i].defaultValue);
+                 if (theValue->type == MULTIFIELD)
+                   { ReturnMultifield(theEnv,(struct multifield *) theValue->value); }
                  rtn_struct(theEnv,dataObject,cls->slots[i].defaultValue);
                  cls->slots[i].defaultValue = tmpexp;
                 }
@@ -426,7 +435,7 @@ globle void ObjectsRunTimeInitialize(
             tmpexp = cls->slots[i].defaultValue;
             cls->slots[i].defaultValue = (void *) get_struct(theEnv,dataObject);
             EvaluateAndStoreInDataObject(theEnv,(int) cls->slots[i].multiple,(EXPRESSION *) tmpexp,
-                                         (DATA_OBJECT *) cls->slots[i].defaultValue,TRUE);
+                                         (DATA_OBJECT *) cls->slots[i].defaultValue,FALSE);
             ValueInstall(theEnv,(DATA_OBJECT *) cls->slots[i].defaultValue);
             ((DATA_OBJECT *) cls->slots[i].defaultValue)->supplementalInfo = tmpexp;
            }
@@ -808,7 +817,7 @@ static void ReturnModule(
 static void UpdateDefclassesScope(
   void *theEnv)
   {
-   register unsigned i;
+   unsigned i;
    DEFCLASS *theDefclass;
    int newModuleID,count;
    char *newScopeMap;

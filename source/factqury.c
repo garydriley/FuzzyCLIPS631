@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  09/28/17          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*                  FACT QUERY MODULE                  */
    /*******************************************************/
@@ -154,7 +154,7 @@ globle void GetQueryFact(
   void *theEnv,
   DATA_OBJECT *result)
   {
-   register QUERY_CORE *core;
+   QUERY_CORE *core;
 
    core = FindQueryCore(theEnv,ValueToInteger(GetpValue(GetFirstArgument())));
    
@@ -405,7 +405,7 @@ globle void QueryFindAllFacts(
   {
    QUERY_TEMPLATE *qtemplates;
    unsigned rcnt;
-   register unsigned i,j;
+   unsigned i,j;
 
    result->type = MULTIFIELD;
    result->begin = 0;
@@ -565,7 +565,7 @@ globle void DelayedQueryDoForAllFacts(
   {
    QUERY_TEMPLATE *qtemplates;
    unsigned rcnt;
-   register unsigned i;
+   unsigned i;
    struct garbageFrame newGarbageFrame, *oldGarbageFrame;
    QUERY_SOLN *theSet;
 
@@ -824,7 +824,7 @@ static QUERY_TEMPLATE *FormChain(
   {
    struct deftemplate *templatePtr;
    QUERY_TEMPLATE *head,*bot,*tmp;
-   register long i,end; /* 6.04 Bug Fix */
+   long i,end; /* 6.04 Bug Fix */
    const char *templateName;
    int count;
 
@@ -1200,7 +1200,7 @@ static void AddSolution(
   void *theEnv)
   {
    QUERY_SOLN *new_soln;
-   register unsigned i;
+   unsigned i;
 
    new_soln = (QUERY_SOLN *) gm2(theEnv,(int) sizeof(QUERY_SOLN));
    new_soln->soln = (struct fact **)

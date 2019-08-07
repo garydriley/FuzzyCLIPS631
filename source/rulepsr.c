@@ -1038,7 +1038,11 @@ static int LogicalAnalysis(
       /* Increment the count of logical CEs found. */
       /*===========================================*/
 
-      logicalJoin++;
+      if (patternList->type == PATTERN_CE)
+        { logicalJoin++; }
+      else if (logicalJoin == 1)
+        { logicalJoin++; }
+        
       logicalsFound = TRUE;
      }
 

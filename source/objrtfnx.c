@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*    INFERENCE ENGINE OBJECT ACCESS ROUTINES MODULE   */
    /*******************************************************/
@@ -1247,7 +1247,7 @@ static long CalculateSlotField(
   long theIndex,
   long *extent)
   {
-   register long actualIndex;
+   long actualIndex;
    void *theSlotName;
 
    actualIndex = theIndex;
@@ -1303,9 +1303,9 @@ static void GetInsMultiSlotField(
   unsigned fromBeginning,
   unsigned offset)
   {
-   register INSTANCE_SLOT * insSlot;
-   register SEGMENT *theSegment;
-   register FIELD *tmpField;
+   INSTANCE_SLOT * insSlot;
+   SEGMENT *theSegment;
+   FIELD *tmpField;
 
    insSlot = theInstance->slotAddresses
                [theInstance->cls->slotNameMap[theSlotID] - 1];

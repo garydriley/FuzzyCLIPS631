@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*             MULTIPLE INHERITANCE PARSER MODULE      */
    /*******************************************************/
@@ -509,8 +509,8 @@ globle void PackClassLinks(
   PACKED_CLASS_LINKS *plinks,
   CLASS_LINK *lptop)
   {
-   register unsigned count;
-   register CLASS_LINK *lp;
+   unsigned count;
+   CLASS_LINK *lp;
 
    for (count = 0 , lp = lptop ; lp != NULL ; lp = lp->nxt)
      count++;
@@ -551,7 +551,7 @@ static PARTIAL_ORDER *InitializePartialOrderTable(
   PARTIAL_ORDER *po_table,
   PACKED_CLASS_LINKS *supers)
   {
-   register PARTIAL_ORDER *pop,*poprv;
+   PARTIAL_ORDER *pop,*poprv;
    long i;
 
    for (i = 0 ; i < supers->classCount ; i++)
@@ -633,8 +633,8 @@ static void RecordPartialOrders(
   PACKED_CLASS_LINKS *successors,
   long starti)
   {
-   register PARTIAL_ORDER *clspo;
-   register SUCCESSOR *stmp;
+   PARTIAL_ORDER *clspo;
+   SUCCESSOR *stmp;
 
    clspo = FindPartialOrder(po_table,cls);
    while (starti < successors->classCount)
@@ -726,7 +726,7 @@ static void PrintPartialOrderLoop(
   void *theEnv,
   PARTIAL_ORDER *po_table)
   {
-   register PARTIAL_ORDER *pop1,*pop2;
+   PARTIAL_ORDER *pop1,*pop2;
    SUCCESSOR *prc,*stmp;
 
    /* ====================================================

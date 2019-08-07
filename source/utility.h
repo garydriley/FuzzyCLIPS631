@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*             CLIPS Version 6.31  04/04/19            */
    /*                                                     */
    /*                 UTILITY HEADER FILE                 */
    /*******************************************************/
@@ -42,6 +42,9 @@
 /*            deprecation warnings.                          */
 /*                                                           */
 /*            Converted API macros to function calls.        */
+/*                                                           */
+/*      6.31: Added debugging code for checking the garbage  */
+/*            frame.                                         */
 /*                                                           */
 /*************************************************************/
 
@@ -173,6 +176,7 @@ struct utilityData
    LOCALE size_t                         UTF8Length(const char *);
    LOCALE size_t                         UTF8CharNum(const char *,size_t);
    LOCALE void                           RestorePriorGarbageFrame(void *,struct garbageFrame *,struct garbageFrame *,struct dataObject *);
+   LOCALE intBool                        CurrentGarbageFrameIsDirty(void *);
    LOCALE void                           CallCleanupFunctions(void *);
    LOCALE void                           CallPeriodicTasks(void *);
    LOCALE void                           CleanCurrentGarbageFrame(void *,struct dataObject *);

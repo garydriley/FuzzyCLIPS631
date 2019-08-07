@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  02/03/18          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -28,6 +28,9 @@
 /*                                                           */
 /*      6.31: Optimization for marking relevant alpha nodes  */
 /*            in the object pattern network.                 */
+/*                                                           */
+/*            Changed allocation of multifield slot default  */
+/*            from ephemeral to explicit deallocation.       */
 /*                                                           */
 /*************************************************************/
 
@@ -263,7 +266,12 @@ static void DeallocateObjectBinaryData(
       for (i = 0L ; i < ObjectBinaryData(theEnv)->SlotCount ; i++)
         {
          if ((ObjectBinaryData(theEnv)->SlotArray[i].defaultValue != NULL) && (ObjectBinaryData(theEnv)->SlotArray[i].dynamicDefault == 0))
-           { rtn_struct(theEnv,dataObject,ObjectBinaryData(theEnv)->SlotArray[i].defaultValue); }
+           {
+            DATA_OBJECT *theValue = (DATA_OBJECT *) ObjectBinaryData(theEnv)->SlotArray[i].defaultValue;
+            if (theValue->type == MULTIFIELD)
+              { ReturnMultifield(theEnv,(struct multifield *) theValue->value); }
+            rtn_struct(theEnv,dataObject,ObjectBinaryData(theEnv)->SlotArray[i].defaultValue);
+           }
         }
 
       space = (sizeof(DEFCLASS) * ObjectBinaryData(theEnv)->ClassCount);
@@ -345,7 +353,7 @@ globle void *BloadDefclassModuleReference(
 static void BsaveObjectsFind(
   void *theEnv)
   {
-   register unsigned i;
+   unsigned i;
    SLOT_NAME *snp;
 
    /* ========================================================
@@ -625,7 +633,7 @@ static void BsaveObjects(
    BSAVE_DEFCLASS_MODULE dummy_mitem;
    BSAVE_SLOT_NAME dummy_slot_name;
    SLOT_NAME *snp;
-   register unsigned i;
+   unsigned i;
 
    if ((ObjectBinaryData(theEnv)->ClassCount == 0L) && (ObjectBinaryData(theEnv)->HandlerCount == 0L))
      {
@@ -1176,7 +1184,7 @@ static void BloadObjects(
 static void UpdatePrimitiveClassesMap(
   void *theEnv)
   {
-   register unsigned i;
+   unsigned i;
 
    for (i = 0 ; i < OBJECT_TYPE_CODE ; i++)
      DefclassData(theEnv)->PrimitiveClassMap[i] = (DEFCLASS *) &ObjectBinaryData(theEnv)->DefclassArray[i];
@@ -1296,7 +1304,7 @@ static void UpdateSlot(
         {
          sp->defaultValue = (void *) get_struct(theEnv,dataObject);
          EvaluateAndStoreInDataObject(theEnv,(int) sp->multiple,ExpressionPointer(bsp->defaultValue),
-                                      (DATA_OBJECT *) sp->defaultValue,TRUE);
+                                      (DATA_OBJECT *) sp->defaultValue,FALSE);
          ValueInstall(theEnv,(DATA_OBJECT *) sp->defaultValue);
         }
      }
@@ -1382,7 +1390,7 @@ static void UpdateHandler(
 static void ClearBloadObjects(
   void *theEnv)
   {
-   register long i;
+   long i;
    size_t space;
 
    space = (sizeof(DEFCLASS_MODULE) * ObjectBinaryData(theEnv)->ModuleCount);
@@ -1411,7 +1419,10 @@ static void ClearBloadObjects(
          DecrementSymbolCount(theEnv,ObjectBinaryData(theEnv)->SlotArray[i].overrideMessage);
          if ((ObjectBinaryData(theEnv)->SlotArray[i].defaultValue != NULL) && (ObjectBinaryData(theEnv)->SlotArray[i].dynamicDefault == 0))
            {
+            DATA_OBJECT *theValue = (DATA_OBJECT *) ObjectBinaryData(theEnv)->SlotArray[i].defaultValue;
             ValueDeinstall(theEnv,(DATA_OBJECT *) ObjectBinaryData(theEnv)->SlotArray[i].defaultValue);
+            if (theValue->type == MULTIFIELD)
+              { ReturnMultifield(theEnv,(struct multifield *) theValue->value); }
             rtn_struct(theEnv,dataObject,ObjectBinaryData(theEnv)->SlotArray[i].defaultValue);
            }
         }

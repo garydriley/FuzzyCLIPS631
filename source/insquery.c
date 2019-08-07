@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  09/28/17          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -151,7 +151,7 @@ globle void SetupQuery(
 globle void *GetQueryInstance(
   void *theEnv)
   {
-   register QUERY_CORE *core;
+   QUERY_CORE *core;
 
    core = FindQueryCore(theEnv,ValueToInteger(GetpValue(GetFirstArgument())));
    return(GetFullInstanceName(theEnv,core->solns[ValueToInteger(GetpValue(GetFirstArgument()->nextArg))]));
@@ -383,7 +383,7 @@ globle void QueryFindAllInstances(
   {
    QUERY_CLASS *qclasses;
    unsigned rcnt;
-   register unsigned i,j;
+   unsigned i,j;
 
    result->type = MULTIFIELD;
    result->begin = 0;
@@ -542,7 +542,7 @@ globle void DelayedQueryDoForAllInstances(
   {
    QUERY_CLASS *qclasses;
    unsigned rcnt;
-   register unsigned i;
+   unsigned i;
    struct garbageFrame newGarbageFrame;
    struct garbageFrame *oldGarbageFrame;
    QUERY_SOLN *theSet;
@@ -801,7 +801,7 @@ static QUERY_CLASS *FormChain(
   {
    DEFCLASS *cls;
    QUERY_CLASS *head,*bot,*tmp;
-   register long i,end; /* 6.04 Bug Fix */
+   long i,end; /* 6.04 Bug Fix */
    const char *className;
    struct defmodule *currentModule;
 
@@ -1222,7 +1222,7 @@ static void AddSolution(
   void *theEnv)
   {
    QUERY_SOLN *new_soln;
-   register unsigned i;
+   unsigned i;
 
    new_soln = (QUERY_SOLN *) gm2(theEnv,(int) sizeof(QUERY_SOLN));
    new_soln->soln = (INSTANCE_TYPE **)

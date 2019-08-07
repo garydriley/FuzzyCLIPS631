@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.31  03/18/19            */
    /*                                                     */
    /*              CONSTRUCT PARSER MODULE                */
    /*******************************************************/
@@ -40,6 +40,9 @@
 /*                                                           */
 /*            Fixed linkage issue when BLOAD_ONLY compiler   */
 /*            flag is set to 1.                              */
+/*                                                           */
+/*      6.31: Disallowed use of extraneous module            */
+/*            specifiers in a construct name.                */
 /*                                                           */
 /*************************************************************/
 
@@ -836,6 +839,12 @@ globle SYMBOL_HN *GetConstructNameAndComment(
       if (name == NULL)
         {
          SyntaxErrorMessage(theEnv,"construct name");
+         return(NULL);
+        }
+        
+      if (FindModuleSeparator(ValueToString(name)) != 0)
+        {
+         SyntaxErrorMessage(theEnv,"module specifier");
          return(NULL);
         }
      }

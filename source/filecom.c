@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  11/19/17            */
+   /*             CLIPS Version 6.31  03/20/19            */
    /*                                                     */
    /*                 FILE COMMANDS MODULE                */
    /*******************************************************/
@@ -50,6 +50,9 @@
 /*            Fixed error in AppendDribble for older         */
 /*            compilers not allowing variable definition     */
 /*            within for statement.                          */
+/*                                                           */
+/*            Fixed line count issue when using Windows      */
+/*            line endings in Unix.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -695,7 +698,7 @@ globle int LLGetcBatch(
    /* Increment the line counter. */
    /*=============================*/
    
-   if (((char) rv == '\r') || ((char) rv == '\n'))
+   if ((char) rv == '\n')
      { IncrementLineCount(theEnv); }
 
    /*=====================================================*/
@@ -1153,7 +1156,7 @@ globle int EnvBatchStar(
 #endif
         }
         
-      if ((inchar == '\r') || (inchar == '\n'))
+      if (inchar == '\n')
         { IncrementLineCount(theEnv); }
      }
 

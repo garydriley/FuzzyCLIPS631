@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  01/13/15          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*              OBJECT MESSAGE DISPATCH CODE           */
    /*******************************************************/
@@ -448,8 +448,8 @@ globle void FindApplicableOfName(
   HANDLER_LINK *bots[4],
   SYMBOL_HN *mname)
   {
-   register int i;
-   register int e;
+   int i;
+   int e;
    HANDLER *hnd;
    unsigned *arr;
    HANDLER_LINK *tmp;
@@ -507,7 +507,7 @@ globle HANDLER_LINK *JoinHandlerLinks(
   HANDLER_LINK *bots[4],
   SYMBOL_HN *mname)
   {
-   register int i;
+   int i;
    HANDLER_LINK *mlink;
 
    if (tops[MPRIMARY] == NULL)
@@ -1188,7 +1188,7 @@ static HANDLER_LINK *FindApplicableHandlers(
   DEFCLASS *cls,
   SYMBOL_HN *mname)
   {
-   register int i;
+   int i;
    HANDLER_LINK *tops[4],*bots[4];
 
    for (i = MAROUND ; i <= MAFTER ; i++)

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  09/20/17            */
+   /*             CLIPS Version 6.31  03/22/19            */
    /*                                                     */
    /*                FACT COMMANDS MODULE                 */
    /*******************************************************/
@@ -53,6 +53,13 @@
 /*            fact-index function is given a retracted       */
 /*            fact.                                          */
 /*                                                           */
+/*            Added code to keep track of pointers to        */
+/*            constructs that are contained externally to    */
+/*            to constructs, DanglingConstructs.             */
+/*                                                           */
+/*            If embedded, LoadFacts cleans the current      */
+/*            garbage frame.                                 */
+/*                                                           */
 /*************************************************************/
 
 #include <stdio.h>
@@ -66,6 +73,7 @@
 #define _FACTCOM_SOURCE_
 
 #include "memalloc.h"
+#include "commline.h"
 #include "envrnmnt.h"
 #include "exprnpsr.h"
 #include "factmngr.h"
@@ -1358,6 +1366,8 @@ globle intBool EnvLoadFacts(
    struct token theToken;
    struct expr *testPtr;
    DATA_OBJECT rv;
+   int danglingConstructs;
+   struct garbageFrame newGarbageFrame, *oldGarbageFrame;
 
    /*======================================================*/
    /* Open the file. Use either "fast save" or I/O Router. */
@@ -1370,11 +1380,22 @@ globle intBool EnvLoadFacts(
      }
 
    SetFastLoad(theEnv,filePtr);
+   
+   /*========================================*/
+   /* Set up the frame for tracking garbage. */
+   /*========================================*/
+   
+   oldGarbageFrame = UtilityData(theEnv)->CurrentGarbageFrame;
+   memset(&newGarbageFrame,0,sizeof(struct garbageFrame));
+   newGarbageFrame.priorFrame = oldGarbageFrame;
+   UtilityData(theEnv)->CurrentGarbageFrame = &newGarbageFrame;
 
    /*=================*/
    /* Load the facts. */
    /*=================*/
 
+   danglingConstructs = ConstructData(theEnv)->DanglingConstructs;
+   
    theToken.type = LPAREN;
    while (theToken.type != STOP)
      {
@@ -1382,6 +1403,23 @@ globle intBool EnvLoadFacts(
       if (testPtr == NULL) theToken.type = STOP;
       else EvaluateExpression(theEnv,testPtr,&rv);
       ReturnExpression(theEnv,testPtr);
+     }
+    
+   /*================================*/
+   /* Restore the old garbage frame. */
+   /*================================*/
+   
+   RestorePriorGarbageFrame(theEnv,&newGarbageFrame,oldGarbageFrame,NULL);
+
+   /*===============================================*/
+   /* If embedded, clean the topmost garbage frame. */
+   /*===============================================*/
+
+   if ((! CommandLineData(theEnv)->EvaluatingTopLevelCommand) &&
+       (EvaluationData(theEnv)->CurrentExpression == NULL))
+     {
+      CleanCurrentGarbageFrame(theEnv,NULL);
+      ConstructData(theEnv)->DanglingConstructs = danglingConstructs;
      }
 
    /*=================*/

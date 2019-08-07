@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  06/10/16            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*            MISCELLANEOUS FUNCTIONS MODULE           */
    /*******************************************************/
@@ -969,7 +969,7 @@ static void ExpandFuncMultifield(
   void *expmult)
   {
    EXPRESSION *newexp,*top,*bot;
-   register long i; /* 6.04 Bug Fix */
+   long i; /* 6.04 Bug Fix */
 
    while (theExp != NULL)
      {

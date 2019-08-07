@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -417,7 +417,7 @@ static void CloseDefgenericFiles(
   {
    int count = maxIndices;
    int arrayVersion = 0;
-   register int i;
+   int i;
 
    for (i = 0 ; i < SAVE_ITEMS ; i++)
      {

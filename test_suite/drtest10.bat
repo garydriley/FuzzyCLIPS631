@@ -537,4 +537,116 @@
       (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
       (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
       (if (eq 3 3) then 3)))))))))))))))))))))))))))))))))))))))))))
+(clear) ; Crash bug
+
+(deftemplate foobar
+  (slot foo)
+  (multislot bar))
+(assert (foobar)))
+(modify 1 (dummy TRUE))
+(clear) ; Logical CE Issue
+(deftemplate A (slot val))
+(deftemplate B)
+(deftemplate C)
+(deftemplate D)
+
+(deffacts infinite_setup
+  (A (val 1)))
+
+(defrule infinite_rule
+  (logical
+    (A (val ?val))
+    (not (and (B) (C)))
+    (test (eq ?val 1)))
+  (not (D))
+  =>
+  (assert (D)))
+
+(reset)
+(watch rules)
+(watch facts)
+(watch activations)
+(run 1)
+(unwatch all)
+(clear)
+(deftemplate A (slot val))
+(deftemplate B)
+(deftemplate C)
+(deftemplate D)
+
+(deffacts infinite_setup
+  (A (val 1)))
+
+(defrule infinite_rule
+  (logical
+    (A (val ?val))
+    (not (and (B) (C)))
+    (test (eq ?val 1))
+    (not (D)))
+  =>
+  (assert (D)))
+
+(reset)
+(watch rules)
+(watch facts)
+(watch activations)
+(run 1)
+(unwatch all)
+(clear) ; SourceForge Ticket #49
+(::)
+(clear) ; SourceForge Ticket #54 Extraneous Module Specifier
+(defmodule EXTRANEOUS::COMPUTE)
+(deftemplate MAIN::EXTRANEOUS::point)
+(deffacts MAIN::EXTRANEOUS::points)
+(defrule MAIN::EXTRANEOUS::find-point =>)
+(defclass MAIN::EXTRANEOUS::POINT (is-a USER))
+(defclass MAIN::POINT (is-a USER))
+(defmessage-handler MAIN::EXTRANEOUS::POINT add-points ())
+(definstances MAIN::EXTRANEOUS::points)
+(deffunction MAIN::EXTRANEOUS::add-point (?x ?y))
+(defgeneric MAIN::EXTRANEOUS::add-point)
+(defmethod MAIN::EXTRANEOUS::add-point ((?x FLOAT) (?y FLOAT)))
+(clear) ; bsave-instances external-address issue
+
+(defclass EXPERIMENT 
+   (is-a USER)
+   (slot fa (type FACT-ADDRESS))
+   (slot ia (type INSTANCE-ADDRESS))
+   (slot ea (type EXTERNAL-ADDRESS)))
+   
+(make-instance e1 of EXPERIMENT
+   (fa (assert (b)))
+   (ia (instance-address(make-instance e2 of EXPERIMENT))))
+(bsave-instances "Temp//experiment.bins")
+(reset)
+(bload-instances "Temp//experiment.bins")
+(send [e1] print)
+(send [e2] print)
+(clear) ; Local variables cannot be accessed bug
+
+(deftemplate hello
+  (slot self (type FACT-ADDRESS)))
+  
+(deffacts hellos
+   (hello))
+(clear) ; Source Ticket #56
+
+(deftemplate maze
+   (multislot open-list)
+   (slot goal))
+
+(defrule test-1
+   (maze (open-list)
+         (goal ?g&nil))
+   =>)
+
+(defrule test-2
+   (maze (open-list) 
+         (goal ?g&:(eq ?g nil)))
+   =>)
+
+(defrule test-3
+   (maze (open-list) 
+         (goal ~nil))
+   =>)
 (clear)

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  02/05/15            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*                    MEMORY MODULE                    */
    /*******************************************************/
@@ -460,7 +460,7 @@ globle unsigned long PoolSize(
    unsigned long cnt = 0;
 
 #if (MEM_TABLE_SIZE > 0)
-   register int i;
+   int i;
    struct memoryPtr *memPtr;
 
    for (i = sizeof(char *) ; i < MEM_TABLE_SIZE ; i++)

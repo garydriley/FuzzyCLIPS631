@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*         IMPLICIT SYSTEM METHODS PARSING MODULE      */
    /*******************************************************/
@@ -130,7 +130,7 @@ static void FormMethodsFromRestrictions(
    RESTRICTION *rptr;
    char theChar[2],defaultc;
    int min,max,mposn,needMinimumMethod;
-   register int i,j;
+   int i,j;
 
    /* ===================================
       The system function will accept any

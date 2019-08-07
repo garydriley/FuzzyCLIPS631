@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  01/25/15          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -438,7 +438,7 @@ globle DEFMETHOD *AddMethod(
   int copyRestricts)
   {
    RESTRICTION *rptr,*rtmp;
-   register int i,j;
+   int i,j;
    int mai;
 
    SaveBusyCount(gfunc);
@@ -624,7 +624,7 @@ globle DEFMETHOD *FindMethodByRestrictions(
   SYMBOL_HN *wildcard,
   int *posn)
   {
-   register int i,cmp;
+   int i,cmp;
    int min,max;
 
    if (wildcard != NULL)
@@ -1427,8 +1427,8 @@ static int RestrictionsCompare(
   int max,
   DEFMETHOD *meth)
   {
-   register int i;
-   register RESTRICTION *r1,*r2;
+   int i;
+   RESTRICTION *r1,*r2;
    int diff = FALSE,rtn;
 
    for (i = 0 ; (i < rcnt) && (i < meth->restrictionCount) ; i++)

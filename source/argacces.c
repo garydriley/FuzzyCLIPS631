@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  09/20/17            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*               ARGUMENT ACCESS MODULE                */
    /*******************************************************/
@@ -808,7 +808,7 @@ globle intBool CheckFunctionArgCount(
   const char *restrictions,
   int argumentCount)
   {
-   register int minArguments, maxArguments;
+   int minArguments, maxArguments;
    char theChar[2];
 
    theChar[0] = '0';

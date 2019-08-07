@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*                  OBJECT MESSAGE FUNCTIONS           */
    /*******************************************************/
@@ -563,7 +563,7 @@ globle unsigned HandlerType(
   const char *func,
   const char *str)
   {
-   register unsigned i;
+   unsigned i;
 
    for (i = MAROUND ; i <= MAFTER ; i++)
      if (strcmp(str,MessageHandlerData(theEnv)->hndquals[i]) == 0)
@@ -595,7 +595,7 @@ globle int CheckCurrentMessage(
   const char *func,
   int ins_reqd)
   {
-   register DATA_OBJECT *activeMsgArg;
+   DATA_OBJECT *activeMsgArg;
 
    if (!MessageHandlerData(theEnv)->CurrentCore || (MessageHandlerData(theEnv)->CurrentCore->hnd->actions != ProceduralPrimitiveData(theEnv)->CurrentProcActions))
      {
@@ -667,7 +667,7 @@ globle HANDLER *FindHandlerByAddress(
   SYMBOL_HN *name,
   unsigned type)
   {
-   register int b;
+   int b;
    long i;
    HANDLER *hnd;
    unsigned *arr;
@@ -705,7 +705,7 @@ globle int FindHandlerByIndex(
   SYMBOL_HN *name,
   unsigned type)
   {
-   register int b;
+   int b;
    long i;
    HANDLER *hnd;
    unsigned *arr;
@@ -740,7 +740,7 @@ globle int FindHandlerNameGroup(
   DEFCLASS *cls,
   SYMBOL_HN *name)
   {
-   register int b,e,i,j;
+   int b,e,i,j;
    HANDLER *hnd;
    unsigned *arr;
    int start;
@@ -875,7 +875,7 @@ globle HANDLER_LINK *FindPreviewApplicableHandlers(
   DEFCLASS *cls,
   SYMBOL_HN *mname)
   {
-   register int i;
+   int i;
    HANDLER_LINK *tops[4],*bots[4];
 
    for (i = MAROUND ; i <= MAFTER ; i++)
@@ -976,7 +976,7 @@ static HANDLER_LINK *DisplayPrimaryCore(
   HANDLER_LINK *core,
   int pdepth)
   {
-   register HANDLER_LINK *rtn;
+   HANDLER_LINK *rtn;
 
    PrintPreviewHandler(theEnv,logicalName,core,pdepth,BEGIN_TRACE);
    if ((core->nxt != NULL) ? (core->nxt->hnd->type == MPRIMARY) : FALSE)
@@ -1005,7 +1005,7 @@ static void PrintPreviewHandler(
   int sdepth,
   const char *tstr)
   {
-   register int i;
+   int i;
 
    for (i = 0 ; i < sdepth ; i++)
      EnvPrintRouter(theEnv,logicalName,"| ");

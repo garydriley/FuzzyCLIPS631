@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*              CLIPS Version 6.31  07/27/17           */
+   /*              CLIPS Version 6.31  05/09/19           */
    /*                                                     */
    /*            INSTANCE PRIMITIVE SUPPORT MODULE        */
    /*******************************************************/
@@ -517,7 +517,7 @@ globle intBool QuashInstance(
   void *theEnv,
   INSTANCE_TYPE *ins)
   {
-   register int iflag;
+   int iflag;
    IGARBAGE *gptr;
 
 #if DEFRULE_CONSTRUCT
@@ -851,7 +851,7 @@ static void BuildDefaultSlots(
   void *theEnv,
   intBool initMessage)
   {
-   register unsigned i,j;
+   unsigned i,j;
    unsigned scnt;
    unsigned lscnt;
    INSTANCE_SLOT *dst = NULL,**adst;

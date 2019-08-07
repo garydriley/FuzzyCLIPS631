@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  01/14/18            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*              DEFMODULE UTILITY MODULE               */
    /*******************************************************/
@@ -60,7 +60,7 @@
 globle unsigned FindModuleSeparator(
   const char *theString)
   {
-   char *sep;
+   const char *sep;
 
    sep = strstr(theString,"::");
 

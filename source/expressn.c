@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*                  EXPRESSION MODULE                  */
    /*******************************************************/
@@ -81,7 +81,7 @@ globle void InitExpressionData(
   void *theEnv)
   {
 #if ! RUN_TIME
-   register unsigned i;
+   unsigned i;
 #endif
 
    AllocateEnvironmentData(theEnv,EXPRESSION_DATA,sizeof(struct expressionData),DeallocateExpressionData);
@@ -289,7 +289,7 @@ globle void ReturnExpression(
   void *theEnv,
   struct expr *waste)
   {
-   register struct expr *tmp;
+   struct expr *tmp;
 
    while (waste != NULL)
      {

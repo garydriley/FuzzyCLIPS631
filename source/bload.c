@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  09/29/16          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*                    BLOAD MODULE                     */
    /*******************************************************/
@@ -81,7 +81,7 @@ globle void InitializeBloadData(
 
    BloadData(theEnv)->BinaryPrefixID = "\1\2\3\4CLIPS";
    BloadData(theEnv)->BinaryVersionID = "V6.31";
-   BloadData(theEnv)->BinarySizes = genalloc(theEnv,strlen(sizeBuffer) + 1);
+   BloadData(theEnv)->BinarySizes = (char *) genalloc(theEnv,strlen(sizeBuffer) + 1);
    genstrcpy(BloadData(theEnv)->BinarySizes,sizeBuffer);
   }
   
@@ -212,6 +212,7 @@ globle int EnvBload(
       else            
         { (* (void (*)(void)) bfPtr->func)(); }
      }
+   ConstructData(theEnv)->ClearInProgress = FALSE;
      
 #if FUZZY_DEFTEMPLATES
    /* NOTE: order changed for fuzzy CLIPS!!! */
@@ -475,7 +476,7 @@ globle void BloadandRefresh(
   size_t objsz,
   void (*objupdate)(void *,void *,long))
   {
-   register long i,bi;
+   long i,bi;
    char *buf;
    long objsmaxread,objsread;
    size_t space;

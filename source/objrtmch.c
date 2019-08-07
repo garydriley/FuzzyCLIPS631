@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  02/03/18          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*          OBJECT PATTERN MATCHER MODULE              */
    /*******************************************************/
@@ -122,7 +122,7 @@ globle void ObjectMatchDelay(
   void *theEnv,
   DATA_OBJECT *result)
   {
-   register int ov;
+   int ov;
 
    ov = SetDelayObjectPatternMatching(theEnv,TRUE);
    EvaluateExpression(theEnv,GetFirstArgument(),result);
@@ -788,8 +788,8 @@ static void ObjectPatternMatch(
   OBJECT_PATTERN_NODE *patternTop,
   struct multifieldMarker *endMark)
   {
-   register unsigned saveSlotLength;
-   register INSTANCE_SLOT *saveSlot;
+   unsigned saveSlotLength;
+   INSTANCE_SLOT *saveSlot;
    OBJECT_PATTERN_NODE *blockedNode;
 
    while (patternTop != NULL)

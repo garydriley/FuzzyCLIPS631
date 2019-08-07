@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  02/05/15            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*                 DEFFUNCTION MODULE                  */
    /*******************************************************/
@@ -924,7 +924,7 @@ static void SaveDeffunctionHeader(
   {
    DEFFUNCTION *dfnxPtr = (DEFFUNCTION *) theDeffunction;
    const char *logicalName = (const char *) userBuffer;
-   register int i;
+   int i;
 
    if (EnvGetDeffunctionPPForm(theEnv,(void *) dfnxPtr) != NULL)
      {

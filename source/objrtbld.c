@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  02/09/18          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*          OBJECT PATTERN MATCHER MODULE              */
    /*******************************************************/
@@ -506,7 +506,7 @@ static intBool ReorderAndAnalyzeObjectPattern(
    EXPRESSION *rexp,*tmpmin,*tmpmax;
    DEFCLASS *cls;
    struct lhsParseNode *tmpNode,*subNode,*bitmap_node,*isa_node,*name_node;
-   register unsigned short i;
+   unsigned short i;
    SLOT_DESC *sd;
    CONSTRAINT_RECORD *crossConstraints, *theConstraint;
    int incompatibleConstraint,clssetChanged = FALSE;
@@ -1092,12 +1092,12 @@ static void DetachObjectPattern(
    
   if (! ConstructData(theEnv)->ClearInProgress)
     {
-     CLASS_BITMAP *cbmp;
+     const CLASS_BITMAP *cbmp;
      unsigned int i;
      DEFCLASS *relevantDefclass;
      CLASS_ALPHA_LINK *alphaLink, *lastAlpha;
 
-     cbmp = (CLASS_BITMAP *) alphaPtr->classbmp->contents;
+     cbmp = (const CLASS_BITMAP *) alphaPtr->classbmp->contents;
      for (i = 0; i <= cbmp->maxid; i++)
         {
          if (TestBitMap(cbmp->map,i))
@@ -1573,7 +1573,7 @@ static CLASS_BITMAP *NewClassBitMap(
   int maxid,
   int set)
   {
-   register CLASS_BITMAP *bmp;
+   CLASS_BITMAP *bmp;
    unsigned size;
 
    if (maxid == -1)
@@ -1602,7 +1602,7 @@ static void InitializeClassBitMap(
   CLASS_BITMAP *bmp,
   int set)
   {
-   register int i,bytes;
+   int i,bytes;
    DEFCLASS *cls;
    struct defmodule *currentModule;
 
@@ -1702,9 +1702,9 @@ static void MarkBitMapClassesBusy(
   BITMAP_HN *bmphn,
   int offset)
   {
-   register CLASS_BITMAP *bmp;
-   register unsigned short i;
-   register DEFCLASS *cls;
+   CLASS_BITMAP *bmp;
+   unsigned short i;
+   DEFCLASS *cls;
 
    /* ====================================
       If a clear is in progress, we do not
@@ -1734,7 +1734,7 @@ static void MarkBitMapClassesBusy(
 static intBool EmptyClassBitMap(
   CLASS_BITMAP *bmp)
   {
-   register unsigned short bytes;
+   unsigned short bytes;
 
    bytes = (unsigned short) (bmp->maxid / BITS_PER_BYTE + 1);
    while (bytes > 0)
@@ -1761,7 +1761,7 @@ static intBool IdenticalClassBitMap(
   CLASS_BITMAP *cs1,
   CLASS_BITMAP *cs2)
   {
-   register int i;
+   int i;
 
    if (cs1->maxid != cs2->maxid)
      return(FALSE);
@@ -1791,7 +1791,7 @@ static intBool ProcessClassRestriction(
   struct lhsParseNode **classRestrictions,
   int recursiveCall)
   {
-   register struct lhsParseNode *chk,**oraddr;
+   struct lhsParseNode *chk,**oraddr;
    CLASS_BITMAP *tmpset1,*tmpset2;
    int constant_restriction = TRUE;
 
@@ -1892,10 +1892,10 @@ static CONSTRAINT_RECORD *ProcessSlotRestriction(
   SYMBOL_HN *slotName,
   int *multip)
   {
-   register DEFCLASS *cls;
-   register int si;
+   DEFCLASS *cls;
+   int si;
    CONSTRAINT_RECORD *totalConstraints = NULL,*tmpConstraints;
-   register unsigned i;
+   unsigned i;
 
    *multip = FALSE;
    for (i = 0 ; i < CLASS_TABLE_HASH_SIZE ; i++)
@@ -1934,7 +1934,7 @@ static void IntersectClassBitMaps(
   CLASS_BITMAP *cs1,
   CLASS_BITMAP *cs2)
   {
-   register unsigned short bytes;
+   unsigned short bytes;
 
    bytes = (unsigned short) (cs2->maxid / BITS_PER_BYTE + 1);
    while (bytes > 0)
@@ -1958,7 +1958,7 @@ static void UnionClassBitMaps(
   CLASS_BITMAP *cs1,
   CLASS_BITMAP *cs2)
   {
-   register unsigned short bytes;
+   unsigned short bytes;
 
    bytes = (unsigned short) (cs2->maxid / BITS_PER_BYTE + 1);
    while (bytes > 0)
@@ -1984,7 +1984,7 @@ static CLASS_BITMAP *PackClassBitMap(
   void *theEnv,
   CLASS_BITMAP *oldset)
   {
-   register unsigned short newmaxid;
+   unsigned short newmaxid;
    CLASS_BITMAP *newset;
 
    for (newmaxid = oldset->maxid ; newmaxid > 0 ; newmaxid--)

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  08/28/17            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*                   RETRACT MODULE                    */
    /*******************************************************/
@@ -445,8 +445,8 @@ static intBool PartialMatchDefunct(
   void *theEnv,
   struct partialMatch *thePM)
   {
-   register unsigned short i;
-   register struct patternEntity * thePE;
+   unsigned short i;
+   struct patternEntity * thePE;
    
    if (thePM->deleting) return TRUE;
 
@@ -473,8 +473,8 @@ intBool PartialMatchWillBeDeleted(
   void *theEnv,
   struct partialMatch *thePM)
   {
-   register unsigned short i;
-   register struct patternEntity * thePE;
+   unsigned short i;
+   struct patternEntity * thePE;
 
    if (thePM == NULL) return FALSE;
    

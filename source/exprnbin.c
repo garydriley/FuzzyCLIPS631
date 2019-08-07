@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*             EXPRESSION BSAVE/BLOAD MODULE           */
    /*******************************************************/
@@ -349,7 +349,7 @@ globle void ClearBloadedExpressions(
 globle void FindHashedExpressions(
   void *theEnv)
   {
-   register unsigned i;
+   unsigned i;
    EXPRESSION_HN *exphash;
 
    for (i = 0 ; i < EXPRESSION_HASH_SIZE ; i++)
@@ -373,7 +373,7 @@ globle void BsaveHashedExpressions(
   void *theEnv,
   FILE *fp)
   {
-   register unsigned i;
+   unsigned i;
    EXPRESSION_HN *exphash;
 
    for (i = 0 ; i < EXPRESSION_HASH_SIZE ; i++)

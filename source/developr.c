@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  06/10/15            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*                   DEVELOPER MODULE                  */
    /*******************************************************/
@@ -467,7 +467,7 @@ static void PrintOPNLevel(
   {
    CLASS_BITMAP *cbmp;
    SLOT_BITMAP *sbmp;
-   register unsigned i;
+   unsigned i;
    OBJECT_PATTERN_NODE *uptr;
    OBJECT_ALPHA_NODE *alphaPtr;
 

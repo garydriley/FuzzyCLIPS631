@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*               CLIPS Version 6.31  05/09/19          */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -664,7 +664,7 @@ globle void PushProcParameters(
   const char *bodytype,
   void (*UnboundErrFunc)(void *))
   {
-   register PROC_PARAM_STACK *ptmp;
+   PROC_PARAM_STACK *ptmp;
 
    ptmp = get_struct(theEnv,ProcParamStack);
    ptmp->ParamArray = ProceduralPrimitiveData(theEnv)->ProcParamArray;
@@ -707,7 +707,7 @@ globle void PushProcParameters(
 globle void PopProcParameters(
   void *theEnv)
   {
-   register PROC_PARAM_STACK *ptmp;
+   PROC_PARAM_STACK *ptmp;
 
    if (ProceduralPrimitiveData(theEnv)->ProcParamArray != NULL)
      rm(theEnv,(void *) ProceduralPrimitiveData(theEnv)->ProcParamArray,(sizeof(DATA_OBJECT) * ProceduralPrimitiveData(theEnv)->ProcParamArraySize));
@@ -749,7 +749,7 @@ globle void PopProcParameters(
 static void ReleaseProcParameters(
   void *theEnv)
   {
-   register PROC_PARAM_STACK *ptmp, *next;
+   PROC_PARAM_STACK *ptmp, *next;
 
    if (ProceduralPrimitiveData(theEnv)->ProcParamArray != NULL)
      rm(theEnv,(void *) ProceduralPrimitiveData(theEnv)->ProcParamArray,(sizeof(DATA_OBJECT) * ProceduralPrimitiveData(theEnv)->ProcParamArraySize));
@@ -812,7 +812,7 @@ static void ReleaseProcParameters(
 globle EXPRESSION *GetProcParamExpressions(
   void *theEnv)
   {
-   register int i;
+   int i;
 
    if ((ProceduralPrimitiveData(theEnv)->ProcParamArray == NULL) || (ProceduralPrimitiveData(theEnv)->ProcParamExpressions != NULL))
      return(ProceduralPrimitiveData(theEnv)->ProcParamExpressions);
@@ -862,7 +862,7 @@ globle void EvaluateProcActions(
   void (*crtproc)(void *))
   {
    DATA_OBJECT *oldLocalVarArray;
-   register int i;
+   int i;
    struct defmodule *oldModule;
    EXPRESSION *oldActions;
    struct trackedMemory *theTM;
@@ -934,7 +934,7 @@ globle void PrintProcParamArray(
   void *theEnv,
   const char *logName)
   {
-   register int i;
+   int i;
 
    EnvPrintRouter(theEnv,logName," (");
    for (i = 0 ; i < ProceduralPrimitiveData(theEnv)->ProcParamArraySize ; i++)
@@ -964,7 +964,7 @@ globle void GrabProcWildargs(
   DATA_OBJECT *result,
   int theIndex)
   {
-   register int i,j;
+   int i,j;
    long k; /* 6.04 Bug Fix */
    long size;
    DATA_OBJECT *val;
@@ -1121,7 +1121,7 @@ static intBool RtnProcParam(
   void *value,
   DATA_OBJECT *result)
   {
-   register DATA_OBJECT *src;
+   DATA_OBJECT *src;
    
    src = &ProceduralPrimitiveData(theEnv)->ProcParamArray[*((int *) ValueToBitMap(value)) - 1];
    result->type = src->type;
@@ -1149,7 +1149,7 @@ static intBool GetProcBind(
   void *value,
   DATA_OBJECT *result)
   {
-   register DATA_OBJECT *src;
+   DATA_OBJECT *src;
    PACKED_PROC_VAR *pvar;
 
    pvar = (PACKED_PROC_VAR *) ValueToBitMap(value);
@@ -1214,7 +1214,7 @@ static intBool PutProcBind(
   void *value,
   DATA_OBJECT *result)
   {
-   register DATA_OBJECT *dst;
+   DATA_OBJECT *dst;
 
    dst = &ProceduralPrimitiveData(theEnv)->LocalVarArray[*((int *) ValueToBitMap(value)) - 1];
    if (GetFirstArgument() == NULL)
@@ -1388,7 +1388,7 @@ static EXPRESSION *CompactActions(
   void *theEnv,
   EXPRESSION *actions)
   {
-   register struct expr *tmp;
+   struct expr *tmp;
 
    if (actions->argList == NULL)
      {

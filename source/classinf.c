@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*        CLASS INFO PROGRAMMATIC ACCESS MODULE        */
    /*******************************************************/
@@ -415,7 +415,7 @@ globle void EnvClassSlots(
   int inhp)
   {
    long size;
-   register DEFCLASS *cls;
+   DEFCLASS *cls;
    long i;
 
    cls = (DEFCLASS *) clsptr;
@@ -465,7 +465,7 @@ globle void EnvGetDefmessageHandlerList(
   {
    DEFCLASS *cls,*svcls,*svnxt,*supcls;
    long j;
-   register int classi,classiLimit;
+   int classi,classiLimit;
    unsigned long i, sublen, len;
 
    if (clsptr == NULL)
@@ -584,8 +584,8 @@ globle void EnvClassSubclasses(
   DATA_OBJECT *result,
   int inhp)
   {
-   register int i; // Bug fix 2014-07-18: Previously unsigned and SetpDOEnd decremented to -1.
-   register int id;
+   int i; // Bug fix 2014-07-18: Previously unsigned and SetpDOEnd decremented to -1.
+   int id;
 
    if ((id = GetTraversalID(theEnv)) == -1)
      return;
@@ -621,8 +621,8 @@ globle void ClassSubclassAddresses(
   DATA_OBJECT *result,
   int inhp)
   {
-   register int i; // Bug fix 2014-07-18: Previously unsigned and SetpDOEnd decremented to -1.
-   register int id;
+   int i; // Bug fix 2014-07-18: Previously unsigned and SetpDOEnd decremented to -1.
+   int id;
 
    if ((id = GetTraversalID(theEnv)) == -1)
      return;
@@ -659,8 +659,8 @@ globle void EnvSlotFacets(
   const char *sname,
   DATA_OBJECT *result)
   {
-   register int i;
-   register SLOT_DESC *sp;
+   int i;
+   SLOT_DESC *sp;
 
    if ((sp = SlotInfoSlot(theEnv,result,(DEFCLASS *) clsptr,sname,"slot-facets")) == NULL)
      return;
@@ -747,9 +747,9 @@ globle void EnvSlotSources(
   const char *sname,
   DATA_OBJECT *result)
   {
-   register unsigned i;
-   register int classi;
-   register SLOT_DESC *sp,*csp;
+   unsigned i;
+   int classi;
+   SLOT_DESC *sp,*csp;
    CLASS_LINK *ctop,*ctmp;
    DEFCLASS *cls;
 
@@ -793,8 +793,8 @@ globle void EnvSlotTypes(
   const char *sname,
   DATA_OBJECT *result)
   {
-   register unsigned i,j;
-   register SLOT_DESC *sp;
+   unsigned i,j;
+   SLOT_DESC *sp;
    char typemap[2];
    unsigned msize;
 
@@ -875,9 +875,9 @@ globle void EnvSlotAllowedValues(
   const char *sname,
   DATA_OBJECT *result)
   {
-   register int i;
-   register SLOT_DESC *sp;
-   register EXPRESSION *theExp;
+   int i;
+   SLOT_DESC *sp;
+   EXPRESSION *theExp;
 
    if ((sp = SlotInfoSlot(theEnv,result,(DEFCLASS *) clsptr,sname,"slot-allowed-values")) == NULL)
      return;
@@ -906,9 +906,9 @@ globle void EnvSlotAllowedClasses(
   const char *sname,
   DATA_OBJECT *result)
   {
-   register int i;
-   register SLOT_DESC *sp;
-   register EXPRESSION *theExp;
+   int i;
+   SLOT_DESC *sp;
+   EXPRESSION *theExp;
 
    if ((sp = SlotInfoSlot(theEnv,result,(DEFCLASS *) clsptr,sname,"slot-allowed-classes")) == NULL)
      return;
@@ -937,7 +937,7 @@ globle void EnvSlotRange(
   const char *sname,
   DATA_OBJECT *result)
   {
-   register SLOT_DESC *sp;
+   SLOT_DESC *sp;
 
    if ((sp = SlotInfoSlot(theEnv,result,(DEFCLASS *) clsptr,sname,"slot-range")) == NULL)
      return;
@@ -966,7 +966,7 @@ globle void EnvSlotCardinality(
   const char *sname,
   DATA_OBJECT *result)
   {
-   register SLOT_DESC *sp;
+   SLOT_DESC *sp;
 
    if ((sp = SlotInfoSlot(theEnv,result,(DEFCLASS *) clsptr,sname,"slot-cardinality")) == NULL)
      return;
@@ -1046,7 +1046,7 @@ static unsigned CountSubclasses(
   int tvid)
   {
    long i,cnt;
-   register DEFCLASS *subcls;
+   DEFCLASS *subcls;
 
    for (cnt = 0 , i = 0 ; i < cls->directSubclasses.classCount ; i++)
      {
@@ -1084,7 +1084,7 @@ static unsigned StoreSubclasses(
   short storeName)
   {
    long i,classi;
-   register DEFCLASS *subcls;
+   DEFCLASS *subcls;
 
    for (i = si , classi = 0 ; classi < cls->directSubclasses.classCount ; classi++)
      {

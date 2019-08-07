@@ -174,8 +174,8 @@ globle double sFunction(
   double beta,
   double gamma)
   {
-   register double gMinusa = gamma - alfa;
-   register double gMinusaSqr = gMinusa * gMinusa;
+   double gMinusa = gamma - alfa;
+   double gMinusaSqr = gMinusa * gMinusa;
    
    if (x <= alfa)
      { return(0.0); }

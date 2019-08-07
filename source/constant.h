@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  02/09/18            */
+   /*             CLIPS Version 6.31  06/12/19            */
    /*                                                     */
    /*                CONSTANTS HEADER FILE                */
    /*******************************************************/
@@ -87,11 +87,11 @@
 #endif
 
 #ifndef CREATION_DATE_STRING
-#define CREATION_DATE_STRING "2/26/18"
+#define CREATION_DATE_STRING "6/12/19"
 #endif
 
 #ifndef BANNER_STRING
-#define BANNER_STRING "         FuzzyCLIPS (6.31 2/26/18)\n"
+#define BANNER_STRING "         FuzzyCLIPS (6.31 6/12/19)\n"
 #endif
 
 /*************************/

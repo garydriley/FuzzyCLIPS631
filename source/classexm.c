@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*                 CLASS EXAMINATION MODULE            */
    /*******************************************************/
@@ -117,7 +117,7 @@ static const char *ConstraintCode(CONSTRAINT_RECORD *,unsigned,unsigned);
 globle void BrowseClassesCommand(
   void *theEnv)
   {
-   register DEFCLASS *cls;
+   DEFCLASS *cls;
    
    if (EnvRtnArgCount(theEnv) == 0)
       /* ================================================
@@ -1041,7 +1041,7 @@ static void DisplaySeparator(
   int maxlen,
   int sepchar)
   {
-   register int i;
+   int i;
 
    for (i = 0 ; i < maxlen-2 ; i++)
      buf[i] = (char) sepchar;

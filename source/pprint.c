@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  10/02/17            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*                 PRETTY PRINT MODULE                 */
    /*******************************************************/
@@ -223,7 +223,7 @@ globle void PPCRAndIndent(
      { return; }
 
    if ((PrettyPrintData(theEnv)->IndentationDepth + 2) > PP_CR_FIXED_BUFFER_SIZE)
-     { buffer = genalloc(theEnv,PrettyPrintData(theEnv)->IndentationDepth + 2);}
+     { buffer = (char *) genalloc(theEnv,PrettyPrintData(theEnv)->IndentationDepth + 2);}
    else
      { buffer = fixedBuffer; }
    

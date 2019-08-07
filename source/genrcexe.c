@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.31  05/09/19            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -293,7 +293,7 @@ globle intBool IsMethodApplicable(
   {
    DATA_OBJECT temp;
    short i,j,k;
-   register RESTRICTION *rp;
+   RESTRICTION *rp;
 #if OBJECT_SYSTEM
    void *type;
 #else
@@ -377,7 +377,7 @@ globle intBool IsMethodApplicable(
 globle int NextMethodP(
   void *theEnv)
   {
-   register DEFMETHOD *meth;
+   DEFMETHOD *meth;
 
    if (DefgenericData(theEnv)->CurrentMethod == NULL)
      return(FALSE);
